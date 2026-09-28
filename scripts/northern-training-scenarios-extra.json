@@ -69,5 +69,171 @@
       {"page":"controls","text":"Controls defines the actions that need approval and provides proof and recovery boundaries for sensitive work."},
       {"page":"assistant","fallback":"ai","text":"When an assistant proposes a tenant-data change, review the preview and approve only the intended change. Shared engine changes remain suggestions."}
     ]
+  },
+  {
+    "id": "NL-TRAIN-MONEY-OVERVIEW-OWNER-DESKTOP",
+    "kind": "desktop",
+    "title": "Northern Lakes owner money workspace overview.",
+    "steps": [
+      {"page":"money","text":"Start in Billing to review money in, money out, unpaid invoices, receipts, expenses, and payment status. This is the operational money view, not an automatic payment system."},
+      {"page":"accounting","text":"Move to Accounting to review how invoices, expenses, deposits, vendor obligations, and reconciled activity become the native financial record."},
+      {"page":"reports","text":"Use Reports to connect daily transactions to receivables, payables, profitability, cash position, and owner follow-up."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-VENDOR-BILL-APPROVAL-DESKTOP",
+    "kind": "desktop",
+    "title": "Enter, review, and approve a vendor bill.",
+    "steps": [
+      {"page":"money","text":"Enter the vendor bill with the verified vendor, invoice date, due date, amount, category, job or overhead context, and supporting document."},
+      {"page":"accounting","text":"Review the bill in the accounting record so duplicate bills, incorrect coding, or missing job context are caught before payment preparation."},
+      {"page":"controls","text":"Owner approval is the payment boundary. The system can identify what is due and prepare the next action, but it does not silently pay the vendor."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CHECK-PAYMENT-PREP-DESKTOP",
+    "kind": "desktop",
+    "title": "Prepare a check or electronic vendor payment safely.",
+    "steps": [
+      {"page":"money","text":"Open the approved payable and verify vendor, amount, due date, payment method, and the bill being satisfied."},
+      {"page":"accounting","text":"Use the accounting record to confirm the payment will be applied to the correct payable and will not create a duplicate expense."},
+      {"page":"controls","text":"The Office may tell the owner what check to write or what approved payment to send. Final payment execution remains an owner-controlled external action."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-DEPOSIT-CREDIT-REFUND-DESKTOP",
+    "kind": "desktop",
+    "title": "Handle customer deposits, credits, and refund review.",
+    "steps": [
+      {"page":"money","text":"Record a customer deposit against the correct customer, quote, job, or invoice so the remaining balance stays accurate."},
+      {"page":"accounting","text":"Review credits and adjustments in Accounting so the customer balance and financial record agree."},
+      {"page":"controls","text":"Refunds are sensitive external money actions. Prepare the refund for owner review and approval; do not issue it automatically during normal Office automation."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-BANK-RECONCILIATION-DESKTOP",
+    "kind": "desktop",
+    "title": "Reconcile bank activity against the Office record.",
+    "steps": [
+      {"page":"accounting","text":"Begin with posted bank activity and the matching Office transactions. Reconciliation confirms what actually cleared instead of assuming an invoice or bill status is correct."},
+      {"page":"money","text":"Investigate unmatched deposits, payments, fees, transfers, and expenses from the operational money record."},
+      {"page":"reports","text":"After reconciliation, review cash and outstanding balances again so reports reflect cleared activity and unresolved items remain visible."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CARD-RECONCILIATION-RECEIPTS-DESKTOP",
+    "kind": "desktop",
+    "title": "Reconcile credit-card activity and missing receipts.",
+    "steps": [
+      {"page":"money","text":"Review card purchases and make sure each expense has the correct vendor, date, amount, category, job context, and receipt when available."},
+      {"page":"documents","text":"Use Documents and Smart Upload to attach missing receipt evidence to the related expense rather than leaving it in a phone gallery or email inbox."},
+      {"page":"accounting","text":"Reconcile the card statement to the expense record and leave unmatched or unsupported transactions in review instead of forcing a false match."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-PAYROLL-REIMBURSEMENTS-DESKTOP",
+    "kind": "desktop",
+    "title": "Prepare payroll and employee reimbursement review.",
+    "steps": [
+      {"page":"people","text":"Confirm the employee record and role before reviewing payroll-related work or reimbursements."},
+      {"page":"payroll","text":"Payroll Prep gathers approved employee and work records for payroll preparation. Verify hours, job context, exceptions, and source evidence before handoff."},
+      {"page":"money","text":"Employee reimbursements should reference the actual expense and receipt, with owner review before money is sent."},
+      {"page":"controls","text":"Payroll execution and reimbursement payments remain protected actions even when Office prepares the supporting record."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CASH-FLOW-OWNER-REVIEW-DESKTOP",
+    "kind": "desktop",
+    "title": "Use cash-flow scenarios and owner payment review.",
+    "steps": [
+      {"page":"reports","text":"Review the cash scenario as decision support: expected receivables, bills due, current recorded balances, and timing assumptions."},
+      {"page":"money","text":"Open the underlying invoices and payables before acting on a cash recommendation. A scenario is not the same as confirmed available cash."},
+      {"page":"assistant","fallback":"ai","text":"Use the Assistant to summarize what needs attention or compare options, then verify the source records before approving a payment decision."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-FINANCIAL-REPORT-PACK-DESKTOP",
+    "kind": "desktop",
+    "title": "Review the owner financial report pack.",
+    "steps": [
+      {"page":"reports","text":"Use the report pack to review profit and loss, balance-sheet style position, accounts receivable aging, accounts payable aging, job profitability, and operating trends supported by the native records."},
+      {"page":"accounting","text":"When a report number looks wrong, return to the source accounting records instead of editing the report output itself."},
+      {"page":"money","text":"Use the operational money view to resolve unpaid invoices, bills due, missing receipts, and payment-status issues that drive the reports."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-LEAD-TO-CUSTOMER-DESKTOP",
+    "kind": "desktop",
+    "title": "Move a lead into a real customer and property record.",
+    "steps": [
+      {"page":"customers","text":"Treat an inquiry as a lead until identity, contact information, property, and requested service are verified."},
+      {"page":"customers","text":"When the lead is qualified, create or confirm the canonical customer and property instead of creating duplicates for each request."},
+      {"page":"field","text":"If the scope needs site evidence, move directly into Site Visit so measurements, photos, and conditions stay connected to the new customer."},
+      {"page":"quotes","text":"Build the quote from the verified customer, property, and scope rather than copying information into a disconnected estimate."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CUSTOMER-COMMS-PORTAL-DESKTOP",
+    "kind": "desktop",
+    "title": "Coordinate customer communication with the customer portal.",
+    "steps": [
+      {"page":"messages","text":"Keep customer communication attached to the correct customer and work context whenever possible. Review outbound wording before sending."},
+      {"page":"customers","text":"Customer 360 is the internal history for messages, quotes, work, invoices, files, and approvals."},
+      {"page":"controls","text":"The customer portal exposes only approved customer-facing information. Internal notes, employee controls, and owner-only financial tools remain separate."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-E-SIGN-APPROVAL-DESKTOP",
+    "kind": "desktop",
+    "title": "Use electronic approval and signature without losing document history.",
+    "steps": [
+      {"page":"quotes","text":"Prepare the customer-ready quote or approval document from the current scope and revision."},
+      {"page":"documents","text":"Keep the issued document and supporting evidence attached to the same record so the signed version can be compared to what was approved."},
+      {"page":"controls","text":"Electronic approval or signature records customer intent; it does not bypass owner controls for later pricing changes, refunds, or other protected actions."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-CHANGE-ORDER-DESKTOP",
+    "kind": "desktop",
+    "title": "Create and approve a change order after work has started.",
+    "steps": [
+      {"page":"work","text":"When field conditions change the approved scope, document the issue on the existing job instead of silently changing the original agreement."},
+      {"page":"field","text":"Capture photos, measurements, notes, or other evidence that explains why the scope changed."},
+      {"page":"quotes","text":"Prepare the revised pricing or change order from the documented difference and review the customer-facing amount and wording."},
+      {"page":"controls","text":"Keep the changed scope behind the appropriate customer and owner approval before billing it as completed work."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-OFFLINE-FORMS-CHECKLISTS-PHONE",
+    "kind": "mobile",
+    "title": "Use offline-safe field forms and checklists.",
+    "steps": [
+      {"page":"today","text":"Open the assigned work before heading into a weak-signal area so the operator has the correct customer, property, and service context."},
+      {"page":"field","text":"Use the configured checklist or field form for required steps, measurements, proof, and issue notes. Keep entries on the same job."},
+      {"page":"work","text":"Offline-safe changes may queue for replay. Do not create duplicate jobs or repeat financial actions just because connectivity is slow."},
+      {"page":"today","text":"After connectivity returns, confirm the queued work synchronized and the current status is correct before moving on."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-OWNER-INTELLIGENCE-AI-DESKTOP",
+    "kind": "desktop",
+    "title": "Use owner intelligence and the Office Assistant for decision support.",
+    "steps": [
+      {"page":"assistant","fallback":"ai","text":"Ask Office to summarize overdue invoices, bills due, missing receipts, unsigned change orders, jobs missing proof, job profitability, or other owner review items."},
+      {"page":"reports","text":"Use the report and profitability views to inspect the evidence behind the summary rather than treating the assistant response as the accounting record."},
+      {"page":"money","text":"For payment or cash decisions, verify the actual invoice, payable, and recorded balance before approving an action."},
+      {"page":"controls","text":"Assistant plans are preview-first. High-impact actions remain behind owner approval and should leave proof of what was approved."}
+    ]
+  },
+  {
+    "id": "NL-TRAIN-AUTOMATION-INTEGRATION-CENTER-DESKTOP",
+    "kind": "desktop",
+    "title": "Configure safe automation, approvals, and integrations.",
+    "steps": [
+      {"page":"controls","text":"Use Controls to review the approval queue and define what Office may prepare automatically versus what always needs owner approval."},
+      {"page":"assistant","fallback":"ai","text":"Low-impact internal organization can be automated when configured. Sending messages, changing pricing, issuing refunds, paying bills, moving money, or other external actions stay approval-gated."},
+      {"page":"settings","text":"Use Settings for tenant-specific integration configuration. A missing real provider stays disconnected instead of pretending to be connected."},
+      {"page":"controls","text":"Integration status should show health and capability without exposing API keys, tokens, or secrets. H38 and Northern Lakes remain isolated tenants on the same shared engine."}
+    ]
   }
 ]
