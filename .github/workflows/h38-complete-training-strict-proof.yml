@@ -68,6 +68,7 @@ jobs:
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/run-complete-training-library-strict.js
       - name: Record real signed-in TEST customer portals
+        if: always()
         env:
           H38_PORTAL_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
           H38_PORTAL_REQUIRE_BOTH: ${{ github.event_name == 'workflow_dispatch' }}

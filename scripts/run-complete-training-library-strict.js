@@ -23,8 +23,7 @@ env.H38_WORKFLOW_STAFF_PASSWORD=String(env.H38_WORKFLOW_STAFF_PASSWORD||'');
 const baseEnv={...env,H38_WORKFLOW_STAFF_EMAIL:'',H38_WORKFLOW_STAFF_PASSWORD:''};
 const run=spawnSync(process.execPath,[path.join(root,'scripts','record-complete-training-library.js')],{stdio:'inherit',env:baseEnv});
 if(run.status!==0){
-  console.error(`Complete training recorder returned ${run.status}; strict acceptance will not mask the failure.`);
-  process.exit(run.status||2);
+  console.error(`Complete training recorder returned ${run.status}; strict acceptance will retain the failure while checking Staff proof.`);
 }
 if(!fs.existsSync(manifestPath)||!fs.existsSync(resultsPath)){
   console.error('Strict acceptance requires manifest.json and results.json.');
@@ -63,6 +62,7 @@ fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');
 fs.writeFileSync(resultsPath,JSON.stringify(results,null,2)+'\n');
 
 const holds=[];
+if(run.status!==0)holds.push(`Complete training recorder returned ${run.status}; see individual scenario failures.`);
 const required=[
   'H38-TRAIN-FULL-OFFICE-MAP-DESKTOP',
   'H38-TRAIN-OWNER-DAILY-DESKTOP','H38-TRAIN-OWNER-DAILY-PHONE',

@@ -66,14 +66,21 @@ async function caption(page,text,ms=1050){
   await page.waitForTimeout(ms);
 }
 async function ready(page,businessKey){
-  await page.goto(tenantUrl(businessKey),{waitUntil:'domcontentloaded',timeout:45000});
-  await page.waitForTimeout(700);
-  if(await page.locator('#h38AuthForm:visible').count()){
-    if(!email||!password)throw new Error('Training context requires the secure TEST login pair after session refresh.');
-    await page.locator('#h38AuthEmail').fill(email);await page.locator('#h38AuthPassword').fill(password);
-    await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
+  for(let attempt=0;attempt<2;attempt++){
+    await page.goto(tenantUrl(businessKey),{waitUntil:'domcontentloaded',timeout:45000});
+    await page.waitForTimeout(700);
+    if(await page.locator('#h38AuthForm:visible').count()){
+      if(!email||!password)throw new Error('Training context requires the secure TEST login pair after session refresh.');
+      await page.locator('#h38AuthEmail').fill(email);await page.locator('#h38AuthPassword').fill(password);
+      await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
+    }
+    try{
+      await page.waitForFunction(key=>String(window.state?.snapshot?.business?.businessKey||'').trim().toLowerCase()===key&&!!window.state?.snapshot?.user&&!!window.state?.bridgeReady,businessKey,{timeout:40000});
+      break;
+    }catch(error){
+      if(attempt)throw new Error(`Office ${businessKey} did not become ready after one reload: ${clean(error.message)}`);
+    }
   }
-  await page.waitForFunction(key=>String(window.state?.snapshot?.business?.businessKey||'').trim().toLowerCase()===key&&!!window.state?.snapshot?.user&&!!window.state?.bridgeReady,businessKey,{timeout:40000});
   await page.waitForTimeout(1300);
   await addTrainingStyle(page);
 }
