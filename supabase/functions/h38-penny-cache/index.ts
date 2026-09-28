@@ -476,8 +476,101 @@ async function readCache(admin: any) {
       };
     });
 }
+function sourceEvidence(r: Any) {
+  const direct = parseSourceDate(r?.pennied_at);
+  if (direct) return { rank: 3, at: Date.parse(direct) || 0 };
+  const reported = [
+    parseSourceDate(r?.posted_date),
+    parseSourceDate(r?.last_seen),
+    parseSourceDate(r?.signal_observed_at),
+    ...(Array.isArray(r?.signal_sources)
+      ? r.signal_sources.map((s: Any) => parseSourceDate(s?.observed_at))
+      : []),
+  ]
+    .filter((v): v is string => !!v)
+    .sort()
+    .reverse()[0];
+  return {
+    rank: reported ? 2 : 0,
+    at: reported ? Date.parse(reported) || 0 : 0,
+  };
+}
+function mergeMissingFields(preferred: Any, fallback: Any) {
+  const merged: Any = { ...(fallback || {}), ...(preferred || {}) };
+  for (const [key, value] of Object.entries(fallback || {})) {
+    const current = merged[key];
+    if (
+      current === null ||
+      current === undefined ||
+      (typeof current === "string" && !current.trim())
+    )
+      merged[key] = value;
+  }
+  return merged;
+}
+function dedupeCanonicalRows(
+  rows: { r: Any; key: string; title: string }[],
+) {
+  const byKey = new Map<string, { r: Any; key: string; title: string }>();
+  for (const candidate of rows) {
+    const prior = byKey.get(candidate.key);
+    if (!prior) {
+      byKey.set(candidate.key, candidate);
+      continue;
+    }
+    const a = sourceEvidence(prior.r),
+      b = sourceEvidence(candidate.r),
+      priorImage = rawImage(prior.r),
+      candidateImage = rawImage(candidate.r),
+      priorSource = txt(
+        prior.r?.source_item_url || prior.r?.source_url || prior.r?.url,
+      ),
+      candidateSource = txt(
+        candidate.r?.source_item_url ||
+candidate.r?.source_url ||
+candidate.r?.url,
+      ),
+      candidateWins =
+        b.rank > a.rank ||
+        (b.rank === a.rank && b.at > a.at) ||
+        (b.rank === a.rank &&
+b.at === a.at &&
+!priorImage &&
+!!candidateImage) ||
+        (b.rank === a.rank &&
+b.at === a.at &&
+!!candidateImage === !!priorImage &&
+!priorSource &&
+!!candidateSource),
+      preferred = candidateWins ? candidate : prior,
+      fallback = candidateWins ? prior : candidate;
+    byKey.set(candidate.key, {
+      ...preferred,
+      title: preferred.title || fallback.title,
+      r: mergeMissingFields(preferred.r, fallback.r),
+    });
+  }
+  return [...byKey.values()];
+}
+function errorDetail(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (e && typeof e === "object") {
+    const x = e as Any;
+    try {
+      return JSON.stringify({
+        code: x.code || "",
+        message: x.message || "",
+        details: x.details || "",
+        hint: x.hint || "",
+      });
+    } catch {
+      // Fall through to String below.
+    }
+  }
+  return String(e);
+}
 async function persistRows(admin: any, rows: Any[], sourceBucket: string) {
-  const normalized = rows
+  const canonicalized = rows
     .map((r) => ({
       r,
       key: canonicalKey(r),
@@ -489,7 +582,8 @@ async function persistRows(admin: any, rows: Any[], sourceBucket: string) {
           r?.item_name,
       ),
     }))
-    .filter((x) => x.key && !junkTitle(x.title));
+    .filter((x) => x.key && !junkTitle(x.title)),
+    normalized = dedupeCanonicalRows(canonicalized);
   if (!normalized.length)
     return {
       new_count: 0,
@@ -954,7 +1048,7 @@ Deno.serve(async (req: Request) => {
     }
     return json({ error: "UNKNOWN_ACTION" }, 400);
   } catch (e) {
-    const detail = e instanceof Error ? e.message : String(e);
+    const detail = errorDetail(e);
     console.error("h38-penny-cache request failed", {
       action,
       detail: detail.slice(0, 500),
