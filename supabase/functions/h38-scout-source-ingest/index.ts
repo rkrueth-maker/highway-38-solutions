@@ -36,6 +36,13 @@ async function sha(value: string) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
+function cityStateZipFromAddress(v: unknown) {
+  const address = text(v);
+  const m = address.match(/\b([A-Za-z]+(?:\s+[A-Za-z]+)?)\s+([A-Z]{2})\s*,?\s*(\d{5})(?:-\d{4})?\b/);
+  if (!m) return null;
+  return { city: m[1], state_code: m[2], state: m[2], zip: m[3], postal: m[3] };
+}
+
 async function latestSearchArea(db: any) {
   const q = await db.from("reseller_store_discovery_tiles")
     .select("area_key,lat,lon,radius_miles,source,updated_at")
@@ -44,7 +51,7 @@ async function latestSearchArea(db: any) {
   if (q.error) throw q.error;
   if (!q.data || !Number.isFinite(Number(q.data.lat)) || !Number.isFinite(Number(q.data.lon))) return null;
   const radius = Math.max(1, Math.min(100, Number(q.data.radius_miles || 50)));
-  return {
+  const area: Any = {
     area_key: text(q.data.area_key),
     lat: Number(q.data.lat),
     lon: Number(q.data.lon),
@@ -53,7 +60,29 @@ async function latestSearchArea(db: any) {
     radius,
     source: text(q.data.source),
     area_observed_at: q.data.updated_at,
-  } as Any;
+  };
+
+  const tiles = await db.from("reseller_store_discovery_tiles")
+    .select("stores,updated_at").eq("area_key", area.area_key)
+    .order("updated_at", { ascending: false }).limit(40);
+  if (!tiles.error) {
+    const stores: Any[] = [];
+    for (const tile of tiles.data || []) {
+      if (Array.isArray(tile?.stores)) stores.push(...tile.stores);
+    }
+    stores.sort((a, b) => (num(a?.distance_miles) ?? 9999) - (num(b?.distance_miles) ?? 9999));
+    for (const store of stores) {
+      const d = num(store?.distance_miles);
+      if (d !== null && d > Math.min(8, radius)) continue;
+      const parsed = cityStateZipFromAddress(store?.store_address || store?.address);
+      if (!parsed) continue;
+      Object.assign(area, parsed);
+      area.location_label = [parsed.city, parsed.state_code, parsed.zip].filter(Boolean).join(", ");
+      area.location_evidence = "nearest_store_in_same_recorded_search_area";
+      break;
+    }
+  }
+  return area;
 }
 
 async function reverseLocation(area: Any) {
@@ -61,17 +90,17 @@ async function reverseLocation(area: Any) {
     const r = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&lat=${encodeURIComponent(String(area.lat))}&lon=${encodeURIComponent(String(area.lon))}`,
       {
-        headers: { "user-agent": "H38ScoutSourceIngest/1.0 (+https://highway38solutions.com)", accept: "application/json" },
+        headers: { "user-agent": "H38ScoutSourceIngest/1.1 (+https://highway38solutions.com)", accept: "application/json" },
         signal: AbortSignal.timeout(8000),
       },
     );
     const p = await r.json().catch(() => ({}));
     if (!r.ok) return area;
     const a = (p as Any)?.address || {};
-    const city = text(a.city || a.town || a.village || a.hamlet || a.county);
-    const state = text(a.state);
-    const stateCode = text(a["ISO3166-2-lvl4"]).split("-").pop() || "";
-    const zip = text(a.postcode).match(/\b\d{5}\b/)?.[0] || "";
+    const city = text(a.city || a.town || a.village || a.hamlet || a.county || area.city);
+    const state = text(a.state || area.state);
+    const stateCode = text(a["ISO3166-2-lvl4"]).split("-").pop() || text(area.state_code);
+    const zip = text(a.postcode).match(/\b\d{5}\b/)?.[0] || text(area.zip || area.postal);
     return {
       ...area,
       city,
@@ -79,7 +108,8 @@ async function reverseLocation(area: Any) {
       state_code: stateCode,
       zip,
       postal: zip,
-      location_label: [city, stateCode || state, zip].filter(Boolean).join(", "),
+      location_label: [city, stateCode || state, zip].filter(Boolean).join(", ") || text(area.location_label),
+      location_evidence: city && zip ? "reverse_geocode_or_recorded_store_area" : text(area.location_evidence),
     };
   } catch {
     return area;
@@ -105,7 +135,10 @@ async function invoke(slug: string, body: unknown, timeout = 45000) {
 
 function rowsFrom(data: Any, keys: string[]) {
   const out: Any[] = [];
-  for (const key of keys) if (Array.isArray(data?.[key])) out.push(...data[key]);
+  const containers = [data, data?.data].filter((x) => x && typeof x === "object");
+  for (const container of containers) {
+    for (const key of keys) if (Array.isArray(container?.[key])) out.push(...container[key]);
+  }
   return out;
 }
 
@@ -152,6 +185,10 @@ async function cacheSourceRows(db: any, bucket: string, retailer: string, rows: 
   if (existing.error) throw existing.error;
   const existingMap = new Map((existing.data || []).map((x: Any) => [text(x.canonical_key), x]));
   const now = nowIso();
+  const off = await db.from("reseller_hunt_cache").update({ active: false, last_changed_at: now })
+    .eq("source_bucket", bucket).eq("active", true);
+  if (off.error) throw off.error;
+
   const upserts: Any[] = [];
   for (const item of deduped.values()) {
     const old = existingMap.get(item.key);
@@ -178,6 +215,7 @@ async function cacheSourceRows(db: any, bucket: string, retailer: string, rows: 
         search_lon: area.lon,
         search_radius_miles: area.radiusMiles,
         search_location_label: text(area.location_label),
+        search_location_evidence: text(area.location_evidence),
         observed_at: now,
         economics_complete: false,
         profit_verified: false,
@@ -201,25 +239,21 @@ async function cacheSourceRows(db: any, bucket: string, retailer: string, rows: 
     const q = await db.from("reseller_hunt_cache").upsert(upserts, { onConflict: "canonical_key" });
     if (q.error) throw q.error;
   }
-  if (deduped.size || rows.length === 0) {
-    const currentKeys = [...deduped.keys()];
-    let q = db.from("reseller_hunt_cache").update({ active: false, last_changed_at: now })
-      .eq("source_bucket", bucket).eq("active", true);
-    if (currentKeys.length) q = q.not("canonical_key", "in", `(${currentKeys.map((k) => `\"${k}\"`).join(",")})`);
-    const off = await q;
-    if (off.error) throw off.error;
-  }
   return upserts.length;
 }
 
 async function refreshCvs(db: any) {
-  const sourceUrl = "https://www.cvs.com/shop/grocery/beverages";
+  const urls = [
+    "https://www.cvs.com/shop/grocery/beverages",
+    "https://es.cvs.com/shop/grocery/beverages/soda",
+    "https://www.cvs.com/shop/grocery/beverages/soda",
+  ];
   const fetchText = async (url: string) => {
     let last = "";
     for (const candidate of [`https://r.jina.ai/${url}`, url]) {
       try {
         const r = await fetch(candidate, {
-          headers: { "user-agent": "Mozilla/5.0 H38Coupon/3.1 public-retailer-check", accept: "text/html,text/plain,*/*;q=0.8" },
+          headers: { "user-agent": "Mozilla/5.0 H38Coupon/3.2 public-retailer-check", accept: "text/html,text/plain,*/*;q=0.8" },
           redirect: "follow",
           signal: AbortSignal.timeout(18000),
         });
@@ -233,18 +267,32 @@ async function refreshCvs(db: any) {
     throw new Error(last || "CVS source unavailable");
   };
   try {
-    const raw = await fetchText(sourceUrl);
-    const plain = raw.replace(/\r/g, " ").replace(/[*_#`]/g, " ").replace(/\s+/g, " ");
-    const marker = /Coca-Cola Soda Soft Drink,?\s*Cans,?\s*12 ct,?\s*12 oz/i.exec(plain);
-    if (!marker?.index) return { status: "DEGRADED", refreshed: 0, warning: "CVS Coca-Cola 12-pack listing not found on public beverages page." };
-    const window = plain.slice(marker.index, marker.index + 1100);
-    const priceMatch = window.match(/\$\s*([0-9]+(?:\.[0-9]{1,2})?)/);
-    const hasPromo = /Buy\s*2\s*,?\s*Get\s*1\s*Free/i.test(window);
-    const shelf = priceMatch ? Number(priceMatch[1]) : null;
-    if (!hasPromo || !Number.isFinite(shelf) || !(shelf! > 0)) {
-      return { status: "DEGRADED", refreshed: 0, warning: "CVS public listing found, but current price/promotion could not be proven together." };
+    let matched: { sourceUrl: string; shelf: number; window: string } | null = null;
+    const warnings: string[] = [];
+    for (const sourceUrl of urls) {
+      try {
+        const raw = await fetchText(sourceUrl);
+        const plain = raw.replace(/\r/g, " ").replace(/[*_#`]/g, " ").replace(/\s+/g, " ");
+        const marker = /Coca-Cola\s+Soda\s+Soft\s+Drink(?:,?\s*Cans)?[^$]{0,260}(?:12\s*(?:ct|CT|PK)|12\s*oz)/i.exec(plain);
+        if (marker?.index === undefined) {
+          warnings.push(`${sourceUrl}: product not found`);
+          continue;
+        }
+        const window = plain.slice(marker.index, marker.index + 1400);
+        const priceMatch = window.match(/\$\s*([0-9]+(?:\.[0-9]{1,2})?)/);
+        const hasPromo = /Buy\s*2\s*,?\s*Get\s*1\s*Free/i.test(window);
+        const shelf = priceMatch ? Number(priceMatch[1]) : null;
+        if (hasPromo && Number.isFinite(shelf) && shelf! > 0) {
+          matched = { sourceUrl, shelf: shelf!, window };
+          break;
+        }
+        warnings.push(`${sourceUrl}: product found without jointly proven price/promo`);
+      } catch (e) {
+        warnings.push(`${sourceUrl}: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
-    const effective = Number((shelf! * 2 / 3).toFixed(4));
+    if (!matched) return { status: "DEGRADED", refreshed: 0, warnings: warnings.slice(0, 3) };
+    const effective = Number((matched.shelf * 2 / 3).toFixed(4));
     const now = nowIso();
     const expiresAt = new Date(Date.now() + 30 * 3600000).toISOString();
     const row = {
@@ -253,8 +301,8 @@ async function refreshCvs(db: any) {
       title: "Coca-Cola Soda Soft Drink, Cans, 12 ct, 12 oz — Buy 2, Get 1 Free",
       item_name: "Coca-Cola",
       buy_price: effective,
-      retail_price: shelf,
-      source_url: sourceUrl,
+      retail_price: matched.shelf,
+      source_url: matched.sourceUrl,
       deal_terms: "Buy 2, Get 1 Free on eligible Coca-Cola 12-packs",
       evidence_scope: "chain_online_verify_local",
       observed_at: now,
@@ -268,7 +316,7 @@ async function refreshCvs(db: any) {
         locality: "not_verified",
         local_price_verified: false,
         live_checkout_verified: false,
-        shelf_price: shelf,
+        shelf_price: matched.shelf,
         deal_quantity: 3,
         effective_each: effective,
         deal_price_scope: "effective_each",
@@ -280,7 +328,7 @@ async function refreshCvs(db: any) {
     };
     const q = await db.from("coupon_public_offer_cache").upsert(row, { onConflict: "canonical_key" });
     if (q.error) throw q.error;
-    return { status: "AVAILABLE", refreshed: 1, shelf_price: shelf, effective_each: effective };
+    return { status: "AVAILABLE", refreshed: 1, shelf_price: matched.shelf, effective_each: effective, source_url: matched.sourceUrl };
   } catch (e) {
     return { status: "UNAVAILABLE", refreshed: 0, warning: e instanceof Error ? e.message : String(e) };
   }
@@ -334,26 +382,27 @@ Deno.serve(async (req: Request) => {
         invoke("reseller-garage-sales-v308", area, 50000),
         invoke("reseller-auction-search-v230", area, 50000),
       ]);
+      const facebookResults = rowsFrom(facebook.data, ["results"]);
+      const facebookCandidates = rowsFrom(facebook.data, ["candidates"]);
+      const garageRows = rowsFrom(garage.data, ["results", "sales", "events"]);
+      const auctionRows = rowsFrom(auctions.data, ["results", "auction_candidates", "candidates", "lots"]);
 
       diagnostics.push(
-        { source: "facebook", ok: facebook.ok, status: facebook.status },
-        { source: "garage", ok: garage.ok, status: garage.status },
-        { source: "auctions", ok: auctions.ok, status: auctions.status },
+        { source: "facebook", ok: facebook.ok, status: facebook.status, result_count: facebookResults.length, candidate_count: facebookCandidates.length, provider_status: text(facebook.data?.provider_status || facebook.data?.status) },
+        { source: "garage", ok: garage.ok, status: garage.status, result_count: garageRows.length, provider_status: text(garage.data?.status) },
+        { source: "auctions", ok: auctions.ok, status: auctions.status, result_count: auctionRows.length, provider_status: text(auctions.data?.status) },
       );
 
       if (facebook.ok) {
-        const verified = rowsFrom(facebook.data, ["results"]).filter((r) => r?.location_verified === true);
-        const candidates = rowsFrom(facebook.data, ["candidates"]);
-        facebookCandidatesExcluded = candidates.length;
+        const verified = facebookResults.filter((r) => r?.location_verified === true);
+        facebookCandidatesExcluded = facebookCandidates.length + Math.max(0, facebookResults.length - verified.length);
         facebookCount = await cacheSourceRows(db, "facebook_public", "Facebook Marketplace", verified, area, "PUBLIC FACEBOOK · LOCATION VERIFIED");
       }
       if (garage.ok) {
-        const rows = rowsFrom(garage.data, ["results", "sales", "events"]);
-        garageCount = await cacheSourceRows(db, "garage_sales", "Garage / Estate Sale", rows, area, "PUBLIC SALE LEAD · VERIFY ADDRESS/DATE");
+        garageCount = await cacheSourceRows(db, "garage_sales", "Garage / Estate Sale", garageRows, area, "PUBLIC SALE LEAD · VERIFY ADDRESS/DATE");
       }
       if (auctions.ok) {
-        const rows = rowsFrom(auctions.data, ["results", "auction_candidates", "candidates", "lots"]);
-        auctionCount = await cacheSourceRows(db, "auctions", "Auction", rows, area, "AUCTION LEAD · CURRENT BID IS NOT PURCHASE PRICE");
+        auctionCount = await cacheSourceRows(db, "auctions", "Auction", auctionRows, area, "AUCTION LEAD · CURRENT BID IS NOT PURCHASE PRICE");
       }
     } else {
       diagnostics.push({ source: "local_sources", ok: false, status: 204, warning: "No prior app store-search area exists; local-source refresh skipped rather than guessing a location." });
@@ -362,10 +411,11 @@ Deno.serve(async (req: Request) => {
     const normalization = await normalizeDealEngine(db, nightlyKey);
     return json({
       ok: true,
-      engine: "H38_SCOUT_SOURCE_INGEST_V1",
+      engine: "H38_SCOUT_SOURCE_INGEST_V2",
       searched_area: area ? {
         area_key: area.area_key,
         location_label: text(area.location_label),
+        location_evidence: text(area.location_evidence),
         radius_miles: area.radiusMiles,
         area_observed_at: area.area_observed_at,
       } : null,
@@ -375,7 +425,7 @@ Deno.serve(async (req: Request) => {
       diagnostics,
       deal_engine_normalization: normalization,
       elapsed_ms: Date.now() - started,
-      truth: "No location is guessed. The latest explicit app store-search area drives local public-source refreshes. Facebook rows enter the shared Deal Engine only when locality is proven by the adapter. Garage/estate and auction rows remain leads with unknown acquisition/resale economics; auction current bid is never stored as buy price. CVS public chain evidence never claims local stock or local eligibility.",
+      truth: "No location is guessed. The latest explicit app store-search area drives local public-source refreshes, with city/ZIP recovered only from stores recorded inside that same area when reverse geocoding is unavailable. Facebook rows enter the shared Deal Engine only when locality is proven by the adapter. Garage/estate and auction rows remain leads with unknown acquisition/resale economics; auction current bid is never stored as buy price. CVS public chain evidence never claims local stock or local eligibility.",
     });
   } catch (e) {
     return json({ error: "H38_SCOUT_SOURCE_INGEST_ERROR", detail: e instanceof Error ? e.message : String(e) }, 500);
