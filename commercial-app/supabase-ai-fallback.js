@@ -20,7 +20,7 @@
       return 'Open Work & Tasks. Choose the job, enter the task, select an active business user, set the due time, and save. The assignment stays internal and synchronizes to the active Supabase business.';
     }
     if(/photo|file|document|drive/.test(q)){
-      return 'Use Documents & Photos or the photo button inside the job or quote. Supabase private storage is the default. A client-owned Google Drive can be connected during business onboarding, while Supabase keeps the authoritative file metadata and permissions.';
+      return 'Use Documents & Photos or the photo button inside the job or quote. Private Office storage is the current file path. Client-owned Google Drive remains unavailable until separate business onboarding and acceptance are complete.';
     }
     if(/quote|price|estimate/.test(q)){
       return 'Open Quote Builder, select Generic Quote Customer or the correct customer, add scope and measurements, search the cached Price Book first, and save the draft. All prices and delivery remain owner-review required.';

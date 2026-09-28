@@ -7,6 +7,8 @@
   if(!auth || auth.enabled!==true || !Bridge || !Bridge.prototype || !window.supabase)return;
 
   const previousRequest=Bridge.prototype.request;
+  // Client-owned Drive remains gated until the tenant OAuth and upload service are accepted.
+  const clientDriveAvailable=false;
   const settingsCache=new Map();
   let dbClient=null;
 
@@ -85,6 +87,9 @@
     }catch(ignore){}
   }
   async function uploadToGoogleDrive(operation,storageSetting){
+    if(!clientDriveAvailable){
+      throw new Error('Client-owned Google Drive is not available yet. This file remains queued on this device; ask an owner to use private Office storage.');
+    }
     if(storageSetting.connection_status!=='connected' || !storageSetting.root_folder_id){
       throw new Error('This business Google Drive connection is not complete. The file remains safely queued on this device.');
     }
@@ -142,7 +147,7 @@
         snapshot.providers.push({
           'Provider ID':'storage','Provider Type':'storage',
           'Provider Name':storage.provider==='google_drive'?'Client Google Drive':'Supabase private storage',
-          'Connection Status':storage.connection_status==='connected'?'Connected':'Not Connected'
+          'Connection Status':storage.provider==='google_drive'&&!clientDriveAvailable?'Unavailable':storage.connection_status==='connected'?'Connected':'Not Connected'
         });
       }catch(error){
         console.warn('Storage provider setting:',error.message || error);
@@ -181,7 +186,9 @@
     const drive=storage.provider==='google_drive';
     const card=document.createElement('section');
     card.id='businessStorageProviderCard';card.className='card span6';
-    card.innerHTML=`<h2>File storage</h2><div class="row"><div><strong>${drive?'Client Google Drive':'Supabase private storage'}</strong><small>${drive?`Business-owned Drive${storage.providerAccountEmail?' · '+window.esc(storage.providerAccountEmail):''}`:'Default private storage inside the business Supabase tenant'}</small></div>${window.pill(storage.connectionStatus==='connected'?'Connected':'Setup required',storage.connectionStatus==='connected'?'good':'pending')}</div><p class="muted">Supabase remains the system of record. File metadata, permissions, assignments, proof and error history stay in Supabase even when the original file is stored in the client’s own Google Drive.</p><div class="notice">Google Drive is connected separately during client onboarding. OAuth credentials never enter browser code, and one business cannot access another business’s folder.</div>`;
+    const driveReady=drive&&clientDriveAvailable&&storage.connectionStatus==='connected';
+    const label=drive?(driveReady?'Connected':'Unavailable'):storage.connectionStatus==='connected'?'Connected':'Setup required';
+    card.innerHTML=`<h2>File storage</h2><div class="row"><div><strong>${drive?'Client Google Drive':'Supabase private storage'}</strong><small>${drive?'Client-owned Drive is gated for this release':'Default private storage inside this business Office'}</small></div>${window.pill(label,driveReady||!drive&&label==='Connected'?'good':'pending')}</div><p class="muted">Private Office storage is the active launch path. Document records, permissions, assignments, proof, and error history remain in this business Office.</p><div class="notice">${drive?'Drive uploads are paused. Pending files remain queued on this device; contact the owner to restore private Office storage before adding more files.':'Client-owned Google Drive is not available yet. It requires separate business onboarding and acceptance before use.'}</div>`;
     grid.appendChild(card);
     return true;
   }
@@ -193,6 +200,7 @@
     get:businessId=>setting(businessId,true),
     supported:['supabase','google_drive'],
     defaultProvider:'supabase',
+    clientDriveAvailable,
     renderSettingsCard:renderStorageSettingsCard,
     settingsRendererOwnership:false,
     safeguards:{credentialsInBrowser:false,crossTenantAccess:false,automaticCustomerRelease:false}
