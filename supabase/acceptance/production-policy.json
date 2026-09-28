@@ -42,16 +42,7 @@
     "authenticated_security_definer_function_executable",
     "rls_enabled_no_policy"
   ],
-  "reviewed_security_advisor_findings": [
-    {
-      "lint": "function_search_path_mutable",
-      "name": "sanitize_reseller_store_discovery_tiles"
-    },
-    {
-      "lint": "anon_security_definer_function_executable",
-      "name": "h38_penny_cache_feed"
-    }
-  ],
+  "reviewed_security_advisor_findings": [],
   "launch_warning_security_advisor_lints": [
     "auth_leaked_password_protection"
   ],
