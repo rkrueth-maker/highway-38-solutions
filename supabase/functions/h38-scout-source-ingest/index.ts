@@ -273,20 +273,15 @@ async function refreshCvs(db: any) {
       try {
         const raw = await fetchText(sourceUrl);
         const plain = raw.replace(/\r/g, " ").replace(/[*_#`]/g, " ").replace(/\s+/g, " ");
-        const marker = /Coca-Cola\s+Soda\s+Soft\s+Drink(?:,?\s*Cans)?[^$]{0,260}(?:12\s*(?:ct|CT|PK)|12\s*oz)/i.exec(plain);
-        if (marker?.index === undefined) {
-          warnings.push(`${sourceUrl}: product not found`);
-          continue;
+        const exact = /Coca-Cola\s+Soda\s+Soft\s+Drink,?\s*Cans,?\s*12\s*ct,?\s*12\s*oz[\s\S]{0,900}?\$\s*([0-9]+(?:\.[0-9]{1,2})?)[\s\S]{0,500}?Buy\s*2\s*,?\s*Get\s*1\s*Free/i.exec(plain);
+        if (exact?.[1]) {
+          const shelf = Number(exact[1]);
+          if (Number.isFinite(shelf) && shelf > 0) {
+            matched = { sourceUrl, shelf, window: exact[0] };
+            break;
+          }
         }
-        const window = plain.slice(marker.index, marker.index + 1400);
-        const priceMatch = window.match(/\$\s*([0-9]+(?:\.[0-9]{1,2})?)/);
-        const hasPromo = /Buy\s*2\s*,?\s*Get\s*1\s*Free/i.test(window);
-        const shelf = priceMatch ? Number(priceMatch[1]) : null;
-        if (hasPromo && Number.isFinite(shelf) && shelf! > 0) {
-          matched = { sourceUrl, shelf: shelf!, window };
-          break;
-        }
-        warnings.push(`${sourceUrl}: product found without jointly proven price/promo`);
+        warnings.push(`${sourceUrl}: exact Coca-Cola 12-pack price/promotion not jointly proven`);
       } catch (e) {
         warnings.push(`${sourceUrl}: ${e instanceof Error ? e.message : String(e)}`);
       }
