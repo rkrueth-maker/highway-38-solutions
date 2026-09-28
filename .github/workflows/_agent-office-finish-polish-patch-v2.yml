@@ -1,0 +1,143 @@
+name: Agent Office Finish Polish Patch V2
+
+on:
+  push:
+    branches:
+      - agent/office-finish-polish-20260928
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/office-finish-polish-20260928
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply presentation-only Office finish polish
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          office = Path('commercial-app/office-polish.css')
+          c360 = Path('commercial-app/customer-360-authority.css')
+          loader = Path('commercial-app/supabase-no-legacy-office.js')
+          index = Path('commercial-app/index.html')
+
+          office_marker = '/* H38 Office finish polish 20260928 */'
+          office_block = r'''
+
+/* H38 Office finish polish 20260928 */
+body.h38-auth-authorized #mainContent{min-width:0}
+body.h38-auth-authorized #mainContent .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px;margin-bottom:14px}
+body.h38-auth-authorized #mainContent .page-head h1{margin-top:0;margin-bottom:3px;letter-spacing:-.022em}
+body.h38-auth-authorized #mainContent .page-head p{max-width:72ch;margin-top:0;margin-bottom:0;line-height:1.48}
+body.h38-auth-authorized #mainContent .page-tools,body.h38-auth-authorized #mainContent .actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+body.h38-auth-authorized #mainContent :is(input,select,textarea){border-color:var(--line-strong,#c8d5de);border-radius:10px;background:var(--card,#fff);transition:border-color .14s ease,box-shadow .14s ease}
+body.h38-auth-authorized #mainContent :is(input,select,textarea):focus{border-color:var(--h38-accent,#1976d2);box-shadow:0 0 0 3px rgba(25,118,210,.12);outline:0}
+body.h38-auth-authorized :is(button,a,input,select,textarea,summary):focus-visible{outline:3px solid rgba(25,118,210,.34)!important;outline-offset:2px}
+body.h38-auth-authorized #mainContent :is(button,a.primary,a.secondary)[disabled],body.h38-auth-authorized #mainContent :is(button,a.primary,a.secondary)[aria-disabled="true"]{opacity:.54;box-shadow:none!important;cursor:not-allowed}
+body.h38-auth-authorized #mainContent :is(.muted,.hint,small){line-height:1.42}
+body.h38-auth-authorized #mainContent :is(.empty,.empty-state,[data-empty-state]){padding:18px;border:1px dashed var(--line-strong,#c8d5de);border-radius:12px;background:var(--card-soft,#f8fafc);color:var(--muted,#617487);text-align:center}
+body.h38-auth-authorized dialog{border:1px solid rgba(22,51,70,.12);border-radius:18px;box-shadow:0 24px 72px rgba(3,18,29,.26)}
+body.h38-auth-authorized dialog::backdrop{background:rgba(3,18,29,.54)}
+body.h38-auth-authorized #mainContent :is(.table-wrap,.table-scroll){overscroll-behavior-inline:contain}
+body.h38-auth-authorized #mainContent table{font-variant-numeric:tabular-nums}
+@media(max-width:760px){
+ body.h38-auth-authorized #mainContent .page-head{display:grid;align-items:start;gap:7px;margin-bottom:12px}
+ body.h38-auth-authorized #mainContent .page-tools{width:100%;gap:7px}
+ body.h38-auth-authorized #mainContent .page-tools>:is(button,a){min-height:44px}
+ body.h38-auth-authorized #mainContent .actions>:is(button,a){min-height:44px}
+ body.h38-auth-authorized #mainContent :is(input,select,textarea){font-size:16px}
+ body.h38-auth-authorized dialog{width:min(94vw,680px);max-width:94vw;margin:auto}
+ body.h38-auth-authorized #reviewDialog form{padding-bottom:max(12px,env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:360px){
+ body.h38-auth-authorized #mainContent .page-tools>:is(button,a){flex:1 1 46%;min-width:0}
+ body.h38-auth-authorized #mainContent .actions>:is(button,a){flex:1 1 46%;min-width:0}
+ body #globalAiButton.h38-floating-assistant{right:10px!important;padding-left:13px!important;padding-right:13px!important}
+}
+'''
+          text = office.read_text()
+          if office_marker not in text:
+              office.write_text(text.rstrip() + office_block + '\n')
+
+          c360_marker = '/* H38 Customer 360 finish polish 20260928 */'
+          c360_block = r'''
+
+/* H38 Customer 360 finish polish 20260928 */
+.h38-c360-master-detail{gap:16px}
+.h38-c360-directory-rail{border:1px solid var(--line,#d8e0e7);border-radius:16px;background:var(--card,#fff);box-shadow:0 4px 16px rgba(11,36,56,.055)}
+.h38-c360-directory-rail [data-h38-customer-directory-list]{display:grid;gap:6px}
+.h38-c360-directory-rail [data-h38-customer-directory-list] button{width:100%;min-height:48px;text-align:left;touch-action:manipulation}
+.h38-c360-directory-rail [data-h38-customer-directory-list] button:is([aria-current="true"],[aria-selected="true"],.active){background:#eaf2f8;border-color:#c9dae6;color:var(--navy,#0b2438)}
+.h38-c360-detail{min-height:0}
+.h38-c360-tabs{scroll-snap-type:x proximity;overscroll-behavior-inline:contain;scrollbar-width:none}
+.h38-c360-tabs::-webkit-scrollbar{display:none}
+.h38-c360-tabs button{scroll-snap-align:start}
+.h38-c360-panel>.card{min-width:0}
+.h38-c360-row strong,.h38-c360-event strong,.h38-c360-event small{overflow-wrap:anywhere}
+@media(max-width:760px){
+ .h38-c360{gap:14px}
+ .h38-c360-head{gap:12px}
+ .h38-c360-head h2{font-size:clamp(22px,8vw,30px)}
+ .h38-c360-tabs{top:calc(var(--h38-office-shell-top,0px) + 4px);margin-left:-2px;margin-right:-2px;padding:7px 2px;background:rgba(244,247,249,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+ .h38-c360-tabs button{min-width:88px;min-height:46px}
+ .h38-c360-directory-rail{padding:12px}
+ .h38-c360-directory-rail [data-h38-customer-directory-list]{max-height:190px!important}
+ .h38-c360-actions{gap:7px}
+ .h38-c360-actions button{min-height:44px}
+ .h38-c360-setup-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:14px}
+}
+@media(max-width:360px){
+ .h38-c360-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .h38-c360-actions button{flex:1 1 100%}
+ .h38-c360-event{grid-template-columns:1fr;gap:3px}
+ .h38-c360-event>span{padding-top:0}
+}
+'''
+          text = c360.read_text()
+          if c360_marker not in text:
+              c360.write_text(text.rstrip() + c360_block + '\n')
+
+          loader_text = loader.read_text()
+          old_polish = './office-polish.css?build=20260919-business-office-visual-polish-2'
+          new_polish = './office-polish.css?build=20260928-office-finish-1'
+          if old_polish in loader_text:
+              loader_text = loader_text.replace(old_polish, new_polish)
+          elif new_polish not in loader_text:
+              raise SystemExit('Office polish loader build marker not found')
+          loader.write_text(loader_text)
+
+          index_text = index.read_text()
+          old_c360 = './customer-360-authority.css?build=20260922-layout-stability-2'
+          new_c360 = './customer-360-authority.css?build=20260928-office-finish-1'
+          if old_c360 in index_text:
+              index_text = index_text.replace(old_c360, new_c360)
+          elif new_c360 not in index_text:
+              raise SystemExit('Customer 360 stylesheet build marker not found')
+          index.write_text(index_text)
+          PY
+
+          node -e "const fs=require('fs');const a=fs.readFileSync('commercial-app/office-polish.css','utf8'),b=fs.readFileSync('commercial-app/customer-360-authority.css','utf8'),c=fs.readFileSync('commercial-app/supabase-no-legacy-office.js','utf8'),d=fs.readFileSync('commercial-app/index.html','utf8');for(const x of ['H38 Office finish polish 20260928','focus-visible','data-empty-state','@media(max-width:360px)'])if(!a.includes(x))throw new Error('office polish missing '+x);for(const x of ['H38 Customer 360 finish polish 20260928','--h38-office-shell-top','max-height:190px','repeat(2,minmax(0,1fr))'])if(!b.includes(x))throw new Error('Customer 360 polish missing '+x);if(!c.includes('office-polish.css?build=20260928-office-finish-1'))throw new Error('office polish cache bust missing');if(!d.includes('customer-360-authority.css?build=20260928-office-finish-1'))throw new Error('Customer 360 cache bust missing');console.log('Office finish polish source gate PASS')"
+          node --check commercial-app/supabase-no-legacy-office.js
+
+      - name: Commit product changes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add commercial-app/office-polish.css commercial-app/customer-360-authority.css commercial-app/supabase-no-legacy-office.js commercial-app/index.html
+          if git diff --cached --quiet; then
+            echo 'No product changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Polish Business Office presentation and phone flow'
+          git push origin HEAD:agent/office-finish-polish-20260928
