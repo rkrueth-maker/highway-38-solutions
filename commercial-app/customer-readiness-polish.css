@@ -7,3 +7,33 @@
 @media(max-width:980px){.h38-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.h38-ready-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.h38-ready-columns{grid-template-columns:1fr}.h38-customer-ready-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.h38-new-action{padding:8px 9px}.h38-new-action strong{display:none}.h38-quick-create-dialog form{padding:16px}.h38-quick-grid{grid-template-columns:1fr 1fr}.h38-quick-grid button{min-height:98px;padding:11px}.h38-ready-hero{padding:16px;align-items:flex-start;flex-direction:column;border-radius:14px}.h38-ready-hero-actions{width:100%}.h38-ready-hero-actions button{flex:1}.h38-ready-metrics{grid-template-columns:1fr 1fr}.h38-ready-metrics button{padding:10px}.h38-ready-metrics button:last-child{grid-column:1/-1}.h38-ready-activity>div{flex-direction:column;gap:3px}.h38-ready-activity small{white-space:normal}.h38-owner-control-strip{flex-direction:column;gap:3px}.h38-customer-ready-head{flex-direction:column}.h38-customer-ready-actions{justify-content:flex-start}.h38-customer-overview-strip{grid-template-columns:1fr 1fr}.h38-customer-overview-strip article:last-child{grid-column:1/-1}.h38-visit-ready-summary{bottom:88px}.top-actions{gap:4px}}
 @media(max-width:420px){.h38-quick-grid{grid-template-columns:1fr}.h38-customer-ready-cards{grid-template-columns:1fr}.h38-customer-ready-cards article:last-child{grid-column:auto}}
+
+/* H38 Office finish polish 20260928 */
+body.h38-auth-authorized #mainContent{min-width:0}
+body.h38-auth-authorized #mainContent .page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px;margin-bottom:14px}
+body.h38-auth-authorized #mainContent .page-head h1{margin-top:0;margin-bottom:3px;letter-spacing:-.022em}
+body.h38-auth-authorized #mainContent .page-head p{max-width:72ch;margin-top:0;margin-bottom:0;line-height:1.48}
+body.h38-auth-authorized #mainContent .page-tools,body.h38-auth-authorized #mainContent .actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+body.h38-auth-authorized #mainContent :is(input,select,textarea){border-color:var(--line-strong,#c8d5de);border-radius:10px;background:var(--card,#fff);transition:border-color .14s ease,box-shadow .14s ease}
+body.h38-auth-authorized #mainContent :is(input,select,textarea):focus{border-color:var(--h38-accent,#1976d2);box-shadow:0 0 0 3px rgba(25,118,210,.12);outline:0}
+body.h38-auth-authorized :is(button,a,input,select,textarea,summary):focus-visible{outline:3px solid rgba(25,118,210,.34)!important;outline-offset:2px}
+body.h38-auth-authorized #mainContent :is(button,a.primary,a.secondary)[disabled],body.h38-auth-authorized #mainContent :is(button,a.primary,a.secondary)[aria-disabled="true"]{opacity:.54;box-shadow:none!important;cursor:not-allowed}
+body.h38-auth-authorized #mainContent :is(.muted,.hint,small){line-height:1.42}
+body.h38-auth-authorized #mainContent :is(.empty,.empty-state,[data-empty-state]){padding:18px;border:1px dashed var(--line-strong,#c8d5de);border-radius:12px;background:var(--card-soft,#f8fafc);color:var(--muted,#617487);text-align:center}
+body.h38-auth-authorized dialog{border:1px solid rgba(22,51,70,.12);border-radius:18px;box-shadow:0 24px 72px rgba(3,18,29,.26)}
+body.h38-auth-authorized dialog::backdrop{background:rgba(3,18,29,.54)}
+body.h38-auth-authorized #mainContent :is(.table-wrap,.table-scroll){overscroll-behavior-inline:contain}
+body.h38-auth-authorized #mainContent table{font-variant-numeric:tabular-nums}
+@media(max-width:760px){
+ body.h38-auth-authorized #mainContent .page-head{display:grid;align-items:start;gap:7px;margin-bottom:12px}
+ body.h38-auth-authorized #mainContent .page-tools{width:100%;gap:7px}
+ body.h38-auth-authorized #mainContent .page-tools>:is(button,a){min-height:44px}
+ body.h38-auth-authorized #mainContent .actions>:is(button,a){min-height:44px}
+ body.h38-auth-authorized #mainContent :is(input,select,textarea){font-size:16px}
+ body.h38-auth-authorized dialog{width:min(94vw,680px);max-width:94vw;margin:auto}
+ body.h38-auth-authorized #reviewDialog form{padding-bottom:max(12px,env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:360px){
+ body.h38-auth-authorized #mainContent .page-tools>:is(button,a){flex:1 1 46%;min-width:0}
+ body.h38-auth-authorized #mainContent .actions>:is(button,a){flex:1 1 46%;min-width:0}
+}
