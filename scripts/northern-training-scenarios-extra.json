@@ -219,7 +219,7 @@
     "kind": "desktop",
     "title": "Use owner intelligence and the Office Assistant for decision support.",
     "steps": [
-      {"page":"assistant","fallback":"ai","text":"Ask Office to summarize overdue invoices, bills due, missing receipts, unsigned change orders, jobs missing proof, job profitability, or other owner review items."},
+      {"page":"assistant","fallback":"ai","text":"Run the AI Team scan for advisory findings from this business only. Open a finding and check the actual invoice, job, quote, or customer record behind it. Ask for an owner brief when a summary helps; a scan is not an automatic action."},
       {"page":"reports","text":"Use the report and profitability views to inspect the evidence behind the summary rather than treating the assistant response as the accounting record."},
       {"page":"money","text":"For payment or cash decisions, verify the actual invoice, payable, and recorded balance before approving an action."},
       {"page":"controls","text":"Assistant plans are preview-first. High-impact actions remain behind owner approval and should leave proof of what was approved."}
@@ -232,7 +232,7 @@
     "steps": [
       {"page":"controls","text":"Use Controls to review the approval queue and define what Office may prepare automatically versus what always needs owner approval."},
       {"page":"assistant","fallback":"ai","text":"Low-impact internal organization can be automated when configured. Sending messages, changing pricing, issuing refunds, paying bills, moving money, or other external actions stay approval-gated."},
-      {"page":"settings","text":"Use Settings for tenant-specific integration configuration. A missing real provider stays disconnected instead of pretending to be connected."},
+      {"page":"settings","text":"Use Settings to confirm private Office file storage is active. Client-owned Google Drive is unavailable for this release and must remain gated until separate onboarding and upload acceptance pass. A missing provider never counts as connected."},
       {"page":"controls","text":"Integration status should show health and capability without exposing API keys, tokens, or secrets. H38 and Northern Lakes remain isolated tenants on the same shared engine."}
     ]
   }
