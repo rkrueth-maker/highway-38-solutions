@@ -1,0 +1,29 @@
+name: Verify H38 Penny Cache Source
+
+on:
+  push:
+    branches:
+      - agent/fix-penny-cache-cleanup-20260927
+      - agent/private-reseller-scout
+    paths:
+      - 'supabase/functions/h38-penny-cache/**'
+      - 'scripts/verify-h38-penny-cache-source.mjs'
+      - '.github/workflows/verify-h38-penny-cache-source.yml'
+  pull_request:
+    branches:
+      - agent/private-reseller-scout
+    paths:
+      - 'supabase/functions/h38-penny-cache/**'
+      - 'scripts/verify-h38-penny-cache-source.mjs'
+      - '.github/workflows/verify-h38-penny-cache-source.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Penny cache runtime guards
+        run: node scripts/verify-h38-penny-cache-source.mjs

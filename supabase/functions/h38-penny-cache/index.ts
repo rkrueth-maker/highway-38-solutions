@@ -159,10 +159,10 @@ function parseSourceDate(v: any): string | null {
 }
 function dateRank(kind: any) {
   const k = txt(kind);
-  if (k === "pennied_at" || k === "pennied_at_repaired_partial_year") return3;
-  if (k === "reported_at") return2;
-  if (k === "first_captured") return1;
-  return0;
+  if (k === "pennied_at" || k === "pennied_at_repaired_partial_year") return 3;
+  if (k === "reported_at") return 2;
+  if (k === "first_captured") return 1;
+  return 0;
 }
 function sourceDateFor(r: Any, prior?: Any) {
   const raw = txt(r?.pennied_at);
@@ -676,25 +676,26 @@ async function resolveStrictImages(auth: string, token: string) {
     async function worker() {
       while (cursor < rows.length) {
         const start = cursor;
-        ((cursor += 8),
-          (part = rows.slice(start, start + 8)),
-          (items = part.map((r: Any) => ({
-            key: r.canonical_key,
-            retailer: r.retailer,
-            barcode: r.upc,
-            proof:
-              r.payload?.image_match_barcode ||
-              r.payload?.image_proof_barcode ||
-              "",
-            image_url: r.image_url || "",
-            reference_url: referenceFor(r.payload || {}),
-          }))),
-          (q = await invokeFunction(
-            "reseller-image-delivery-v201",
-            auth,
-            { items },
-            65000,
-          )));
+        cursor += 8;
+        const part = rows.slice(start, start + 8);
+        if (!part.length) return;
+        const items = part.map((r: Any) => ({
+          key: r.canonical_key,
+          retailer: r.retailer,
+          barcode: r.upc,
+          proof:
+            r.payload?.image_match_barcode ||
+            r.payload?.image_proof_barcode ||
+            "",
+          image_url: r.image_url || "",
+          reference_url: referenceFor(r.payload || {}),
+        }));
+        const q = await invokeFunction(
+          "reseller-image-delivery-v201",
+          auth,
+          { items },
+          65000,
+        );
         if (!q.ok) continue;
         const images = Array.isArray(q.data?.images) ? q.data.images : [],
           byKey = new Map(part.map((r: Any) => [r.canonical_key, r]));
@@ -791,11 +792,12 @@ Deno.serve(async (req: Request) => {
   const auth = req.headers.get("Authorization") || "",
     user = await authenticatedUser(auth);
   if (!user) return json({ error: "AUTH_OR_PRODUCT_REQUIRED" }, 401);
+  let action = "cache";
   try {
     const body = await req.json().catch(() => ({})),
-      action = txt(body.action || "cache"),
       payload = { ...(body.payload || {}) },
       admin = adminClient();
+    action = txt(body.action || "cache");
     if (action === "cache") {
       const [leads, meta] = await Promise.all([
         readCache(admin),
@@ -952,10 +954,15 @@ Deno.serve(async (req: Request) => {
     }
     return json({ error: "UNKNOWN_ACTION" }, 400);
   } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error("h38-penny-cache request failed", {
+      action,
+      detail: detail.slice(0, 500),
+    });
     return json(
       {
         error: "H38_PENNY_CACHE_ERROR",
-        detail: e instanceof Error ? e.message : String(e),
+        detail,
       },
       500,
     );
