@@ -15,6 +15,7 @@ on:
       - 'scripts/run-complete-training-library-strict.js'
       - 'scripts/record-complete-training-library.js'
       - 'scripts/record-task-manager-training.js'
+      - 'scripts/record-customer-portal-signed-in.js'
       - '.github/workflows/h38-workflow-video-evidence.yml'
       - '.github/workflows/h38-complete-training-strict-proof.yml'
   push:
@@ -66,6 +67,16 @@ jobs:
           H38_COMPLETE_TRAINING_DIR: artifacts/complete-training-library
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/run-complete-training-library-strict.js
+      - name: Record real signed-in TEST customer portals
+        env:
+          H38_PORTAL_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
+          H38_PORTAL_REQUIRE_BOTH: ${{ github.event_name == 'workflow_dispatch' }}
+          H38_PORTAL_TEST_EMAIL: ${{ secrets.H38_PORTAL_TEST_EMAIL }}
+          H38_PORTAL_TEST_PASSWORD: ${{ secrets.H38_PORTAL_TEST_PASSWORD }}
+          NL_PORTAL_TEST_EMAIL: ${{ secrets.NL_PORTAL_TEST_EMAIL }}
+          NL_PORTAL_TEST_PASSWORD: ${{ secrets.NL_PORTAL_TEST_PASSWORD }}
+          H38_PORTAL_PROOF_DIR: artifacts/customer-portal-signed-in
+        run: node scripts/record-customer-portal-signed-in.js
       - name: Upload strict proof packet
         if: always()
         uses: actions/upload-artifact@v4
@@ -74,5 +85,6 @@ jobs:
           path: |
             artifacts/task-manager-training/
             artifacts/complete-training-library/
+            artifacts/customer-portal-signed-in/
           if-no-files-found: warn
           retention-days: 30
