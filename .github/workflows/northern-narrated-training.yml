@@ -7,6 +7,7 @@ on:
       - 'scripts/record-northern-narrated-training.js'
       - 'scripts/run-northern-narrated-training-v2.js'
       - 'scripts/run-northern-narrated-training-v3.js'
+      - 'scripts/run-northern-narrated-training-batched.js'
       - 'scripts/verify-northern-training-privacy-contract.js'
       - 'scripts/build-northern-master-training.js'
       - 'scripts/northern-training-scenarios.json'
@@ -37,6 +38,7 @@ jobs:
           node --check scripts/record-northern-narrated-training.js
           node --check scripts/run-northern-narrated-training-v2.js
           node --check scripts/run-northern-narrated-training-v3.js
+          node --check scripts/run-northern-narrated-training-batched.js
           NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY=1 node scripts/run-northern-narrated-training-v3.js
           node --check scripts/verify-northern-training-privacy-contract.js
           node scripts/verify-northern-training-privacy-contract.js
@@ -81,7 +83,9 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/northern-training-auth.json
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
           NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
-        run: node scripts/run-northern-narrated-training-v3.js
+          NORTHERN_TRAINING_BATCH_SIZE: 6
+          NORTHERN_TRAINING_MAX_ATTEMPTS: 3
+        run: node scripts/run-northern-narrated-training-batched.js
       - name: Build operator, advanced owner, and reference masters
         run: node scripts/build-northern-master-training.js
       - name: Enforce complete narrated proof
@@ -106,8 +110,8 @@ jobs:
           const dir='artifacts/northern-narrated-training/videos';
           const lessons=fs.readdirSync(dir).filter(name=>name.endsWith('-NARRATED.mp4')&&!name.startsWith('00-NORTHERN-LAKES-OPERATOR-MASTER')&&!name.startsWith('01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER')&&!name.startsWith('99-NORTHERN-LAKES-REFERENCE-APPENDIX'));
           if(lessons.length<39)throw new Error(`Expected 39 lesson videos, got ${lessons.length}.`);
-          for(const id of ['NL-TRAIN-LAWN-FULL-SERVICE-PHONE','NL-TRAIN-SNOW-FULL-SERVICE-PHONE','NL-TRAIN-FULL-OFFICE-MAP-DESKTOP','NL-TRAIN-MEETING-FOLLOWUP-DESKTOP','NL-TRAIN-SITE-VISIT-TO-QUOTE-PHONE','NL-TRAIN-QUOTE-REVISION-APPROVAL-DESKTOP','NL-TRAIN-USERS-SETTINGS-CONTROLS-DESKTOP','NL-TRAIN-MONEY-OVERVIEW-OWNER-DESKTOP','NL-TRAIN-BANK-RECONCILIATION-DESKTOP','NL-TRAIN-CASH-FLOW-OWNER-REVIEW-DESKTOP','NL-TRAIN-OWNER-INTELLIGENCE-AI-DESKTOP','NL-TRAIN-AUTOMATION-INTEGRATION-CENTER-DESKTOP']){const proof=JSON.parse(fs.readFileSync(path.join('artifacts/northern-narrated-training',id+'.json'),'utf8'));if(proof.status!=='PASS')throw new Error(id+' proof is not PASS.');}
-          console.log(JSON.stringify({status:'PASS',lessonVideos:lessons.length,operatorMaster:true,operatorParts:20,advancedOwnerMaster:true,advancedOwnerParts:16,referenceAppendix:true,referenceParts:3,externalActionsOccurred:false},null,2));
+          for(const id of ['NL-TRAIN-LAWN-FULL-SERVICE-PHONE','NL-TRAIN-SNOW-FULL-SERVICE-PHONE','NL-TRAIN-FULL-OFFICE-MAP-DESKTOP','NL-TRAIN-MEETING-FOLLOWUP-DESKTOP','NL-TRAIN-SITE-VISIT-TO-QUOTE-PHONE','NL-TRAIN-QUOTE-REVISION-APPROVAL-DESKTOP','NL-TRAIN-USERS-SETTINGS-CONTROLS-DESKTOP','NL-TRAIN-MONEY-OVERVIEW-OWNER-DESKTOP','NL-TRAIN-BANK-RECONCILIATION-DESKTOP','NL-TRAIN-CASH-FLOW-OWNER-REVIEW-DESKTOP','NL-TRAIN-OWNER-INTELLIGENCE-AI-DESKTOP','NL-TRAIN-AUTOMATION-INTEGRATION-CENTER-DESKTOP']){const proof=JSON.parse(fs.readFileSync(path.join('artifacts/northern-narrated-training',id+'.json'),'utf8'));if(proof.status!=='PASS')throw new Error(id+' proof is not PASS.');if(proof.externalActionsOccurred!==false)throw new Error(id+' performed an external action.');}
+          console.log(JSON.stringify({status:'PASS',lessonVideos:lessons.length,operatorMaster:true,operatorParts:20,advancedOwnerMaster:true,advancedOwnerParts:16,referenceAppendix:true,referenceParts:3,externalActionsOccurred:false,recordingMode:result.recordingMode||'single-pass'},null,2));
           NODE
       - name: Upload Northern narrated video library
         if: always()
