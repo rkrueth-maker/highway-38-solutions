@@ -209,11 +209,13 @@ async function resaleAcceptance(browser, session) {
   await page.selectOption('#radius','50');
   await page.click('#loc');
   await page.waitForTimeout(1000);
+  await waitEnabled(page,'#scan',120000);
   check('Resale Use phone location', true);
 
   for(const lane of ['repair','motivated','straight','all']){
     await page.click('[data-lane="'+lane+'"]');
     check('Resale lane '+lane, await page.locator('[data-lane="'+lane+'"].active').count()===1);
+    await waitEnabled(page,'#scan',120000);
   }
 
   async function scanTab(tab, requireRows) {
@@ -223,6 +225,7 @@ async function resaleAcceptance(browser, session) {
     }
     await page.click('[data-tab="'+tab+'"]');
     check('Resale tab '+tab,await page.locator('[data-tab="'+tab+'"].active').count()===1);
+    await waitEnabled(page,'#scan',120000);
     await page.click('#scan');
     await waitEnabled(page,'#scan',120000);
     await page.waitForTimeout(500);
