@@ -23,7 +23,7 @@ function rss(xml: string) {
 }
 async function fetchRss(query: string) {
   const r = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(query)}&format=rss&count=20`, {
-    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.0 (+https://highway38solutions.com)", accept: "application/rss+xml,application/xml,*/*;q=0.8" },
+    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.1 (+https://highway38solutions.com)", accept: "application/rss+xml,application/xml,*/*;q=0.8" },
     signal: AbortSignal.timeout(10000), redirect: "follow",
   });
   const body = await r.text().catch(() => "");
@@ -37,6 +37,13 @@ function tokens(v: unknown) {
     seen.add(token); out.push(token); if (out.length >= 12) break;
   }
   return out;
+}
+function searchQueries(row: any) {
+  const t = tokens(row.title), strict = `"${t.slice(0,8).join(" ")}" "Price Realized" HiBid`;
+  const words = t.filter(x => /[a-z]/.test(x));
+  const anchor = words.slice(0, Math.min(2, words.length)).join(" ");
+  const broad = anchor ? `"${anchor}" "Price Realized" HiBid` : strict;
+  return [...new Set([strict, broad])].slice(0, 2);
 }
 function relevance(row: any, item: any) {
   const hay = norm(`${item.title} ${item.description}`), target = tokens(row.title);
@@ -103,7 +110,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({})), limit = Math.max(1, Math.min(8, Number(body.limit || 6)));
     const states = await admin.from("deal_engine_market_refresh_state")
       .select("household_id,canonical_key,last_attempt_at,status")
-      .eq("status", "EMPTY").order("last_attempt_at", { ascending: true }).limit(limit);
+      .in("status", ["EMPTY","EMPTY_ALL"]).order("last_attempt_at", { ascending: true }).limit(limit);
     if (states.error) throw states.error;
     const keys = (states.data || []).map((x:any)=>x.canonical_key);
     if (!keys.length) return new Response(JSON.stringify({ ok:true, provider:"Bing public index → HiBid realized prices", searched:0, evidence_found:0, sold_found:0, results:[] }), { headers });
@@ -113,11 +120,16 @@ Deno.serve(async (req: Request) => {
     const owners = await ownerMap(admin, [...new Set((obs.data||[]).map((x:any)=>x.household_id))]);
     const results:any[]=[];
     for (const row of obs.data || []) {
-      const query = `"${tokens(row.title).slice(0,8).join(" ")}" "Price Realized" HiBid`;
+      const queries = searchQueries(row);
       let found=0,sold=0,completed=0,error="";
       try {
-        const items = await fetchRss(query);
-        for (const item of items) {
+        const itemMap = new Map<string,any>();
+        for (const query of queries) {
+          const items = await fetchRss(query);
+          for (const item of items) if (item.link && !itemMap.has(item.link)) itemMap.set(item.link,item);
+          if (itemMap.size >= 20) break;
+        }
+        for (const item of itemMap.values()) {
           const saved = await save(admin,row,owners.get(row.household_id)||"",item);
           if (!saved) continue; found++; if (saved.type==="sold") sold++; else completed++; if(found>=6) break;
         }
@@ -125,14 +137,14 @@ Deno.serve(async (req: Request) => {
       const now = new Date().toISOString(), status = error ? "ERROR_AUCTION" : found ? "PASS" : "EMPTY_ALL";
       const st = await admin.from("deal_engine_market_refresh_state").update({
         result_count:found, sold_count:sold, completed_count:completed, status, last_success_at:found?now:null,
-        last_query:query, last_error:error.slice(0,500), updated_at:now,
+        last_query:queries.join(" || "), last_error:error.slice(0,500), updated_at:now,
       }).eq("household_id",row.household_id).eq("canonical_key",row.canonical_key);
       if (st.error) throw st.error;
-      results.push({canonical_key:row.canonical_key,title:row.title,status,found,sold,completed,query,error:error||undefined});
+      results.push({canonical_key:row.canonical_key,title:row.title,status,found,sold,completed,queries,error:error||undefined});
       await new Promise(resolve=>setTimeout(resolve,250));
     }
     const evidenceFound=results.reduce((a,x)=>a+x.found,0), soldFound=results.reduce((a,x)=>a+x.sold,0);
-    return new Response(JSON.stringify({ok:true,provider:"Bing public index → HiBid realized prices",truth:"SOLD requires an explicit numeric Price Realized. Price-realized mentions without a number are COMPLETED only.",searched:results.length,evidence_found:evidenceFound,sold_found:soldFound,results}),{headers});
+    return new Response(JSON.stringify({ok:true,provider:"Bing public index → HiBid realized prices",truth:"Discovery may search a broader brand phrase, but SOLD still requires both a strict product-match check and an explicit numeric Price Realized.",searched:results.length,evidence_found:evidenceFound,sold_found:soldFound,results}),{headers});
   } catch(e) {
     return new Response(JSON.stringify({error:"AUCTION_COMP_REFRESH_ERROR",detail:e instanceof Error?e.message:String(e)}),{status:500,headers});
   }
