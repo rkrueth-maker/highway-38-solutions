@@ -76,7 +76,7 @@ async function refreshProof(page){await page.evaluate(async()=>{
 async function showProof(page,id,actionId){
   await page.evaluate(()=>window.openPage?.('controls'));
   const section=page.locator('section').filter({has:page.getByRole('heading',{name:'Proof Log',exact:true})});
-  const row=section.locator('.row').filter({hasText:actionId}).first();
+  const row=section.locator('.row').filter({hasText:actionId}).filter({hasText:id}).first();
   await row.waitFor({state:'visible',timeout:15000});await privacy(page);await row.scrollIntoViewIfNeeded();
   const text=await row.innerText();
   if(!text.includes(id)||!text.includes('APPROVED')||text.includes('[object Object]'))throw Error('Saved proof is not readable in Controls.');
