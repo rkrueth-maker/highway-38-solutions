@@ -2,13 +2,20 @@
 
 This is the operator-training coverage map for the real deployed Highway 38 Business Office. Recordings use controlled `TEST` data only. Synthetic app screens, mock forms, slide substitutes, customer sends, real payments, purchases, and automatic scheduling are prohibited.
 
-## Already proven in the production evidence pipeline
+## Evidence levels and current proof
 
-- Full customer lifecycle — Customer → Site Visit → Quote → Invoice → Payment → Paid, desktop and phone.
-- Task Manager — owner creates a job, assigns a real active Staff employee, saves the task, and confirms the assignment, desktop and phone.
-- Native accounting / tax handoff — H38 runs daily accounting; QuickBooks is optional tax-only handoff, desktop and phone.
-- H38 ↔ Northern Lakes real-runtime tenant scenarios.
-- Assistant action evidence — preview, approve, execute, cancel, permission boundary, and tenant-isolation checks.
+Do not infer a completed transaction from a page tour. A `PASS` navigation clip proves only the visible route and controls named in its JSON steps. A workflow is proven only when the recorder performs the action and asserts the resulting persisted state, tenant, role, and external-action boundary. Every published claim must name the source SHA and capture date; older evidence is historical until the same flow is run against the current deployed build.
+
+| Flow | Executed evidence | Limit |
+| --- | --- | --- |
+| Customer → Site Visit → Quote → draft invoice → manual payment → Paid | Desktop and phone `full-lifecycle-training` from run `36044630160`, 2026-09-24. The recorder asserts saved quote total and invoice Paid / zero balance after sync. | Historical deployment; manual TEST bookkeeping only. The invoice is created in Money after quote review, so quote-to-invoice linkage is not asserted. Rerun on current deployment. |
+| Owner assignment → Staff Accepted → Started → Completed | Owner task recorder and authenticated Staff completion in strict run `36515462333`, 2026-09-28. | Narrow TEST task path; not every time, issue, or attachment variation. |
+| Northern recurring service | `record-real-office-workflow-evidence.js` can assert a TEST job start, finish, correct Money invoice review, and no automatic invoice. | Does not assert occurrence field proof, approved billing, or an actual saved invoice. Current deployment rerun required. |
+| AI assistant action | Run `36044630160` has JSON assertions for preview/approve/execute/proof, cancel/no-write, and role/tenant denial. | No corresponding action video in that packet; AI Team finding-to-approval video remains open. |
+| Customer Portal | Strict run `36515462333` recorded a signed-in Northern TEST account and Staff task flow. | H38 customer-only identity and role isolation are unproven. A dual-role account cannot prove customer-only access. |
+| Accounting, Smart Upload, lawn/snow, AI Team, and other narrated lessons | Real authenticated UI orientation, including 39 Northern narrated clips and 18 strict H38 clips. | Route, control, and privacy proof only where the JSON steps do not execute and assert the full mutation. |
+
+Open action-video acceptance: current-deployment customer-to-Paid with quote revision/linkage; Northern lawn and snow occurrence → field proof → billing approval → saved invoice; connected bank staging, match/reconcile, check print review and reports; Smart Upload upload/OCR/link/retrieve/print/delete and permission/offline; AI Team finding/source/preview/owner approval/cancel/Proof Log/denial; dedicated H38 customer-only portal; physical iPhone and Android cold start/offline. Connected Drive remains gated by the owner and is excluded from a launch PASS. Never perform real sends, payments, or purchases to complete a training video.
 
 ## Complete operator-library recorder
 
