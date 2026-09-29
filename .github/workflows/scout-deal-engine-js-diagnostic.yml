@@ -1,0 +1,34 @@
+name: Scout Deal Engine JS Diagnostic
+
+on:
+  push:
+    branches:
+      - agent/private-reseller-scout
+
+permissions:
+  contents: read
+
+jobs:
+  parse-deal-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build Scout static pages
+        run: node scripts/build-scout-static-web.cjs /tmp/h38-scout-web
+      - name: Extract and parse Deal Engine JavaScript
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('/tmp/h38-scout-web/best.html').read_text()
+          scripts = re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>', html)
+          if not scripts:
+              raise SystemExit('No inline scripts found')
+          js = max(scripts, key=len)
+          Path('/tmp/h38-deal-engine-inline.js').write_text(js)
+          print('INLINE_JS_BYTES', len(js))
+          PY
+          node --check /tmp/h38-deal-engine-inline.js
