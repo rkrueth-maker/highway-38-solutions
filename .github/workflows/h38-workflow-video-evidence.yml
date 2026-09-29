@@ -149,6 +149,7 @@ jobs:
           name: ai-owner-viewing-copies-${{ github.run_id }}
           path: |
             artifacts/assistant-action-evidence/videos/*.mp4
+            artifacts/assistant-action-evidence/screenshots/*.png
             artifacts/assistant-action-evidence/*.json
             artifacts/assistant-action-evidence/README.md
           if-no-files-found: warn

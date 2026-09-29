@@ -63,7 +63,9 @@ async function narrate(page,text){
   const offsetMs=Date.now()-recordingStarted,durationMs=narrator.probeMs(wav);
   if(!durationMs)throw Error('Narration audio duration unavailable.');
   await page.evaluate(value=>{let node=document.getElementById('aiTrainingCaption');if(!node){node=document.createElement('div');node.id='aiTrainingCaption';document.body.appendChild(node);}node.textContent=value;},text);
-  activeResult.narration.push({text,wav,offsetMs,durationMs});
+  const screenshot=path.join(out,'screenshots',`${activeScenario.id}-${activeResult.narration.length+1}.png`);
+  await page.screenshot({path:screenshot});
+  activeResult.narration.push({text,wav,offsetMs,durationMs,screenshot:path.relative(out,screenshot)});
   await page.waitForTimeout(durationMs+400);
 }
 async function refreshProof(page){await page.evaluate(async()=>{
@@ -121,7 +123,7 @@ async function command(page,value){
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
   const evidence={status:'HOLD',sourceSha:process.env.GITHUB_SHA||'local',capturedAt:now(),testDataOnly:true,externalActionsOccurred:false,checkedOutRuntimeOverlay:false,videos:[]};
-  fs.mkdirSync(path.join(out,'videos'),{recursive:true});fs.mkdirSync(path.join(out,'audio'),{recursive:true});
+  fs.mkdirSync(path.join(out,'videos'),{recursive:true});fs.mkdirSync(path.join(out,'audio'),{recursive:true});fs.mkdirSync(path.join(out,'screenshots'),{recursive:true});
   const browser=await chromium.launch({headless:true});
   try{
     evidence.deployedSourceSha=await deployment(browser);
@@ -164,6 +166,7 @@ async function command(page,value){
       if(preview.rate!==150||preview.pending?.customerId!==test.id||preview.pending?.after!==175)throw Error('Preview-before-write check failed.');
       activeResult.steps.push({name:'preview-before-write',status:'PASS',before:150,after:175});
 
+      await privacy(page);await page.locator('[data-h38-ai-action-card]').scrollIntoViewIfNeeded();
       await narrate(page,'The preview proposes a rate of 175 dollars and a quote. The saved rate is still 150. Approval applies to this exact preview.');
       await page.locator('[data-h38-ai-approve]').click();
       await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:90000});
@@ -198,6 +201,7 @@ async function command(page,value){
         return{phone:String(row.Phone||row.phone||''),pending:window.H38_ASSISTANT_TENANT_ACTIONS.pending()};
       },test.id);
       if(phonePreview.phone!=='218-555-0199'||phonePreview.pending?.type!=='customer-field'||phonePreview.pending?.after!=='218-555-0177')throw Error('Customer contact preview/no-write check failed.');
+      await privacy(page);await page.locator('[data-h38-ai-action-card]').scrollIntoViewIfNeeded();
       await narrate(page,'This second preview changes only the TEST phone number. The saved contact remains unchanged until approval.');
       await page.locator('[data-h38-ai-approve]').click();
       await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:90000});
