@@ -40,6 +40,7 @@ async function ready(page,allowLogin=false){
   await page.waitForFunction(()=>!!window.H38_ASSISTANT_TENANT_ACTIONS?.enabled&&!!window.H38_AI_TEAM?.enabled,null,{timeout:15000});
   const owner=await page.evaluate(()=>{const u=window.state?.snapshot?.user||{};return u.owner===true||u.permissions?.all===true||/owner|admin/i.test(String(u.roleId||u.roleName||u.role||''));});
   if(!owner)throw Error('Controlled action recording requires an authenticated owner/admin in this business.');
+  await privacy(page);
 }
 async function authState(browser){
   const ctx=await browser.newContext({storageState:supplied&&fs.existsSync(supplied)?supplied:undefined,viewport:activeScenario.size});
@@ -108,12 +109,12 @@ async function fixture(page){
 }
 async function setContext(page,id){
   await page.evaluate(cid=>{window.openPage?.('customers');if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=cid;window.renderCustomers?.();},id);
-  const card=page.locator('[data-h38-customer-card]').filter({hasText:/AI Operator Test Customer/i}).first();
+  const card=page.locator(`[data-h38-customer-card="${id}"]`);
   await card.waitFor({state:'visible',timeout:12000});await card.click();
   await page.locator('.h38-c360-workspace').waitFor({state:'visible',timeout:10000});
   await page.evaluate(cid=>{if(window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=cid;},id);
 }
-async function openAssistant(page){await page.evaluate(()=>window.openPage?.('assistant'));await page.locator('#paCommandForm [name="command"]:visible').waitFor({timeout:10000});}
+async function openAssistant(page){await page.evaluate(()=>window.openPage?.('assistant'));await page.locator('#paCommandForm [name="command"]').waitFor({state:'attached',timeout:10000});}
 async function command(page,value){
   const input=page.locator('#paCommandForm [name="command"]:visible');await input.fill(value);
   await page.locator('#paCommandForm:visible').getByRole('button',{name:'Run command',exact:true}).click();
@@ -134,7 +135,7 @@ async function command(page,value){
       const state=await authState(browser);
       ctx=await browser.newContext({storageState:state,viewport:scenario.size,recordVideo:{dir:path.join(out,'videos'),size:scenario.size}});
       await ctx.addInitScript(id=>{document.documentElement?.classList.add('ai-training-loading');document.addEventListener('DOMContentLoaded',()=>{
-        document.documentElement.classList.add('ai-training-loading');const style=document.createElement('style');style.textContent=`.ai-training-loading #mainContent{visibility:hidden}#paChat .pa-bubble.assistant:not([data-ai-training-test]),[data-h38-ai-action-card]:not([data-ai-training-test]) pre,#mainContent .row:not([data-ai-training-test]),[data-h38-customer-card]:not([data-h38-customer-card="${id}"]),.h38-ai-finding:not(:has([data-ai-team-customer="${id}"])),[href^="mailto:"],[href^="tel:"]{filter:blur(10px)!important}#aiTrainingCaption{position:fixed;bottom:72px;left:12px;right:12px;z-index:2147483647;padding:9px;background:#102b39ee;color:white;font:14px/1.4 system-ui;text-align:center;pointer-events:none}`;document.head.appendChild(style);});},scenario.customerId);
+        document.documentElement.classList.add('ai-training-loading');const style=document.createElement('style');style.textContent=`.ai-training-loading #mainContent{visibility:hidden}.pa-brief-row,.pa-hero p{filter:blur(10px)!important}#paChat .pa-bubble.assistant:not([data-ai-training-test]),[data-h38-ai-action-card]:not([data-ai-training-test]) pre,#mainContent .row:not([data-ai-training-test]),[data-h38-customer-card]:not([data-h38-customer-card="${id}"]),.h38-ai-finding:not(:has([data-ai-team-customer="${id}"])),[href^="mailto:"],[href^="tel:"]{filter:blur(10px)!important}#aiTrainingCaption{position:fixed;bottom:72px;left:12px;right:12px;z-index:2147483647;padding:9px;background:#102b39ee;color:white;font:14px/1.4 system-ui;text-align:center;pointer-events:none}`;document.head.appendChild(style);});},scenario.customerId);
       page=await ctx.newPage();video=page.video();recordingStarted=Date.now();
       const cold=Date.now();await ready(page);activeResult.timings={coldReadyMs:Date.now()-cold};
       activeResult.businessId=await page.evaluate(()=>window.state.businessId);
