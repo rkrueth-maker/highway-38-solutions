@@ -99,6 +99,30 @@ const polishPath=path.join(ROOT,'commercial-app','ai-team-owner-polish.js');
     assert.match(result,/Overdue invoice/);
     assert.match(result,/Nothing has been changed/);
 
+    await page.evaluate(()=>{
+      window.__savedCustomers=window.state.snapshot.customers;
+      window.state.snapshot.customers=Array.from({length:7},(_,i)=>({'Customer ID':`C-OTHER-${i}`,'Customer Name':`Other ${i}`}));
+      window.state.snapshot.customers.push({'Customer ID':'C-SELECTED','Customer Name':'Selected TEST source'});
+      window.H38_CUSTOMER_360={selectedCustomerId:'C-SELECTED'};
+      window.H38_AI_TEAM.scan();
+    });
+    const source=page.locator('[data-ai-team-customer="C-SELECTED"]');
+    await source.waitFor({state:'visible'});
+    assert.equal((await source.innerText()).trim(),'Open customer');
+    await source.click();
+    assert.equal(await page.evaluate(()=>window.__openedPage),'customers');
+    assert.equal(await page.evaluate(()=>window.H38_CUSTOMER_360.selectedCustomerId),'C-SELECTED');
+    await page.evaluate(()=>{
+      window.state.page='assistant';window.__openedPage='assistant';
+      window.state.snapshot.customers=window.state.snapshot.customers.filter(row=>row['Customer ID']!=='C-SELECTED');
+    });
+    await source.click();
+    assert.equal(await page.evaluate(()=>window.__openedPage),'assistant','stale or foreign customer source cannot navigate or select a record');
+    await page.evaluate(()=>{
+      window.state.snapshot.customers=window.__savedCustomers;
+      window.H38_CUSTOMER_360.selectedCustomerId='';window.H38_AI_TEAM.scan();
+    });
+
     const platformBrief=await page.evaluate(()=>window.H38_ASSISTANT_COMMAND_BUS.handle('owner dashboard'));
     assert.match(platformBrief,/Owner intelligence/);
     assert.match(platformBrief,/Cash due:/);
