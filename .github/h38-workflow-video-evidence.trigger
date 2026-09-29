@@ -1,5 +1,2 @@
-# H38 Workflow Video Evidence trigger
-# Editing this file on main intentionally starts one controlled TEST-data recording run.
-# Normal code pushes do not trigger the recording workflow.
-trigger=2026-09-29-ai-source-approval-proof
 scope=ai
+marker=20260929-selected-customer-proof-repair

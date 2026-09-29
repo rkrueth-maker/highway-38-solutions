@@ -265,7 +265,16 @@ async function command(page,value){
 
       await narrate(page,'Cancelled and revised previews do not save changes. Permission changes and requests for another business are blocked. Only approved tenant data actions run.');
       activeResult.status='PASS';
-    }catch(error){activeResult.error=error.message;activeResult.status='HOLD';}
+    }catch(error){activeResult.error=error.message;activeResult.status='HOLD';
+      if(page)activeResult.diagnostic=await page.evaluate(id=>{
+        const privateNames=(window.state?.snapshot?.customers||[]).filter(row=>String(row['Customer ID']||row.customerId||'')!==id).map(row=>String(row['Customer Name']||row.name||'').trim()).filter(Boolean);
+        let answer=String(Array.from(document.querySelectorAll('#paChat .pa-bubble.assistant')).at(-1)?.innerText||'');
+        for(const name of privateNames)answer=answer.split(name).join('[private customer]');
+        const completion=window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.(),actionId=completion?.actionId||'';
+        const proof=(window.state?.snapshot?.proofLog||[]).find(row=>row?.Details?.aiActionId===actionId);
+        return{selectedCustomerId:window.H38_CUSTOMER_360?.selectedCustomerId===id?id:'not TEST source',answer:answer.slice(0,1500),pendingType:window.H38_ASSISTANT_TENANT_ACTIONS?.pending?.()?.type||'',proofRecordIds:(proof?.Details?.recordsAffected||[]).map(record=>record.recordId),proofCount:window.state?.snapshot?.proofLog?.length||0};
+      },scenario.customerId).catch(()=>({unavailable:true}));
+    }
     finally{
       if(page){await page.evaluate(async id=>{
         if(!id.startsWith('TEST-AI-OPERATOR-'))throw Error('Uncontrolled cleanup ID.');

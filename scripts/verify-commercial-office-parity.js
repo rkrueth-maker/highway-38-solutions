@@ -12,6 +12,7 @@ const proofFormatter=app.slice(app.indexOf('function formatProofDetails('),app.i
 const formatProof=require('node:vm').runInNewContext(`const v=(row,...keys)=>keys.map(key=>row[key]).find(value=>value!==undefined&&value!==null&&value!=='')||'';${proofFormatter};formatProofDetails`);
 check(formatProof({Details:{request:'Change TEST phone',approvalState:'APPROVED',before:{Phone:'old'},after:{Phone:'new'},aiActionId:'AI-TEST'}})==='Change TEST phone · APPROVED · Phone: old → Phone: new · AI action AI-TEST','Supabase structured AI proof must display its request, approval and exact change.');
 check(formatProof({Details:'Legacy verified action'})==='Legacy verified action','Legacy text proof must remain readable.');
+check(formatProof({Details:{recordsAffected:[{collection:'customers',recordId:'TEST-CUSTOMER'},{collection:'quotes',recordId:'TEST-QUOTE'}],aiActionId:'AI-TEST'}})==='customers TEST-CUSTOMER, quotes TEST-QUOTE · AI action AI-TEST','Structured proof must identify the affected external records as well as its action ID.');
 check(app.includes("v(row,'Action','Action Type','actionType')")&&app.includes("v(row,'Record ID','Entity ID','entityId')")&&app.includes("v(row,'Outcome','Result','result')"),'Proof Log must render Supabase action, result and entity fields.');
 check(formatProof({Details:{before:0,after:175,approvalState:'APPROVED'}})==='APPROVED · 0 → 175','Scalar pricing proof must preserve zero and show the exact approved rate.');
 const index=read('commercial-app/index.html');
