@@ -12,4 +12,5 @@ checks['Northern lawn and snow have separate real-runtime scenarios']=northernSe
   return start>=0&&end>start&&recorder.slice(start,end).includes(`serviceNeedle:${needle}`);
 })&&recorder.includes("name:'select-matching-test-service'");
 checks['Snow fixture is customer and service matched before secure TEST preparation']=recorder.includes("fixtureJobId:'TEST-JOB-H38-SNOW-NORTHERN-20260924'")&&recorder.includes('fixture&&valid(fixture)?fixture:null')&&recorder.includes("updated['Subscribed Service']=true")&&recorder.includes("window.queueOperation('SAVE_ENTITY','Job'");
+checks['Supplied recorder session is validated and refreshed securely']=recorder.includes('if(hasSuppliedStorageState){')&&recorder.includes('sessionValid=true')&&recorder.includes('if(!sessionValid){')&&recorder.includes('Supplied Office session expired and secure TEST credential pair is unavailable.')&&recorder.includes('ctx.storageState({path:generatedStorageState})');
 const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([n])=>n);console.log(JSON.stringify({status:failed.length?'HOLD':'PASS',checks,failed},null,2));process.exit(failed.length?1:0);
