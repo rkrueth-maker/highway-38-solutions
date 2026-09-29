@@ -36,12 +36,15 @@ async function authSession() {
   return s;
 }
 async function ensureBestSignedIn(page) {
+  await page.waitForFunction(() => {
+    const app = document.querySelector('#app');
+    const auth = document.querySelector('#auth');
+    return (app && !app.classList.contains('hidden')) || (auth && !auth.classList.contains('hidden'));
+  }, null, { timeout: 60000 });
   if (await page.locator('#app:not(.hidden)').count()) return;
-  if (await page.locator('#auth:not(.hidden)').count()) {
-    await page.fill('#email', EMAIL);
-    await page.fill('#password', PASSWORD);
-    await page.click('#login button[type="submit"]');
-  }
+  await page.fill('#email', EMAIL);
+  await page.fill('#password', PASSWORD);
+  await page.click('#login button[type="submit"]');
   await page.waitForSelector('#app:not(.hidden)', { timeout: 60000 });
 }
 async function assertInViewport(page, selector, label) {
