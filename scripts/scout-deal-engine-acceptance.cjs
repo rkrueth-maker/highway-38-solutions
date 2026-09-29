@@ -135,7 +135,7 @@ async function cleanupQueue(s, id) {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
-    await page.goto(WEB_BASE + '/best.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(BASE + '/functions/v1/h38-deal-engine-web', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await ensureBrowserSignedIn(page);
     await page.waitForFunction(() => document.querySelectorAll('.deal').length > 0, null, { timeout: 90000 });
     check('Deal Engine dashboard renders cards', await page.locator('.deal').count() > 0);
