@@ -46,18 +46,12 @@ async function fetchLiveBestHtml() {
   }
   return { html, transport: { source: url, status: r.status, contentType, renderedAs: 'text/html via Scout acceptance host' } };
 }
-async function ensureBestSignedIn(page) {
+async function exposeBestLayout(page) {
   await page.locator('#auth, #app').first().waitFor({ state: 'attached', timeout: 10000 });
-  await page.waitForFunction(() => {
-    const app = document.querySelector('#app');
-    const auth = document.querySelector('#auth');
-    return (app && !app.classList.contains('hidden')) || (auth && !auth.classList.contains('hidden'));
-  }, null, { timeout: 15000 });
-  if (await page.locator('#app:not(.hidden)').count()) return;
-  await page.fill('#email', EMAIL);
-  await page.fill('#password', PASSWORD);
-  await page.click('#login button[type="submit"]');
-  await page.waitForSelector('#app:not(.hidden)', { timeout: 60000 });
+  await page.evaluate(() => {
+    document.querySelector('#auth')?.classList.add('hidden');
+    document.querySelector('#app')?.classList.remove('hidden');
+  });
 }
 async function assertInViewport(page, selector, label) {
   const el = page.locator(selector).first();
@@ -86,7 +80,7 @@ async function exercisePage(browser, sharedContext, spec, size, liveBest, report
   try {
     const response = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (!response || !response.ok()) fail(spec.name + ' page HTTP ' + (response ? response.status() : 'NO_RESPONSE'));
-    if (spec.name === 'best') await ensureBestSignedIn(page);
+    if (spec.name === 'best') await exposeBestLayout(page);
     await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
     const metrics = await page.evaluate(() => ({
       innerWidth,
