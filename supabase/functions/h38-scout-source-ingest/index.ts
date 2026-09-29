@@ -159,7 +159,7 @@ function compactPayload(row: Any, extra: Any) {
     location_text: text(row?.location_label || row?.location || row?.address || row?.city || extra.location_text),
     distance_miles: num(row?.distance_miles),
     event_time: text(row?.event_time || row?.date_label || row?.start_date || row?.end_date),
-    current_bid: num(row?.current_bid ?? row?.bid ?? row?.price),
+    current_bid: num(row?.current_bid ?? row?.bid),
     bid_count: num(row?.bid_count),
     pickup_terms: text(row?.pickup_terms || row?.pickup || row?.removal_terms),
     source_search_bound: row?.source_search_bound === true,
@@ -193,6 +193,9 @@ async function cacheSourceRows(db: any, bucket: string, retailer: string, rows: 
   for (const item of deduped.values()) {
     const old = existingMap.get(item.key);
     const row = item.row;
+    const facebookObservedPrice = bucket === "facebook_public" && row?.location_verified === true && /facebook\.com\/marketplace\/item\//i.test(item.url)
+      ? num(row?.buy_price ?? row?.price ?? row?.listing_price)
+      : null;
     upserts.push({
       canonical_key: item.key,
       retailer,
@@ -200,7 +203,7 @@ async function cacheSourceRows(db: any, bucket: string, retailer: string, rows: 
       upc: "",
       sku: "",
       deal_type: "resale_lead",
-      buy_price: null,
+      buy_price: facebookObservedPrice,
       retail_price: null,
       image_url: httpsUrl(row?.image_url || row?.image),
       source_url: item.url,
@@ -217,12 +220,13 @@ async function cacheSourceRows(db: any, bucket: string, retailer: string, rows: 
         search_location_label: text(area.location_label),
         search_location_evidence: text(area.location_evidence),
         observed_at: now,
+        observed_listing_price: facebookObservedPrice,
         economics_complete: false,
         profit_verified: false,
         truth: bucket === "auctions"
           ? "Auction current bid is evidence only and is never treated as final purchase price. Fees, pickup and resale economics remain unknown until proven."
           : bucket === "facebook_public"
-          ? "Only public Facebook rows whose adapter proved location are normalized. Public candidates with unproven locality are excluded."
+          ? "Only public Facebook rows whose adapter proved location are normalized. Observed listing price and source image are preserved only when the verified item row supplies them; resale value, profit and ROI remain unknown."
           : "Public sale lead only. Verify address, date, item details and availability before travel or purchase.",
       }),
       first_seen_at: old?.first_seen_at || now,
