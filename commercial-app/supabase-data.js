@@ -125,8 +125,11 @@
   async function hydrateSnapshot(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recordRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
+    const [recentRows, jobRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
+      // PostgREST can cap the broad response before older, still-active jobs are reached.
+      // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
+      optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id',businessId).eq('collection','jobs').eq('record_status','active').order('updated_at',{ascending:false}).limit(100), []),
       optionalQuery(db.from('business_memberships').select('id,auth_user_id,invited_email,role,status,accepted_at').eq('business_id',businessId).in('status',['active','invited']).order('created_at',{ascending:true}), []),
       optionalQuery(db.from('price_book_items').select('id,item_code,category,description,unit,unit_cost,source_type,source_note,approval_status,active,updated_at').eq('business_id',businessId).eq('active',true).order('category').order('description').range(0,999), []),
       optionalQuery(db.from('business_approvals').select('*').eq('business_id',businessId).order('requested_at',{ascending:false}).limit(250), []),
@@ -135,7 +138,7 @@
       optionalQuery(db.from('business_module_settings').select('module_key,enabled,config').eq('business_id',businessId).order('module_key'), [])
     ]);
 
-    recordRows.forEach(row => {
+    [...recentRows,...jobRows].forEach(row => {
       const collection = row.collection;
       const incoming = clean(row.payload);
       if (!snapshot[collection]) snapshot[collection] = [];
