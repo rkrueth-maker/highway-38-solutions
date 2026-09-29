@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 const headers = { "Content-Type": "application/json" };
 const text = (v: unknown) => String(v ?? "").trim();
 const norm = (v: unknown) => text(v).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-const marker = "[AUTO:BING_HIBID_SOURCE_V2]";
+const marker = "[AUTO:PUBLIC_INDEX_HIBID_SOURCE_V3]";
 const stop = new Set(["the","and","with","for","from","this","that","new","pack","piece","pieces","black","white","men","women","womens","mens","fits","perfect","device","devices"]);
 
 function strip(v: unknown) {
@@ -17,22 +17,49 @@ function rss(xml: string) {
   for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
     const item = m[1] || "";
     const value = (tag: string) => strip((item.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i")) || [])[1] || "");
-    out.push({ title: value("title"), link: value("link"), description: value("description") });
+    out.push({ title: value("title"), link: value("link"), description: value("description"), discovery: "bing_rss" });
   }
   return out;
 }
 async function fetchRss(query: string) {
   const r = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(query)}&format=rss&count=30`, {
-    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.2 (+https://highway38solutions.com)", accept: "application/rss+xml,application/xml,*/*;q=0.8" },
+    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.3 (+https://highway38solutions.com)", accept: "application/rss+xml,application/xml,*/*;q=0.8" },
     signal: AbortSignal.timeout(10000), redirect: "follow",
   });
   const body = await r.text().catch(() => "");
-  if (!r.ok) throw new Error(`PUBLIC_INDEX_HTTP_${r.status}`);
+  if (!r.ok) throw new Error(`BING_PUBLIC_INDEX_HTTP_${r.status}`);
   return rss(body);
+}
+function ddgTarget(href: string) {
+  try {
+    const cleaned = href.replace(/&amp;/gi, "&");
+    const absolute = cleaned.startsWith("//") ? `https:${cleaned}` : cleaned;
+    const u = new URL(absolute, "https://html.duckduckgo.com");
+    const redirected = u.searchParams.get("uddg");
+    return redirected ? redirected : u.toString();
+  } catch { return ""; }
+}
+function parseDdg(html: string) {
+  const out: any[] = [];
+  const re = /<a[^>]*class=["'][^"']*result__a[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const m of html.matchAll(re)) {
+    const link = ddgTarget(m[1] || ""), title = strip(m[2] || "");
+    if (link) out.push({ title, link, description: "", discovery: "duckduckgo_html" });
+  }
+  return out;
+}
+async function fetchDdg(query: string) {
+  const r = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.3 (+https://highway38solutions.com)", accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" },
+    signal: AbortSignal.timeout(10000), redirect: "follow",
+  });
+  const body = await r.text().catch(() => "");
+  if (!r.ok) throw new Error(`DDG_PUBLIC_INDEX_HTTP_${r.status}`);
+  return parseDdg(body);
 }
 async function fetchLotPage(url: string) {
   const r = await fetch(url, {
-    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.2 (+https://highway38solutions.com)", accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" },
+    headers: { "user-agent": "Mozilla/5.0 H38DealEngine/1.3 (+https://highway38solutions.com)", accept: "text/html,application/xhtml+xml,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" },
     signal: AbortSignal.timeout(8000), redirect: "follow",
   });
   const body = await r.text().catch(() => "");
@@ -94,7 +121,7 @@ async function save(admin: any, row: any, createdBy: string, item: any, page: {u
     evidence_type: evidenceType, marketplace: "HiBid source lot", title: strip(item.title) || row.title,
     source_url: url, observed_price: price, shipping_price: null, condition_label: "", upc: text(row.upc), sku: text(row.sku), asin: "",
     confidence_score: confidence, observed_at: new Date().toISOString(), sold_at: null,
-    notes: `${marker} ${price !== null ? "Numeric Price Realized was verified on the HiBid lot page." : "HiBid lot page showed Price Realized without a numeric value; recorded as COMPLETED, not SOLD."} Match=${rel.identifier ? "identifier" : `title:${Math.round(rel.ratio*100)}%`}.`,
+    notes: `${marker} Numeric Price Realized status was read from the HiBid source lot page. ${price !== null ? "A numeric realized price was present, so this is SOLD evidence." : "No numeric realized price was present, so this remains COMPLETED evidence."} Match=${rel.identifier ? "identifier" : `title:${Math.round(rel.ratio*100)}%`}. Discovery=${item.discovery || "public_index"}.`,
     updated_at: new Date().toISOString(),
   };
   if (existing.data?.id) {
@@ -121,7 +148,7 @@ Deno.serve(async (req: Request) => {
       .in("status", ["EMPTY","EMPTY_ALL"]).order("last_attempt_at", { ascending: true }).limit(limit);
     if (states.error) throw states.error;
     const keys = (states.data || []).map((x:any)=>x.canonical_key);
-    if (!keys.length) return new Response(JSON.stringify({ ok:true, provider:"Public index discovery → verified HiBid lot pages", searched:0, evidence_found:0, sold_found:0, results:[] }), { headers });
+    if (!keys.length) return new Response(JSON.stringify({ ok:true, provider:"Bing + DuckDuckGo discovery → verified HiBid lot pages", searched:0, evidence_found:0, sold_found:0, results:[] }), { headers });
     const obs = await admin.from("deal_engine_observations").select("household_id,canonical_key,title,upc,sku")
       .eq("active", true).eq("product_area", "resale").in("canonical_key", keys);
     if (obs.error) throw obs.error;
@@ -133,13 +160,16 @@ Deno.serve(async (req: Request) => {
       try {
         const itemMap = new Map<string,any>();
         for (const query of queries) {
-          const items = await fetchRss(query);
-          for (const item of items) {
-            const url = hibidUrl(item.link); if (url && !itemMap.has(url)) itemMap.set(url,{...item,link:url});
+          const searches = await Promise.allSettled([fetchRss(query), fetchDdg(query)]);
+          for (const result of searches) {
+            if (result.status !== "fulfilled") continue;
+            for (const item of result.value) {
+              const direct = hibidUrl(item.link); if (direct && !itemMap.has(direct)) itemMap.set(direct,{...item,link:direct});
+            }
           }
-          if (itemMap.size >= 12) break;
+          if (itemMap.size >= 16) break;
         }
-        const items = [...itemMap.values()].slice(0,8); discovered=items.length;
+        const items = [...itemMap.values()].slice(0,10); discovered=items.length;
         const pages = await Promise.allSettled(items.map((item:any)=>fetchLotPage(item.link)));
         for (let i=0;i<pages.length;i++) {
           const page = pages[i]; if (page.status !== "fulfilled") continue;
@@ -157,7 +187,7 @@ Deno.serve(async (req: Request) => {
       await new Promise(resolve=>setTimeout(resolve,150));
     }
     const evidenceFound=results.reduce((a,x)=>a+x.found,0), soldFound=results.reduce((a,x)=>a+x.sold,0);
-    return new Response(JSON.stringify({ok:true,provider:"Public index discovery → verified HiBid lot pages",truth:"Search is discovery only. SOLD requires a matching HiBid source lot page with an explicit numeric Price Realized.",searched:results.length,evidence_found:evidenceFound,sold_found:soldFound,results}),{headers});
+    return new Response(JSON.stringify({ok:true,provider:"Bing + DuckDuckGo discovery → verified HiBid lot pages",truth:"Search engines discover URLs only. SOLD requires a matching HiBid source lot page with an explicit numeric Price Realized.",searched:results.length,evidence_found:evidenceFound,sold_found:soldFound,results}),{headers});
   } catch(e) {
     return new Response(JSON.stringify({error:"AUCTION_COMP_REFRESH_ERROR",detail:e instanceof Error?e.message:String(e)}),{status:500,headers});
   }
