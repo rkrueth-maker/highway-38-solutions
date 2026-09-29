@@ -130,7 +130,8 @@ jobs:
             if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:4173/ | grep -Fq 'id="signin"'
+          curl -fsS http://127.0.0.1:4173/ -o /tmp/h38-scout-index.html
+          grep -Fq 'id="signin"' /tmp/h38-scout-index.html
           node scripts/scout-web-button-acceptance.cjs
           node scripts/scout-deal-engine-acceptance.cjs
 
@@ -144,4 +145,3 @@ jobs:
             artifacts/scout-deal-engine-acceptance/**
           if-no-files-found: error
           retention-days: 30
-
