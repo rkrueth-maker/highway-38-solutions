@@ -43,11 +43,6 @@ async function api(s, body) {
   if (!r.ok || data.error) throw new Error('Deal Engine API ' + r.status + ' ' + JSON.stringify(data).slice(0, 1000));
   return data;
 }
-async function browserSession(context, s) {
-  await context.addInitScript(({ key, value }) => {
-    localStorage.setItem(key, JSON.stringify(value));
-  }, { key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: s });
-}
 async function ensureBrowserSignedIn(page) {
   await page.waitForFunction(() => {
     const app = document.querySelector('#app');
@@ -131,7 +126,6 @@ async function cleanupQueue(s, id) {
 
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    await browserSession(context, s);
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
