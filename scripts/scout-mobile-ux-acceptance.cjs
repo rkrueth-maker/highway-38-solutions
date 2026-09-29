@@ -18,7 +18,7 @@ const pages = [
   { name: 'penny', url: '/penny.html', selectors: ['.back', '#lookupOpen', '#refresh', '#search', '#stores'] },
   { name: 'resale', url: '/resale.html', selectors: ['.top a', '[data-tab="deals"]', '.sources summary', '#search', '#scan'] },
   { name: 'coupon', url: '/coupon.html', selectors: ['.top a', '.nav', '[data-view="shop"]', '[data-view="deals"]', '[data-view="receipts"]'] },
-  { name: 'best', url: '/best.html', selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#dealControls'] },
+  { name: 'best', url: '/functions/v1/h38-deal-engine-web', live: true, selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#dealControls'] },
   { name: 'maintenance', url: '/maintenance.html', selectors: ['.top a', '#check', '#maintain', '#report'] },
 ];
 
@@ -72,7 +72,8 @@ async function assertInViewport(page, selector, label) {
         const page = await context.newPage();
         const errors = [];
         page.on('pageerror', e => errors.push(String(e)));
-        await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        const target = spec.live ? SB + spec.url : BASE + spec.url;
+        await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 30000 });
         if (spec.name === 'best') await ensureBestSignedIn(page);
         await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
         const metrics = await page.evaluate(() => ({
