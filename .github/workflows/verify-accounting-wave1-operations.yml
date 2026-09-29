@@ -44,8 +44,8 @@ jobs:
         run: node scripts/verify-accounting-operations.js
       - name: Verify posting bridge loads daily money operations
         run: |
-          grep -Fq "accounting-operations.js?build=20260927-wave1-operations-1" commercial-app/accounting-posting-bridge.js
-          grep -Fq "accounting-operations-ui.js?build=20260927-wave1-operations-ui-1" commercial-app/accounting-posting-bridge.js
+          grep -Fq "accounting-operations.js?build=20260929-bank-import-integrity-1" commercial-app/accounting-posting-bridge.js
+          grep -Fq "accounting-operations-ui.js?build=20260929-bank-import-integrity-ui-1" commercial-app/accounting-posting-bridge.js
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Verify owner daily-money browser flows
