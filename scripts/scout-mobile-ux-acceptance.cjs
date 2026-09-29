@@ -79,7 +79,7 @@ async function assertInViewport(page, selector, label) {
     for (const size of sizes) {
       const context = await browser.newContext({ viewport: size });
       await context.addInitScript(({ key, value }) => {
-        if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+        if ((location.hostname === '127.0.0.1' || location.hostname === 'localhost') && location.pathname !== '/best-live.html') {
           localStorage.setItem(key, JSON.stringify(value));
         }
       }, { key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: session });
