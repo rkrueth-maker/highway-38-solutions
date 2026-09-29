@@ -1,59 +1,125 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+type Row = Record<string, any>;
+
 const ORIGINS = new Set([
   "https://appassets.androidplatform.net",
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
 ]);
-const UA = "H38ResellerScout/3.0.16 (https://highway38solutions.com; public-sale-discovery)";
-const SALE_EVENT_RE = /\b(?:garage|yard|rummage|moving|estate|neighborhood|multi[- ]?family)\s+sales?\b|\b(?:garage|yard|rummage|moving|estate|neighborhood|multi[- ]?family)\s+sale\b|\b47\s+miles?\s+of\s+garage\s+sales\b/i;
-const HWY38_EVENT = "https://visitgrandrapids.com/events/bargains-are-great-on-hwy-38/";
+const UA = "Mozilla/5.0 H38ResellerScout/3.2 public-sale-discovery";
+const STATE_URL = "https://garagesaletime.com/garage-sales/minnesota/";
+const JINA_URL = "https://r.jina.ai/https://garagesaletime.com/garage-sales/minnesota/";
 
-type Row = Record<string, any>;
-function cors(r: Request) { const o = r.headers.get("origin") || ""; return {"access-control-allow-origin": ORIGINS.has(o) ? o : "https://appassets.androidplatform.net","access-control-allow-headers":"authorization, apikey, content-type","access-control-allow-methods":"POST, OPTIONS","content-type":"application/json; charset=utf-8","cache-control":"no-store",vary:"Origin"}; }
-function json(r: Request, s: number, b: unknown) { return new Response(JSON.stringify(b), { status: s, headers: cors(r) }); }
-function dec(v: unknown) { return String(v || "").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#0*39;|&apos;/gi,"'").replace(/&nbsp;|&#160;/gi," ").replace(/&ndash;/gi,"–").replace(/&mdash;/gi,"—").replace(/&lt;/gi,"<").replace(/&gt;/gi,">"); }
-function strip(v: unknown) { return dec(v).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(); }
-function abs(h: string, b: string) { try { return new URL(dec(h), b).toString(); } catch { return ""; } }
-function hav(a: number, b: number, c: number, d: number) { const R=3958.7613,q=Math.PI/180,x=(c-a)*q,y=(d-b)*q,z=Math.sin(x/2)**2+Math.cos(a*q)*Math.cos(c*q)*Math.sin(y/2)**2;return 2*R*Math.atan2(Math.sqrt(z),Math.sqrt(1-z)); }
-function meta(html: string, key: string) { const e=key.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),a=html.match(new RegExp(`<meta\\b[^>]*(?:property|name|itemprop)=["']${e}["'][^>]*content=["']([^"']+)["']`,"i"))||html.match(new RegExp(`<meta\\b[^>]*content=["']([^"']+)["'][^>]*(?:property|name|itemprop)=["']${e}["']`,"i"));return a?dec(a[1]):""; }
-async function get(url: string, timeout = 9000) { const c=new AbortController(),to=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{headers:{"user-agent":UA,accept:"text/html,application/xhtml+xml,*/*;q=0.8","accept-language":"en-US,en;q=0.9"},redirect:"follow",signal:c.signal}),html=await r.text().catch(()=>"");if(!r.ok)throw Error(`HTTP ${r.status}`);return{url:r.url,html}}finally{clearTimeout(to)} }
-async function geocode(q: string) { q=strip(q).slice(0,140);if(q.length<4)return null;try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`,{headers:{"user-agent":UA,accept:"application/json"},signal:AbortSignal.timeout(7000)}),a=await r.json().catch(()=>[]),x=Array.isArray(a)&&a[0],lat=Number(x?.lat),lon=Number(x?.lon);return Number.isFinite(lat)&&Number.isFinite(lon)?{lat,lon}:null}catch{return null} }
-function saleIntent(v: unknown) { return SALE_EVENT_RE.test(strip(v)); }
-function saleType(v: string) { const s=v.toLowerCase();if(/estate/.test(s))return"ESTATE SALE";if(/moving/.test(s))return"MOVING SALE";if(/rummage/.test(s))return"RUMMAGE SALE";if(/yard/.test(s))return"YARD SALE";return"GARAGE SALE"; }
-function cleanTitle(v: unknown) { return strip(v).replace(/\s*[|–-]\s*(craigslist|yard sale search).*$/i,"").replace(/\(\s*\d+\s+photos?\s*\)$/i,"").trim().slice(0,220); }
-function postingBody(html: string) { const m=html.match(/<section\b[^>]*id=["']postingbody["'][^>]*>([\s\S]*?)<\/section>/i)||html.match(/<div\b[^>]*id=["']postingbody["'][^>]*>([\s\S]*?)<\/div>/i)||html.match(/<div\b[^>]*class=["'][^"']*postingbody[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);return strip(m?.[1]||"").replace(/^QR Code Link to This Post\s*/i,"").trim(); }
-function craigslistSeeds(html: string, base: string) { const out:Row[]=[],seen=new Set<string>();for(const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){if(out.length>=32)break;const url=abs(m[1]||"",base),title=cleanTitle(m[2]||"");if(!url||seen.has(url)||title.length<4||(!/\.html(?:$|\?)/i.test(url)&&!/\/d\//i.test(url)))continue;seen.add(url);out.push({source:"Craigslist",source_type:"public_garage_moving_category",title,event_type:saleType(title),url,location_verified:false,freshness_unproven:true,source_search_bound:true})}return out; }
-async function craigslistDetail(seed:Row,lat:number,lon:number,radius:number){try{const p=await get(seed.url,7000),h=p.html,title=cleanTitle(meta(h,"og:title")||h.match(/id=["']titletextonly["'][^>]*>([\s\S]*?)<\/span>/i)?.[1]||seed.title),body=postingBody(h),proof=`${title} ${body}`;if(!saleIntent(proof))return null;const image=meta(h,"og:image"),position=meta(h,"geo.position").split(/[;,]/),la=Number(position[0]||h.match(/latitude[^0-9-]*(-?\d+(?:\.\d+)?)/i)?.[1]),lo=Number(position[1]||h.match(/longitude[^0-9-]*(-?\d+(?:\.\d+)?)/i)?.[1]),location=strip(h.match(/class=["'][^"']*(?:mapaddress|postingtitletext)[^"']*["'][^>]*>([\s\S]{0,700}?)<\//i)?.[1]||"").replace(/^\(|\)$/g,""),time=h.match(/<time\b[^>]*datetime=["']([^"']+)["'][^>]*>/i)?.[1]||"",d=Number.isFinite(la)&&Number.isFinite(lo)&&Number.isFinite(lat)&&Number.isFinite(lon)?hav(lat,lon,la,lo):null;if(d!=null&&d>radius)return null;return{...seed,title,event_type:saleType(proof),url:p.url,image_url:image,location_label:location,event_time:time,distance_miles:d==null?null:Number(d.toFixed(1)),location_verified:d!=null,freshness_unproven:!time,detail_verified:true,sale_event_verified:true,sale_intent_scope:"title_or_posting_body"}}catch{return null}}
+function cors(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  return {
+    "access-control-allow-origin": ORIGINS.has(origin) ? origin : "https://appassets.androidplatform.net",
+    "access-control-allow-headers": "authorization, apikey, content-type",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    vary: "Origin",
+  };
+}
+function json(req: Request, status: number, body: unknown) { return new Response(JSON.stringify(body), { status, headers: cors(req) }); }
+function dec(v: unknown) { return String(v ?? "").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#0*39;|&apos;/gi, "'").replace(/&nbsp;|&#160;/gi, " ").replace(/&ndash;/gi, "–").replace(/&mdash;/gi, "—").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">"); }
+function strip(v: unknown) { return dec(v).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
+function abs(href: string, base: string) { try { return new URL(dec(href), base).toString(); } catch { return ""; } }
+function hav(a: number, b: number, c: number, d: number) { const R=3958.7613,q=Math.PI/180,x=(c-a)*q,y=(d-b)*q,z=Math.sin(x/2)**2+Math.cos(a*q)*Math.cos(c*q)*Math.sin(y/2)**2; return 2*R*Math.atan2(Math.sqrt(z),Math.sqrt(1-z)); }
+function saleType(v: string) { const s=v.toLowerCase(); if (/estate/.test(s)) return "ESTATE SALE"; if (/moving/.test(s)) return "MOVING SALE"; if (/yard/.test(s)) return "YARD SALE"; if (/rummage/.test(s)) return "RUMMAGE SALE"; return "GARAGE SALE"; }
 
-const STATE:Record<string,string>={alabama:"AL",alaska:"AK",arizona:"AZ",arkansas:"AR",california:"CA",colorado:"CO",connecticut:"CT",delaware:"DE",florida:"FL",georgia:"GA",hawaii:"HI",idaho:"ID",illinois:"IL",indiana:"IN",iowa:"IA",kansas:"KS",kentucky:"KY",louisiana:"LA",maine:"ME",maryland:"MD",massachusetts:"MA",michigan:"MI",minnesota:"MN",mississippi:"MS",missouri:"MO",montana:"MT",nebraska:"NE",nevada:"NV","new hampshire":"NH","new jersey":"NJ","new mexico":"NM","new york":"NY","north carolina":"NC","north dakota":"ND",ohio:"OH",oklahoma:"OK",oregon:"OR",pennsylvania:"PA","rhode island":"RI","south carolina":"SC","south dakota":"SD",tennessee:"TN",texas:"TX",utah:"UT",vermont:"VT",virginia:"VA",washington:"WA","west virginia":"WV",wisconsin:"WI",wyoming:"WY"};
-function area(label:string,postal:string){const raw=strip(label).replace(new RegExp(`,?\\s*${postal}.*$`),"").trim(),parts=raw.split(',').map(x=>x.trim()).filter(Boolean),city=parts[0]||"",region=parts[1]||"",st=/^[A-Z]{2}$/i.test(region)?region.toUpperCase():STATE[region.toLowerCase()]||"";return{city,st}}
-function estateSeeds(html:string,base:string,st:string,postal:string){const out:Row[]=[],seen=new Set<string>();for(const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){if(out.length>=20)break;const url=abs(m[1]||"",base),title=cleanTitle(m[2]||"");if(!url||seen.has(url)||title.length<5||!url.includes("estatesales.net")||!/\/\d{5}(?:\/|$)/.test(url))continue;if(!/sale|estate|moving|liquidat|vintage|antique|collect|tool|garage|house|contents|downsizing/i.test(title))continue;seen.add(url);out.push({source:"EstateSales.NET",source_type:"public_estate_sale_index",title,event_type:saleType(title),url,location_label:`${st} ${postal}`.trim(),location_verified:false,freshness_unproven:false,source_search_bound:true,sale_event_verified:true})}return out}
+async function fetchText(url: string, timeout=12000) {
+  const r = await fetch(url, { headers: { "user-agent": UA, accept: "text/html,text/plain,*/*;q=0.8", "accept-language": "en-US,en;q=0.9" }, redirect: "follow", signal: AbortSignal.timeout(timeout) });
+  const text = await r.text().catch(() => "");
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return { text, url: r.url || url, status: r.status };
+}
 
-function yardSaleSeeds(html:string,base:string){const out:Row[]=[];for(const h of html.matchAll(/<h2\b[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)(?=<h2\b|<footer\b|$)/gi)){if(out.length>=30)break;const title=cleanTitle(h[1]||""),chunk=h[2]||"",plain=strip(chunk),proof=`${title} ${plain}`;if(title.length<4||!saleIntent(proof)||/^online sale$/i.test(title))continue;const where=plain.match(/\bWhere:\s*(.*?)(?=\s+When:|\s+Details:|\s+Read More|$)/i)?.[1]?.trim()||"",when=plain.match(/\bWhen:\s*(.*?)(?=\s+Details:|\s+Read More|$)/i)?.[1]?.trim()||"";if(!where||!/\b(?:MN|Minnesota)\b/i.test(where))continue;const link=chunk.match(/<a\b[^>]*href=["']([^"']+)["']/i)?.[1]||"",url=abs(link,base)||base;out.push({source:"YardSaleSearch",source_type:"public_yard_sale_index",title,event_type:saleType(proof),url,location_label:where,event_time:when,date_label:when,location_verified:false,freshness_unproven:!when,source_search_bound:true,sale_event_verified:true})}return out}
-async function locateRows(rows:Row[],lat:number,lon:number,radius:number){const out:Row[]=[];for(const r of rows.slice(0,20)){if(!Number.isFinite(lat)||!Number.isFinite(lon)){out.push(r);continue}const g=await geocode(String(r.location_label||""));if(!g)continue;const d=hav(lat,lon,g.lat,g.lon);if(d<=radius)out.push({...r,distance_miles:Number(d.toFixed(1)),location_verified:true})}return out}
-function monthIndex(v:string){const a=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"],n=a.indexOf(v.slice(0,3).toLowerCase());return n>=0?n:null}
-function currentEventDate(label:string){const m=label.match(/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})(?:\s*[-–]\s*(\d{1,2}))?\s+(20\d{2})\b/i);if(!m)return null;const mo=monthIndex(m[1]),end=Number(m[3]||m[2]),year=Number(m[4]);if(mo==null)return null;return new Date(Date.UTC(year,mo,end,23,59,59))}
-async function hwy38Event(label:string,postal:string){if(!(postal==="55744"||/grand\s+rapids/i.test(label)))return null;try{const p=await get(HWY38_EVENT,9000),plain=strip(p.html),title=cleanTitle(meta(p.html,"og:title")||p.html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]||"Bargains are Great on HWY 38");if(!saleIntent(`${title} ${plain}`)||!/Grand Rapids,?\s*MN/i.test(plain)||!/Highway\s*38|Hwy\s*38/i.test(plain))return null;const date=plain.match(/\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:\s*[-–]\s*\d{1,2})?\s+20\d{2}\b/i)?.[0]||"",end=currentEventDate(date);if(!end||end.getTime()<Date.now()-24*60*60*1000)return null;return{source:"Visit Grand Rapids",source_type:"verified_local_event_calendar",title,event_type:"GARAGE SALE",url:p.url,location_label:"Highway 38, Grand Rapids, MN",event_time:date,date_label:date,location_verified:true,freshness_unproven:false,detail_verified:true,sale_event_verified:true,source_search_bound:true,event_scope:"47 miles of garage sales",truth_source:"Current Visit Grand Rapids event page"}}catch{return null}}
-function normKey(v:unknown){return strip(v).toLowerCase().replace(/\b(?:garage|yard|rummage|moving|estate|sale|sales|the|and|on|at|of)\b/g," ").replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim()}
-function dedupe(rows:Row[]){const byUrl=new Set<string>(),bySig=new Map<string,Row>();for(const r of rows){const url=String(r.url||"").replace(/[?#].*$/,"").toLowerCase(),sig=`${normKey(r.title)}|${normKey(r.location_label)}|${normKey(r.event_time||r.date_label)}`;if(url&&byUrl.has(url))continue;if(sig&&bySig.has(sig)){const old=bySig.get(sig)!;if(r.location_verified===true&&old.location_verified!==true)bySig.set(sig,r);continue}if(url)byUrl.add(url);if(sig)bySig.set(sig,r)}return[...bySig.values()]}
+const MONTHS: Record<string, number> = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
+function parseEndDate(v: string) {
+  const s = strip(v).replace(/September/gi,"Sep").replace(/October/gi,"Oct").replace(/November/gi,"Nov").replace(/December/gi,"Dec").replace(/August/gi,"Aug").replace(/July/gi,"Jul").replace(/June/gi,"Jun").replace(/April/gi,"Apr").replace(/March/gi,"Mar").replace(/February/gi,"Feb").replace(/January/gi,"Jan");
+  const m = s.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})(?:\s*[–-]\s*(?:(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+)?(\d{1,2}))?,?\s*(20\d{2})\b/i);
+  if (!m) return null;
+  const startMonth=MONTHS[m[1].slice(0,3).toLowerCase()], endMonth=m[3]?MONTHS[m[3].slice(0,3).toLowerCase()]:startMonth, endDay=Number(m[4]||m[2]), year=Number(m[5]);
+  if (!Number.isFinite(endDay)||!Number.isFinite(year)) return null;
+  return new Date(Date.UTC(year,endMonth,endDay+1,5,59,59));
+}
+function dateLabel(v: string) { return (strip(v).match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:tember|ober|ember|uary|ruary|ch|il|e|y|ust)?\s+\d{1,2}(?:\s*[–-]\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:tember|ober|ember|uary|ruary|ch|il|e|y|ust)?\s+)?\d{1,2})?,?\s*20\d{2}/i)||[])[0]||""; }
+
+function candidateFromText(text: string, url: string) {
+  const plain = strip(text);
+  const sale = plain.match(/\b(?:Furniture,?\s*Tools\s*)?(Estate|Garage|Yard|Moving|Rummage)\s+Sale\s+in\s+([A-Za-z .'-]+),\s*Minnesota\b/i)
+    || plain.match(/\b(Estate|Garage|Yard|Moving|Rummage)\s+Sale\s+in\s+([A-Za-z .'-]+),\s*Minnesota\b/i);
+  if (!sale) return null;
+  const city = sale[2].trim();
+  const loc = plain.match(new RegExp(`${city.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\s*,\\s*MN\\s*(\\d{5})`,"i"));
+  const zip = loc?.[1] || (plain.match(/\bMN\s*(\d{5})\b/i)||[])[1] || "";
+  const dlabel = dateLabel(plain);
+  const end = dlabel ? parseEndDate(dlabel) : null;
+  if (end && end.getTime() < Date.now() - 6*3600000) return null;
+  const titleMatch = plain.match(new RegExp(`((?:Furniture|Tools|Decor|Books|Clothing|Appliances|Electronics|Toys|Vintage|Collectibles|Household|Outdoor|Jewelry|Antiques|Furniture, Tools|Tools, Electronics|Furniture, Decor)[^]{0,80}?)?${sale[1]}\\s+Sale\\s+in\\s+${city.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\s*,\\s*Minnesota`,"i"));
+  const title = strip(titleMatch?.[0] || `${sale[1]} Sale in ${city}, Minnesota`).slice(0,220);
+  return { source:"GarageSaleTime", source_type:"public_current_sale_index", title, event_type:saleType(`${sale[1]} sale`), url, source_url:url, location_label:[city,"MN",zip].filter(Boolean).join(" "), city, state_code:"MN", zip, event_time:dlabel, date_label:dlabel, end_at:end?.toISOString()||"", location_verified:false, freshness_unproven:!dlabel, detail_verified:false, sale_event_verified:true, source_search_bound:true, verification_status:"PUBLIC SALE INDEX · VERIFY EXACT HOURS/ADDRESS", economics_complete:false, profit_verified:false };
+}
+
+function htmlRows(html: string, base: string) {
+  const out: Row[]=[]; const seen=new Set<string>();
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    if (out.length>=36) break;
+    const href=abs(m[1]||"",base); const text=strip(m[2]||"");
+    if (!href || seen.has(href) || !/\b(?:Estate|Garage|Yard|Moving|Rummage)\s+Sale\s+in\s+[^,]+,\s*Minnesota\b/i.test(text)) continue;
+    const row=candidateFromText(text,href); if (!row) continue; seen.add(href); out.push(row);
+  }
+  return out;
+}
+function markdownRows(md: string) {
+  const out: Row[]=[]; const seen=new Set<string>();
+  for (const m of md.matchAll(/\[([^\]]{10,900}(?:Estate|Garage|Yard|Moving|Rummage)\s+Sale\s+in\s+[^\]]+?,\s*Minnesota[^\]]*)\]\((https?:\/\/[^)]+)\)/gi)) {
+    if (out.length>=36) break;
+    const url=m[2]; if (seen.has(url)) continue; const row=candidateFromText(m[1],url); if (!row) continue; seen.add(url); out.push(row);
+  }
+  if (!out.length) {
+    for (const block of md.split(/(?=Garage\/Yard sale listing)/i)) {
+      if (out.length>=36) break;
+      if (!/\b(?:Estate|Garage|Yard|Moving|Rummage)\s+Sale\s+in\s+[^,]+,\s*Minnesota\b/i.test(block)) continue;
+      const row=candidateFromText(block,STATE_URL+"#"+encodeURIComponent(strip(block).slice(0,80))); if (row) out.push(row);
+    }
+  }
+  return out;
+}
+
+async function geocode(label: string) {
+  try {
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=${encodeURIComponent(label)}`,{headers:{"user-agent":"H38ResellerScout/3.2 (+https://highway38solutions.com)",accept:"application/json"},signal:AbortSignal.timeout(7000)});
+    const a=await r.json().catch(()=>[]),x=Array.isArray(a)?a[0]:null,lat=Number(x?.lat),lon=Number(x?.lon);
+    return Number.isFinite(lat)&&Number.isFinite(lon)?{lat,lon}:null;
+  } catch { return null; }
+}
+
+async function localize(rows: Row[], lat: number, lon: number, radius: number) {
+  if (!Number.isFinite(lat)||!Number.isFinite(lon)) return rows.slice(0,24);
+  const out:Row[]=[]; const cache=new Map<string,any>();
+  for (const r of rows.slice(0,14)) {
+    const key=`${r.city}, MN ${r.zip}`; let g=cache.get(key); if (g===undefined) { g=await geocode(key); cache.set(key,g); }
+    if (!g) continue; const d=hav(lat,lon,g.lat,g.lon); if (d>radius+0.15) continue;
+    out.push({...r,distance_miles:Number(d.toFixed(1)),location_verified:true,detail_verified:true,verification_status:"PUBLIC SALE INDEX · LOCATION/RADIUS VERIFIED · VERIFY HOURS/ADDRESS"});
+  }
+  return out;
+}
+function dedupe(rows:Row[]) { const out:Row[]=[]; const seen=new Set<string>(); for(const r of rows){const k=String(r.url||`${r.title}|${r.location_label}|${r.event_time}`).toLowerCase();if(!k||seen.has(k))continue;seen.add(k);out.push(r);}return out; }
 
 Deno.serve(async(req:Request)=>{
-  if(req.method==="OPTIONS")return new Response("ok",{headers:cors(req)});
-  if(req.method!=="POST")return json(req,405,{error:"POST required"});
+  if(req.method==="OPTIONS") return new Response(null,{status:204,headers:cors(req)});
+  if(req.method!=="POST") return json(req,405,{error:"POST required"});
+  if(!req.headers.get("authorization")) return json(req,401,{error:"Sign in required"});
+  const started=Date.now();
   try{
-    const b=await req.json().catch(()=>({})),lat=Number(b.lat),lon=Number(b.lon),radius=[25,50,100,150].includes(Number(b.radiusMiles))?Number(b.radiusMiles):50,postal=String(b.postal||"").match(/\d{5}/)?.[0]||"",label=String(b.location_label||b.locationLabel||""),rows:Row[]=[],a=area(label,postal);
-    const health:Row={Craigslist:{status:"unavailable",count:0},"EstateSales.NET":{status:"unavailable",count:0},YardSaleSearch:{status:"unavailable",count:0},"Visit Grand Rapids":{status:"not_applicable",count:0}};
-
-    if(Number.isFinite(lat)&&Number.isFinite(lon))try{const u=`https://www.craigslist.org/search/gms?sort=date&lat=${lat}&lon=${lon}&search_distance=${radius}`,p=await get(u),seeds=craigslistSeeds(p.html,p.url),details=await Promise.all(seeds.slice(0,20).map(x=>craigslistDetail(x,lat,lon,radius))),got=details.filter(x=>!!x&&x.sale_event_verified===true) as Row[];rows.push(...got);health.Craigslist={status:got.length?"live":"empty",count:got.length,route:p.url,rejected_non_sale:Math.max(0,Math.min(20,seeds.length)-got.length),sale_intent_scope:"title_or_posting_body"}}catch(e){health.Craigslist={status:"unavailable",count:0,warning:String(e)}};
-
-    if(a.city&&a.st&&postal)try{const slug=a.city.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,''),u=`https://www.estatesales.net/${a.st}/${slug}/${postal}`,p=await get(u),got=estateSeeds(p.html,p.url,a.st,postal);rows.push(...got);health["EstateSales.NET"]={status:got.length?"live":"empty",count:got.length,route:p.url}}catch(e){health["EstateSales.NET"]={status:"unavailable",count:0,warning:String(e)}};
-
-    if(a.city&&a.st)try{const citySlug=a.city.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),stateName=Object.entries(STATE).find(([,code])=>code===a.st)?.[0]||"",cityUrl=`https://www.yardsalesearch.com/garage-sales-${citySlug}-${a.st.toLowerCase()}.html`,stateUrl=stateName?`https://www.yardsalesearch.com/garage-sales-${stateName.replace(/\s+/g,'-')}.html`:"",pages=await Promise.allSettled([get(cityUrl),stateUrl?get(stateUrl):Promise.reject(Error('no state route'))]),seeds:Row[]=[];for(const x of pages)if(x.status==='fulfilled')seeds.push(...yardSaleSeeds(x.value.html,x.value.url));const got=await locateRows(dedupe(seeds),lat,lon,radius);rows.push(...got);health.YardSaleSearch={status:got.length?"live":"empty",count:got.length,route:cityUrl,scanned:seeds.length}}catch(e){health.YardSaleSearch={status:"unavailable",count:0,warning:String(e)}};
-
-    const local=await hwy38Event(label,postal);if(local){rows.push(local);health["Visit Grand Rapids"]={status:"live",count:1,route:local.url,event_time:local.event_time}}else if(postal==="55744"||/grand\s+rapids/i.test(label))health["Visit Grand Rapids"]={status:"empty",count:0,route:HWY38_EVENT};
-
-    const out=dedupe(rows).filter(r=>r.sale_event_verified===true).sort((x,y)=>{const av=x.location_verified===true?0:1,bv=y.location_verified===true?0:1;if(av!==bv)return av-bv;const ad=Number(x.distance_miles),bd=Number(y.distance_miles);if(Number.isFinite(ad)&&Number.isFinite(bd)&&ad!==bd)return ad-bd;return String(x.event_time||"").localeCompare(String(y.event_time||""))}).slice(0,48);
-    return json(req,200,{status:out.length?"PASS":"PARTIAL",engine:"garage_sales_v316_four_source_verified",results:out,source_health:health,truth:"Sale-level discovery only. Craigslist requires listing-level sale intent; YardSaleSearch rows require a physical Minnesota sale and radius verification; Visit Grand Rapids events require a current dated event page and matching Grand Rapids location. Scout never assigns resale profit until actual items are identified and sold comps support value."});
-  }catch(e){return json(req,500,{error:e instanceof Error?e.message:String(e)})}
+    const b:Row=await req.json().catch(()=>({})); const lat=Number(b.lat),lon=Number(b.lon),radius=Math.max(1,Math.min(150,Number(b.radiusMiles||b.radius_miles||50)));
+    let raw:Row[]=[]; const health:Row={GarageSaleTime:{status:"unavailable",count:0}}; const warnings:string[]=[];
+    try{const p=await fetchText(STATE_URL); raw=htmlRows(p.text,p.url); health.GarageSaleTime={status:raw.length?"live":"empty",count:raw.length,route:p.url,http_status:p.status};}catch(e){warnings.push(`GarageSaleTime direct: ${e instanceof Error?e.message:String(e)}`);}
+    if(!raw.length){try{const p=await fetchText(JINA_URL,15000);raw=markdownRows(p.text);health.GarageSaleTime={status:raw.length?"live":"empty",count:raw.length,route:STATE_URL,mirror:"jina_public_text"};}catch(e){warnings.push(`GarageSaleTime text mirror: ${e instanceof Error?e.message:String(e)}`);}}
+    const results=dedupe(await localize(raw,lat,lon,radius)).slice(0,48);
+    return json(req,200,{status:results.length?"PASS":"PARTIAL",engine:"garage_sales_v318_current_mn_index",results,source_health:health,warnings,location_query:String(b.location_label||b.locationLabel||b.postal||""),radius_miles:radius,elapsed_ms:Date.now()-started,truth:"Sale-level public discovery only. Results are current public sale-index leads inside the requested radius when geocoding proves locality. They are not item inventory, do not carry a purchase price or resale profit, and exact address/hours must be verified at the source before travel."});
+  }catch(e){return json(req,500,{error:e instanceof Error?e.message:String(e)});}
 });
