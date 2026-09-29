@@ -19,17 +19,32 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "WORKER_AUTH_REQUIRED" }), { status: 401, headers });
     }
 
-    const r = await fetch(`${url}/functions/v1/h38-deal-engine-market-refresh`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${service}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ limit: 6, source: "secure_cron_bridge" }),
-      signal: AbortSignal.timeout(70000),
-    });
-    const body = await r.text().catch(() => "");
-    return new Response(body || JSON.stringify({ ok: r.ok, status: r.status }), { status: r.status, headers });
+    const invoke = async (slug: string, body: unknown) => {
+      try {
+        const r = await fetch(`${url}/functions/v1/${slug}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${service}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(70000),
+        });
+        const raw = await r.text().catch(() => "");
+        let data: any = raw;
+        try { data = raw ? JSON.parse(raw) : null; } catch {}
+        return { ok: r.ok, status: r.status, data };
+      } catch (e) {
+        return { ok: false, status: 598, data: { error: e instanceof Error ? e.message : String(e) } };
+      }
+    };
+
+    const [ebay, auction] = await Promise.all([
+      invoke("h38-deal-engine-market-refresh", { limit: 6, source: "secure_cron_bridge" }),
+      invoke("h38-deal-engine-auction-comp-refresh", { limit: 6, source: "secure_cron_bridge" }),
+    ]);
+
+    return new Response(JSON.stringify({
+      ok: ebay.ok && auction.ok,
+      providers: { ebay_public_index: ebay, hibid_public_index: auction },
+    }), { status: ebay.ok && auction.ok ? 200 : 207, headers });
   } catch (e) {
     return new Response(JSON.stringify({ error: "MARKET_REFRESH_CRON_ERROR", detail: e instanceof Error ? e.message : String(e) }), { status: 500, headers });
   }
