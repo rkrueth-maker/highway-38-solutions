@@ -27,6 +27,7 @@ This is the repeatable acceptance playbook for Highway 38 and Northern Lakes Bus
 6. Assistant: from Today, Customer, Job, Site Visit, Quote, Messages, Meeting, Document, snow, and lawn, ask the context-specific prompts in the takeover request. The response must use the open record and keep external execution approval-gated.
 7. Context: prove Job → Message → Job, Job → Site Visit → Job, Customer → Document → Customer, and Search → Record → Search, including record and query restoration.
 8. Offline: save locally, reopen/resume, reconnect, retry, and verify visible `Saved`, `Syncing`, `Offline — saved locally`, or `Sync failed — safe locally · Retry` status.
+9. Bank import: in an owner TEST account, stage a CSV and an OFX/QFX statement with controlled records. Confirm exact imported count, account-scoped stable IDs, duplicate-reference rejection, reimport warning, malformed date/amount rejection, and a clear stop before any write when the file exceeds 500 transactions. Review matches manually; do not auto-categorize, reconcile, or move money.
 
 ## Visual and accessibility checks
 
