@@ -120,6 +120,17 @@ async function command(page,value){
   await page.locator('#paCommandForm:visible').getByRole('button',{name:'Run command',exact:true}).click();
   await page.waitForTimeout(850);await privacy(page);
 }
+async function readablePreview(page){
+  const card=page.locator('[data-h38-ai-action-card]');await card.scrollIntoViewIfNeeded();
+  const visible=await card.evaluate(node=>{
+    const summary=node.querySelector('pre'),approve=node.querySelector('[data-h38-ai-approve]'),history=document.getElementById('paChat');
+    if(!summary||!approve||history?.contains(node))return false;
+    const r=summary.getBoundingClientRect(),b=approve.getBoundingClientRect(),sticky=document.querySelector('.h38-owner-context')?.getBoundingClientRect();
+    const top=sticky&&sticky.top>=0&&sticky.bottom<innerHeight/2?sticky.bottom:0;
+    return r.top>=top&&r.bottom<=innerHeight-150&&b.top>=top&&b.bottom<=innerHeight-150;
+  });
+  if(!visible)throw Error('Approval summary and control are not fully readable above phone navigation/captions.');
+}
 
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
@@ -167,7 +178,8 @@ async function command(page,value){
       if(preview.rate!==150||preview.pending?.customerId!==test.id||preview.pending?.after!==175)throw Error('Preview-before-write check failed.');
       activeResult.steps.push({name:'preview-before-write',status:'PASS',before:150,after:175});
 
-      await privacy(page);await page.locator('[data-h38-ai-action-card]').scrollIntoViewIfNeeded();
+      await privacy(page);await readablePreview(page);
+      activeResult.steps.push({name:'pricing-preview-readable-with-approval',status:'PASS'});
       await narrate(page,'The preview proposes a rate of 175 dollars and a quote. The saved rate is still 150. Approval applies to this exact preview.');
       await page.locator('[data-h38-ai-approve]').click();
       await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:90000});
@@ -202,7 +214,8 @@ async function command(page,value){
         return{phone:String(row.Phone||row.phone||''),pending:window.H38_ASSISTANT_TENANT_ACTIONS.pending()};
       },test.id);
       if(phonePreview.phone!=='218-555-0199'||phonePreview.pending?.type!=='customer-field'||phonePreview.pending?.after!=='218-555-0177')throw Error('Customer contact preview/no-write check failed.');
-      await privacy(page);await page.locator('[data-h38-ai-action-card]').scrollIntoViewIfNeeded();
+      await privacy(page);await readablePreview(page);
+      activeResult.steps.push({name:'contact-preview-readable-with-approval',status:'PASS'});
       await narrate(page,'This second preview changes only the TEST phone number. The saved contact remains unchanged until approval.');
       await page.locator('[data-h38-ai-approve]').click();
       await page.waitForFunction(()=>window.H38_ASSISTANT_TENANT_ACTIONS?.lastCompletion?.()?.status==='SAVED',null,{timeout:90000});
