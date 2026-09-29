@@ -41,13 +41,16 @@ function cleanTitle(raw: string) {
 
 function parseWindow(context: string, asin: string): Any | null {
   const discountHits = nearbyMatches(context, /(\d{1,2})%\s+off/gi);
-  const discount = discountHits.length ? num(discountHits.at(-1)?.[1]) : null;
+  const discountHit = discountHits.at(-1) || null;
+  const discount = discountHit ? num(discountHit[1]) : null;
+  const discountIndex = discountHit?.index ?? 0;
+  const dealSegment = context.slice(discountIndex, Math.min(context.length, discountIndex + 650));
 
-  const dealPriceHits = nearbyMatches(context, /(?:Deal Price:\s*)?\$([0-9]{1,5}(?:\.[0-9]{2})?)/gi);
-  const price = dealPriceHits.length ? num(dealPriceHits.at(-1)?.[1]) : null;
-
-  const regularHits = nearbyMatches(context, /(?:List(?: Price)?|Typical price):?\s*\$([0-9]{1,5}(?:\.[0-9]{2})?)/gi);
-  const regular = regularHits.length ? num(regularHits.at(-1)?.[1]) : null;
+  const regularMatch = dealSegment.match(/(?:List(?: Price)?|Typical price):?\s*(?:List:?\s*)?\$([0-9]{1,5}(?:\.[0-9]{2})?)/i);
+  const regular = regularMatch ? num(regularMatch[1]) : null;
+  const beforeRegular = regularMatch?.index != null ? dealSegment.slice(0, regularMatch.index) : dealSegment.slice(0, 300);
+  const currentHits = nearbyMatches(beforeRegular, /\$([0-9]{1,5}(?:\.[0-9]{2})?)/g);
+  const price = currentHits.length ? num(currentHits[0][1]) : null;
 
   const imageHits = nearbyMatches(context, /https:\/\/m\.media-amazon\.com\/images\/[^)\s]+/gi);
   const image = imageHits.length ? txt(imageHits.at(-1)?.[0]) : "";
@@ -61,13 +64,13 @@ function parseWindow(context: string, asin: string): Any | null {
   }
   if (!title) title = `Amazon deal ${asin}`;
 
-  const signal = /Early Prime Big Deal/i.test(context)
+  const signal = /Early Prime Big Deal/i.test(dealSegment)
     ? "Early Prime Big Deal"
-    : /Prime Big Deal/i.test(context)
+    : /Prime Big Deal/i.test(dealSegment)
     ? "Prime Big Deal"
-    : /Limited time deal/i.test(context)
+    : /Limited time deal/i.test(dealSegment)
     ? "Limited Time Deal"
-    : /Lightning deal/i.test(context)
+    : /Lightning deal/i.test(dealSegment)
     ? "Lightning Deal"
     : "Amazon Deal";
 
