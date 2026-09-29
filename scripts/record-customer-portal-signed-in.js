@@ -34,11 +34,15 @@ async function verifyIdentity(page,item){
     const client=window.supabase.createClient(config.supabaseUrl||config.url,config.publishableKey);
     const {data:session,error:sessionError}=await client.auth.getSession();
     if(sessionError||!session?.session?.user)return {error:'No authenticated customer session'};
-    const {data,error}=await client.from('customer_accounts').select('id,tenant_key,business_id,display_name,portal_enabled,status').eq('auth_user_id',session.session.user.id);
+    let query=client.from('customer_accounts').select('id,tenant_key,business_id,display_name,portal_enabled,status').eq('auth_user_id',session.session.user.id);
+    // The Northern TEST identity is also H38 Staff. Scope this proof to Northern,
+    // while the separate customer-only release proof remains a dedicated gate.
+    if(tenant==='northern-lakes')query=query.eq('business_id',config.businessId);
+    const {data,error}=await query;
     if(error)return {error:'Customer mapping query failed'};
     const rows=Array.isArray(data)?data:[];
     const own=rows.filter(row=>row.tenant_key===tenant&&row.portal_enabled===true&&row.status==='active'&&/TEST/i.test(row.display_name||''));
-    return {visibleMappings:rows.length,ownTestMappings:own.length,otherTenantMappings:rows.filter(row=>row.tenant_key!==tenant).length,businessMatches:tenant==='northern-lakes'?own.every(row=>row.business_id===config.businessId):true};
+    return {visibleMappings:rows.length,ownTestMappings:own.length,otherTenantMappings:rows.filter(row=>row.tenant_key!==tenant).length,businessMatches:tenant==='northern-lakes'?own.every(row=>row.business_id===config.businessId):true,tenantQueryScoped:tenant==='northern-lakes'};
   },item.key);
   if(result.error||result.visibleMappings!==1||result.ownTestMappings!==1||result.otherTenantMappings!==0||!result.businessMatches)fail(`${item.name} TEST customer or tenant isolation did not pass.`);
   if(!/TEST/i.test(await page.locator('#customerName').innerText()))fail(`${item.name} visible customer is not marked TEST.`);
@@ -47,7 +51,9 @@ async function verifyIdentity(page,item){
 async function record(browser,item){
   const proof={tenant:item.key,status:'HOLD',sourceSha,viewport:'390x844',externalActionsOccurred:false,credentialsRecorded:false,steps:[]};
   if(!item.email||!item.password){proof.status='EXTERNAL_GATE';proof.detail=`Dedicated ${item.name} TEST customer credentials are required.`;return proof;}
-  if(!/\+[^@]*portaltest@/i.test(item.email))fail(`${item.name} recorder requires a dedicated +portaltest email alias.`);
+  const northernPlayreview=item.key==='northern-lakes'&&/^highway38solutions\+playreview@gmail\.com$/i.test(item.email);
+  if(!northernPlayreview&&!/\+[^@]*portaltest@/i.test(item.email))fail(`${item.name} recorder requires a dedicated +portaltest email alias.`);
+  if(northernPlayreview)proof.identityClass='H38 Staff and Northern TEST customer; customer-only isolation still requires a separate identity.';
   if(!authorized)fail('Controlled TEST recording authorization is required.');
 
   const authContext=await browser.newContext({viewport:{width:390,height:844}});
