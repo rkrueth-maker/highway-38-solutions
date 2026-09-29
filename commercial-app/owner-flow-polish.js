@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260815-2135';
+const BUILD='20260929-1738';
 const CUSTOMER_WORKFLOW_BUILD='20260824-customer-workflow-loader-1';
 let scheduled=false;
 let fallbackTimer=0;
@@ -235,7 +235,7 @@ function loadOwnerCustomerWorkflow(){
   const start=Date.now();
   const ready=()=>{
     if(document.querySelector('script[data-h38-owner-customer-workflow]'))return true;
-    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20260826-owner-customer-workflow-polish-2-photo-scope';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]')){signalOwnerStartupReady();return;}const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';next.onload=signalOwnerStartupReady;document.body.appendChild(next);};document.body.appendChild(script);return true;
+    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20260929-owner-customer-workflow-event-render-3';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]')){signalOwnerStartupReady();return;}const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';next.onload=signalOwnerStartupReady;document.body.appendChild(next);};document.body.appendChild(script);return true;
   };
   ready();
 }
