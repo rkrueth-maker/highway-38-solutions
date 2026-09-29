@@ -68,6 +68,55 @@ async function assertInViewport(page, selector, label) {
   if (b.x < -1 || b.x + b.width > vp.width + 1) fail(label + ' clipped horizontally: ' + JSON.stringify(b) + ' viewport ' + JSON.stringify(vp));
   if (b.y < -1) fail(label + ' clipped above viewport: ' + JSON.stringify(b));
 }
+async function exercisePage(browser, sharedContext, spec, size, liveBest, report) {
+  let isolated = null;
+  const context = spec.name === 'best'
+    ? (isolated = await browser.newContext({ viewport: size }))
+    : sharedContext;
+  if (spec.name === 'best') {
+    await context.route(BASE + '/best-live.html', route => route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: liveBest.html,
+    }));
+  }
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  try {
+    const response = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    if (!response || !response.ok()) fail(spec.name + ' page HTTP ' + (response ? response.status() : 'NO_RESPONSE'));
+    if (spec.name === 'best') await ensureBestSignedIn(page);
+    await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
+    const metrics = await page.evaluate(() => ({
+      innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      active: document.activeElement && document.activeElement.tagName,
+    }));
+    if (metrics.scrollWidth > metrics.innerWidth + 1 || metrics.bodyScrollWidth > metrics.innerWidth + 1) {
+      fail(spec.name + ' ' + size.width + 'px horizontal overflow ' + JSON.stringify(metrics));
+    }
+    for (const sel of spec.selectors) await assertInViewport(page, sel, spec.name + ' ' + size.width + ' ' + sel);
+    if (spec.name === 'coupon') {
+      for (const view of ['shop','deals','save','scan','receipts']) await assertInViewport(page, '[data-view="' + view + '"]', 'coupon ' + size.width + ' tab ' + view);
+    }
+    if (spec.name === 'best') {
+      for (const tab of ['best','resell','savings','watches','queue']) await assertInViewport(page, '[data-tab="' + tab + '"]', 'best ' + size.width + ' tab ' + tab);
+    }
+    if (spec.name === 'penny') {
+      const text = await page.locator('#stores').innerText().catch(() => '');
+      if (/Show all\s+\d{3,}/i.test(text)) fail('Penny still exposes giant Show all at ' + size.width + 'px');
+    }
+    const shot = path.join(OUT, spec.name + '-' + size.width + 'x' + size.height + '.png');
+    await page.screenshot({ path: shot, fullPage: true });
+    report.push({ page: spec.name, ...size, metrics, errors, transport: spec.live ? liveBest.transport : null, screenshot: shot });
+    if (errors.length) fail(spec.name + ' ' + size.width + ' uncaught JS: ' + errors.join(' | '));
+  } finally {
+    await page.close().catch(() => {});
+    if (isolated) await isolated.close().catch(() => {});
+  }
+}
 (async () => {
   if (!SB || !KEY || !EMAIL || !PASSWORD) fail('Missing mobile acceptance environment');
   fs.mkdirSync(OUT, { recursive: true });
@@ -79,49 +128,9 @@ async function assertInViewport(page, selector, label) {
     for (const size of sizes) {
       const context = await browser.newContext({ viewport: size });
       await context.addInitScript(({ key, value }) => {
-        if ((location.hostname === '127.0.0.1' || location.hostname === 'localhost') && location.pathname !== '/best-live.html') {
-          localStorage.setItem(key, JSON.stringify(value));
-        }
+        localStorage.setItem(key, JSON.stringify(value));
       }, { key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: session });
-      await context.route(BASE + '/best-live.html', route => route.fulfill({
-        status: 200,
-        contentType: 'text/html; charset=utf-8',
-        body: liveBest.html,
-      }));
-      for (const spec of pages) {
-        const page = await context.newPage();
-        const errors = [];
-        page.on('pageerror', e => errors.push(String(e)));
-        const response = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        if (!response || !response.ok()) fail(spec.name + ' page HTTP ' + (response ? response.status() : 'NO_RESPONSE'));
-        if (spec.name === 'best') await ensureBestSignedIn(page);
-        await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
-        const metrics = await page.evaluate(() => ({
-          innerWidth,
-          scrollWidth: document.documentElement.scrollWidth,
-          bodyScrollWidth: document.body.scrollWidth,
-          active: document.activeElement && document.activeElement.tagName,
-        }));
-        if (metrics.scrollWidth > metrics.innerWidth + 1 || metrics.bodyScrollWidth > metrics.innerWidth + 1) {
-          fail(spec.name + ' ' + size.width + 'px horizontal overflow ' + JSON.stringify(metrics));
-        }
-        for (const sel of spec.selectors) await assertInViewport(page, sel, spec.name + ' ' + size.width + ' ' + sel);
-        if (spec.name === 'coupon') {
-          for (const view of ['shop','deals','save','scan','receipts']) await assertInViewport(page, '[data-view="' + view + '"]', 'coupon ' + size.width + ' tab ' + view);
-        }
-        if (spec.name === 'best') {
-          for (const tab of ['best','resell','savings','watches','queue']) await assertInViewport(page, '[data-tab="' + tab + '"]', 'best ' + size.width + ' tab ' + tab);
-        }
-        if (spec.name === 'penny') {
-          const text = await page.locator('#stores').innerText().catch(() => '');
-          if (/Show all\s+\d{3,}/i.test(text)) fail('Penny still exposes giant Show all at ' + size.width + 'px');
-        }
-        const shot = path.join(OUT, spec.name + '-' + size.width + 'x' + size.height + '.png');
-        await page.screenshot({ path: shot, fullPage: true });
-        report.push({ page: spec.name, ...size, metrics, errors, transport: spec.live ? liveBest.transport : null, screenshot: shot });
-        if (errors.length) fail(spec.name + ' ' + size.width + ' uncaught JS: ' + errors.join(' | '));
-        await page.close();
-      }
+      for (const spec of pages) await exercisePage(browser, context, spec, size, liveBest, report);
       await context.close();
     }
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify({ ok: true, generated_at: new Date().toISOString(), report }, null, 2));
