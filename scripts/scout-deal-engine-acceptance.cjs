@@ -27,6 +27,15 @@ async function session() {
   s.expires_at = Math.floor(Date.now() / 1000) + Number(s.expires_in || 3600);
   return s;
 }
+async function liveHtml() {
+  const url = BASE + '/functions/v1/h38-deal-engine-web?acceptance=' + Date.now();
+  const r = await fetch(url, { headers: { apikey: KEY } });
+  const html = await r.text();
+  check('Deal Engine deployed HTML fetch', r.ok, 'HTTP ' + r.status + ' ' + html.slice(0, 250));
+  check('Deal Engine deployed HTML markers', /^\s*<!doctype html>/i.test(html) && html.includes('id="auth"') && html.includes('id="app"'), html.replace(/\s+/g, ' ').slice(0, 400));
+  report.checks.push({ name: 'Deal Engine shared-domain content type recorded', ok: true, detail: r.headers.get('content-type') || '' });
+  return html;
+}
 async function api(s, body) {
   const r = await fetch(BASE + '/functions/v1/h38-deal-engine-api', {
     method: 'POST',
@@ -44,11 +53,12 @@ async function api(s, body) {
   return data;
 }
 async function ensureBrowserSignedIn(page) {
+  await page.locator('#auth, #app').first().waitFor({ state: 'attached', timeout: 10000 });
   await page.waitForFunction(() => {
     const app = document.querySelector('#app');
     const auth = document.querySelector('#auth');
     return (app && !app.classList.contains('hidden')) || (auth && !auth.classList.contains('hidden'));
-  }, null, { timeout: 60000 });
+  }, null, { timeout: 15000 });
   if (await page.locator('#app:not(.hidden)').count()) return;
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
@@ -72,6 +82,7 @@ async function cleanupQueue(s, id) {
   if (!BASE || !KEY || !EMAIL || !PASSWORD) throw new Error('Missing Deal Engine acceptance environment');
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   const s = await session();
+  const deployedHtml = await liveHtml();
   let directWatchId = '', uiWatchId = '', directKey = '', uiKey = '', directQueueId = '', uiQueueId = '';
   let browser;
   try {
@@ -126,19 +137,21 @@ async function cleanupQueue(s, id) {
 
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await context.route(WEB_BASE + '/best-live.html', route => route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: deployedHtml,
+    }));
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
-    await page.goto(BASE + '/functions/v1/h38-deal-engine-web', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const uiResponse = await page.goto(WEB_BASE + '/best-live.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    check('Deal Engine deployed HTML rendered through Scout host', !!uiResponse && uiResponse.ok(), 'HTTP ' + (uiResponse ? uiResponse.status() : 'NO_RESPONSE'));
     await ensureBrowserSignedIn(page);
     await page.waitForFunction(() => document.querySelectorAll('.deal').length > 0, null, { timeout: 90000 });
     check('Deal Engine dashboard renders cards', await page.locator('.deal').count() > 0);
     check('Deal Engine dashboard five task tabs', await page.locator('.tab').count() === 5);
-    const overflow = await page.evaluate(() => ({
-      innerWidth,
-      doc: document.documentElement.scrollWidth,
-      body: document.body.scrollWidth,
-    }));
+    const overflow = await page.evaluate(() => ({ innerWidth, doc: document.documentElement.scrollWidth, body: document.body.scrollWidth }));
     check('Deal Engine 390px no horizontal overflow', overflow.doc <= overflow.innerWidth + 1 && overflow.body <= overflow.innerWidth + 1, JSON.stringify(overflow));
 
     const first = page.locator('.deal').first();
@@ -150,8 +163,7 @@ async function cleanupQueue(s, id) {
     await first.locator('.act[data-action="watch"]').click();
     await page.waitForFunction(() => /Watch created/i.test(document.querySelector('#status')?.textContent || ''), null, { timeout: 60000 });
     let uiOverview = await api(s, { action: 'overview' });
-    const uiRow = (uiOverview.segments.best || []).find(x => x.canonical_key === uiKey) ||
-                  (uiOverview.segments.savings || []).find(x => x.canonical_key === uiKey);
+    const uiRow = (uiOverview.segments.best || []).find(x => x.canonical_key === uiKey) || (uiOverview.segments.savings || []).find(x => x.canonical_key === uiKey);
     const createdIds = uiRow?.watch_rule_ids || [];
     uiWatchId = createdIds.find(id => !(uiOverview.watches || []).find(w => w.id === id)?.query_text?.startsWith('H38 QA')) || createdIds[0] || '';
     check('Deal Engine Watch button persists shared watch', !!uiWatchId, JSON.stringify(createdIds));
@@ -184,7 +196,6 @@ async function cleanupQueue(s, id) {
     await page.click('[data-tab="queue"]');
     check('Deal Engine Queue tab', await page.locator('#queuePane:not(.hidden)').count() === 1);
     check('Deal Engine dashboard uncaught JS', errors.length === 0, errors.join(' | '));
-
     await context.close();
 
     await cleanupAction(s, uiKey);
