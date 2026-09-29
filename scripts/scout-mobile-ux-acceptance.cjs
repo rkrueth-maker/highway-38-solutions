@@ -65,7 +65,11 @@ async function assertInViewport(page, selector, label) {
   try {
     for (const size of sizes) {
       const context = await browser.newContext({ viewport: size });
-      await context.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+      await context.addInitScript(({ key, value }) => {
+        if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
+          localStorage.setItem(key, JSON.stringify(value));
+        }
+      }, {
         key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: session,
       });
       for (const spec of pages) {
