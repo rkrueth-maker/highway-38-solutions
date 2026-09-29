@@ -23,3 +23,7 @@ Date: 2026-09-29. Base main: `ce919ad392e319fa7a7d7dc60ce2b00e6cf3c145`. Branch:
 - Load targets: source selection is local; cold/warm/cached Assistant route timings are captured in the live manifest. No performance-budget exception requested.
 - Failure: missing source stays in Assistant with an operator-visible rescan message. Expired recorder session requires authorized TEST sign-in; auth files remain runner-only and outside artifacts.
 - Deployment: existing Publish H38 Pages only. Run one controlled evidence job after exact-head PR checks and deployment succeed; focused AI scope reuses the same workflow and skips unrelated recordings.
+
+## Acceptance-discovered photo-quote repair
+
+Customer 360 browser acceptance exposed lost Scope input during photo selection. The canonical `owner-customer-workflow-polish.js` used a page-wide MutationObserver that scheduled another refresh after each panel replacement. Replace that loop with existing Office page/snapshot/context events and one explicit hook around the existing quote renderer. Pin the loader's cache keys. Preserve the same forms, upload/save authority, records and owner-review gates. The existing photo-only quote verifier now asserts idle panel stability and preservation of Scope through location/photo selection before its unchanged evidence-readiness assertions. No new startup RPC or observer is added.
