@@ -18,7 +18,7 @@ for(const token of [
 check('AI runtime does not use direct Supabase table writes',!actions.includes(".from('business_records')")&&!actions.includes('.rpc('));
 check('AI runtime does not expose unrestricted SQL',!actions.includes('executeSql')&&!actions.includes('unrestrictedSql'));
 check('existing proof log preserves AI metadata',data.includes("operation?.payload?.__h38AiProof")&&data.includes('...aiProof'));
-check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260929-selected-customer-actions-7'));
+check('runtime is loaded in existing Office',index.includes('assistant-tenant-actions.js?build=20260929-readable-action-preview-8'));
 check('runtime loads before assistant command runtime',index.indexOf('assistant-tenant-actions.js')<index.indexOf('assistant-command-runtime.js'));
 check('Assistant settle does not perform duplicate bootstrap after Office sync',!actions.includes("await window.sync(false);\n  await refreshAuthoritativeSnapshot();"));
 check('Assistant approval refreshes targeted secured proof history after sync',actions.includes('H38_SUPABASE_TRAFFIC_GUARD')&&actions.includes('loadAuditHistory')&&actions.includes('refreshProofHistory'));
@@ -32,5 +32,6 @@ check('pronoun contact changes use the reviewed source',context.resolve('Change 
 check('named ambiguous customer requests remain fail-closed',context.resolve('Raise Smith plowing rate to $175.')?.ambiguous===true);
 context.window.H38_CUSTOMER_360.selectedCustomerId='TEST-NOT-IN-ACTIVE-BUSINESS';
 check('pronouns never fall back to unrelated records when the selected source is stale',context.resolve('Raise their plowing rate to $175.')===null);
+check('approval preview sits outside bounded chat history',actions.includes("chat.insertAdjacentElement('afterend',card)")&&!actions.includes('chat.appendChild(card);chat.scrollTop=chat.scrollHeight'));
 console.log(JSON.stringify({status:failures.length?'FAIL':'PASS',passed,failed:failures.length,failures},null,2));
 process.exit(failures.length?1:0);

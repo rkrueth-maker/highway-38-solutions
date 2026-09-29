@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260929-selected-customer-actions-7';
+const BUILD='20260929-readable-action-preview-8';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -82,7 +82,9 @@ function renderCard(){
   const card=document.createElement('section');card.dataset.h38AiActionCard='1';card.className='h38-ai-action-card';
   const a=pending,canSave=a.canExecute!==false;card.dataset.h38AiActionId=String(a.actionId||'');card.dataset.h38AiActionVersion=String(a.version||1);
   card.innerHTML=`<div class="h38-ai-action-kicker">Proposed change</div><strong>${esc(a.type==='rate-change'?a.customerName+' — '+a.service:a.type==='bulk-rate-change'?a.service+' bulk update':a.type==='customer-field'?a.customerName:a.title||'H38 Office suggestion')}</strong><pre>${esc(actionSummary(a))}</pre><div class="h38-ai-action-buttons">${canSave?'<button type="button" data-h38-ai-approve>Approve &amp; Save</button>':'<button type="button" data-h38-ai-owner-review>Request owner review</button>'}<button type="button" class="secondary" data-h38-ai-edit>Edit</button><button type="button" class="secondary" data-h38-ai-cancel>Cancel</button></div><small>${canSave?'Approval applies only to this exact preview version.':'Your current role cannot execute this change.'}</small>`;
-  chat.appendChild(card);chat.scrollTop=chat.scrollHeight;
+  // The bounded history must not clip the change being approved.
+  chat.insertAdjacentElement('afterend',card);
+  card.scrollIntoView?.({block:'center'});
   card.querySelector('[data-h38-ai-approve]')?.addEventListener('click',()=>void executePending().then(message=>window.toast?.(message)).catch(error=>window.toast?.(error?.message||String(error),true)));
   card.querySelector('[data-h38-ai-owner-review]')?.addEventListener('click',()=>void requestOwnerReview().then(message=>window.toast?.(message)).catch(error=>window.toast?.(error?.message||String(error),true)));
   card.querySelector('[data-h38-ai-cancel]')?.addEventListener('click',()=>{cancelPending();window.toast?.('Proposed AI change cancelled. Nothing was written.');});
@@ -95,12 +97,12 @@ function renderCard(){
 function installStyle(){
   if(document.getElementById('h38AssistantTenantActionStyle'))return;
   const style=document.createElement('style');style.id='h38AssistantTenantActionStyle';style.textContent=`
-  .h38-ai-action-card{margin:8px 0;padding:13px;border:1px solid #bfd0dc;border-radius:13px;background:#f8fbfd;box-shadow:0 4px 14px rgba(11,36,56,.06)}
+  .h38-ai-action-card{margin:8px 0;padding:13px;border:1px solid #bfd0dc;border-radius:13px;background:#f8fbfd;box-shadow:0 4px 14px rgba(11,36,56,.06);scroll-margin:16px}
   .h38-ai-action-kicker{font-size:.68rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#174a70;margin-bottom:5px}
   .h38-ai-action-card pre{white-space:pre-wrap;font:inherit;font-size:.84rem;line-height:1.42;margin:8px 0;color:#29465e}
   .h38-ai-action-buttons{display:flex;gap:7px;flex-wrap:wrap}.h38-ai-action-buttons button{min-height:40px}
   .h38-ai-action-card small{display:block;margin-top:7px;color:#617487}
-  @media(max-width:600px){.h38-ai-action-buttons button{flex:1 1 100%}}
+  @media(max-width:600px){.h38-ai-action-card{scroll-margin-top:180px;scroll-margin-bottom:96px}.h38-ai-action-buttons button{flex:1 1 calc(50% - 7px)}.h38-ai-action-buttons [data-h38-ai-approve],.h38-ai-action-buttons [data-h38-ai-owner-review]{flex-basis:100%}}
   `;document.head.appendChild(style);
 }
 async function refreshAuthoritativeSnapshot(){
