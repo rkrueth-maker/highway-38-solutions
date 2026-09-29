@@ -79,7 +79,7 @@ async function record(browser,item){
     await page.goto(item.url,{waitUntil:'domcontentloaded',timeout:45000});
     await page.locator(item.app).waitFor({state:'visible',timeout:40000});
     const identity=await verifyIdentity(page,item);
-    proof.steps.push({name:'signed-in-test-customer-and-rls',status:'PASS',visibleMappings:identity.visibleMappings,otherTenantMappings:0});
+    proof.steps.push({name:item.key==='northern-lakes'?'signed-in-test-customer-and-tenant-scope':'signed-in-test-customer-and-rls',status:'PASS',visibleMappings:identity.visibleMappings,tenantQueryScoped:identity.tenantQueryScoped,otherTenantMappings:identity.tenantQueryScoped?undefined:identity.otherTenantMappings});
     if(item.key==='northern-lakes'){
       await page.waitForFunction(()=>{
         const jobs=document.querySelector('#jobsList')?.innerText||'';
