@@ -117,6 +117,7 @@ function formatProofDetails(row){
   const change=values=>typeof values!=='object'?String(values??'(blank)'):Object.entries(values||{}).map(([field,value])=>`${field}: ${value===null||value===undefined?'(blank)':String(value)}`).join(', ');
   const parts=[details.sourceRequest||details.request||'',details.approvalState||''];
   if(details.before!==undefined&&details.after!==undefined)parts.push(`${change(details.before)} → ${change(details.after)}`);
+  if(Array.isArray(details.recordsAffected))parts.push(details.recordsAffected.map(record=>[record.collection,record.recordId].filter(Boolean).join(' ')).filter(Boolean).join(', '));
   if(details.aiActionId)parts.push(`AI action ${details.aiActionId}`);
   return parts.filter(Boolean).join(' · ');
 }

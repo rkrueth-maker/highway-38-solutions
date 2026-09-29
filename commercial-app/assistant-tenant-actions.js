@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260922-tenant-aware-office-actions-6';
+const BUILD='20260929-selected-customer-actions-7';
 const base=window.H38_ASSISTANT_COMMAND_BUS;
 if(!base)return;
 const text=value=>String(value==null?'':value).trim();
@@ -35,6 +35,13 @@ function activeCustomerId(){
   return'';
 }
 function resolveCustomer(command){
+  // Pronouns refer to the customer the operator just reviewed, not service words
+  // that can match unrelated jobs/quotes in the business-wide customer search.
+  if(/\b(?:their|his|her|this customer's|this customer’s)\b/i.test(command)){
+    const id=activeCustomerId(),row=customerById(id);
+    if(row)return{id,row};
+    return null;
+  }
   const result=base.customerResult?.(command);
   if(result?.ambiguous)return{ambiguous:true,answer:result.answer};
   if(result?.customerId){
