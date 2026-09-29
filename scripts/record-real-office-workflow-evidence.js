@@ -78,15 +78,24 @@ const scenarios=[
 function safeText(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();}
 function tenantUrl(key){const url=new URL(officeUrl);url.searchParams.set('businessKey',key);return url.toString();}
 async function resolveStorageState(browser){
-  if(hasSuppliedStorageState)return suppliedStorageState;
-  const ctx=await browser.newContext({viewport:{width:1440,height:900}});
+  const ctx=await browser.newContext({viewport:{width:1440,height:900},...(hasSuppliedStorageState?{storageState:suppliedStorageState}:{})});
   const page=await ctx.newPage();
   try{
     await page.goto(tenantUrl('highway38'),{waitUntil:'domcontentloaded',timeout:45000});
-    await page.waitForSelector('#h38AuthForm',{timeout:20000});
-    await page.locator('#h38AuthEmail').fill(loginEmail);
-    await page.locator('#h38AuthPassword').fill(loginPassword);
-    await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
+    let sessionValid=false;
+    if(hasSuppliedStorageState){
+      try{await page.waitForFunction(()=>{
+        const s=window.state||{},b=s.snapshot?.business||{};
+        return String(b.businessKey||b['Business Key']||s.businessKey||'').trim().toLowerCase()==='highway38'&&!!s.snapshot?.user;
+      },null,{timeout:10000});sessionValid=true;}catch(_){}
+    }
+    if(!sessionValid){
+      if(!(loginEmail&&loginPassword))throw new Error('Supplied Office session expired and secure TEST credential pair is unavailable.');
+      await page.waitForSelector('#h38AuthForm',{timeout:20000});
+      await page.locator('#h38AuthEmail').fill(loginEmail);
+      await page.locator('#h38AuthPassword').fill(loginPassword);
+      await page.getByRole('button',{name:'Sign in securely',exact:true}).click();
+    }
     await page.waitForFunction(()=>{
       const s=window.state||{},b=s.snapshot?.business||{};
       const key=String(b.businessKey||b['Business Key']||s.businessKey||'').trim().toLowerCase();
