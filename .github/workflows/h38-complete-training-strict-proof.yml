@@ -27,6 +27,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: h38-controlled-training-test-data
+  cancel-in-progress: false
+
 jobs:
   strict-complete-training-proof:
     runs-on: ubuntu-latest
