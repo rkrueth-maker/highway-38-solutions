@@ -81,8 +81,10 @@ async function record(browser,item){
     const identity=await verifyIdentity(page,item);
     proof.steps.push({name:'signed-in-test-customer-and-rls',status:'PASS',visibleMappings:identity.visibleMappings,otherTenantMappings:0});
     if(item.key==='northern-lakes'){
-      const jobs=await page.locator('#jobsList').innerText();
-      if(!jobs.includes('TEST-JOB-H38-LAWN-NORTHERN-20260920')||!jobs.includes('TEST-JOB-H38-SNOW-NORTHERN-20260924'))fail('Northern TEST lawn and snow customer jobs are missing from the signed-in portal.');
+      await page.waitForFunction(()=>{
+        const jobs=document.querySelector('#jobsList')?.innerText||'';
+        return jobs.includes('TEST-JOB-H38-LAWN-NORTHERN-20260920')&&jobs.includes('TEST-JOB-H38-SNOW-NORTHERN-20260924');
+      },null,{timeout:20000}).catch(()=>fail('Northern TEST lawn and snow customer jobs are missing from the signed-in portal.'));
       proof.steps.push({name:'northern-h38-test-lawn-and-snow',status:'PASS'});
     }
     await caption(page,`${item.name} TEST customer: this is the real signed-in portal. Only the connected customer account is visible.`);
