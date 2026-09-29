@@ -48,6 +48,15 @@ async function browserSession(context, s) {
     localStorage.setItem(key, JSON.stringify(value));
   }, { key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: s });
 }
+async function ensureBrowserSignedIn(page) {
+  if (await page.locator('#app:not(.hidden)').count()) return;
+  if (await page.locator('#auth:not(.hidden)').count()) {
+    await page.fill('#email', EMAIL);
+    await page.fill('#password', PASSWORD);
+    await page.click('#login button[type="submit"]');
+  }
+  await page.waitForSelector('#app:not(.hidden)', { timeout: 60000 });
+}
 async function cleanupWatch(s, id) {
   if (!id) return;
   try { await api(s, { action: 'watch_delete', id }); report.cleanup.push('watch ' + id); } catch (e) { report.cleanup.push('watch cleanup failed ' + id + ': ' + e.message); }
@@ -124,7 +133,7 @@ async function cleanupQueue(s, id) {
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await page.goto(WEB_BASE + '/best.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForSelector('#app:not(.hidden)', { timeout: 30000 });
+    await ensureBrowserSignedIn(page);
     await page.waitForFunction(() => document.querySelectorAll('.deal').length > 0, null, { timeout: 90000 });
     check('Deal Engine dashboard renders cards', await page.locator('.deal').count() > 0);
     check('Deal Engine dashboard five task tabs', await page.locator('.tab').count() === 5);
