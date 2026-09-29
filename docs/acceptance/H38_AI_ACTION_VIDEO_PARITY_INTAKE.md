@@ -27,3 +27,5 @@ Date: 2026-09-29. Base main: `ce919ad392e319fa7a7d7dc60ce2b00e6cf3c145`. Branch:
 ## Acceptance-discovered photo-quote repair
 
 Customer 360 browser acceptance exposed lost Scope input during photo selection. The canonical `owner-customer-workflow-polish.js` used a page-wide MutationObserver that scheduled another refresh after each panel replacement. Replace that loop with existing Office page/snapshot/context events and one explicit hook around the existing quote renderer. Pin the loader's cache keys. Preserve the same forms, upload/save authority, records and owner-review gates. The existing photo-only quote verifier now asserts idle panel stability and preservation of Scope through location/photo selection before its unchanged evidence-readiness assertions. No new startup RPC or observer is added.
+
+The focused recorder shares `h38-controlled-training-test-data` with existing strict training acceptance so both cannot write the shared TEST database concurrently. Prior successful source evidence remains historical; each final changed head reruns its required checks.

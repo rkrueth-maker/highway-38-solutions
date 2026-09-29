@@ -29,5 +29,5 @@ def test_rebuild_feedback_survives_quote_rerender():
 def test_owner_flow_asset_is_cache_busted():
     index = INDEX.read_text(encoding="utf-8")
     assert "owner-flow-polish.css?build=20260815-2135" in index
-    assert "owner-flow-polish.js?build=20260815-2135" in index
+    assert "owner-flow-polish.js?build=20260929-1738" in index
     assert re.search(r"window\.H38_ASSET_BUILD='\d{8}-\d{4}'", index)
