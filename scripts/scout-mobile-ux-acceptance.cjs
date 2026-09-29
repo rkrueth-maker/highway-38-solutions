@@ -35,13 +35,40 @@ async function authSession() {
   s.expires_at = Math.floor(Date.now() / 1000) + Number(s.expires_in || 3600);
   return s;
 }
+async function openLiveBest(page) {
+  let last = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const target = SB + '/functions/v1/h38-deal-engine-web?acceptance=' + Date.now() + '-' + attempt;
+    let response = null;
+    try {
+      response = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (e) {
+      last = { attempt, target, error: String(e && e.message || e) };
+      if (attempt < 3) { await page.waitForTimeout(1200 * attempt); continue; }
+      break;
+    }
+    const headers = response ? await response.allHeaders().catch(() => ({})) : {};
+    const status = response ? response.status() : 0;
+    const attached = await page.locator('#auth, #app').count().catch(() => 0);
+    const body = attached ? '' : (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 500);
+    last = { attempt, target, status, contentType: headers['content-type'] || '', attached, title: await page.title().catch(() => ''), body };
+    if (status >= 200 && status < 300 && attached > 0) return last;
+    if (attempt < 3) await page.waitForTimeout(1200 * attempt);
+  }
+  fail('Deal Engine live page unavailable after retries: ' + JSON.stringify(last));
+}
 async function ensureBestSignedIn(page) {
-  await page.waitForFunction(() => {
-    const app = document.querySelector('#app');
-    const auth = document.querySelector('#auth');
-    return (app && !app.classList.contains('hidden')) || (auth && !auth.classList.contains('hidden'));
-  }, null, { timeout: 60000 });
+  await page.locator('#auth, #app').first().waitFor({ state: 'attached', timeout: 10000 });
   if (await page.locator('#app:not(.hidden)').count()) return;
+  const auth = page.locator('#auth:not(.hidden)');
+  if (!(await auth.count())) {
+    const state = await page.evaluate(() => ({
+      auth: document.querySelector('#auth')?.className || null,
+      app: document.querySelector('#app')?.className || null,
+      text: document.body.innerText.slice(0, 500),
+    })).catch(() => ({}));
+    fail('Deal Engine rendered without a usable auth/app state: ' + JSON.stringify(state));
+  }
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('#login button[type="submit"]');
@@ -76,8 +103,13 @@ async function assertInViewport(page, selector, label) {
         const page = await context.newPage();
         const errors = [];
         page.on('pageerror', e => errors.push(String(e)));
-        const target = spec.live ? SB + spec.url : BASE + spec.url;
-        await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        let transport = null;
+        if (spec.live) {
+          transport = await openLiveBest(page);
+        } else {
+          const response = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          if (!response || !response.ok()) fail(spec.name + ' static page HTTP ' + (response ? response.status() : 'NO_RESPONSE'));
+        }
         if (spec.name === 'best') await ensureBestSignedIn(page);
         await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
         const metrics = await page.evaluate(() => ({
@@ -106,7 +138,7 @@ async function assertInViewport(page, selector, label) {
         }
         const shot = path.join(OUT, spec.name + '-' + size.width + 'x' + size.height + '.png');
         await page.screenshot({ path: shot, fullPage: true });
-        report.push({ page: spec.name, ...size, metrics, errors, screenshot: shot });
+        report.push({ page: spec.name, ...size, metrics, errors, transport, screenshot: shot });
         if (errors.length) fail(spec.name + ' ' + size.width + ' uncaught JS: ' + errors.join(' | '));
         await page.close();
       }
