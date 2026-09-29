@@ -11,7 +11,6 @@ Deno.serve(async (req: Request) => {
     if (!supplied) return new Response(JSON.stringify({ error: "WORKER_AUTH_REQUIRED" }), { status: 401, headers });
 
     const url = Deno.env.get("SUPABASE_URL")!;
-    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     const secret = await admin.from("h38_internal_job_secrets").select("secret_value")
@@ -24,7 +23,6 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: {
         Authorization: `Bearer ${service}`,
-        apikey: anon,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ limit: 6, source: "secure_cron_bridge" }),
