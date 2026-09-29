@@ -35,6 +35,15 @@ async function authSession() {
   s.expires_at = Math.floor(Date.now() / 1000) + Number(s.expires_in || 3600);
   return s;
 }
+async function ensureBestSignedIn(page) {
+  if (await page.locator('#app:not(.hidden)').count()) return;
+  if (await page.locator('#auth:not(.hidden)').count()) {
+    await page.fill('#email', EMAIL);
+    await page.fill('#password', PASSWORD);
+    await page.click('#login button[type="submit"]');
+  }
+  await page.waitForSelector('#app:not(.hidden)', { timeout: 60000 });
+}
 async function assertInViewport(page, selector, label) {
   const el = page.locator(selector).first();
   await el.waitFor({ state: 'visible', timeout: 30000 });
@@ -61,6 +70,7 @@ async function assertInViewport(page, selector, label) {
         const errors = [];
         page.on('pageerror', e => errors.push(String(e)));
         await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        if (spec.name === 'best') await ensureBestSignedIn(page);
         await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
         const metrics = await page.evaluate(() => ({
           innerWidth,
