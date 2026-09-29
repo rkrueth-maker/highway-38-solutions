@@ -53,12 +53,22 @@ const scenarios=[
     mode:'customer360'
   },
   {
-    id:'XT-NORTHERN-H38-SERVICE',
-    title:'H38 as a TEST customer of Northern Lakes \u2014 lawn or snow service',
+    id:'XT-NORTHERN-H38-LAWN-SERVICE',
+    title:'H38 as a TEST customer of Northern Lakes \u2014 lawn service',
     businessKey:'northern-lakes',
     tenantName:'Northern Lakes',
     customerNeedle:/Highway 38/i,
-    serviceNeedle:/lawn|mow|snow|plow/i,
+    serviceNeedle:/lawn|mow/i,
+    requiredLabel:'Simulated training scenario using the real Northern Lakes Business Office \u2014 TEST data only.',
+    mode:'recurring-service'
+  },
+  {
+    id:'XT-NORTHERN-H38-SNOW-SERVICE',
+    title:'H38 as a TEST customer of Northern Lakes \u2014 snow service',
+    businessKey:'northern-lakes',
+    tenantName:'Northern Lakes',
+    customerNeedle:/Highway 38/i,
+    serviceNeedle:/snow|plow/i,
     requiredLabel:'Simulated training scenario using the real Northern Lakes Business Office \u2014 TEST data only.',
     mode:'recurring-service'
   }
@@ -222,6 +232,7 @@ async function recurringServiceScenario(page,scenario,result,shots){
   },{customerId:selectedCustomer.customerId,customerSource:scenario.customerNeedle.source,serviceSource:scenario.serviceNeedle.source});
   const recurringJobId=String(recurringJob?.['Job ID']||recurringJob?.jobId||'').trim();
   if(!recurringJobId)throw new Error('No controlled TEST recurring-service job was available for the selected customer.');
+  result.steps.push({name:'select-matching-test-service',status:'PASS',at:now(),jobId:recurringJobId,serviceType:String(recurringJob['Service Type']||recurringJob.serviceType||recurringJob['Project Title']||recurringJob.projectTitle||'')});
   await page.evaluate(async jobId=>{
     const rows=Array.isArray(window.state?.snapshot?.jobs)?window.state.snapshot.jobs:[];
     const row=rows.find(item=>String(item?.['Job ID']||item?.jobId||'').trim()===jobId);
