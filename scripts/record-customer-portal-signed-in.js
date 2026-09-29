@@ -26,7 +26,7 @@ async function caption(page,words){
     if(!node){node=document.createElement('div');node.id='h38PortalTrainingCaption';document.body.appendChild(node);Object.assign(node.style,{position:'fixed',top:'8px',left:'8px',right:'8px',zIndex:'2147483647',background:'rgba(7,36,51,.96)',color:'#fff',borderRadius:'12px',padding:'12px 14px',font:'600 17px/1.35 system-ui',pointerEvents:'none',boxShadow:'0 5px 18px #0018'});}
     node.textContent=text;
   },words);
-  await page.waitForTimeout(1150);
+  await page.waitForTimeout(1700);
 }
 async function verifyIdentity(page,item){
   const result=await page.evaluate(async tenant=>{
@@ -80,12 +80,17 @@ async function record(browser,item){
     await page.locator(item.app).waitFor({state:'visible',timeout:40000});
     const identity=await verifyIdentity(page,item);
     proof.steps.push({name:'signed-in-test-customer-and-rls',status:'PASS',visibleMappings:identity.visibleMappings,otherTenantMappings:0});
+    if(item.key==='northern-lakes'){
+      const jobs=await page.locator('#jobsList').innerText();
+      if(!jobs.includes('TEST-JOB-H38-LAWN-NORTHERN-20260920')||!jobs.includes('TEST-JOB-H38-SNOW-NORTHERN-20260924'))fail('Northern TEST lawn and snow customer jobs are missing from the signed-in portal.');
+      proof.steps.push({name:'northern-h38-test-lawn-and-snow',status:'PASS'});
+    }
     await caption(page,`${item.name} TEST customer: this is the real signed-in portal. Only the connected customer account is visible.`);
     for(const selector of item.sections){
       const section=page.locator(selector);await section.waitFor({state:'visible',timeout:15000});
       await section.scrollIntoViewIfNeeded();
       const heading=await section.locator('h2,h3').first().innerText().catch(()=>selector.slice(1));
-      await caption(page,`${heading}: review what the business has released. No approval, message, payment, or download is performed in this lesson.`);
+      await caption(page,selector==='#jobsPanel'?`${heading}: the Highway 38 TEST lawn and snow services are visible here. No approval, message, payment, or download is performed.`:`${heading}: review what the business has released. No approval, message, payment, or download is performed in this lesson.`);
       proof.steps.push({name:selector.slice(1),status:'PASS'});
     }
     if(mutations)fail('Customer action endpoint was called during read-only training.');

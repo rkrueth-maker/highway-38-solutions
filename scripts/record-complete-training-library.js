@@ -138,7 +138,7 @@ async function serviceFixture(page,kind){
     const rows=Array.isArray(window.state?.snapshot?.jobs)?window.state.snapshot.jobs:[];
     const val=(row,...keys)=>keys.map(key=>row?.[key]).find(value=>value!==undefined&&value!==null&&value!=='')||'';
     const re=kind==='snow'?/snow|plow/i:/lawn|mow/i;
-    const row=rows.find(item=>/TEST/i.test(JSON.stringify(item))&&re.test(String(val(item,'Service Type','serviceType','Project Title','projectTitle','Description','description'))));
+    const row=rows.find(item=>/^TEST-/i.test(String(val(item,'Job ID','jobId')))&&re.test(String(val(item,'Service Type','serviceType','Project Title','projectTitle','Description','description'))));
     if(!row)return null;
     return{jobId:String(val(row,'Job ID','jobId')),title:String(val(row,'Project Title','projectTitle')),serviceType:String(val(row,'Service Type','serviceType')),status:String(val(row,'Status','status'))};
   },kind);
