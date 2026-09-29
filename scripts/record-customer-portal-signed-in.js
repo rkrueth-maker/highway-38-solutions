@@ -26,7 +26,7 @@ async function caption(page,words){
     if(!node){node=document.createElement('div');node.id='h38PortalTrainingCaption';document.body.appendChild(node);Object.assign(node.style,{position:'fixed',top:'8px',left:'8px',right:'8px',zIndex:'2147483647',background:'rgba(7,36,51,.96)',color:'#fff',borderRadius:'12px',padding:'12px 14px',font:'600 17px/1.35 system-ui',pointerEvents:'none',boxShadow:'0 5px 18px #0018'});}
     node.textContent=text;
   },words);
-  await page.waitForTimeout(1150);
+  await page.waitForTimeout(1700);
 }
 async function verifyIdentity(page,item){
   const result=await page.evaluate(async tenant=>{
@@ -34,11 +34,15 @@ async function verifyIdentity(page,item){
     const client=window.supabase.createClient(config.supabaseUrl||config.url,config.publishableKey);
     const {data:session,error:sessionError}=await client.auth.getSession();
     if(sessionError||!session?.session?.user)return {error:'No authenticated customer session'};
-    const {data,error}=await client.from('customer_accounts').select('id,tenant_key,business_id,display_name,portal_enabled,status').eq('auth_user_id',session.session.user.id);
+    let query=client.from('customer_accounts').select('id,tenant_key,business_id,display_name,portal_enabled,status').eq('auth_user_id',session.session.user.id);
+    // The Northern TEST identity is also H38 Staff. Scope this proof to Northern,
+    // while the separate customer-only release proof remains a dedicated gate.
+    if(tenant==='northern-lakes')query=query.eq('business_id',config.businessId);
+    const {data,error}=await query;
     if(error)return {error:'Customer mapping query failed'};
     const rows=Array.isArray(data)?data:[];
     const own=rows.filter(row=>row.tenant_key===tenant&&row.portal_enabled===true&&row.status==='active'&&/TEST/i.test(row.display_name||''));
-    return {visibleMappings:rows.length,ownTestMappings:own.length,otherTenantMappings:rows.filter(row=>row.tenant_key!==tenant).length,businessMatches:tenant==='northern-lakes'?own.every(row=>row.business_id===config.businessId):true};
+    return {visibleMappings:rows.length,ownTestMappings:own.length,otherTenantMappings:rows.filter(row=>row.tenant_key!==tenant).length,businessMatches:tenant==='northern-lakes'?own.every(row=>row.business_id===config.businessId):true,tenantQueryScoped:tenant==='northern-lakes'};
   },item.key);
   if(result.error||result.visibleMappings!==1||result.ownTestMappings!==1||result.otherTenantMappings!==0||!result.businessMatches)fail(`${item.name} TEST customer or tenant isolation did not pass.`);
   if(!/TEST/i.test(await page.locator('#customerName').innerText()))fail(`${item.name} visible customer is not marked TEST.`);
@@ -47,7 +51,9 @@ async function verifyIdentity(page,item){
 async function record(browser,item){
   const proof={tenant:item.key,status:'HOLD',sourceSha,viewport:'390x844',externalActionsOccurred:false,credentialsRecorded:false,steps:[]};
   if(!item.email||!item.password){proof.status='EXTERNAL_GATE';proof.detail=`Dedicated ${item.name} TEST customer credentials are required.`;return proof;}
-  if(!/\+[^@]*portaltest@/i.test(item.email))fail(`${item.name} recorder requires a dedicated +portaltest email alias.`);
+  const northernPlayreview=item.key==='northern-lakes'&&/^highway38solutions\+playreview@gmail\.com$/i.test(item.email);
+  if(!northernPlayreview&&!/\+[^@]*portaltest@/i.test(item.email))fail(`${item.name} recorder requires a dedicated +portaltest email alias.`);
+  if(northernPlayreview)proof.identityClass='H38 Staff and Northern TEST customer; customer-only isolation still requires a separate identity.';
   if(!authorized)fail('Controlled TEST recording authorization is required.');
 
   const authContext=await browser.newContext({viewport:{width:390,height:844}});
@@ -73,13 +79,20 @@ async function record(browser,item){
     await page.goto(item.url,{waitUntil:'domcontentloaded',timeout:45000});
     await page.locator(item.app).waitFor({state:'visible',timeout:40000});
     const identity=await verifyIdentity(page,item);
-    proof.steps.push({name:'signed-in-test-customer-and-rls',status:'PASS',visibleMappings:identity.visibleMappings,otherTenantMappings:0});
+    proof.steps.push({name:item.key==='northern-lakes'?'signed-in-test-customer-and-tenant-scope':'signed-in-test-customer-and-rls',status:'PASS',visibleMappings:identity.visibleMappings,tenantQueryScoped:identity.tenantQueryScoped,otherTenantMappings:identity.tenantQueryScoped?undefined:identity.otherTenantMappings});
+    if(item.key==='northern-lakes'){
+      await page.waitForFunction(()=>{
+        const jobs=document.querySelector('#jobsList')?.innerText||'';
+        return jobs.includes('TEST-JOB-H38-LAWN-NORTHERN-20260920')&&jobs.includes('TEST-JOB-H38-SNOW-NORTHERN-20260924');
+      },null,{timeout:20000}).catch(()=>fail('Northern TEST lawn and snow customer jobs are missing from the signed-in portal.'));
+      proof.steps.push({name:'northern-h38-test-lawn-and-snow',status:'PASS'});
+    }
     await caption(page,`${item.name} TEST customer: this is the real signed-in portal. Only the connected customer account is visible.`);
     for(const selector of item.sections){
       const section=page.locator(selector);await section.waitFor({state:'visible',timeout:15000});
       await section.scrollIntoViewIfNeeded();
       const heading=await section.locator('h2,h3').first().innerText().catch(()=>selector.slice(1));
-      await caption(page,`${heading}: review what the business has released. No approval, message, payment, or download is performed in this lesson.`);
+      await caption(page,selector==='#jobsPanel'?`${heading}: the Highway 38 TEST lawn and snow services are visible here. No approval, message, payment, or download is performed.`:`${heading}: review what the business has released. No approval, message, payment, or download is performed in this lesson.`);
       proof.steps.push({name:selector.slice(1),status:'PASS'});
     }
     if(mutations)fail('Customer action endpoint was called during read-only training.');
