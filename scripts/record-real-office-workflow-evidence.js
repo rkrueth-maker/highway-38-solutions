@@ -69,6 +69,7 @@ const scenarios=[
     tenantName:'Northern Lakes',
     customerNeedle:/Highway 38/i,
     serviceNeedle:/snow|plow/i,
+    fixtureJobId:'TEST-JOB-H38-SNOW-NORTHERN-20260924',
     requiredLabel:'Simulated training scenario using the real Northern Lakes Business Office \u2014 TEST data only.',
     mode:'recurring-service'
   }
@@ -222,27 +223,33 @@ async function recurringServiceScenario(page,scenario,result,shots){
     return {id,invoiceCount};
   },selectedCustomer.customerId);
   if(!customerContext.id)throw new Error('Visible TEST customer card did not resolve to a customer ID.');
-  const recurringJob=await page.evaluate(({customerId,customerSource,serviceSource})=>{
+  const recurringJob=await page.evaluate(({customerId,customerSource,serviceSource,fixtureJobId})=>{
     const customer=new RegExp(customerSource,'i'),service=new RegExp(serviceSource,'i');
     const rows=Array.isArray(window.state?.snapshot?.jobs)?window.state.snapshot.jobs:[];
     const val=(row,...keys)=>keys.map(key=>row?.[key]).find(value=>value!==undefined&&value!==null&&value!=='')||'';
     const truthy=value=>value===true||['true','1','yes','on','enabled'].includes(String(value).trim().toLowerCase());
     const recurring=row=>truthy(val(row,'Subscribed Service','subscribedService'))||truthy(val(row,'Recurring Service Visit','recurringServiceVisit'))||String(val(row,'Lifecycle Mode','lifecycleMode')).trim().toUpperCase()==='RECURRING SERVICE';
-    return rows.find(row=>String(val(row,'Customer ID','customerId')).trim()===customerId&&recurring(row)&&customer.test(String(val(row,'Customer Name','customerName','Project Title','projectTitle')))&&service.test(String(val(row,'Service Type','serviceType','Project Title','projectTitle')))&&/TEST/i.test(JSON.stringify(row)))||null;
-  },{customerId:selectedCustomer.customerId,customerSource:scenario.customerNeedle.source,serviceSource:scenario.serviceNeedle.source});
+    const valid=row=>String(val(row,'Customer ID','customerId')).trim()===customerId&&service.test(String(val(row,'Service Type','serviceType','Project Title','projectTitle')))&&/TEST/i.test(JSON.stringify(row));
+    if(fixtureJobId){
+      const fixture=rows.find(row=>String(val(row,'Job ID','jobId')).trim()===fixtureJobId);
+      return fixture&&valid(fixture)?fixture:null;
+    }
+    return rows.find(row=>valid(row)&&recurring(row)&&customer.test(String(val(row,'Customer Name','customerName','Project Title','projectTitle'))))||null;
+  },{customerId:selectedCustomer.customerId,customerSource:scenario.customerNeedle.source,serviceSource:scenario.serviceNeedle.source,fixtureJobId:scenario.fixtureJobId||''});
   const recurringJobId=String(recurringJob?.['Job ID']||recurringJob?.jobId||'').trim();
-  if(!recurringJobId)throw new Error('No controlled TEST recurring-service job was available for the selected customer.');
+  if(!recurringJobId)throw new Error('No customer-matched controlled TEST recurring-service fixture was available for the selected service.');
   result.steps.push({name:'select-matching-test-service',status:'PASS',at:now(),jobId:recurringJobId,serviceType:String(recurringJob['Service Type']||recurringJob.serviceType||recurringJob['Project Title']||recurringJob.projectTitle||'')});
-  await page.evaluate(async jobId=>{
+  await page.evaluate(async ({jobId,prepareRecurringFixture})=>{
     const rows=Array.isArray(window.state?.snapshot?.jobs)?window.state.snapshot.jobs:[];
     const row=rows.find(item=>String(item?.['Job ID']||item?.jobId||'').trim()===jobId);
     if(!row)throw new Error('Controlled TEST recurring-service fixture disappeared before reset.');
     const updated={...row,'Status':'Scheduled','Recurring Service Started':false,'Recurring Service Completed':false,'Removed From Work List':false,'Updated Time':new Date().toISOString(),'Record Version':Math.max(1,Number(row['Record Version']||row.recordVersion||0)+1)};
+    if(prepareRecurringFixture){updated['Subscribed Service']=true;updated['Recurring Service Visit']=true;updated['Lifecycle Mode']='RECURRING SERVICE';}
     delete updated.__localPending;
     if(typeof window.queueOperation!=='function'||typeof window.sync!=='function')throw new Error('Secure recurring-service TEST reset path is unavailable.');
     await window.queueOperation('SAVE_ENTITY','Job',jobId,{entity:'jobs',record:updated},{collection:'jobs',record:updated,idKeys:['Job ID']},false);
     await window.sync(false);
-  },recurringJobId);
+  },{jobId:recurringJobId,prepareRecurringFixture:!!scenario.fixtureJobId});
   await page.waitForFunction(jobId=>{
     const row=(window.state?.snapshot?.jobs||[]).find(item=>String(item?.['Job ID']||item?.jobId||'').trim()===jobId);
     return !!row&&String(row.Status||row.status||'').trim().toUpperCase()==='SCHEDULED'&&row['Removed From Work List']!==true;
