@@ -56,3 +56,11 @@ The GitHub Actions workflow writes the new material under:
 `artifacts/complete-training-library/`
 
 Each clip has a JSON result with source SHA, tenant, viewport, step status, and `externalActionsOccurred:false`. The run-level `manifest.json` lists every PASS/HOLD and any credential gate. MP4 is created from the raw WEBM when FFmpeg is available; raw WEBM remains the acceptance source.
+
+## AI owner action training extension — 2026-09-29
+
+The canonical Assistant acceptance recorder now records four separate owner sessions: H38 desktop/phone and Northern desktop/phone. Each must prove the tenant-scoped eight-agent scan, exact customer source navigation, preview before write, approved rate plus TEST draft quote, approved contact edit, readable saved approval in Controls → Proof Log, cancellation, revision, and permission/cross-business prompt denial.
+
+Use the existing H38 Workflow Video Evidence workflow with `scope=ai` for this focused pass. Authentication happens before recording; the recorder waits for `deployed-main-sha.txt` to match the run source SHA. Approved local narration is reused from the existing Northern media functions without running or injecting that tour. Private non-TEST records are masked. TEST contact/rate fixtures are restored through normal save/sync afterward; TEST draft quotes and proof history remain auditable.
+
+Acceptance is pending until the live manifest and each of the four MP4 viewing copies pass. The manifest lists per-session steps, route timings, actual business ID, raw video, transcript and no-external-action status. A failed or missing case remains HOLD. Real Staff authorization, cloud-provider execution, offline/physical-device behavior and connected Drive remain separate gates. Do not use these owner recordings as proof of those gates.

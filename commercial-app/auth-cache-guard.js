@@ -1,10 +1,10 @@
 'use strict';
 
-const H38_AUTH_CACHE_BUILD='20260927-auth-cache-install-settings-6';
+const H38_AUTH_CACHE_BUILD='20260929-auth-cache-ai-source-7';
 const H38_AUTH_CACHE_SERVICE_WORKER_BUILD='20260826-photo-quote-scope-reset-2';
 const H38_AUTH_CACHE_DESKTOP_RELOAD_KEY=`h38:desktop-runtime-reset:${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`;
 const H38_TABLET_INSTALL_RUNTIME_BUILD='20260927-install-office-settings-6';
-const H38_AI_TEAM_BUILD='20260923-ai-team-orchestrator-2-stable';
+const H38_AI_TEAM_BUILD='20260929-ai-team-customer-source-1';
 const H38_AI_OWNER_COMMAND_BUILD='20260923-ai-owner-command-authority-1';
 const H38_TABLET_INSTALL_RESET_KEY=`h38:tablet-install-runtime-reset:${H38_TABLET_INSTALL_RUNTIME_BUILD}`;
 const h38LegacyLoadCached=loadCached;

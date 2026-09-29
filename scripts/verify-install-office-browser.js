@@ -54,7 +54,7 @@ function staticChecks(){
   assert.match(authGuard,/localStorage\.getItem\(H38_TABLET_INSTALL_RESET_KEY\)/);
   assert.match(authGuard,/ai-team-orchestrator\.js\?build=/);
   assert.match(authGuard,/aiTeamAssistantPageOnly:true/);
-  assert.match(aiTeam,/20260923-ai-team-orchestrator-2-stable/);
+  assert.match(aiTeam,/20260929-ai-team-customer-source-1/);
   assert.match(aiTeam,/engineChangesAllowed:false/);
   assert.match(aiTeam,/automaticPayment:false/);
   assert.ok(!aiTeam.includes('queueOperation('),'AI Team scanner must not create a second write path');

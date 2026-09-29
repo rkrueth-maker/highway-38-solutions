@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/record-real-office-workflow-evidence.js'
       - 'scripts/verify-workflow-video-library.js'
+      - 'scripts/verify-assistant-tenant-actions-live.js'
       - 'docs/training/**'
       - '.github/workflows/h38-workflow-video-evidence.yml'
       - '.github/workflows/workflow-recorder-static-acceptance.yml'
@@ -25,7 +26,9 @@ jobs:
         with:
           node-version: '24'
       - name: Verify recorder JavaScript syntax
-        run: node --check scripts/record-real-office-workflow-evidence.js
+        run: |
+          node --check scripts/record-real-office-workflow-evidence.js
+          node --check scripts/verify-assistant-tenant-actions-live.js
       - name: Verify library verifier syntax
         run: node --check scripts/verify-workflow-video-library.js
       - name: Verify real-runtime recording safety contract

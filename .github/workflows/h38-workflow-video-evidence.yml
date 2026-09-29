@@ -8,6 +8,12 @@ on:
         required: true
         type: boolean
         default: false
+      scope:
+        description: Record all workflows or the focused AI owner training
+        required: true
+        type: choice
+        options: [all, ai]
+        default: all
   push:
     branches:
       - main
@@ -26,14 +32,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Select recording scope
+        id: scope
+        env:
+          REQUESTED_SCOPE: ${{ inputs.scope }}
+        run: |
+          recording_scope="${REQUESTED_SCOPE:-$(sed -n 's/^scope=//p' .github/h38-workflow-video-evidence.trigger)}"
+          recording_scope="${recording_scope:-all}"
+          case "$recording_scope" in all|ai) ;; *) exit 2 ;; esac
+          echo "scope=$recording_scope" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
       - run: npm ci && npx playwright install --with-deps chromium
+      - name: Install approved local narrator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install piper-tts
+          mkdir -p "$RUNNER_TEMP/piper-voices"
+          cd "$RUNNER_TEMP/piper-voices"
+          python -m piper.download_voices en_US-hfc_male-medium || python -m piper.download_voices en_US-joe-medium || python -m piper.download_voices en_US-ryan-high
+          narrator_model="$(find "$RUNNER_TEMP/piper-voices" -maxdepth 1 -name '*.onnx' | head -n 1)"
+          test -n "$narrator_model"
+          echo "NORTHERN_NARRATOR_MODEL=$narrator_model" >> "$GITHUB_ENV"
       - name: Preflight recording authorization and prerequisites
         env:
           RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
           LOGIN_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
           LOGIN_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
-          EVIDENCE_DIR: artifacts/workflow-video-evidence
+          EVIDENCE_DIR: ${{ steps.scope.outputs.scope == 'ai' && 'artifacts/assistant-action-evidence' || 'artifacts/workflow-video-evidence' }}
         run: node scripts/h38-workflow-video-evidence-helper.js preflight
       - name: Prepare optional authorized storage state
         env:
@@ -44,6 +72,7 @@ jobs:
             chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"
           fi
       - name: Record deployed Business Office workflows
+        if: steps.scope.outputs.scope != 'ai'
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -54,7 +83,7 @@ jobs:
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-real-office-workflow-evidence.js
       - name: Record full desktop and phone operator training
-        if: always()
+        if: ${{ always() && steps.scope.outputs.scope != 'ai' }}
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -67,7 +96,7 @@ jobs:
           # TEST-only diagnostic wrapper delegates to scripts/record-full-office-lifecycle-training.js after injecting quote refresh evidence.
           node scripts/run-lifecycle-quote-refresh-diagnostic.js
       - name: Record Task Manager employee assignment training
-        if: always()
+        if: ${{ always() && steps.scope.outputs.scope != 'ai' }}
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -78,7 +107,7 @@ jobs:
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-task-manager-training.js
       - name: Record complete operator training library
-        if: always()
+        if: ${{ always() && steps.scope.outputs.scope != 'ai' }}
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -92,7 +121,7 @@ jobs:
         # Strict runner refuses PASS unless real Staff completion and dedicated TEST service fixtures are proven.
         run: node scripts/run-complete-training-library-strict.js
       - name: Record native accounting and tax handoff training
-        if: always()
+        if: ${{ always() && steps.scope.outputs.scope != 'ai' }}
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -103,7 +132,7 @@ jobs:
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-tax-only-accounting-training.js
       - name: Verify deployed Assistant tenant actions
-        if: always()
+        if: success()
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -113,6 +142,17 @@ jobs:
           H38_ASSISTANT_EVIDENCE_DIR: artifacts/assistant-action-evidence
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/verify-assistant-tenant-actions-live.js
+      - name: Upload individual narrated AI viewing copies
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-owner-viewing-copies-${{ github.run_id }}
+          path: |
+            artifacts/assistant-action-evidence/videos/*.mp4
+            artifacts/assistant-action-evidence/*.json
+            artifacts/assistant-action-evidence/README.md
+          if-no-files-found: warn
+          retention-days: 30
       - name: Upload raw evidence packet
         if: always()
         uses: actions/upload-artifact@v4
@@ -130,5 +170,5 @@ jobs:
       - name: Summarize recording evidence status
         if: always()
         env:
-          EVIDENCE_DIR: artifacts/workflow-video-evidence
+          EVIDENCE_DIR: ${{ steps.scope.outputs.scope == 'ai' && 'artifacts/assistant-action-evidence' || 'artifacts/workflow-video-evidence' }}
         run: node scripts/h38-workflow-video-evidence-helper.js summarize
