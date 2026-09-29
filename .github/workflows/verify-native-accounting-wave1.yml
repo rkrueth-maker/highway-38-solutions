@@ -57,4 +57,4 @@ jobs:
         run: |
           grep -Fq './accounting-engine.js?build=20260927-wave1-accounting-core-1' commercial-app/index.html
           grep -Fq './accounting-workspace.js?build=20260927-wave1-accounting-workspace-1' commercial-app/index.html
-          grep -Fq './accounting-posting-bridge.js?build=20260927-wave1-accounting-posting-1' commercial-app/index.html
+          grep -Fq './accounting-posting-bridge.js?build=20260929-bank-import-integrity-1' commercial-app/index.html
