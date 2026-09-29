@@ -38,6 +38,8 @@ When the dedicated Staff credential pair is not configured, the library still re
 
 Customer Portal login is recorded without exposing credentials. A real post-login customer walkthrough likewise requires an authorized TEST customer account and should not be faked with an owner account.
 
+`scripts/record-customer-portal-signed-in.js` owns that separate phone-size walkthrough for H38 and Northern. It signs in before recording, holds session state only in memory, requires a dedicated `+portaltest` identity with an active TEST customer mapping, verifies that only one account for the selected tenant is visible, and then records read-only sections of the real portal. The workflow uses `H38_PORTAL_TEST_EMAIL` / `H38_PORTAL_TEST_PASSWORD` and `NL_PORTAL_TEST_EMAIL` / `NL_PORTAL_TEST_PASSWORD` secrets. Without a tenant's credential pair, its manifest marks that tenant `EXTERNAL_GATE`; a manual release run requires both tenant videos to pass. Customer messages, approvals, payments, and downloads are not performed.
+
 ## Evidence output
 
 The GitHub Actions workflow writes the new material under:
