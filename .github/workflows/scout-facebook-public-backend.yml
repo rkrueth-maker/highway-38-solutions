@@ -31,13 +31,15 @@ jobs:
           node supabase/functions/reseller-facebook-public-v240/public-index.test.mjs
       - name: Type-check deployable function
         run: deno check --node-modules-dir=auto supabase/functions/reseller-facebook-public-v240/index.ts
-      - name: Forbid authenticated Facebook acquisition
+      - name: Verify public Facebook acquisition invariants
         run: |
           set -euo pipefail
           f=supabase/functions/reseller-facebook-public-v240/index.ts
           grep -Fq "authentication:'NO_FACEBOOK_LOGIN'" "$f"
-          grep -Fq "H38_FACEBOOK_PUBLIC_V264" "$f"
+          grep -Fq "H38_FACEBOOK_PUBLIC_V3" "$f"
           grep -Fq "PUBLIC_LOCATION_UNPROVEN" "$f"
+          grep -Fq "format=rss" "$f"
+          grep -Fq "parseBingRss" "$f"
           if grep -Eiq 'c_user|xs=|checkpoint bypass|login credential|headers[^\n]*cookie|cookie[^\n]*headers' "$f"; then
             echo 'Forbidden authenticated Facebook acquisition marker'; exit 1
           fi
