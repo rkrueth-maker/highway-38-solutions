@@ -264,6 +264,9 @@ async function couponAcceptance(browser, session) {
   const {page,pageErrors}=await open(context,'h38-coupon-web');
   await page.waitForSelector('#app:not(.hidden)',{timeout:30000});
   await page.waitForSelector('#addItem',{timeout:30000});
+  await page.waitForFunction(()=>/^(Saved|Error)$/.test(document.querySelector('#sync')?.textContent?.trim()||''),null,{timeout:120000});
+  const initialSync=(await page.locator('#sync').innerText()).trim();
+  check('Couponing initial shared load',initialSync==='Saved',initialSync+' · '+(await page.locator('#status').innerText().catch(()=>'')));
   await page.fill('#zip','55744');
   await page.selectOption('#radius','50');
   await page.click('#useLocation');
