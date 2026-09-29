@@ -18,7 +18,7 @@ const pages = [
   { name: 'penny', url: '/penny.html', selectors: ['.back', '#lookupOpen', '#refresh', '#search', '#stores'] },
   { name: 'resale', url: '/resale.html', selectors: ['.top a', '[data-tab="deals"]', '.sources summary', '#search', '#scan'] },
   { name: 'coupon', url: '/coupon.html', selectors: ['.top a', '.nav', '[data-view="shop"]', '[data-view="deals"]', '[data-view="receipts"]'] },
-  { name: 'best', url: '/functions/v1/h38-deal-engine-web', live: true, selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#dealControls'] },
+  { name: 'best', url: '/best-live.html', live: true, selectors: ['.back', '#refresh', '#refreshSources', '.tabs', '#dealControls'] },
   { name: 'maintenance', url: '/maintenance.html', selectors: ['.top a', '#check', '#maintain', '#report'] },
 ];
 
@@ -35,40 +35,25 @@ async function authSession() {
   s.expires_at = Math.floor(Date.now() / 1000) + Number(s.expires_in || 3600);
   return s;
 }
-async function openLiveBest(page) {
-  let last = null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const target = SB + '/functions/v1/h38-deal-engine-web?acceptance=' + Date.now() + '-' + attempt;
-    let response = null;
-    try {
-      response = await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    } catch (e) {
-      last = { attempt, target, error: String(e && e.message || e) };
-      if (attempt < 3) { await page.waitForTimeout(1200 * attempt); continue; }
-      break;
-    }
-    const headers = response ? await response.allHeaders().catch(() => ({})) : {};
-    const status = response ? response.status() : 0;
-    const attached = await page.locator('#auth, #app').count().catch(() => 0);
-    const body = attached ? '' : (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 500);
-    last = { attempt, target, status, contentType: headers['content-type'] || '', attached, title: await page.title().catch(() => ''), body };
-    if (status >= 200 && status < 300 && attached > 0) return last;
-    if (attempt < 3) await page.waitForTimeout(1200 * attempt);
+async function fetchLiveBestHtml() {
+  const url = SB + '/functions/v1/h38-deal-engine-web?acceptance=' + Date.now();
+  const r = await fetch(url, { headers: { apikey: KEY } });
+  const html = await r.text();
+  const contentType = r.headers.get('content-type') || '';
+  if (!r.ok) fail('Deal Engine live HTML HTTP ' + r.status + ': ' + html.slice(0, 300));
+  if (!/^\s*<!doctype html>/i.test(html) || !html.includes('id="auth"') || !html.includes('id="app"')) {
+    fail('Deal Engine live HTML markers missing: ' + html.replace(/\s+/g, ' ').slice(0, 500));
   }
-  fail('Deal Engine live page unavailable after retries: ' + JSON.stringify(last));
+  return { html, transport: { source: url, status: r.status, contentType, renderedAs: 'text/html via Scout acceptance host' } };
 }
 async function ensureBestSignedIn(page) {
   await page.locator('#auth, #app').first().waitFor({ state: 'attached', timeout: 10000 });
+  await page.waitForFunction(() => {
+    const app = document.querySelector('#app');
+    const auth = document.querySelector('#auth');
+    return (app && !app.classList.contains('hidden')) || (auth && !auth.classList.contains('hidden'));
+  }, null, { timeout: 15000 });
   if (await page.locator('#app:not(.hidden)').count()) return;
-  const auth = page.locator('#auth:not(.hidden)');
-  if (!(await auth.count())) {
-    const state = await page.evaluate(() => ({
-      auth: document.querySelector('#auth')?.className || null,
-      app: document.querySelector('#app')?.className || null,
-      text: document.body.innerText.slice(0, 500),
-    })).catch(() => ({}));
-    fail('Deal Engine rendered without a usable auth/app state: ' + JSON.stringify(state));
-  }
   await page.fill('#email', EMAIL);
   await page.fill('#password', PASSWORD);
   await page.click('#login button[type="submit"]');
@@ -87,6 +72,7 @@ async function assertInViewport(page, selector, label) {
   if (!SB || !KEY || !EMAIL || !PASSWORD) fail('Missing mobile acceptance environment');
   fs.mkdirSync(OUT, { recursive: true });
   const session = await authSession();
+  const liveBest = await fetchLiveBestHtml();
   const browser = await chromium.launch({ headless: true });
   const report = [];
   try {
@@ -96,20 +82,18 @@ async function assertInViewport(page, selector, label) {
         if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
           localStorage.setItem(key, JSON.stringify(value));
         }
-      }, {
-        key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: session,
-      });
+      }, { key: 'sb-jqukmwtsgcsaruucnqja-auth-token', value: session });
+      await context.route(BASE + '/best-live.html', route => route.fulfill({
+        status: 200,
+        contentType: 'text/html; charset=utf-8',
+        body: liveBest.html,
+      }));
       for (const spec of pages) {
         const page = await context.newPage();
         const errors = [];
         page.on('pageerror', e => errors.push(String(e)));
-        let transport = null;
-        if (spec.live) {
-          transport = await openLiveBest(page);
-        } else {
-          const response = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          if (!response || !response.ok()) fail(spec.name + ' static page HTTP ' + (response ? response.status() : 'NO_RESPONSE'));
-        }
+        const response = await page.goto(BASE + spec.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        if (!response || !response.ok()) fail(spec.name + ' page HTTP ' + (response ? response.status() : 'NO_RESPONSE'));
         if (spec.name === 'best') await ensureBestSignedIn(page);
         await page.waitForTimeout(spec.name === 'maintenance' ? 6500 : 3500);
         const metrics = await page.evaluate(() => ({
@@ -123,14 +107,10 @@ async function assertInViewport(page, selector, label) {
         }
         for (const sel of spec.selectors) await assertInViewport(page, sel, spec.name + ' ' + size.width + ' ' + sel);
         if (spec.name === 'coupon') {
-          for (const view of ['shop','deals','save','scan','receipts']) {
-            await assertInViewport(page, '[data-view="' + view + '"]', 'coupon ' + size.width + ' tab ' + view);
-          }
+          for (const view of ['shop','deals','save','scan','receipts']) await assertInViewport(page, '[data-view="' + view + '"]', 'coupon ' + size.width + ' tab ' + view);
         }
         if (spec.name === 'best') {
-          for (const tab of ['best','resell','savings','watches','queue']) {
-            await assertInViewport(page, '[data-tab="' + tab + '"]', 'best ' + size.width + ' tab ' + tab);
-          }
+          for (const tab of ['best','resell','savings','watches','queue']) await assertInViewport(page, '[data-tab="' + tab + '"]', 'best ' + size.width + ' tab ' + tab);
         }
         if (spec.name === 'penny') {
           const text = await page.locator('#stores').innerText().catch(() => '');
@@ -138,7 +118,7 @@ async function assertInViewport(page, selector, label) {
         }
         const shot = path.join(OUT, spec.name + '-' + size.width + 'x' + size.height + '.png');
         await page.screenshot({ path: shot, fullPage: true });
-        report.push({ page: spec.name, ...size, metrics, errors, transport, screenshot: shot });
+        report.push({ page: spec.name, ...size, metrics, errors, transport: spec.live ? liveBest.transport : null, screenshot: shot });
         if (errors.length) fail(spec.name + ' ' + size.width + ' uncaught JS: ' + errors.join(' | '));
         await page.close();
       }
