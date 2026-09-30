@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD="20260912-nl-bouncie-fleet-2";
+const BUILD="20260929-nl-bouncie-fleet-3";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const CLIENT_ID=Deno.env.get("BOUNCIE_CLIENT_ID")||"";
@@ -33,7 +33,7 @@ async function signedUser(req:Request){const token=bearer(req);if(!token)throw n
 async function member(service:ReturnType<typeof db>,userId:string,businessId:string,admin=false){const {data,error}=await service.from("business_memberships").select("role,status").eq("business_id",businessId).eq("auth_user_id",userId).eq("status","active").maybeSingle();if(error)throw error;if(!data)throw new Error("Active business membership is required.");const role=clean(data.role,60).toLowerCase();if(admin&&!["owner","administrator"].includes(role))throw new Error("Owner or Administrator access is required.");return role;}
 async function proof(service:ReturnType<typeof db>,businessId:string,userId:string|null,action:string,details:Json){try{await service.from("business_proof_log").insert({business_id:businessId,actor_user_id:userId,action_type:action,entity_type:"Fleet",result:"PASS",details,external_action_occurred:false});}catch(_){} }
 function configured(){const missing=[];if(!CLIENT_ID)missing.push("BOUNCIE_CLIENT_ID");if(!CLIENT_SECRET)missing.push("BOUNCIE_CLIENT_SECRET");if(!TOKEN_KEY)missing.push("BOUNCIE_TOKEN_ENCRYPTION_KEY");if(!STATE_SECRET)missing.push("BOUNCIE_STATE_SECRET");if(!WEBHOOK_KEY)missing.push("BOUNCIE_WEBHOOK_KEY");return missing;}
-function redirectUri(req:Request){return`${new URL(req.url).origin}/nl-bouncie-fleet?action=oauth-callback`;}
+function redirectUri(_req:Request){return`${SUPABASE_URL}/functions/v1/nl-bouncie-fleet?action=oauth-callback`;}
 async function tokenExchange(body:Json){const r=await fetch(TOKEN_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});const p=await r.json().catch(()=>({})) as Json;if(!r.ok)throw new Error(clean((p.errors||p.error_description||p.error)||`Bouncie token request failed (${r.status}).`,800));return p;}
 async function bouncie(access:string,path:string){const r=await fetch(`${API}${path}`,{headers:{Authorization:access,"Content-Type":"application/json"},signal:AbortSignal.timeout(25000)});const raw=await r.text();let p:unknown={};try{p=raw?JSON.parse(raw):{};}catch(_){p={raw:raw.slice(0,1000)};}if(!r.ok)throw new Error(`Bouncie ${path} failed (${r.status}): ${clean((p as Json).errors||(p as Json).error||raw,800)}`);return p;}
 function arr(v:unknown):Json[]{if(Array.isArray(v))return v.filter(x=>x&&typeof x==="object") as Json[];if(v&&typeof v==="object"){for(const k of ["data","vehicles","trips","items"]){const x=(v as Json)[k];if(Array.isArray(x))return x.filter(y=>y&&typeof y==="object") as Json[];}}return[];}
