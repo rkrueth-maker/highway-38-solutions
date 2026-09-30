@@ -50,7 +50,7 @@ const polish=path.join(root,'commercial-app/customer-readiness-polish.js');
     assert.equal(await page.locator('.h38-ready-metrics,.h38-ready-prompts').count(),0,'phone Today must not recreate the old metric or prompt dashboards');
     assert((await page.locator('#h38CustomerReadyToday').textContent()).includes('UP NEXT'),'Today should keep the next scheduled work visible');
     await page.locator('#h38NewActionButton').click();
-    assert.equal(await page.locator('#h38QuickCreateDialog [data-h38-quick]').count(),8,'universal New menu should cover common creation paths');
+    assert.equal(await page.locator('#h38QuickCreateDialog [data-h38-quick]').count(),9,'universal New menu should cover common creation paths, including receptionist testing');
     await page.locator('#h38QuickCreateDialog button[value="cancel"]').click();
     await page.evaluate(()=>{H38_CUSTOMER_360.selectedCustomerId='C-JOHN';renderCustomers();});
     await page.waitForSelector('.h38-c360-workspace');
