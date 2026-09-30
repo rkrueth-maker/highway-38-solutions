@@ -1,3 +1,4 @@
+# Exact-head acceptance trigger after Deal Engine queue renderer repair.
 name: H38 Scout Browser Acceptance
 
 on:
