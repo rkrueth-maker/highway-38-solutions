@@ -161,8 +161,12 @@ async function readablePreview(page){
       await narrate(page,'Run the AI Team scan in the active business. Open the TEST customer finding to review its source. Unrelated private records are masked.');
       const source=page.locator(`[data-ai-team-customer="${test.id}"]`);await source.waitFor({state:'visible',timeout:12000});await source.click();
       const selected=await page.evaluate(()=>window.H38_CUSTOMER_360?.selectedCustomerId);if(selected!==test.id)throw Error('AI finding did not open its exact customer source.');
-      await privacy(page);await narrate(page,'The finding opens the exact TEST customer. Review the customer before asking the Assistant to change anything.');
-      activeResult.steps.push({name:'tenant-team-source-review',status:'PASS'});
+      const sourceHeader=page.locator('.h38-c360-head');await sourceHeader.waitFor({state:'visible',timeout:10000});
+      await sourceHeader.evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));
+      const sourceVisible=await sourceHeader.evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=100&&r.bottom<=innerHeight-130&&/AI Operator Test Customer - TEST/.test(el.innerText);});
+      if(!sourceVisible)throw Error('Exact TEST customer source header is outside the visible viewport.');
+      await privacy(page);await narrate(page,'The finding opens the exact TEST customer. Review the visible customer header before asking the Assistant to change anything.');
+      activeResult.steps.push({name:'tenant-team-source-review',status:'PASS'},{name:'source-header-visible-in-viewport',status:'PASS'});
       routeStart=Date.now();await openAssistant(page);activeResult.timings.cachedAssistantMs=Date.now()-routeStart;
       await command(page,'Raise their plowing rate to $175 and show me a quote.');
       await page.locator('[data-h38-ai-action-card]').waitFor({state:'visible',timeout:10000});
