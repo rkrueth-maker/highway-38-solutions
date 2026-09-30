@@ -126,6 +126,30 @@ function parse(elements:any[],lat:number,lon:number,radius:number){
   return [...out.values()].sort((a,b)=>a.distance_miles-b.distance_miles).slice(0,120);
 }
 
+async function refreshDurableCoverage(req:Request,lat:number,lon:number,radius:number){
+  const auth=req.headers.get("authorization")||"";
+  try{
+    const r=await fetch(`${SUPABASE_URL}/functions/v1/reseller-nearby-stores`,{
+      method:"POST",
+      headers:{authorization:auth,apikey:SERVICE_KEY,"content-type":"application/json"},
+      body:JSON.stringify({lat,lon,radiusMiles:radius}),
+      signal:AbortSignal.timeout(6500),
+    });
+    const p=await r.json().catch(()=>({}));
+    return {
+      ok:r.ok,
+      status:String(p?.status||""),
+      stores:Number(p?.store_count||0),
+      tiles_done:Number(p?.coverage_tiles_done||0),
+      tiles_total:Number(p?.coverage_tiles_total||0),
+      refresh_incomplete:!!p?.refresh_incomplete,
+      warning:p?.warning||null,
+    };
+  }catch(e){
+    return {ok:false,status:"PARTIAL",stores:0,tiles_done:0,tiles_total:0,refresh_incomplete:true,warning:e instanceof Error?e.message:String(e)};
+  }
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors(req)});
   if(req.method!=="POST")return json(req,405,{error:"POST required."});
@@ -147,21 +171,23 @@ Deno.serve(async(req:Request)=>{
       result=tries.find(x=>x.ok)||tries[0];
     }
     const stores=parse(result?.payload?.elements||[],lat,lon,quick);
+    const durable=await refreshDurableCoverage(req,lat,lon,requested);
     return json(req,200,{
       status:stores.length?"PASS":"PARTIAL",
-      provider:"central-nearby-bootstrap-v262",
+      provider:"central-nearby-bootstrap-v263",
       source:result?.source||"",
       radius_miles:requested,
       quick_radius_miles:quick,
       stores,
       store_count:stores.length,
+      durable_refresh:durable,
       elapsed_ms:Date.now()-started,
-      warning:stores.length?null:"Central quick scan returned no recognized retailers; the durable broader scan should continue.",
+      warning:stores.length?null:"Central quick scan returned no recognized retailers; durable broader coverage was still refreshed/preserved.",
     });
   }catch(e){
     return json(req,200,{
       status:"PARTIAL",
-      provider:"central-nearby-bootstrap-v262",
+      provider:"central-nearby-bootstrap-v263",
       stores:[],
       store_count:0,
       elapsed_ms:Date.now()-started,
