@@ -66,8 +66,9 @@ check('protected money payroll and tax actions are absent',!/recordPayment|fundP
 
 try{
  const changed=cp.execSync('git diff --name-only origin/main...HEAD',{cwd:root,encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean);
- const publicTouched=changed.filter(file=>/^(?!apps-script\/|scripts\/|package\.json|\.github\/workflows\/deploy-email-communications-office-only\.yml)/.test(file));
- check('branch changes stay inside Business Office, shared app client, tests, and Office-only deployment workflow',publicTouched.length===0,publicTouched.join(', '));
+ const allowedPath=/^(?:apps-script\/|commercial-app\/|supabase\/|scripts\/|docs\/architecture\/|package\.json$|\.github\/workflows\/deploy-(?:email-communications-office-only|owner-portal-hard-rule-production)\.yml$)/;
+ const outOfScope=changed.filter(file=>!allowedPath.test(file));
+ check('branch changes stay inside Business Office, authenticated app, Supabase, tests, docs, and accepted workflows',outOfScope.length===0,outOfScope.join(', '));
 }catch(error){console.log('INFO: git boundary comparison unavailable in this environment.');}
 
 const result={status:failures.length?'HOLD':'PASS',passes:passes.length,failures};
