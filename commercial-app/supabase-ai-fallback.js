@@ -48,7 +48,9 @@
       projectTitle:text(supplied.projectTitle||''),
       scope:text(supplied.scope||''),
       measurementNotes:text(supplied.measurementNotes||''),
-      conversationId:text(supplied.conversationId||args&&args.aiConversationId||'')
+      conversationId:text(supplied.conversationId||args&&args.aiConversationId||''),
+      experienceMode:text(supplied.experienceMode||''),
+      receptionistProfile:text(supplied.experienceMode==='receptionist_test'?JSON.stringify(supplied.receptionistProfile||{}).slice(0,6000):'')
     };
     return context;
   }
