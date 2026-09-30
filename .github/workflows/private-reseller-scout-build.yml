@@ -44,6 +44,7 @@ jobs:
           node --check commercial-app/app-02.js
           node --check commercial-app/reseller-scout.js
           node --check scripts/verify-private-reseller-scout.js
+          node --check scripts/scout-acceptance-cleanup.cjs
           node --check supabase/functions/reseller-auto-leads-v064/source-adapters.mjs
           node --check supabase/functions/reseller-auto-leads-v064/dg-source-orchestrator.mjs
           node supabase/functions/reseller-auto-leads-v064/source-adapters.test.mjs
@@ -110,7 +111,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install pinned Playwright browser
         run: |
@@ -134,6 +135,10 @@ jobs:
           grep -Fq 'id="signin"' /tmp/h38-scout-index.html
           node scripts/scout-web-button-acceptance.cjs
           node scripts/scout-deal-engine-acceptance.cjs
+
+      - name: Cleanup acceptance-only QA records
+        if: always()
+        run: node scripts/scout-acceptance-cleanup.cjs
 
       - name: Upload live web acceptance evidence
         if: always()
