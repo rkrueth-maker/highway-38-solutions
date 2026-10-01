@@ -18,8 +18,8 @@ check('Northern does not receive an enabled default',app.includes("enabled:/high
 check('live voice provider and conditional forwarding remain off',app.includes('liveVoiceProviderEnabled:false')&&app.includes('conditionalForwardingEnabled:false'));
 check('AI endpoint has explicit receptionist safety instructions',aiServer.includes('simulating an AI receptionist for staff training')&&aiServer.includes('Never promise a refund, cancellation, discount or price change'));
 check('communications logs are included in Customer 360 history',customer.includes("'communicationLogs'")&&timeline.includes("communicationLogs:'Call / text'"));
-check('receptionist prompt sets a natural concise caller-facing tone',aiServer.includes('one question at a time')&&aiServer.includes('Do not give callers instructions for navigating the Business Office'));
-check('H38 plowing and lawn care route new properties to a site visit and existing accounts to scheduling',aiServer.includes('site visit')&&aiServer.includes('existing account')&&aiServer.includes('Plowing and lawn care'));
+check('receptionist prompt sets a natural concise caller-facing tone',aiServer.includes('one clear question at a time')&&aiServer.includes('not as a software coach'));
+check('H38 plowing and lawn care route new properties to a site visit and existing accounts to scheduling',aiServer.includes('site visit is needed before quoting or starting service')&&aiServer.includes('existingAccountSelected')&&aiServer.includes('snow-plowing and lawn-mowing'));
 check('test sends selected account status and H38-only service policy',app.includes('existingAccountSelected')&&app.includes('h38ServicePolicy')&&app.includes('/highway\\s*38|h38/i'));
 check('spoken test reply prefers a natural English voice with measured pacing',app.includes('chooseSpokenVoice')&&app.includes("utterance.rate=.94")&&app.includes("utterance.lang=voice.lang||'en-US'"));
 check('versioned receptionist asset and fresh app cache are updated',index.includes('20261001-natural-receptionist-2')&&sw.includes('20261001-0002'));
