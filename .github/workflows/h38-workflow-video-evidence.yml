@@ -64,7 +64,7 @@ jobs:
         if: ${{ github.event_name == 'push' && steps.scope.outputs.scope != 'ai' }}
         run: |
           for attempt in $(seq 1 36); do
-            if curl -fsSL --max-time 15 'https://highway38solutions.com/commercial-app/tenant-attribution.js' | grep -q '20261001-tenant-attribution-training-copy-polish-7'; then
+            if curl -fsSL --max-time 15 'https://highway38solutions.com/commercial-app/tenant-attribution.js' | grep -q '20261001-tenant-attribution-training-copy-polish-8'; then
               echo 'Repaired shared Office runtime is live.'
               exit 0
             fi
