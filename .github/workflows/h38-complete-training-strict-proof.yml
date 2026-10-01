@@ -15,6 +15,7 @@ on:
       - 'scripts/run-complete-training-library-strict.js'
       - 'scripts/record-complete-training-library.js'
       - 'scripts/record-task-manager-training.js'
+      - 'scripts/run-task-manager-training-privacy-safe.js'
       - 'scripts/record-customer-portal-signed-in.js'
       - '.github/workflows/h38-workflow-video-evidence.yml'
       - '.github/workflows/h38-complete-training-strict-proof.yml'
@@ -58,7 +59,7 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/h38-workflow-generated-storage-state.json
           H38_TASK_TRAINING_DIR: artifacts/task-manager-training
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
-        run: node scripts/record-task-manager-training.js
+        run: node scripts/run-task-manager-training-privacy-safe.js
       - name: Run strict complete training proof
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'push' && 'true' || inputs.recording_authorized }}
