@@ -18,13 +18,13 @@ replaceOnce(
   'artifact employee identity redaction'
 );
 replaceOnce(
-  `  if(!await assigned.locator(\`option[value="\${employee.userId.replace(/"/g,'\\\\"')}"\`]\`).count())throw Error(\`Active Staff employee \${employee.name} is not available in the Task Manager assignment list.\`);`,
-  `  if(!await assigned.locator(\`option[value="\${employee.userId.replace(/"/g,'\\\\"')}"\`]\`).count())throw Error('The selected Staff employee is not available in the Task Manager assignment list.');`,
+  'Active Staff employee ${employee.name} is not available in the Task Manager assignment list.',
+  'The selected Staff employee is not available in the Task Manager assignment list.',
   'private employee name in assignment error'
 );
 replaceOnce(
-  `  await caption(page,\`3. Choose \${employee.name}, enter the work, set the due time, then save the task.\`,1700);`,
-  `  await caption(page,'3. Choose the Staff employee, enter the work, set the due time, then save the task.',1700);`,
+  '3. Choose ${employee.name}, enter the work, set the due time, then save the task.',
+  '3. Choose the Staff employee, enter the work, set the due time, then save the task.',
   'private employee name in assignment caption'
 );
 const oldBlock=`  await openPage(page,'work');\n  const row=page.locator('.row').filter({hasText:taskTitle}).first();\n  await row.waitFor({state:'visible',timeout:15000});`;
@@ -36,8 +36,8 @@ replaceOnce(
   'canonical assignment proof without private display name'
 );
 replaceOnce(
-  `  await caption(page,\`4. Confirm the task appears in Task Manager assigned to \${employee.name}.\`,1700);`,
-  `  await caption(page,'4. Confirm the task appears in Task Manager assigned to the selected Staff employee.',1700);`,
+  '4. Confirm the task appears in Task Manager assigned to ${employee.name}.',
+  '4. Confirm the task appears in Task Manager assigned to the selected Staff employee.',
   'private employee name in confirmation caption'
 );
 
