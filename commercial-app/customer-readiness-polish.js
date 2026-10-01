@@ -42,7 +42,7 @@ function route(action,customerId=''){
   if(action==='message'){if(window.H38_COMMUNICATIONS?.open){window.H38_COMMUNICATIONS.open({customerId});return;}openPage('messages');return;}
   if(action==='call'){const customer=rows('customers').find(r=>text(value(r,'Customer ID','customerId'))===text(customerId));window.H38_COMMUNICATIONS?.startCall({customerId,phone:text(value(customer,'Phone','phone','Mobile Phone')),name:text(value(customer,'Customer Name','name'))});return;}
   if(action==='text'){const customer=rows('customers').find(r=>text(value(r,'Customer ID','customerId'))===text(customerId));window.H38_COMMUNICATIONS?.startText({customerId,phone:text(value(customer,'Phone','phone','Mobile Phone')),name:text(value(customer,'Customer Name','name'))});return;}
-  if(action==='receptionist'){window.H38_COMMUNICATIONS?.open();return;}
+  if(action==='receptionist'){window.H38_COMMUNICATIONS?.open({tab:'receptionist'});return;}
   if(action==='job'){openPage('work');return;}
   if(action==='expense'||action==='invoice'){openPage('money');return;}
   if(action==='assistant'){document.getElementById('globalAiButton')?.click();return;}
