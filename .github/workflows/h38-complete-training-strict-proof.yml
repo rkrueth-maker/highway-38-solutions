@@ -74,7 +74,7 @@ jobs:
       - name: Record real signed-in TEST customer portals
         if: always()
         env:
-          H38_PORTAL_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
+          H38_PORTAL_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'push' && 'true' || inputs.recording_authorized }}
           H38_PORTAL_REQUIRE_BOTH: ${{ github.event_name == 'workflow_dispatch' }}
           H38_PORTAL_TEST_EMAIL: ${{ secrets.H38_PORTAL_TEST_EMAIL }}
           H38_PORTAL_TEST_PASSWORD: ${{ secrets.H38_PORTAL_TEST_PASSWORD }}
