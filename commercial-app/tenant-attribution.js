@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260926-tenant-attribution-mobile-framing-3-final-training';
+const BUILD='20261001-tenant-attribution-training-copy-polish-4';
 const NORTH_KEY='northern-lakes';
 const H38_NAME='Highway 38 Solutions';
 const H38_URL='https://highway38solutions.com/';
@@ -100,8 +100,69 @@ function enhanceQuotePreview(){
   const credit=document.createElement('span');credit.dataset.h38PoweredBy='1';credit.className='h38-powered-by-credit';credit.innerHTML=poweredHtml();
   credit.style.cssText='display:block;width:100%;margin-top:4px;font-size:10px;opacity:.72';credit.querySelector('a')?.setAttribute('style','color:inherit;text-decoration:none');footer.appendChild(credit);
 }
+function ownerDebugEnabled(){try{const q=new URLSearchParams(location.search);return q.get('ownerDebug')==='1'||q.get('debug')==='1'||localStorage.getItem('h38.ownerDebug')==='true'||sessionStorage.getItem('h38.ownerDebug')==='true'||window.H38_OWNER_DEBUG===true;}catch(_){return window.H38_OWNER_DEBUG===true;}}
+function hideOwnerDebugArtifacts(){if(ownerDebugEnabled())return;document.querySelectorAll('[data-owner-debug-only],#h38QuoteRegressionRunner').forEach(node=>node.remove());}
+const COPY_REPLACEMENTS=[
+  [/Checking Supabase Auth and active business membership\.?/gi,'Checking your secure sign-in and business access.'],
+  [/Supabase Auth/gi,'secure sign-in'],
+  [/Supabase Business Office/gi,'Business Office'],
+  [/tenant-isolated Supabase records/gi,'separate business records'],
+  [/private Supabase file storage/gi,'private file storage'],
+  [/Supabase tenant/gi,'business workspace'],
+  [/tenant snapshot/gi,'saved business data'],
+  [/tenant-data/gi,'business data'],
+  [/signed-in bounded Staff RPC/gi,'signed-in staff update'],
+  [/bounded Staff RPC/gi,'staff update'],
+  [/EXTERNAL_GATE/g,'external action approval'],
+  [/canonical workspace/gi,'main workspace'],
+  [/assistant-photo-sort/gi,'Photo sorting'],
+  [/Row Level Security/gi,'account access controls'],
+  [/\bSupabase\b/gi,'secure cloud service']
+];
+const UUID_RE=/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/ig;
+function scrubDeveloperCopy(){
+  const root=document.body;if(!root)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){const p=node.parentElement;if(!p||/^(SCRIPT|STYLE|CODE|PRE|TEXTAREA)$/i.test(p.tagName))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT;}});
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(node=>{let value=node.nodeValue||'',next=value;COPY_REPLACEMENTS.forEach(([pattern,replacement])=>{next=next.replace(pattern,replacement);});next=next.replace(UUID_RE,'record');if(next!==value)node.nodeValue=next;});
+  document.querySelectorAll('option').forEach(option=>{let value=option.textContent||'',next=value;COPY_REPLACEMENTS.forEach(([pattern,replacement])=>{next=next.replace(pattern,replacement);});next=next.replace(UUID_RE,'record');if(next!==value)option.textContent=next;});
+}
+function explainDisabledTaxCsv(){
+  document.querySelectorAll('button').forEach(button=>{
+    if(!/download tax csv/i.test(text(button.textContent)))return;
+    const existing=button.parentElement?.querySelector('[data-h38-tax-download-help]');
+    if(button.disabled){
+      button.title='Build a tax package for the selected period before downloading.';
+      button.setAttribute('aria-description','Build a tax package for the selected period before downloading.');
+      if(!existing){const help=document.createElement('small');help.dataset.h38TaxDownloadHelp='1';help.textContent='Build a tax package for the selected period to enable this download.';help.style.cssText='display:block;margin-top:6px;color:#5b6872;font-size:.82rem;line-height:1.3';button.insertAdjacentElement('afterend',help);}
+    }else if(existing){existing.remove();button.removeAttribute('aria-description');button.removeAttribute('title');}
+  });
+}
+let trainingCaptionTimer=0;
+function keepTrainingCaptionClear(){
+  const caption=document.getElementById('h38CompleteTrainingCaption');
+  if(!caption){trainingCaptionTimer=0;return;}
+  caption.style.pointerEvents='none';caption.style.maxWidth='min(760px,calc(100vw - 24px))';caption.style.width='max-content';caption.style.left='50%';caption.style.right='auto';caption.style.transform='translateX(-50%)';caption.style.margin='0';
+  const focus=document.querySelector('.h38-training-focus');
+  const mobile=window.innerWidth<=600;
+  const margin=mobile?10:14;
+  const height=Math.max(caption.getBoundingClientRect().height||0,mobile?54:62);
+  let top=margin;
+  if(focus&&focus.getClientRects().length){
+    const rect=focus.getBoundingClientRect();
+    const roomAbove=rect.top-margin;
+    const roomBelow=window.innerHeight-rect.bottom-margin;
+    if(roomBelow>=height+18)top=Math.min(window.innerHeight-height-margin,rect.bottom+18);
+    else if(roomAbove>=height+18)top=Math.max(margin,rect.top-height-18);
+    else top=rect.top>window.innerHeight/2?margin:Math.max(margin,window.innerHeight-height-margin);
+  }else top=margin;
+  caption.style.top=`${Math.round(top)}px`;caption.style.bottom='auto';
+  const cr=caption.getBoundingClientRect();
+  if(focus&&focus.getClientRects().length){const fr=focus.getBoundingClientRect();const overlap=!(cr.right<fr.left||cr.left>fr.right||cr.bottom<fr.top||cr.top>fr.bottom);if(overlap){caption.style.top=fr.top>window.innerHeight/2?`${margin}px`:`${Math.max(margin,window.innerHeight-height-margin)}px`;}}
+  if(!trainingCaptionTimer)trainingCaptionTimer=setTimeout(()=>{trainingCaptionTimer=0;keepTrainingCaptionClear();},140);
+}
 let queued=false;
-function enhance(){queued=false;installSharedMobileChrome();normalizeMobileBrand();enhanceOfficeBrand();neutralizeTenantPrompt();neutralizeAssistantBrand();enhanceQuotePreview();}
+function enhance(){queued=false;installSharedMobileChrome();normalizeMobileBrand();enhanceOfficeBrand();neutralizeTenantPrompt();neutralizeAssistantBrand();enhanceQuotePreview();hideOwnerDebugArtifacts();scrubDeveloperCopy();explainDisabledTaxCsv();keepTrainingCaptionClear();}
 function schedule(){if(queued)return;queued=true;if(typeof requestAnimationFrame==='function')requestAnimationFrame(enhance);else setTimeout(enhance,0);}
 installMeetingReportBranding();
 if(document.body){new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true});schedule();}
@@ -110,5 +171,5 @@ window.addEventListener('resize',schedule,{passive:true});
 window.addEventListener('h38:office-page-rendered',schedule);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
-window.H38_TENANT_ATTRIBUTION=Object.freeze({enabled:true,build:BUILD,provider:H38_NAME,providerUrl:H38_URL,northernOnly:true,meetingReportsTenantAware:true,todayPromptTenantNeutral:true,quoteAttribution:true,officeAttribution:true,sharedMobileChrome:true,mobileShortName:true,assistantTenantAware:true,enhance});
+window.H38_TENANT_ATTRIBUTION=Object.freeze({enabled:true,build:BUILD,provider:H38_NAME,providerUrl:H38_URL,northernOnly:false,meetingReportsTenantAware:true,todayPromptTenantNeutral:true,quoteAttribution:true,officeAttribution:true,sharedMobileChrome:true,mobileShortName:true,assistantTenantAware:true,userFacingCopyScrub:true,disabledTaxCsvExplained:true,trainingCaptionAvoidsFocus:true,ownerDebugArtifactsHidden:true,enhance});
 })();
