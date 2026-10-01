@@ -6,14 +6,19 @@ const {spawnSync}=require('child_process');
 const scripts=__dirname;
 const basePath=path.join(scripts,'northern-training-scenarios.json');
 const extraPath=path.join(scripts,'northern-training-scenarios-extra.json');
+const v2Path=path.join(scripts,'run-northern-narrated-training-v2.js');
 const runnerPath=path.join(scripts,'run-northern-narrated-training-v3.js');
 const out=path.resolve(process.env.NORTHERN_TRAINING_DIR||path.join(scripts,'..','artifacts','northern-narrated-training'));
 const originalBase=fs.readFileSync(basePath,'utf8');
 const originalExtra=fs.readFileSync(extraPath,'utf8');
+const originalV2=fs.readFileSync(v2Path,'utf8');
 const all=[...JSON.parse(originalBase),...JSON.parse(originalExtra)];
 const attempts=[];
 const batchSize=Math.max(1,Number(process.env.NORTHERN_TRAINING_BATCH_SIZE||6));
 const maxAttempts=Math.max(1,Number(process.env.NORTHERN_TRAINING_MAX_ATTEMPTS||3));
+const snowPatchOld="if(scenario.id==='NL-TRAIN-SNOW-FULL-SERVICE-PHONE')for(const step of scenario.steps){if(step.pattern)step.pattern=step.pattern.replace(/\\|TEST/g,'');if(step.page==='work'){step.page='today';step.text='From the same triggered snow occurrence, follow travel, arrival, start, plowing work, material used if any, proof, and closeout. For properties requiring both a plow truck and skid steer, keep both equipment steps on that same service occurrence.';}}";
+const snowPatchNew="if(scenario.id==='NL-TRAIN-SNOW-FULL-SERVICE-PHONE')for(const step of scenario.steps){if(step.pattern)step.pattern=step.pattern.replace(/\\|TEST/g,'');}";
+if(!originalV2.includes(snowPatchOld))throw new Error('Northern v2 snow transform drifted; refusing an unreviewed batch repair.');
 
 function writeSubset(list){
   fs.writeFileSync(basePath,JSON.stringify(list,null,2)+'\n');
@@ -47,6 +52,7 @@ function proofFor(id){
 
 let unresolved=[];
 try{
+  fs.writeFileSync(v2Path,originalV2.replace(snowPatchOld,snowPatchNew));
   fs.mkdirSync(path.join(out,'audio'),{recursive:true});
   fs.mkdirSync(path.join(out,'videos'),{recursive:true});
   for(let start=0,batch=1;start<all.length;start+=batchSize,batch++){
@@ -57,6 +63,7 @@ try{
 }finally{
   fs.writeFileSync(basePath,originalBase);
   fs.writeFileSync(extraPath,originalExtra);
+  fs.writeFileSync(v2Path,originalV2);
 }
 
 const proofs=all.map(x=>proofFor(x.id));
@@ -66,9 +73,9 @@ const status=unresolved.length?'HOLD':'PASS';
 const passed=all.map(x=>x.id).filter(id=>!unresolved.includes(id));
 const finalResult={status,passed,failed,externalActionsOccurred:false,recordingMode:'batched-retry',batchSize,maxAttempts,attempts};
 fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(finalResult,null,2)+'\n');
-fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({kind:'northern-lakes-narrated-training',version:'20260927-batched-1',status,externalActionsOccurred:false,recordingMode:'batched-retry',videos:proofs.filter(Boolean),attempts},null,2)+'\n');
+fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({kind:'northern-lakes-narrated-training',version:'20261001-batched-snow-work-2',status,externalActionsOccurred:false,recordingMode:'batched-retry',videos:proofs.filter(Boolean),attempts},null,2)+'\n');
 fs.writeFileSync(path.join(out,'BATCHED_RECORDING_ATTEMPTS.json'),JSON.stringify(attempts,null,2)+'\n');
-fs.writeFileSync(path.join(out,'README.md'),['# Northern Lakes Narrated Training Library','',`Status: ${status}`,'','Recording mode: controlled TEST batches with bounded retry of only failed lessons.','',...all.map(x=>`- ${proofFor(x.id)?.status||'HOLD'}: ${x.title}`),'','Safety: privacy masking remains fail-closed; no customer send, payment, purchase, refund, or external scheduling action is executed.',''].join('\n'));
+fs.writeFileSync(path.join(out,'README.md'),['# Northern Lakes Narrated Training Library','',`Status: ${status}`,'','Recording mode: controlled TEST batches with bounded retry of only failed lessons. Historical controlled snow fixtures are proven from Jobs / Work; real due-today occurrences remain available on Today.','',...all.map(x=>`- ${proofFor(x.id)?.status||'HOLD'}: ${x.title}`),'','Safety: privacy masking remains fail-closed; no customer send, payment, purchase, refund, or external scheduling action is executed.',''].join('\n'));
 if(status!=='PASS'){
   console.error(JSON.stringify({status,failed,attempts},null,2));
   process.exitCode=1;
