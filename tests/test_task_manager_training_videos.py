@@ -98,7 +98,7 @@ def test_authoritative_refresh_and_mobile_dom_rerender_preserve_dirty_work_forms
     ]:
         assert needle in startup, f'Missing Work draft rerender protection: {needle}'
     assert "'supabase-final-startup.js'" in worker
-    assert "const CACHE_NAME='h38-business-office-20261001-0002'" in worker
+    assert "const CACHE_NAME='h38-business-office-20261001-0003'" in worker
 
 
 def test_video_workflow_records_and_uploads_task_manager_training():
