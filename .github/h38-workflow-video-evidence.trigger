@@ -1,2 +1,2 @@
-scope=ai
-marker=20260930-visible-ai-source-final-pass
+scope=all
+marker=20261001-training-library-repair-full-regeneration
