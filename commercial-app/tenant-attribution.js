@@ -48,7 +48,23 @@ const TENANT_COPY_REPLACEMENTS=[
  [/\bdaily-logs\b/g,'Daily Logs'],
  [/\bdocument-intake\b/g,'Document Intake']
 ];
-const COPY_REPLACEMENTS=TENANT_COPY_REPLACEMENTS.concat([/Checking Supabase Auth and active business membership\.?/gi,'Checking your secure sign-in and business access.'],[/Supabase Auth/gi,'secure sign-in'],[/Supabase Business Office/gi,'Business Office'],[/tenant-isolated Supabase records/gi,'separate business records'],[/private Supabase file storage/gi,'private file storage'],[/Supabase tenant/gi,'business workspace'],[/tenant snapshot/gi,'saved business data'],[/tenant-data/gi,'business data'],[/signed-in bounded Staff RPC/gi,'signed-in staff update'],[/bounded Staff RPC/gi,'staff update'],[/EXTERNAL_GATE/g,'external action approval'],[/canonical workspace/gi,'main workspace'],[/assistant-photo-sort/gi,'Photo sorting'],[/Row Level Security/gi,'account access controls'],[/\bSupabase\b/gi,'secure cloud service']);
+const COPY_REPLACEMENTS=TENANT_COPY_REPLACEMENTS.concat([
+ [/Checking Supabase Auth and active business membership\.?/gi,'Checking your secure sign-in and business access.'],
+ [/Supabase Auth/gi,'secure sign-in'],
+ [/Supabase Business Office/gi,'Business Office'],
+ [/tenant-isolated Supabase records/gi,'separate business records'],
+ [/private Supabase file storage/gi,'private file storage'],
+ [/Supabase tenant/gi,'business workspace'],
+ [/tenant snapshot/gi,'saved business data'],
+ [/tenant-data/gi,'business data'],
+ [/signed-in bounded Staff RPC/gi,'signed-in staff update'],
+ [/bounded Staff RPC/gi,'staff update'],
+ [/EXTERNAL_GATE/g,'external action approval'],
+ [/canonical workspace/gi,'main workspace'],
+ [/assistant-photo-sort/gi,'Photo sorting'],
+ [/Row Level Security/gi,'account access controls'],
+ [/\bSupabase\b/gi,'secure cloud service']
+]);
 const UUID_RE=/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/ig;
 const EMAIL_RE=/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/ig;
 let trainingSessionSeen=false;
