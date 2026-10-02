@@ -11,7 +11,6 @@ on:
       - 'scripts/verify-assistant-tenant-actions-live.js'
       - 'scripts/narrate-h38-training-library.js'
       - 'scripts/normalize-training-library-output.js'
-      - 'docs/training/**'
       - '.github/workflows/h38-workflow-video-evidence.yml'
       - '.github/workflows/workflow-recorder-static-acceptance.yml'
   workflow_dispatch:
