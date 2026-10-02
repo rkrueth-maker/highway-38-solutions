@@ -1,6 +1,11 @@
 name: Northern Snow Training Repair
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/repair-northern-snow-training.js'
+      - '.github/workflows/northern-snow-training-repair.yml'
   push:
     branches: [main]
     paths:
@@ -42,10 +47,10 @@ jobs:
       - name: Restore 38 verified lessons from prior artifact
         uses: actions/download-artifact@v4
         with:
-          name: northern-lakes-narrated-training-36869899043
+          name: northern-lakes-narrated-training-36895283226
           path: artifacts/northern-narrated-training
           github-token: ${{ github.token }}
-          run-id: 36869899043
+          run-id: 36895283226
       - name: Prepare optional authorized storage state
         env:
           STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
@@ -63,7 +68,7 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/northern-snow-repair-auth.json
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
           NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
-          NORTHERN_SOURCE_RUN_ID: '36869899043'
+          NORTHERN_SOURCE_RUN_ID: '36895283226'
         run: node scripts/repair-northern-snow-training.js
       - name: Build Northern master training videos
         env:
