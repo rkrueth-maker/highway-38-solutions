@@ -1,8 +1,22 @@
 name: Verify native walkthrough launch and hammer
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'skills/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'README.md'
+      - 'AGENTS.md'
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'skills/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'README.md'
+      - 'AGENTS.md'
 jobs:
   verify:
     runs-on: ubuntu-latest
