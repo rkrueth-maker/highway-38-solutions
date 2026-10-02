@@ -114,6 +114,7 @@ const presentation=String.raw`async function installTrainingPresentation(page){
     const safe=value=>String(value||'')
       .replace(/TEST Task Training Job [\w-]+/gi,'Equipment preparation')
       .replace(/TEST Assigned Work [\w-]+/gi,'Prepare equipment')
+      .replace(/Pine Ridge Assigned Work [\w-]+/gi,'Prepare equipment')
       .replace(/\bTEST\b/gi,'Training')
       .replace(/\b(?:LOCAL|TEST|JOB|TASK|USER|CUST)-[A-Z0-9_-]+\b/gi,'Record')
       .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,'Record')
@@ -126,6 +127,8 @@ const presentation=String.raw`async function installTrainingPresentation(page){
         if(n.parentElement?.closest('script,style,[data-h38-training-value-mask]'))continue;
         const clean=safe(n.nodeValue);if(clean!==n.nodeValue)n.nodeValue=clean;
       }
+      const caption=document.getElementById('h38TrainingCaption');
+      if(caption?.textContent?.startsWith('Choose an employee')){const form=document.getElementById('taskForm');if(!form?.getClientRects().length)caption.remove();}
       document.querySelectorAll('[data-h38-training-value-mask]').forEach(n=>n.remove());
       for(const input of document.querySelectorAll('#mainContent input:not([type="password"]),#mainContent textarea')){
         const clean=safe(input.value),r=input.getBoundingClientRect();
@@ -161,6 +164,8 @@ const conciseCaptions=[
 ];
 for(const [from,to] of conciseCaptions)replaceOnce(from,to,'short operator caption');
 replaceOnce('  await page.waitForTimeout(ms);\n}',"  await page.waitForTimeout(ms);\n  await page.evaluate(()=>document.getElementById('h38TrainingCaption')?.remove());\n}",'clear finished caption');
+replaceOnce("  await caption(page,`Choose an employee, enter work and due time, then save.`,1700);\n",'', 'caption follows the refreshed form');
+replaceOnce("  await saveTaskButton.waitFor({state:'visible',timeout:10000});","  await saveTaskForm.scrollIntoViewIfNeeded();\n  await caption(page,'Choose an employee, enter work and due time, then save.',1700);\n  await saveTaskButton.waitFor({state:'visible',timeout:10000});",'visible form before assignment caption');
 if(process.env.H38_TASK_TRAINING_VALIDATE_RUNTIME_ONLY==='1'){
   const arrow=presentation.match(/const safe=(value=>[\s\S]*?);/)[1];
   const sanitize=Function('return '+arrow)();
