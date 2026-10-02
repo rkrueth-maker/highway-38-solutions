@@ -35,7 +35,7 @@
 
     const explanation=document.createElement('p');
     explanation.className='muted small';
-    explanation.textContent='Invited owner, administrator, site manager, foreman, or employee? Enter the exact invited email and request the secure activation email. No password is handled by Highway 38.';
+    explanation.textContent='Invited owner, administrator, site manager, foreman, or employee? Enter the exact invited email and request the secure activation email. No password is handled by the business office.';
     form.appendChild(explanation);
 
     button.onclick=async()=>{
