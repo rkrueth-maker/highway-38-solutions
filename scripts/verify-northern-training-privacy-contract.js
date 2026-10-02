@@ -34,6 +34,16 @@ assert.match(workflow,/NORTHERN_TRAINING_VALIDATE_RUNTIME_ONLY=1/,'workflow must
 assert.match(workflow,/externalActionsOccurred!==false/,'workflow must reject any external action during training');
 assert.match(workflow,/recording_authorized/,'recording must remain explicitly controlled');
 
+const nativeResult=require('child_process').spawnSync(process.execPath,['scripts/build-northern-master-training.js'],{cwd:root,encoding:'utf8',env:{...process.env,NORTHERN_MASTER_VALIDATE_ONLY:'1'}});
+assert.strictEqual(nativeResult.status,0,'native master configuration must pass without recording');
+const native=JSON.parse(nativeResult.stdout);
+assert.strictEqual(native.totalParts,39,'all existing lessons remain accounted for');
+assert.strictEqual(native.advancedOwnerPhoneMaster,null,'unrelated field content cannot represent phone accounting');
+for(const group of Object.values(native.groups))assert.ok(group.ids.every(id=>id.endsWith(group.kind==='phone'?'-PHONE':'-DESKTOP')),'masters must preserve source orientation');
+assert.match(workflow,/NORTHERN_TRAINING_ONLY/,'workflow must support targeted lessons');
+assert.match(workflow,/restore_run_id/,'targeted updates must preserve proven unchanged lessons');
+assert.match(workflow,/NORTHERN_MASTER_ONLY/,'workflow must support targeted master builds');
+
 console.log(JSON.stringify({
   status:'PASS',
   fullShellPrivacy:true,
