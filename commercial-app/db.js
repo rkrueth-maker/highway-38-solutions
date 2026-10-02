@@ -45,7 +45,7 @@
     if(!value||value.id===undefined||value.id===null)throw new Error(`Offline ${store} record requires an id.`);
     const originalId=String(value.__h38OriginalId||value.id);
     if(isGlobal(store,originalId))return{...value,id:originalId,__h38OriginalId:originalId,__h38Scope:'global'};
-    if(!activeScope)throw new Error('Authenticated user scope is required before storing tenant data.');
+    if(!activeScope)throw new Error('Sign in is required before saving.');
     return{...value,id:physicalId(store,originalId),__h38OriginalId:originalId,__h38Scope:activeScope};
   }
   function decode(store,value){
