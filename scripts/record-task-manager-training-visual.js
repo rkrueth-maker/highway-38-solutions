@@ -165,7 +165,11 @@ const conciseCaptions=[
 for(const [from,to] of conciseCaptions)replaceOnce(from,to,'short operator caption');
 replaceOnce('  await page.waitForTimeout(ms);\n}',"  await page.waitForTimeout(ms);\n  await page.evaluate(()=>document.getElementById('h38TrainingCaption')?.remove());\n}",'clear finished caption');
 replaceOnce("  await caption(page,`Choose an employee, enter work and due time, then save.`,1700);\n",'', 'caption follows the refreshed form');
-replaceOnce("  await saveTaskButton.waitFor({state:'visible',timeout:10000});","  await saveTaskForm.scrollIntoViewIfNeeded();\n  await caption(page,'Choose an employee, enter work and due time, then save.',1700);\n  await saveTaskButton.waitFor({state:'visible',timeout:10000});",'visible form before assignment caption');
+replaceOnce(
+  "  await saveTaskButton.waitFor({state:'visible',timeout:10000});\n  await saveTaskButton.click();",
+  "  await page.evaluate(()=>{const form=Array.from(document.querySelectorAll('#taskForm')).filter(node=>node.getClientRects().length).pop();if(!form)throw Error('Task Manager training could not reacquire the visible task form before save.');form.scrollIntoView({block:'center',inline:'nearest'});});\n  await caption(page,'Choose an employee, enter work and due time, then save.',1700);\n  const finalTaskForm=await openCreation(page,'taskForm','Assign task');\n  const finalDraft=await finalTaskForm.evaluate(form=>({jobId:String(form.querySelector('[name=\\\"jobId\\\"]')?.value||''),taskTitle:String(form.querySelector('[name=\\\"taskTitle\\\"]')?.value||''),assignedUserId:String(form.querySelector('[name=\\\"assignedUserId\\\"]')?.value||''),dueTime:String(form.querySelector('[name=\\\"dueTime\\\"]')?.value||'')}));\n  if(finalDraft.jobId!==jobId||finalDraft.taskTitle!==taskTitle||finalDraft.assignedUserId!==employee.userId||finalDraft.dueTime!==dueLocal)throw Error('Task Manager draft changed while the assignment caption was visible.');\n  const finalSaveTaskButton=finalTaskForm.getByRole('button',{name:'Save task',exact:true});\n  await finalSaveTaskButton.waitFor({state:'visible',timeout:10000});\n  await finalSaveTaskButton.click();",
+  'reacquire current form after assignment caption'
+);
 if(process.env.H38_TASK_TRAINING_VALIDATE_RUNTIME_ONLY==='1'){
   const arrow=presentation.match(/const safe=(value=>[\s\S]*?);/)[1];
   const sanitize=Function('return '+arrow)();
