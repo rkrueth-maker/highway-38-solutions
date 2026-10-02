@@ -72,8 +72,8 @@ for(const marker of ['20260821-render-saved-action-picture-2-phone','function in
 assert(!render.includes('window.state?.bridge?.request'));
 
 const quoteAi=read('supabase/functions/h38-quote-ai/index.ts');
-for(const marker of ['20260822-owner-bounded-draft-21','const QUOTE_MODEL_TIMEOUT_MS = 55000;','detail: "low"','serverBreakoutSecondPass: false','singleModelPass: true'])assert(quoteAi.includes(marker),`quote ai missing ${marker}`);
-assert.strictEqual((quoteAi.match(/draft = await callQuoteModel\(context, photos\)/g)||[]).length,1);
+for(const marker of ['20260822-owner-bounded-draft-21','const QUOTE_MODEL_TIMEOUT_MS = 120000;','detail: "low"','serverBreakoutSecondPass: false','singleModelPass: true'])assert(quoteAi.includes(marker),`quote ai missing ${marker}`);
+assert.strictEqual((quoteAi.match(/draft = await callQuoteModelWithRetry\(context, photos\)/g)||[]).length,1);
 assert(!quoteAi.includes('SERVER REPAIR REQUEST'));
 assert(!quoteAi.includes('previousDraft'));
 assert(!quoteAi.includes('entity_id: quoteId'));

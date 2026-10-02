@@ -78,5 +78,5 @@ Deno.serve(async(req:Request)=>{
     if(requested==="sync"){const result=await sync(service,businessId,user.id);return json(req,200,{status:"PASS",build:BUILD,...result,externalActionOccurred:false});}
     if(requested==="status"){const conn=await connection(service,businessId);return json(req,200,{status:"PASS",build:BUILD,connection:conn?{status:conn.status,lastSyncAt:conn.last_sync_at,lastWebhookAt:conn.last_webhook_at}:null,missingSecrets:configured(),externalActionOccurred:false});}
     throw new Error("Unsupported fleet action.");
-  }catch(error){return json(req,400,{status:"FAIL",build:BUILD,message:clean((error as Error)?.message||error,1200),externalActionOccurred:false});}
+  }catch(error){return json(req,200,{status:"FAIL",build:BUILD,message:clean((error as Error)?.message||error,1200),externalActionOccurred:false});}
 });
