@@ -19,8 +19,9 @@ const MAX_PRICE_ROWS = 250;
 const MAX_ASSEMBLY_ROWS = 160;
 const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
-const QUOTE_MODEL_TIMEOUT_MS = 55000;
-const QUOTE_AI_BUILD = "20260824-render-source-path-22";
+const QUOTE_MODEL_TIMEOUT_MS = 120000;
+const QUOTE_MODEL_MAX_ATTEMPTS = 2;
+const QUOTE_AI_BUILD = "20261002-timeout-retry-23";
 const PREVIOUS_QUOTE_AI_BUILD = "20260822-owner-bounded-draft-21";
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
 const PRIMARY_COMPONENT_IDS = {
@@ -672,6 +673,28 @@ async function callQuoteModel(context: JsonObject, photos: Array<{ type: string;
     throw new Error("OpenAI returned an unreadable quote draft.");
   }
 }
+function isQuoteModelTimeout(error: unknown): boolean {
+  if (error instanceof DOMException) return error.name === "TimeoutError" || error.name === "AbortError";
+  const message = error instanceof Error ? error.message : String(error);
+  return /timed out|timeout|abort/i.test(message);
+}
+async function callQuoteModelWithRetry(context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= QUOTE_MODEL_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await callQuoteModel(context, photos);
+    } catch (error) {
+      lastError = error;
+      if (attempt < QUOTE_MODEL_MAX_ATTEMPTS && isQuoteModelTimeout(error)) {
+        console.log(JSON.stringify({ event: "quote-ai-retry", attempt, maxAttempts: QUOTE_MODEL_MAX_ATTEMPTS, serverBuild: QUOTE_AI_BUILD }));
+        await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
 function renderPrompt(context: JsonObject, draft: JsonObject): string {
   const lines = Array.isArray(draft.suggestedLines) ? draft.suggestedLines : [];
   return [
@@ -819,7 +842,7 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       photoCount: photos.length,
     };
 
-    let draft = await callQuoteModel(context, photos);
+    let draft = await callQuoteModelWithRetry(context, photos);
     const beforeRepair = breakoutProblems(draft, context);
     const repairApplied = false;
     const afterRepair = beforeRepair;
