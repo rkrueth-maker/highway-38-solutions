@@ -221,7 +221,20 @@
       const { error } = await db.from('business_records').insert({
         business_id:businessId,collection,record_key:key,payload,record_status:'active',created_by:user.id,updated_by:user.id
       });
-      if (error) throw error;
+      if (error && error.code === '23505') {
+        // Lost a write race: another save inserted the same
+        // (business_id, collection, record_key) between our read and insert.
+        // Fall back to updating the now-existing row instead of failing the
+        // save (was: duplicate key violations filling business_error_log).
+        const { data: winner, error: rereadError } = await db.from('business_records')
+          .select('id').eq('business_id',businessId).eq('collection',collection).eq('record_key',key).maybeSingle();
+        if (rereadError) throw rereadError;
+        if (!winner) throw error;
+        const { error: updateError } = await db.from('business_records')
+          .update({payload,record_status:'active',updated_by:user.id})
+          .eq('id',winner.id).eq('business_id',businessId);
+        if (updateError) throw updateError;
+      } else if (error) throw error;
     }
     return payload;
   }

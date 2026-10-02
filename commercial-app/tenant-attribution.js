@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261001-tenant-attribution-training-copy-polish-8';
+const BUILD='20261002-tenant-copy-handoff-9';
 const NORTH_KEY='northern-lakes';
 const H38_NAME='Highway 38 Solutions';
 const H38_URL='https://highway38solutions.com/';
@@ -12,6 +12,8 @@ function businessKey(){const b=business();return text(b.businessKey||b['Business
 function northern(){return businessKey()===NORTH_KEY;}
 function businessName(){const b=business();return text(b.businessName||b.displayName||b['Business Name'])||(northern()?'Northern Lakes Property Maintenance LLC':H38_NAME);}
 function shortName(){const b=business(),brand=b.brandConfig&&typeof b.brandConfig==='object'?b.brandConfig:{};return text(brand.shortName)||(northern()?'Northern Lakes':businessName());}
+function brandShort(){return northern()?'Northern Lakes':'H38';}
+function brandName(){return northern()?'Northern Lakes':'H38 Solutions';}
 function poweredHtml(){return`Business systems powered by <a href="${H38_URL}" target="_blank" rel="noopener">${H38_NAME}</a>`;}
 function installSharedMobileChrome(){let style=document.getElementById('h38SharedTenantMobileChrome');if(!style){style=document.createElement('style');style.id='h38SharedTenantMobileChrome';document.head.appendChild(style);}const css=`@media(max-width:760px){
 .topbar{align-items:center!important}
@@ -29,7 +31,24 @@ function neutralizeAssistantBrand(){if(!northern())return;const assistant=`${sho
 function enhanceQuotePreview(){if(!northern())return;const footer=document.querySelector('#quotePreviewDocument .quote-document-footer');if(!footer||footer.querySelector('[data-h38-powered-by]'))return;const credit=document.createElement('span');credit.dataset.h38PoweredBy='1';credit.className='h38-powered-by-credit';credit.innerHTML=poweredHtml();credit.style.cssText='display:block;width:100%;margin-top:4px;font-size:10px;opacity:.72';credit.querySelector('a')?.setAttribute('style','color:inherit;text-decoration:none');footer.appendChild(credit);}
 function ownerDebugEnabled(){try{const q=new URLSearchParams(location.search);return q.get('ownerDebug')==='1'||q.get('debug')==='1'||localStorage.getItem('h38.ownerDebug')==='true'||sessionStorage.getItem('h38.ownerDebug')==='true'||window.H38_OWNER_DEBUG===true;}catch(_){return window.H38_OWNER_DEBUG===true;}}
 function hideOwnerDebugArtifacts(){if(ownerDebugEnabled())return;document.querySelectorAll('[data-owner-debug-only],#h38QuoteRegressionRunner').forEach(node=>node.remove());}
-const COPY_REPLACEMENTS=[[/Checking Supabase Auth and active business membership\.?/gi,'Checking your secure sign-in and business access.'],[/Supabase Auth/gi,'secure sign-in'],[/Supabase Business Office/gi,'Business Office'],[/tenant-isolated Supabase records/gi,'separate business records'],[/private Supabase file storage/gi,'private file storage'],[/Supabase tenant/gi,'business workspace'],[/tenant snapshot/gi,'saved business data'],[/tenant-data/gi,'business data'],[/signed-in bounded Staff RPC/gi,'signed-in staff update'],[/bounded Staff RPC/gi,'staff update'],[/EXTERNAL_GATE/g,'external action approval'],[/canonical workspace/gi,'main workspace'],[/assistant-photo-sort/gi,'Photo sorting'],[/Row Level Security/gi,'account access controls'],[/\bSupabase\b/gi,'secure cloud service']];
+const TENANT_COPY_REPLACEMENTS=[
+ [/H38 NATIVE ACCOUNTING/g,()=>brandShort().toUpperCase()+' NATIVE ACCOUNTING'],
+ [/\bH38\b(?![-_])/g,()=>brandShort()],
+ [/the existing user-scoped IndexedDB queue and sync through the active tenant/gi,()=>'the offline-safe queue on this device and sync to your '+brandName()+' office'],
+ [/Private Supabase storage is active/gi,'Private secure storage is active'],
+ [/tenant-scoped/gi,'office-only'],
+ [/cross-tenant/gi,'shared across offices'],
+ [/this is the canonical (Today|Accounting|Controls|Tax Prep) workspace/gi,'this is the primary $1 workspace'],
+ [/the same canonical task\b/gi,'the same task'],
+ [/canonical customer and property/gi,'primary customer and property'],
+ [/bounded Staff workflow/gi,'staff workflow'],
+ [/Staff security boundary/gi,'staff-only area'],
+ [/shared form engine/gi,'smart forms'],
+ [/customer-portal-release/g,'Customer Portal'],
+ [/\bdaily-logs\b/g,'Daily Logs'],
+ [/\bdocument-intake\b/g,'Document Intake']
+];
+const COPY_REPLACEMENTS=TENANT_COPY_REPLACEMENTS.concat([/Checking Supabase Auth and active business membership\.?/gi,'Checking your secure sign-in and business access.'],[/Supabase Auth/gi,'secure sign-in'],[/Supabase Business Office/gi,'Business Office'],[/tenant-isolated Supabase records/gi,'separate business records'],[/private Supabase file storage/gi,'private file storage'],[/Supabase tenant/gi,'business workspace'],[/tenant snapshot/gi,'saved business data'],[/tenant-data/gi,'business data'],[/signed-in bounded Staff RPC/gi,'signed-in staff update'],[/bounded Staff RPC/gi,'staff update'],[/EXTERNAL_GATE/g,'external action approval'],[/canonical workspace/gi,'main workspace'],[/assistant-photo-sort/gi,'Photo sorting'],[/Row Level Security/gi,'account access controls'],[/\bSupabase\b/gi,'secure cloud service']);
 const UUID_RE=/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/ig;
 const EMAIL_RE=/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/ig;
 let trainingSessionSeen=false;
