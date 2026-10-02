@@ -41,4 +41,4 @@ Production base: 6d51c1d38f156729c8b74b0b0408a6bff03c0e06.
 Full accounting/payroll/year-end acceptance remains HOLD until persisted lifecycle, authorization, reconciliation and current-year reporting gates pass.
 
 
-Publication HOLD: automatic approval review rejected the combined GitHub push command before execution, citing unverified destination trust and insufficient explicit authorization for source egress. No PR, push, merge, or deployment occurred. Publishing requires approval or independently verified authorization; do not work around the rejection with a different tool.
+Publication authorization resolved: Rick explicitly authorized finishing with full approval. Initial corrections are published in draft PR #1181 at 9ff89509dc36072f9514ed82f152d507e68d3920. Merge and deployment remain gated by technical acceptance, not an additional permission request.
