@@ -288,7 +288,7 @@ renderWelcome=function(mode='connecting',detailOverride=''){
     return;
   }
   if(mode==='choose'){
-    $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Resolving your authorized Highway 38 business.</p></section>';
+    $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Resolving your authorized business.</p></section>';
     return;
   }
   $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Opening your current verified business records.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
