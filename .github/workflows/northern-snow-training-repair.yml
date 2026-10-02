@@ -1,0 +1,100 @@
+name: Northern Snow Training Repair
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/repair-northern-snow-training.js'
+      - '.github/workflows/northern-snow-training-repair.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/northern-snow-training-repair.trigger'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: northern-lakes-targeted-training-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-snow-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser, media tools, and local narrator
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install piper-tts
+          mkdir -p "$RUNNER_TEMP/piper-voices"
+          cd "$RUNNER_TEMP/piper-voices"
+          python -m piper.download_voices en_US-hfc_male-medium || python -m piper.download_voices en_US-joe-medium || python -m piper.download_voices en_US-ryan-high
+          model="$(find "$RUNNER_TEMP/piper-voices" -maxdepth 1 -name '*.onnx' | head -n 1)"
+          test -n "$model"
+          echo "NORTHERN_NARRATOR_MODEL=$model" >> "$GITHUB_ENV"
+      - name: Restore 38 verified lessons from prior artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: northern-lakes-narrated-training-36895283226
+          path: artifacts/northern-narrated-training
+          github-token: ${{ github.token }}
+          run-id: 36895283226
+      - name: Prepare optional authorized storage state
+        env:
+          STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
+        run: |
+          if [ -n "$STORAGE_STATE" ]; then
+            printf '%s' "$STORAGE_STATE" > "$RUNNER_TEMP/h38-workflow-storage-state.json"
+            chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"
+          fi
+      - name: Repair only the Northern snow lesson
+        env:
+          H38_WORKFLOW_RECORDING_AUTHORIZED: 'true'
+          H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
+          H38_WORKFLOW_TEST_EMAIL: ${{ secrets.H38_WORKFLOW_TEST_EMAIL }}
+          H38_WORKFLOW_TEST_PASSWORD: ${{ secrets.H38_WORKFLOW_TEST_PASSWORD }}
+          H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/northern-snow-repair-auth.json
+          H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
+          NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
+          NORTHERN_SOURCE_RUN_ID: '36895283226'
+        run: node scripts/repair-northern-snow-training.js
+      - name: Build Northern master training videos
+        env:
+          NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
+        run: node scripts/build-northern-master-training.js
+      - name: Enforce complete repaired narrated proof
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const dir='artifacts/northern-narrated-training';
+          const result=JSON.parse(fs.readFileSync(path.join(dir,'results.json'),'utf8'));
+          if(result.status!=='PASS')throw new Error('Northern result is not PASS.');
+          if(result.externalActionsOccurred!==false)throw new Error('Northern training performed an external action.');
+          if(!Array.isArray(result.passed)||result.passed.length!==39)throw new Error(`Expected 39 PASS lessons, got ${result.passed?.length||0}.`);
+          const order=JSON.parse(fs.readFileSync(path.join(dir,'MASTER_TRAINING_ORDER.json'),'utf8'));
+          if(order.operatorOrder.length!==20||order.advancedOwnerOrder.length!==16||order.referenceOrder.length!==3||order.allParts.length!==39)throw new Error('Northern master order is incomplete.');
+          const videos=fs.readdirSync(path.join(dir,'videos')).filter(n=>n.endsWith('-NARRATED.mp4'));
+          const lessons=videos.filter(n=>!n.startsWith('00-NORTHERN-LAKES-OPERATOR-MASTER')&&!n.startsWith('01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER')&&!n.startsWith('99-NORTHERN-LAKES-REFERENCE-APPENDIX'));
+          if(lessons.length!==39)throw new Error(`Expected exactly 39 narrated lesson videos, got ${lessons.length}.`);
+          for(const master of ['00-NORTHERN-LAKES-OPERATOR-MASTER-TRAINING-NARRATED.mp4','01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER-NARRATED.mp4','99-NORTHERN-LAKES-REFERENCE-APPENDIX-NARRATED.mp4'])if(!fs.existsSync(path.join(dir,'videos',master)))throw new Error('Missing '+master);
+          console.log(JSON.stringify({status:'PASS',lessonVideos:lessons.length,masters:3,externalActionsOccurred:false},null,2));
+          NODE
+      - name: Upload repaired Northern narrated library
+        uses: actions/upload-artifact@v4
+        with:
+          name: northern-lakes-narrated-training-repaired-${{ github.run_id }}
+          path: artifacts/northern-narrated-training/
+          if-no-files-found: error
+          retention-days: 30
