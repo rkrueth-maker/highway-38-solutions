@@ -13,6 +13,9 @@ const originalBase=fs.readFileSync(basePath,'utf8');
 const originalExtra=fs.readFileSync(extraPath,'utf8');
 const originalV2=fs.readFileSync(v2Path,'utf8');
 const all=[...JSON.parse(originalBase),...JSON.parse(originalExtra)];
+const requested=String(process.env.NORTHERN_TRAINING_ONLY||'').split(',').map(v=>v.trim()).filter(Boolean);
+if(new Set(requested).size!==requested.length||requested.some(id=>!all.some(x=>x.id===id)))throw new Error('Unknown or duplicate targeted Northern lesson.');
+const selected=requested.length?all.filter(x=>requested.includes(x.id)):all;
 const snowScenario=all.find(x=>x.id==='NL-TRAIN-SNOW-FULL-SERVICE-PHONE');
 if(!snowScenario)throw new Error('Northern snow training scenario is missing.');
 for(const step of snowScenario.steps){
@@ -63,8 +66,8 @@ try{
   fs.writeFileSync(v2Path,originalV2.replace(snowPatchOld,snowPatchNew));
   fs.mkdirSync(path.join(out,'audio'),{recursive:true});
   fs.mkdirSync(path.join(out,'videos'),{recursive:true});
-  for(let start=0,batch=1;start<all.length;start+=batchSize,batch++){
-    let pending=all.slice(start,start+batchSize);
+  for(let start=0,batch=1;start<selected.length;start+=batchSize,batch++){
+    let pending=selected.slice(start,start+batchSize);
     for(let round=1;round<=maxAttempts&&pending.length;round++)pending=runSubset(pending,round,batch);
     unresolved.push(...pending.map(x=>x.id));
   }
@@ -79,7 +82,7 @@ const failed=all.filter((x,i)=>!proofs[i]||proofs[i].status!=='PASS'||proofs[i].
 unresolved=Array.from(new Set([...unresolved,...failed.map(x=>x.id)]));
 const status=unresolved.length?'HOLD':'PASS';
 const passed=all.map(x=>x.id).filter(id=>!unresolved.includes(id));
-const finalResult={status,passed,failed,externalActionsOccurred:false,recordingMode:'batched-retry',batchSize,maxAttempts,attempts};
+const finalResult={status,passed,failed,externalActionsOccurred:false,recordingMode:'batched-retry',selectedLessonIds:selected.map(x=>x.id),batchSize,maxAttempts,attempts};
 fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(finalResult,null,2)+'\n');
 fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({kind:'northern-lakes-narrated-training',version:'20261001-batched-snow-work-3',status,externalActionsOccurred:false,recordingMode:'batched-retry',videos:proofs.filter(Boolean),attempts},null,2)+'\n');
 fs.writeFileSync(path.join(out,'BATCHED_RECORDING_ATTEMPTS.json'),JSON.stringify(attempts,null,2)+'\n');

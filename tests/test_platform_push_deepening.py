@@ -113,7 +113,7 @@ def test_extensions_load_through_existing_live_first_startup_without_cache_bump(
     assert "'supabase-final-startup.js'" in SERVICE_WORKER
     assert "'platform-next.js'" in SERVICE_WORKER
     assert "'platform-deepen.js'" in SERVICE_WORKER
-    assert "const CACHE_NAME='h38-business-office-20261001-0003'" in SERVICE_WORKER
+    assert "const CACHE_NAME='h38-business-office-20261002-0740'" in SERVICE_WORKER
 
 
 def test_ai_team_loader_also_knows_the_new_platform_slices():

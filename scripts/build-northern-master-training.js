@@ -8,35 +8,65 @@ const operatorOrder=[
 const advancedOwnerOrder=[
 'NL-TRAIN-MONEY-OVERVIEW-OWNER-DESKTOP','NL-TRAIN-VENDOR-BILL-APPROVAL-DESKTOP','NL-TRAIN-CHECK-PAYMENT-PREP-DESKTOP','NL-TRAIN-DEPOSIT-CREDIT-REFUND-DESKTOP','NL-TRAIN-BANK-RECONCILIATION-DESKTOP','NL-TRAIN-CARD-RECONCILIATION-RECEIPTS-DESKTOP','NL-TRAIN-PAYROLL-REIMBURSEMENTS-DESKTOP','NL-TRAIN-CASH-FLOW-OWNER-REVIEW-DESKTOP','NL-TRAIN-FINANCIAL-REPORT-PACK-DESKTOP','NL-TRAIN-LEAD-TO-CUSTOMER-DESKTOP','NL-TRAIN-CUSTOMER-COMMS-PORTAL-DESKTOP','NL-TRAIN-E-SIGN-APPROVAL-DESKTOP','NL-TRAIN-CHANGE-ORDER-DESKTOP','NL-TRAIN-OFFLINE-FORMS-CHECKLISTS-PHONE','NL-TRAIN-OWNER-INTELLIGENCE-AI-DESKTOP','NL-TRAIN-AUTOMATION-INTEGRATION-CENTER-DESKTOP'];
 const referenceOrder=['NL-TRAIN-OWNER-ACCESS-INSTALL-PHONE','NL-TRAIN-WEB-QUOTE-REQUEST-PHONE','NL-TRAIN-CUSTOMER-PORTAL-PHONE'];
-function findVideo(id){const names=fs.readdirSync(videoDir);const name=names.find(n=>n.startsWith(id)&&n.endsWith('-NARRATED.mp4'));if(!name)throw new Error('Missing narrated video '+id);return path.resolve(videoDir,name);}
+// Native orientation is a release boundary. A field phone lesson cannot stand in
+// for a phone accounting course, and phone sources never enter desktop masters.
+const groups={
+  'operator-desktop':{ids:operatorOrder.filter(id=>id.endsWith('-DESKTOP')),kind:'desktop',name:'00-NORTHERN-LAKES-OPERATOR-MASTER-TRAINING-NARRATED',field:'operatorMaster'},
+  'operator-phone':{ids:operatorOrder.filter(id=>id.endsWith('-PHONE')),kind:'phone',name:'00-NORTHERN-LAKES-OPERATOR-MASTER-TRAINING-PHONE-NARRATED',field:'operatorPhoneMaster'},
+  'owner-desktop':{ids:advancedOwnerOrder.filter(id=>id.endsWith('-DESKTOP')),kind:'desktop',name:'01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER-NARRATED',field:'advancedOwnerMaster'},
+  'reference-phone':{ids:referenceOrder,kind:'phone',name:'99-NORTHERN-LAKES-REFERENCE-APPENDIX-NARRATED',field:'referenceAppendix'}
+};
+const standalonePhoneLessons=advancedOwnerOrder.filter(id=>id.endsWith('-PHONE'));
+const requested=String(process.env.NORTHERN_MASTER_ONLY||'').split(',').map(v=>v.trim()).filter(Boolean);
+const selected=requested.length?requested:Object.keys(groups);
+if(new Set(selected).size!==selected.length||selected.some(key=>!groups[key]))throw new Error('Unknown or duplicate NORTHERN_MASTER_ONLY group.');
+function probe(file){
+  const r=spawnSync('ffprobe',['-v','error','-show_streams','-show_format','-of','json',file],{encoding:'utf8'});
+  if(r.status!==0)throw new Error('Cannot inspect training media: '+file);
+  return JSON.parse(r.stdout);
+}
+function findVideo(id,kind){
+  const proofPath=path.join(root,id+'.json');
+  if(!fs.existsSync(proofPath))throw new Error('Missing lesson proof '+id);
+  const proof=JSON.parse(fs.readFileSync(proofPath,'utf8'));
+  if(proof.id!==id||proof.tenant!=='northern-lakes'||proof.status!=='PASS'||proof.externalActionsOccurred!==false)throw new Error('Invalid tenant, PASS or safety proof '+id);
+  const file=path.resolve(root,proof.trainingVideo||'');
+  if(!file.startsWith(path.resolve(videoDir)+path.sep)||!file.endsWith('-NARRATED.mp4')||!fs.existsSync(file))throw new Error('Missing proven narrated video '+id);
+  const media=probe(file),video=media.streams.find(s=>s.codec_type==='video');
+  if(!video||!media.streams.some(s=>s.codec_type==='audio')||!(Number(media.format.duration)>0))throw new Error('Narrated lesson needs video, audio and positive duration '+id);
+  if(kind==='phone'?video.width>=video.height:video.width<=video.height)throw new Error('Wrong native orientation '+id);
+  return {file,video,proof};
+}
 function run(args,label){const r=spawnSync('ffmpeg',args,{stdio:'inherit'});if(r.status!==0)throw new Error(label+' failed.');}
-function normalizeForMaster(ids,outName){
-  const dir=path.join(root,'.normalized-'+outName);fs.rmSync(dir,{recursive:true,force:true});fs.mkdirSync(dir,{recursive:true});
-  const files=[];
+function build(group){
+  const inputs=group.ids.map(id=>findVideo(id,group.kind));
+  const {width,height}=inputs[0].video;
+  const dir=path.join(root,'.normalized-'+group.name);fs.mkdirSync(dir,{recursive:true});
   try{
-    for(let i=0;i<ids.length;i++){
-      const input=findVideo(ids[i]),out=path.join(dir,String(i+1).padStart(2,'0')+'-'+ids[i]+'.mp4');
-      run(['-y','-i',input,'-vf','scale=1420:900:force_original_aspect_ratio=decrease,pad=1420:900:(ow-iw)/2:(oh-ih)/2:color=0x0b2f2b,setsar=1,fps=30','-c:v','libx264','-preset','veryfast','-crf','21','-pix_fmt','yuv420p','-c:a','aac','-b:a','160k','-ar','48000','-ac','1','-movflags','+faststart',out],'Normalize '+ids[i]);
-      files.push(path.resolve(out));
-    }
-    const list=path.join(root,`${outName}.concat.txt`);fs.writeFileSync(list,files.map(f=>`file '${f.replaceAll("'","'\\''")}'`).join('\n')+'\n');
-    const out=path.join(videoDir,outName+'.mp4');run(['-y','-f','concat','-safe','0','-i',list,'-c','copy','-movflags','+faststart',out],'Master concat '+outName);return out;
+    const files=inputs.map(({file,video},i)=>{
+      if(Math.abs(video.width/video.height-width/height)>0.03)throw new Error('Lesson aspect ratio requires native rerecording '+group.ids[i]);
+      const output=path.join(dir,String(i+1).padStart(2,'0')+'.mp4');
+      run(['-y','-i',file,'-vf',`scale=${width}:${height},setsar=1,fps=30`,'-c:v','libx264','-preset','veryfast','-crf','21','-pix_fmt','yuv420p','-c:a','aac','-b:a','160k','-ar','48000','-ac','1',output],'Normalize '+group.ids[i]);
+      return path.resolve(output);
+    });
+    const list=path.join(dir,'concat.txt');fs.writeFileSync(list,files.map(f=>`file '${f.replaceAll("'","'\\''")}'`).join('\n')+'\n');
+    const output=path.join(videoDir,group.name+'.mp4');
+    run(['-y','-f','concat','-safe','0','-i',list,'-c','copy','-movflags','+faststart',output],'Build '+group.name);
+    const media=probe(output),v=media.streams.find(s=>s.codec_type==='video');
+    if(v.width!==width||v.height!==height||!media.streams.some(s=>s.codec_type==='audio'))throw new Error('Master output failed native media verification.');
+    return {file:path.basename(output),canvas:`${width}x${height}`,lessonIds:group.ids,sourceEvidence:inputs.map(({file,proof})=>({id:proof.id,sourceSha:proof.sourceSha||null,file:path.basename(file)}))};
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 }
-function buildPhoneConcat(ids,outName){
-  const files=ids.map(findVideo),list=path.join(root,`${outName}.concat.txt`);
-  fs.writeFileSync(list,files.map(f=>`file '${f.replaceAll("'","'\\''")}'`).join('\n')+'\n');
-  const out=path.join(videoDir,outName+'.mp4');
-  let r=spawnSync('ffmpeg',['-y','-f','concat','-safe','0','-i',list,'-c','copy','-movflags','+faststart',out],{stdio:'inherit'});
-  if(r.status!==0)r=spawnSync('ffmpeg',['-y','-f','concat','-safe','0','-i',list,'-c:v','libx264','-preset','fast','-crf','22','-c:a','aac','-b:a','160k','-movflags','+faststart',out],{stdio:'inherit'});
-  if(r.status!==0)throw new Error('Training video build failed: '+outName);
-  return out;
+if(process.env.NORTHERN_MASTER_VALIDATE_ONLY==='1'){
+  console.log(JSON.stringify({status:'PASS',groups,standalonePhoneLessons,advancedOwnerPhoneMaster:null,totalParts:operatorOrder.length+advancedOwnerOrder.length+referenceOrder.length},null,2));
+}else{
+  const manifestPath=path.join(root,'MASTER_TRAINING_ORDER.json');
+  const previous=fs.existsSync(manifestPath)?JSON.parse(fs.readFileSync(manifestPath,'utf8')):{};
+  const masters={...(previous.nativeMasters||{})};
+  for(const key of selected)masters[key]=build(groups[key]);
+  const manifest={title:'Northern Lakes Training',operatorOrder,advancedOwnerOrder,referenceOrder,allParts:[...operatorOrder,...advancedOwnerOrder,...referenceOrder],nativeMasters:masters,standalonePhoneLessons,advancedOwnerPhoneMaster:null,advancedOwnerPhoneStatus:'No genuine phone accounting lesson sources. Standalone field forms are not an accounting course.',rebuiltMasters:selected};
+  for(const [key,group] of Object.entries(groups)){manifest[group.field]=masters[key]?.file||null;manifest[group.field+'Canvas']=masters[key]?.canvas||null;}
+  fs.writeFileSync(manifestPath,JSON.stringify(manifest,null,2)+'\n');
+  fs.writeFileSync(path.join(root,'MASTER_TRAINING_ORDER.md'),'# Northern Lakes Training\n\n'+Object.entries(groups).map(([key,g])=>'## '+key+'\n\n'+g.ids.map((id,i)=>`${i+1}. ${id}`).join('\n')).join('\n\n')+'\n\nPhone field forms remain standalone. No phone accounting master is represented by unrelated field material. Reference and portal demonstrations do not constitute customer-isolation acceptance.\n');
+  console.log(JSON.stringify({status:'PASS',rebuiltMasters:selected,nativeMasters:masters,totalParts:manifest.allParts.length,advancedOwnerPhoneMaster:null},null,2));
 }
-const operatorMaster=normalizeForMaster(operatorOrder,'00-NORTHERN-LAKES-OPERATOR-MASTER-TRAINING-NARRATED');
-const advancedOwnerMaster=normalizeForMaster(advancedOwnerOrder,'01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER-NARRATED');
-const referenceAppendix=buildPhoneConcat(referenceOrder,'99-NORTHERN-LAKES-REFERENCE-APPENDIX-NARRATED');
-const allParts=[...operatorOrder,...advancedOwnerOrder,...referenceOrder];
-const manifest={title:'Northern Lakes Training',purpose:'Core operator training plus an advanced owner/accounting/AI series, with public/reference material separated from hands-on Office instruction',clockInOutNavigation:'On phone, Clock In / Out is an everyday action under the + quick-action menu. ERP is underlying Business Office architecture, not a peer operator action.',operatorOrder,advancedOwnerOrder,referenceOrder,allParts,operatorMaster:path.basename(operatorMaster),advancedOwnerMaster:path.basename(advancedOwnerMaster),operatorMasterCanvas:'1420x900 fixed canvas; phone lessons centered on branded dark padding',advancedOwnerMasterCanvas:'1420x900 fixed canvas; phone lessons centered on branded dark padding',referenceAppendix:path.basename(referenceAppendix)};
-fs.writeFileSync(path.join(root,'MASTER_TRAINING_ORDER.json'),JSON.stringify(manifest,null,2));
-fs.writeFileSync(path.join(root,'MASTER_TRAINING_ORDER.md'),'# Northern Lakes Training\n\n## Operator master\n\n'+operatorOrder.map((id,i)=>`${i+1}. ${id}`).join('\n')+'\n\n## Owner, accounting, and AI advanced master\n\n'+advancedOwnerOrder.map((id,i)=>`${i+1}. ${id}`).join('\n')+'\n\n## Reference appendix\n\n'+referenceOrder.map((id,i)=>`${i+1}. ${id}`).join('\n')+'\n\nPhone navigation note: Clock In / Out belongs under the **+** quick-action menu. ERP is the underlying Business Office architecture and should not be taught as an everyday operator action beside Clock In / Out.\n\nBoth hands-on masters are normalized to a fixed 1420×900 canvas so desktop and phone lessons do not change resolution or jump off-center during playback.\n');
-console.log(JSON.stringify({status:'PASS',operatorMaster,operatorParts:operatorOrder.length,advancedOwnerMaster,advancedOwnerParts:advancedOwnerOrder.length,operatorMasterCanvas:'1420x900',referenceAppendix,referenceParts:referenceOrder.length,totalParts:allParts.length},null,2));

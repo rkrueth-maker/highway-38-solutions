@@ -21,8 +21,28 @@ on:
         required: true
         type: boolean
         default: false
+      lesson_ids:
+        description: Comma separated lesson IDs; blank records the library
+        type: string
+        default: ''
+      restore_run_id:
+        description: Prior PASS Northern artifact run for unchanged lessons
+        type: string
+        default: ''
+      master_only:
+        description: Rebuild masters from restored PASS lessons without recording
+        type: boolean
+        default: false
+      master_groups:
+        description: operator-desktop, operator-phone, owner-desktop, reference-phone; blank builds all
+        type: string
+        default: ''
 permissions:
   contents: read
+  actions: read
+concurrency:
+  group: northern-controlled-training-test-data
+  cancel-in-progress: false
 jobs:
   narrated-training:
     runs-on: ubuntu-latest
@@ -43,6 +63,7 @@ jobs:
           node --check scripts/verify-northern-training-privacy-contract.js
           node scripts/verify-northern-training-privacy-contract.js
           node --check scripts/build-northern-master-training.js
+          NORTHERN_MASTER_VALIDATE_ONLY=1 node scripts/build-northern-master-training.js
           python -m json.tool scripts/northern-training-scenarios.json >/dev/null
           python -m json.tool scripts/northern-training-scenarios-extra.json >/dev/null
           node - <<'NODE'
@@ -57,7 +78,26 @@ jobs:
           for(const id of advanced)if(!ids.includes(id))throw new Error('Missing advanced training scenario '+id);
           console.log(JSON.stringify({status:'PASS',scenarioCount:all.length,advancedOwnerLessons:advanced.length},null,2));
           NODE
+      - name: Restore proven unchanged lesson media
+        if: github.event_name == 'workflow_dispatch' && inputs.restore_run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: northern-lakes-narrated-training-${{ inputs.restore_run_id }}
+          run-id: ${{ inputs.restore_run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts/northern-narrated-training
+      - name: Validate targeted recording inputs
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RESTORE_RUN: ${{ inputs.restore_run_id }}
+          LESSON_IDS: ${{ inputs.lesson_ids }}
+          MASTER_ONLY: ${{ inputs.master_only }}
+          RECORDING_AUTHORIZED: ${{ inputs.recording_authorized }}
+        run: |
+          if [ "$MASTER_ONLY" = true ] || [ -n "$LESSON_IDS" ]; then test -n "$RESTORE_RUN"; fi
+          if [ "$MASTER_ONLY" != true ]; then test "$RECORDING_AUTHORIZED" = true; fi
       - name: Install browser, media tools, and local narrator
+        if: github.event_name == 'workflow_dispatch' 
         run: |
           npm ci
           npx playwright install --with-deps chromium
@@ -71,10 +111,12 @@ jobs:
           test -n "$MODEL"
           echo "NORTHERN_NARRATOR_MODEL=$MODEL" >> "$GITHUB_ENV"
       - name: Prepare optional authorized storage state
+        if: github.event_name == 'workflow_dispatch' && !inputs.master_only
         env: {STORAGE_STATE: '${{ secrets.H38_WORKFLOW_STORAGE_STATE }}'}
         run: |
           if [ -n "$STORAGE_STATE" ]; then printf '%s' "$STORAGE_STATE" > "$RUNNER_TEMP/h38-workflow-storage-state.json"; chmod 600 "$RUNNER_TEMP/h38-workflow-storage-state.json"; fi
       - name: Record Northern narrated instruction library
+        if: github.event_name == 'workflow_dispatch' && !inputs.master_only
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -83,16 +125,21 @@ jobs:
           H38_WORKFLOW_AUTH_STATE_OUT: ${{ runner.temp }}/northern-training-auth.json
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
           NORTHERN_TRAINING_DIR: artifacts/northern-narrated-training
+          NORTHERN_TRAINING_ONLY: ${{ inputs.lesson_ids }}
           NORTHERN_TRAINING_BATCH_SIZE: 6
           NORTHERN_TRAINING_MAX_ATTEMPTS: 3
         run: node scripts/run-northern-narrated-training-batched.js
-      - name: Build operator, advanced owner, and reference masters
+      - name: Build native operator, owner desktop, and reference masters
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          NORTHERN_MASTER_ONLY: ${{ inputs.master_groups }}
         run: node scripts/build-northern-master-training.js
       - name: Enforce complete narrated proof
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         run: |
           test -f artifacts/northern-narrated-training/results.json
           test -f artifacts/northern-narrated-training/videos/00-NORTHERN-LAKES-OPERATOR-MASTER-TRAINING-NARRATED.mp4
+          test -f artifacts/northern-narrated-training/videos/00-NORTHERN-LAKES-OPERATOR-MASTER-TRAINING-PHONE-NARRATED.mp4
           test -f artifacts/northern-narrated-training/videos/01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER-NARRATED.mp4
           test -f artifacts/northern-narrated-training/videos/99-NORTHERN-LAKES-REFERENCE-APPENDIX-NARRATED.mp4
           test -f artifacts/northern-narrated-training/MASTER_TRAINING_ORDER.json
@@ -106,6 +153,8 @@ jobs:
           if(order.operatorOrder.length!==20)throw new Error('Operator master must contain 20 hands-on lessons.');
           if(order.advancedOwnerOrder.length!==16)throw new Error('Advanced owner master must contain 16 lessons.');
           if(order.referenceOrder.length!==3)throw new Error('Reference appendix must contain 3 reference lessons.');
+          for(const [key,master] of Object.entries(order.nativeMasters||{})){const phone=key.endsWith('phone');if(master.lessonIds.some(id=>!id.endsWith(phone?'-PHONE':'-DESKTOP')))throw new Error('Mixed native master '+key);}
+          if(order.advancedOwnerPhoneMaster!==null)throw new Error('Phone field content must not be an owner/accounting master.');
           if(order.allParts.length!==39)throw new Error('Training library must account for all 39 lessons.');
           const dir='artifacts/northern-narrated-training/videos';
           const lessons=fs.readdirSync(dir).filter(name=>name.endsWith('-NARRATED.mp4')&&!name.startsWith('00-NORTHERN-LAKES-OPERATOR-MASTER')&&!name.startsWith('01-NORTHERN-LAKES-OWNER-ACCOUNTING-AI-MASTER')&&!name.startsWith('99-NORTHERN-LAKES-REFERENCE-APPENDIX'));
@@ -114,7 +163,7 @@ jobs:
           console.log(JSON.stringify({status:'PASS',lessonVideos:lessons.length,operatorMaster:true,operatorParts:20,advancedOwnerMaster:true,advancedOwnerParts:16,referenceAppendix:true,referenceParts:3,externalActionsOccurred:false,recordingMode:result.recordingMode||'single-pass'},null,2));
           NODE
       - name: Upload Northern narrated video library
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: northern-lakes-narrated-training-${{ github.run_id }}
