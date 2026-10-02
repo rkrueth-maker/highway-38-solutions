@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory(root?.H38_ACCOUNTING_ENGINE);if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.H38_ACCOUNTING_OPERATIONS=Object.freeze(api);})(typeof window!=='undefined'?window:null,function(A){
 'use strict';
 if(!A&&typeof require==='function')A=require('./accounting-engine.js');
-const VERSION='20260929-bank-csv-records-2';
+const VERSION='20261002-payroll-approved-period-1';
 const MAX_BANK_IMPORT_ROWS=500;
 const text=v=>String(v==null?'':v).trim();
 const num=v=>{const n=Number(v||0);return Number.isFinite(n)?n:0;};
@@ -17,7 +17,45 @@ function vendorCredit({businessId,creditId,vendorId,billId,amount,date,reason,ac
 function recurringRule({businessId,ruleId,direction,description,amount,frequency='monthly',nextDate,customerId,vendorId,accountId,autoRun=false}){const dir=text(direction).toLowerCase();if(!['income','expense'].includes(dir))throw new Error('Recurring direction must be income or expense.');const value=requirePositive(amount),base=recordBase(businessId,'RECUR',ruleId),rid=base.id;return{...base,'Recurring Rule ID':rid,'Direction':dir,'Description':requireText(description,'Description is required.'),'Amount':value,'Frequency':text(frequency||'monthly'),'Next Date':requireText(nextDate,'Next date is required.'),'Customer ID':text(customerId),'Vendor ID':text(vendorId),'Account ID':text(accountId),'Mode':autoRun?'Automatic where safely configured':'Prepare for review','Approval Required':!autoRun||dir==='expense','Status':'Active'};}
 function advanceRecurringDate(date,frequency){const d=new Date(`${date}T12:00:00Z`);if(Number.isNaN(+d))throw new Error('Recurring date is invalid.');const f=text(frequency).toLowerCase();if(f==='weekly')d.setUTCDate(d.getUTCDate()+7);else if(f==='biweekly')d.setUTCDate(d.getUTCDate()+14);else if(f==='quarterly')d.setUTCMonth(d.getUTCMonth()+3);else if(f==='yearly'||f==='annual')d.setUTCFullYear(d.getUTCFullYear()+1);else d.setUTCMonth(d.getUTCMonth()+1);return d.toISOString().slice(0,10);}
 function recurringDue(rules=[],asOf=new Date().toISOString().slice(0,10)){return(rules||[]).filter(r=>/active/i.test(text(r.Status||r.status))&&text(r['Next Date']||r.nextDate)<=asOf).map(r=>({...r,'Proposed Action':text(r.Direction).toLowerCase()==='expense'?'Create pending vendor bill':'Create pending customer invoice','Requires Approval':true,'Following Date':advanceRecurringDate(r['Next Date']||r.nextDate,r.Frequency||r.frequency)}));}
-function payrollPreparation({businessId,periodId,startDate,endDate,employees=[],timeEntries=[],reimbursements=[],mileage=[]}){const base=recordBase(businessId,'PAYROLL',periodId),rid=base.id,items=[];for(const emp of employees||[]){const employeeId=text(emp['User ID']||emp['Employee ID']||emp.userId||emp.id),rate=num(emp['Hourly Rate']||emp.hourlyRate),otRate=num(emp['Overtime Rate']||emp.overtimeRate||rate*1.5);const entries=(timeEntries||[]).filter(t=>text(t['User ID']||t['Employee ID']||t.userId)===employeeId);let regular=0,overtime=0;for(const entry of entries){const hours=num(entry.Hours||entry.hours);if(/overtime/i.test(text(entry.Type||entry.type)))overtime+=hours;else regular+=hours;}const reimb=(reimbursements||[]).filter(r=>text(r['Employee ID']||r.userId)===employeeId&&/approved/i.test(text(r.Status))).reduce((s,r)=>s+num(r.Amount),0),mile=(mileage||[]).filter(r=>text(r['Employee ID']||r.userId)===employeeId&&/approved/i.test(text(r.Status))).reduce((s,r)=>s+num(r['Reimbursement Amount']||r.Amount),0),gross=money(regular*rate+overtime*otRate);items.push({employeeId,name:text(emp.Name||emp['Employee Name']||emp.Email||employeeId),regularHours:money(regular),overtimeHours:money(overtime),grossPay:gross,reimbursements:money(reimb+mile),totalPrepared:money(gross+reimb+mile)});}return{...base,'Payroll Period ID':rid,'Period Start':requireText(startDate,'Payroll start is required.'),'Period End':requireText(endDate,'Payroll end is required.'),'Status':'Prepared — Approval / Provider Handoff Required','Government Filing Performed':false,'Items':items,'Gross Pay':money(items.reduce((s,i)=>s+i.grossPay,0)),'Reimbursements':money(items.reduce((s,i)=>s+i.reimbursements,0)),'Prepared Total':money(items.reduce((s,i)=>s+i.totalPrepared,0))};}
+function payrollPreparation({businessId,periodId,startDate,endDate,employees=[],timeEntries=[],reimbursements=[],mileage=[]}){
+ const validDate=v=>{const d=text(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d?d:'';};
+ const start=validDate(startDate),end=validDate(endDate);
+ if(!start||!end||start>end)throw new Error('Payroll needs a valid start and end date in order.');
+ const base=recordBase(businessId,'PAYROLL',periodId),rid=base.id,items=[],excluded=[],seen=new Set();
+ const approved=r=>text(r['Approval Status']||r['Approval State']||r.Status||r.status).toLowerCase()==='approved';
+ const employeeKey=r=>text(r['Employee ID']||r['User ID']||r.employeeId||r.userId||r.id);
+ const employeeKeys=new Set();
+ for(const emp of employees||[]){
+  const employeeId=employeeKey(emp);if(!employeeId||employeeKeys.has(employeeId))throw new Error('Payroll employee IDs must be present and unique.');employeeKeys.add(employeeId);
+  const sourceKeys=new Set([employeeId,text(emp['User ID']||emp.userId)].filter(Boolean));
+  const rate=num(emp['Hourly Rate']??emp.hourlyRate),otRate=num(emp['Overtime Rate']??emp.overtimeRate??rate*1.5);
+  if(rate<0||otRate<0)throw new Error('Payroll rates cannot be negative.');
+  let regular=0,overtime=0;const sourceIds=[],jobAllocations=[];
+  const select=(records,kind)=>records.filter(r=>{
+   if(!sourceKeys.has(text(r['Employee ID']||r['User ID']||r.employeeId||r.userId)))return false;
+   const date=validDate(r.Date||r.date||r['Work Date']);
+   const reason=!date?'Missing valid work date':date<start||date>end?'Outside pay period':!approved(r)?'Awaiting approval':r.Paid===true||text(r['Payroll Period ID'])&&text(r['Payroll Period ID'])!==rid?'Already assigned or paid':text(r['Business ID']||r.businessId)&&text(r['Business ID']||r.businessId)!==businessId?'Wrong business':'';
+   if(reason){excluded.push({kind,id:text(r['Time Entry ID']||r['Reimbursement ID']||r['Mileage ID']||r.id),reason});return false;}
+   const recordId=text(r['Time Entry ID']||r['Reimbursement ID']||r['Mileage ID']||r.id);
+   if(!recordId)throw new Error('Approved payroll sources need a record ID for audit and duplicate prevention.');
+   const key=kind+':'+recordId;if(seen.has(key))throw new Error('Duplicate payroll source: '+recordId);seen.add(key);sourceIds.push({kind,id:recordId});return true;
+  });
+  for(const entry of select(timeEntries,'time')){
+   const hasSplit=entry['Regular Hours']!=null||entry.regularHours!=null||entry['Overtime Hours']!=null||entry.overtimeHours!=null;
+   for(const value of [entry.Hours,entry.hours,entry['Regular Hours'],entry.regularHours,entry['Overtime Hours'],entry.overtimeHours])if(value!=null&&(!Number.isFinite(Number(value))||Number(value)<0))throw new Error('Approved payroll hours must be finite and nonnegative.');
+   const hours=num(entry.Hours??entry.hours),reg=hasSplit?num(entry['Regular Hours']??entry.regularHours):/overtime/i.test(text(entry.Type||entry.type))?0:hours;
+   const ot=hasSplit?num(entry['Overtime Hours']??entry.overtimeHours):/overtime/i.test(text(entry.Type||entry.type))?hours:0;
+   if(reg<0||ot<0||!Number.isFinite(Number(entry.Hours??entry.hours??0)))throw new Error('Approved payroll hours must be finite and nonnegative.');
+   regular+=reg;overtime+=ot;jobAllocations.push({timeEntryId:text(entry['Time Entry ID']||entry.id),jobId:text(entry['Job ID']||entry.jobId),regularHours:reg,overtimeHours:ot,cost:money(reg*rate+ot*otRate)});
+  }
+  const reimb=select(reimbursements,'reimbursement').reduce((sum,r)=>{const value=Number(r.Amount);if(!Number.isFinite(value)||value<0)throw new Error('Invalid approved reimbursement amount.');return sum+value;},0);
+  const mile=select(mileage,'mileage').reduce((sum,r)=>{const value=Number(r['Reimbursement Amount']??r.Amount);if(!Number.isFinite(value)||value<0)throw new Error('Invalid approved mileage amount.');return sum+value;},0);
+  const gross=money(regular*rate+overtime*otRate);
+  items.push({employeeId,name:text(emp.Name||emp['Employee Name']||emp['Display Name']||employeeId),regularHours:money(regular),overtimeHours:money(overtime),grossPay:gross,reimbursements:money(reimb+mile),totalPrepared:money(gross+reimb+mile),sourceIds,jobAllocations,reviewRequired:regular+overtime>0&&rate===0});
+ }
+ for(const entry of timeEntries){const key=text(entry['Employee ID']||entry['User ID']||entry.employeeId||entry.userId);if(!employees.some(emp=>[employeeKey(emp),text(emp['User ID']||emp.userId)].includes(key)))excluded.push({kind:'time',id:text(entry['Time Entry ID']||entry.id),reason:'Employee not in payroll selection'});}
+ return{...base,'Payroll Period ID':rid,'Period Start':start,'Period End':end,'Status':'Prepared — Approval / Provider Handoff Required','Government Filing Performed':false,'Withholding Calculated':false,'Net Pay Calculated':false,'Items':items,'Excluded Sources':excluded,'Review Required':items.some(i=>i.reviewRequired),'Gross Pay':money(items.reduce((sum,i)=>sum+i.grossPay,0)),'Reimbursements':money(items.reduce((sum,i)=>sum+i.reimbursements,0)),'Prepared Total':money(items.reduce((sum,i)=>sum+i.totalPrepared,0))};
+}
 function reimbursement({businessId,reimbursementId,employeeId,type,amount,date,jobId,receiptId,notes}){const value=requirePositive(amount),base=recordBase(businessId,'REIMB',reimbursementId),rid=base.id;return{...base,'Reimbursement ID':rid,'Employee ID':requireText(employeeId,'Employee is required.'),'Type':requireText(type,'Reimbursement type is required.'),'Amount':value,'Date':requireText(date,'Date is required.'),'Job ID':text(jobId),'Receipt ID':text(receiptId),'Notes':text(notes),'Status':'Pending Approval','Paid':false};}
 function budget({businessId,budgetId,period,lines=[]}){const base=recordBase(businessId,'BUDGET',budgetId),rid=base.id,normalized=(lines||[]).map((l,i)=>({accountId:requireText(l.accountId,`Budget line ${i+1} account is required.`),expected:money(l.expected),service:text(l.service),notes:text(l.notes)}));return{...base,'Budget ID':rid,'Period':requireText(period,'Budget period is required.'),'Lines':normalized,'Expected Total':money(normalized.reduce((s,l)=>s+l.expected,0)),'Status':'Active'};}
 function budgetVariance(budgetRecord,actualByAccount={}){const lines=(budgetRecord?.Lines||budgetRecord?.lines||[]).map(l=>{const actual=money(actualByAccount[l.accountId]||0),expected=money(l.expected),variance=money(actual-expected);return{...l,actual,variance,percent:expected?Number((variance/expected).toFixed(4)):null};});return{period:text(budgetRecord?.Period||budgetRecord?.period),lines,expected:money(lines.reduce((s,l)=>s+l.expected,0)),actual:money(lines.reduce((s,l)=>s+l.actual,0)),variance:money(lines.reduce((s,l)=>s+l.variance,0))};}

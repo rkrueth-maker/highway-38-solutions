@@ -41,7 +41,7 @@ fetch('app-deployment.json?v='+PACKAGE,{cache:'no-store'})
       link.removeAttribute('aria-disabled');
       link.onclick=null;
     });
-    setStatus('Northern Lakes Supabase Business Office is ready. Private Supabase storage is active and all external actions remain owner-controlled.','good');
+    setStatus('Northern Lakes Business Office is ready. Secure private file storage is active and external actions remain owner-controlled.','good');
   })
   .catch(function(){disable('The Northern Lakes Supabase deployment could not be verified. No legacy Office is exposed automatically.');});
 })();

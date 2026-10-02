@@ -17,7 +17,7 @@ function snapshot(businessId='B-H38',name='Highway 38 Solutions'){
     bankAccounts:[{id:'ACCT-1000','Bank Account ID':'ACCT-1000','Business ID':businessId,'Account Name':'Operating Checking','Account Type':'Checking','Ledger Balance':5000,'Available Balance':5000}],
     vendorBills:[{id:'BILL-1','Bill ID':'BILL-1','Business ID':businessId,'Vendor ID':'V-1','Vendor Name':businessId==='B-H38'?'H38 Supply':'Northern Supply','Bill Number':'100','Bill Date':'2026-09-20','Due Date':'2026-09-26',Total:200,'Open Balance':200,Status:'Approved'}],
     expenses:[{'Expense ID':'EXP-1','Business ID':businessId,'Amount':75,'Receipt Required':'Yes','Receipt ID':'','Expense Date':'2026-09-26','Job ID':'J-1'}],
-    timeEntries:[{'Time Entry ID':'T-1','Business ID':businessId,'User ID':'U-TECH',Hours:8,Type:'Regular','Job ID':'J-1'}],
+    timeEntries:[{'Time Entry ID':'T-1','Business ID':businessId,'User ID':'U-TECH',Date:'2026-09-22','Approval Status':'Approved',Hours:8,Type:'Regular','Job ID':'J-1'}],
     reimbursements:[],mileage:[],receipts:[],deposits:[],checks:[],paymentInstructions:[],reconciliations:[],cardReconciliations:[],inventoryExceptions:[],payrollPeriods:[],payrollPreparations:[],accountingTransactions:[],accountingAccounts:[],integrationStates:[],recurringMoney:[],customerCredits:[],vendorCredits:[],refunds:[],budgets:[],bankTransactions:[],bankImportBatches:[],assets:[],loans:[]
   };
 }
