@@ -3,6 +3,13 @@ name: Commercial System Check
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'skills/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'README.md'
+      - 'AGENTS.md'
   workflow_dispatch:
 
 permissions:

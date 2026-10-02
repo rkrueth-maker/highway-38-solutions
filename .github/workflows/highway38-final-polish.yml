@@ -5,9 +5,23 @@ on:
     branches:
       - highway38-final-polish
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'skills/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'README.md'
+      - 'AGENTS.md'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'docs/**'
+      - 'skills/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'README.md'
+      - 'AGENTS.md'
   workflow_dispatch:
 
 permissions:

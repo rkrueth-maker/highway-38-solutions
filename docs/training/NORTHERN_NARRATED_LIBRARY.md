@@ -2,6 +2,14 @@
 
 This library records real Northern Lakes Property Maintenance workflows from the deployed shared Business Office and Northern public pages. It is instructional evidence, not a mock interface.
 
+## Current shared-folder authority
+
+Northern Lakes current training belongs in the existing shared Drive folder **Northern Lakes — Current Training**:
+
+https://drive.google.com/drive/folders/1goznCyh2_FDYKHqgMk7halig03TNABPm
+
+Use `docs/training/TRAINING_VIDEO_UPDATE_RULES.md` for all future maintenance. Replace existing lesson files in place when possible so shared Drive links remain stable. Regenerate only the changed workflow videos and affected master videos by default; do not rerun the full Northern library unless a shared privacy, recorder, narrator, branding/navigation, authentication/session, or equivalent library-wide change invalidates prior media.
+
 ## Narration
 
 Narration uses a generic deep, calm, warm male system voice generated locally during CI. It must not imitate or claim to be any real person or public figure.
