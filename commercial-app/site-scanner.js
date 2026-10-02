@@ -735,7 +735,7 @@
       const dash=['UNVERIFIED','DEVICE_CAPTURED'].includes(s.verification)?' stroke-dasharray="8 6"':'';
       return `<g><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"${dash}/><text x="${mx+6}" y="${my-7}">${html(s.label)} — ${html(formatNumber(s.value))} ${html(s.unit)}</text><circle cx="${a.x}" cy="${a.y}" r="4"/><circle cx="${b.x}" cy="${b.y}" r="4"/></g>`;
     }).join('');
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="H38 measured site drawing">
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Measured site drawing">
       <style>line{stroke:#17354c;stroke-width:3;fill:none}circle{fill:#17354c}text{font:14px Arial,sans-serif;fill:#102b3f}.title{font:bold 22px Arial}.legend{font:12px Arial}.warn{fill:#8a2c1c}</style>
       <text class="title" x="40" y="35">${html(currentProjectTitle())}</text>
       ${lines}

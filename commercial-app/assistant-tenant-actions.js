@@ -157,7 +157,7 @@ function ensurePreviewCurrent(action){
 }
 async function executeRate(action){
   if(!financialPermission())throw Error('Your current Office role does not have permission to change service pricing.');
-  const current=customerById(action.customerId);if(!current)throw Error('The selected customer is no longer available in this tenant.');
+  const current=customerById(action.customerId);if(!current)throw Error('The selected customer is no longer available.');
   const currentValue=Number(value(current,action.field)||0);
   if(Math.abs(currentValue-Number(action.before||0))>0.005)throw Error('The service rate changed after this preview. Build a new preview before approving.');
   const updated={...current,[action.field]:Number(action.after),'Updated Time':now(),'Record Version':Math.max(1,Number(value(current,'Record Version','recordVersion')||0)+1),'AI Last Action ID':action.actionId};
@@ -184,7 +184,7 @@ async function executeRate(action){
 }
 async function executeCustomerField(action){
   if(!customerEditPermission())throw Error('Your current Office role does not have permission to edit customer information.');
-  const current=customerById(action.customerId);if(!current)throw Error('The selected customer is no longer available in this tenant.');
+  const current=customerById(action.customerId);if(!current)throw Error('The selected customer is no longer available.');
   if(text(value(current,action.field))!==text(action.before))throw Error('The customer record changed after this preview. Build a new preview before approving.');
   const updated={...current,[action.field]:action.after,'Updated Time':now(),'Record Version':Math.max(1,Number(value(current,'Record Version','recordVersion')||0)+1),'AI Last Action ID':action.actionId};
   delete updated.__localPending;
