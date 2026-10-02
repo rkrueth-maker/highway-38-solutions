@@ -8,6 +8,11 @@ on:
         required: true
         type: boolean
         default: false
+      scope:
+        description: Task Manager only or the explicitly affected full visual library
+        type: choice
+        options: [task, all]
+        default: task
   pull_request:
     branches:
       - main
@@ -37,7 +42,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Preflight generated Task Manager privacy runtime
+        run: H38_TASK_TRAINING_VALIDATE_RUNTIME_ONLY=1 node scripts/record-task-manager-training-visual.js
       - run: npm ci && npx playwright install --with-deps chromium
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Prepare local Task Manager narrator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install piper-tts
+          mkdir -p "$RUNNER_TEMP/task-narrator"
+          cd "$RUNNER_TEMP/task-narrator"
+          python -m piper.download_voices en_US-hfc_male-medium
+          echo "H38_NARRATOR_MODEL=$RUNNER_TEMP/task-narrator/en_US-hfc_male-medium.onnx" >> "$GITHUB_ENV"
+
       - name: Prepare optional authorized storage state
         env:
           STORAGE_STATE: ${{ secrets.H38_WORKFLOW_STORAGE_STATE }}
@@ -56,7 +75,15 @@ jobs:
           H38_TASK_TRAINING_DIR: artifacts/task-manager-training
           H38_OFFICE_URL: https://highway38solutions.com/commercial-app/
         run: node scripts/record-task-manager-training-visual.js
+      - name: Narrate the two repaired Task Manager lessons
+        env:
+          H38_TASK_TRAINING_DIR: artifacts/task-manager-training
+          H38_NARRATED_TRAINING_DIR: artifacts/task-manager-narrated
+          H38_NARRATION_ONLY: H38-TRAIN-TASK-MANAGER-DESKTOP,H38-TRAIN-TASK-MANAGER-PHONE
+        run: node scripts/narrate-h38-training-library.js
       - name: Run repaired strict visual training proof
+        if: github.event_name == 'workflow_dispatch' && inputs.scope == 'all'
+
         env:
           H38_WORKFLOW_RECORDING_AUTHORIZED: ${{ github.event_name == 'pull_request' && 'true' || inputs.recording_authorized }}
           H38_WORKFLOW_STORAGE_STATE: ${{ runner.temp }}/h38-workflow-storage-state.json
@@ -76,6 +103,7 @@ jobs:
           name: h38-training-video-visual-${{ github.run_id }}
           path: |
             artifacts/task-manager-training/
+            artifacts/task-manager-narrated/
             artifacts/complete-training-library/
           if-no-files-found: warn
           retention-days: 30
