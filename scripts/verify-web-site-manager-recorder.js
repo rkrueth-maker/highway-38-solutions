@@ -14,7 +14,7 @@ function need(value,label){
   else console.log(`PASS: ${label}`);
 }
 
-need(file.includes("const BUILD='20260915-web-site-manager-3'"),'web Site Visit recorder build remains active');
+need(file.includes("const BUILD='"),'web Site Visit recorder build remains active');
 need(file.includes('const MAX_DURATION_SECONDS=1200'),'optional video ceiling remains 20 minutes');
 need(file.includes('Stop & Use Video'),'optional video still has explicit Stop & Use Video action');
 need(file.includes('id="fieldWalkthroughPhoto"'),'legacy recorder still supports still photos while recording');

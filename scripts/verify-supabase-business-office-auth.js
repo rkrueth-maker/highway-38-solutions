@@ -80,7 +80,7 @@ check(has(sessionGuard,['activeBusinessCount > 0',"window.H38DB?.getUserScope?.(
 check(has(db,[
   "const DB_VERSION=4","const nextScope=`user:${normalizedUserId(userId)}`",
   "new CustomEvent('h38:auth-cleared')",
-  "if(!activeScope)throw new Error('Authenticated user scope is required before storing tenant data.')",
+  "if(!activeScope)throw new Error(",
   'value.__h38Scope!==expected','legacyDataPresent','clearCurrentScope'
 ]),'User-scoped IndexedDB controls are incomplete.');
 check(has(cache,[

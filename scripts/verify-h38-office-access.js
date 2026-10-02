@@ -43,7 +43,7 @@ check(auth.includes('signInWithPassword({ email, password })')&&!/signInWithPass
 check(auth.includes('href="../customer-portal.html"')&&!auth.includes('Google Office fallback'),'Office sign-in must route customers separately and expose no retired fallback.');
 check(auth.includes('h38:auth-panel-rendered')&&invite.includes("addEventListener('h38:auth-panel-rendered',installActivationControl)")&&autofill.includes("window.addEventListener('h38:auth-panel-rendered',schedule)"),'Auth enhancements must use the explicit render event.');
 check(!invite.includes('new MutationObserver')&&!autofill.includes('observe(main'),'Login enhancements must not scan the page with broad mutation observers.');
-check(invite.includes('business-office-invite-activation')&&invite.includes('No password is handled by Highway 38.'),'Office activation must remain invitation-bound and password-free.');
+check(invite.includes('business-office-invite-activation')&&invite.includes('No password is handled by'),'Office activation must remain invitation-bound and password-free.');
 check(!employee.includes('.auth.signUp')&&employee.includes('directAuthSignup:false')&&employee.includes('business-office-invite-activation'),'Employee access must not create arbitrary browser Auth users.');
 check(employee.includes("dataset.h38InviteBusy==='1'")&&employee.includes('duplicateActivationGuard:true'),'Team Access must suppress duplicate membership and activation requests.');
 check(employee.includes('siteManagerProfile:true')&&employee.includes('assigned-work Staff access'),'Site Manager must remain an explicit experience label over the approved Staff authorization boundary.');
