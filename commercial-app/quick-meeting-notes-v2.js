@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261002-notes-via-handoff-3', FN='h38-quick-meeting-notes', MOBILE='(max-width: 760px)';
+const BUILD='20261002-notes-handoff-fallback-4', FN='h38-quick-meeting-notes', MOBILE='(max-width: 760px)';
 const text=(v,n=12000)=>String(v??'').trim().slice(0,n), esc=v=>(window.esc?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
 const state=()=>window.state||{}, snap=()=>state().snapshot||{}, rows=n=>Array.isArray(snap()[n])?snap()[n]:[], mobile=()=>!!window.matchMedia?.(MOBILE).matches;
 const val=(r,...ks)=>{for(const k of ks)if(r&&r[k]!==undefined&&r[k]!==null&&r[k]!=='')return r[k];return'';};
@@ -25,7 +25,7 @@ async function auth(force=false){const api=client();let r=await api.auth.getSess
 async function askEdge(f,b,retry=false){const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{},businessId=text(state().businessId,180);if(!businessId)throw Error('Business Office is still loading.');const s=await auth(retry),body=new FormData();body.append('businessId',businessId);body.append('customerId',f.customerId);body.append('title',f.title);body.append('typedNotes',f.typedNotes);if(b?.size)body.append('audio',new File([b],`meeting-${Date.now()}.webm`,{type:b.type||'audio/webm'}));const res=await fetch(`${cfg.url}/functions/v1/${FN}`,{method:'POST',cache:'no-store',credentials:'omit',headers:{authorization:`Bearer ${s.access_token}`,apikey:cfg.publishableKey,'x-client-info':BUILD},body});const p=await res.json().catch(()=>({}));if(res.status===401&&!retry)return askEdge(f,b,true);if(!res.ok||p.status!=='PASS')throw Error(p.message||`Meeting notes failed (${res.status}).`);return p;}
 async function transcribeOnly(f,b,retry=false){const p=await (async()=>{const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{},businessId=text(state().businessId,180);const s=await auth(retry),body=new FormData();body.append('businessId',businessId);body.append('transcribeOnly','1');if(b?.size)body.append('audio',new File([b],`meeting-${Date.now()}.webm`,{type:b.type||'audio/webm'}));const res=await fetch(`${cfg.url}/functions/v1/${FN}`,{method:'POST',cache:'no-store',credentials:'omit',headers:{authorization:`Bearer ${s.access_token}`,apikey:cfg.publishableKey,'x-client-info':BUILD},body});const q=await res.json().catch(()=>({}));if(res.status===401&&!retry)return transcribeOnly(f,b,true);if(!res.ok||q.status!=='PASS')throw Error(q.message||`Meeting transcription failed (${res.status}).`);return q;})();return text(p.transcript,24000);}
 async function ask(f,b,retry=false){if(!navigator.onLine)throw Error('Quick Meeting needs an internet connection to create bullet notes. Nothing has been saved yet.');const businessId=text(state().businessId,180);if(!businessId)throw Error('Business Office is still loading.');
-// Route notes to Kit via AI handoff; fall back to the edge function until the handoff table is deployed.
+// Route notes to Kit via AI handoff; fall back to the OpenAI edge function whenever Kit is unavailable.
 try{
   if(!window.H38_AI_HANDOFF)throw Object.assign(Error('AI handoff helper not loaded.'),{code:'HANDOFF_NOT_DEPLOYED'});
   let transcript='';
@@ -35,7 +35,10 @@ try{
   const result=await window.H38_AI_HANDOFF.runTask('meeting_notes',{businessId,customerId:f.customerId,title:f.title,typedNotes:f.typedNotes,transcript});
   return result.notes||result||{};
 }catch(e){
-  if(e?.code!=='HANDOFF_NOT_DEPLOYED')throw e;
+  const msg=String(e?.message||e||'');
+  const kitUnavailable=e?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|timedout|Kit could not complete|handoff/i.test(msg);
+  if(!kitUnavailable)throw e;
+  notify('Kit is unavailable — using built-in AI instead.');
   const p=await askEdge(f,b,retry);
   return p.notes||{};
 }}
