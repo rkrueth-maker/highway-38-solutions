@@ -13,6 +13,14 @@ const originalBase=fs.readFileSync(basePath,'utf8');
 const originalExtra=fs.readFileSync(extraPath,'utf8');
 const originalV2=fs.readFileSync(v2Path,'utf8');
 const all=[...JSON.parse(originalBase),...JSON.parse(originalExtra)];
+const snowScenario=all.find(x=>x.id==='NL-TRAIN-SNOW-FULL-SERVICE-PHONE');
+if(!snowScenario)throw new Error('Northern snow training scenario is missing.');
+for(const step of snowScenario.steps){
+  if(step.page==='today'){
+    step.page='work';
+    step.text='Open the controlled snow service in Jobs and Work. Confirm the property, priority, access notes, equipment, and storm instructions before travel. Real snow occurrences that are due today also appear on Today; historical controlled training fixtures remain in Work.';
+  }
+}
 const attempts=[];
 const batchSize=Math.max(1,Number(process.env.NORTHERN_TRAINING_BATCH_SIZE||6));
 const maxAttempts=Math.max(1,Number(process.env.NORTHERN_TRAINING_MAX_ATTEMPTS||3));
@@ -73,7 +81,7 @@ const status=unresolved.length?'HOLD':'PASS';
 const passed=all.map(x=>x.id).filter(id=>!unresolved.includes(id));
 const finalResult={status,passed,failed,externalActionsOccurred:false,recordingMode:'batched-retry',batchSize,maxAttempts,attempts};
 fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(finalResult,null,2)+'\n');
-fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({kind:'northern-lakes-narrated-training',version:'20261001-batched-snow-work-2',status,externalActionsOccurred:false,recordingMode:'batched-retry',videos:proofs.filter(Boolean),attempts},null,2)+'\n');
+fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify({kind:'northern-lakes-narrated-training',version:'20261001-batched-snow-work-3',status,externalActionsOccurred:false,recordingMode:'batched-retry',videos:proofs.filter(Boolean),attempts},null,2)+'\n');
 fs.writeFileSync(path.join(out,'BATCHED_RECORDING_ATTEMPTS.json'),JSON.stringify(attempts,null,2)+'\n');
 fs.writeFileSync(path.join(out,'README.md'),['# Northern Lakes Narrated Training Library','',`Status: ${status}`,'','Recording mode: controlled TEST batches with bounded retry of only failed lessons. Historical controlled snow fixtures are proven from Jobs / Work; real due-today occurrences remain available on Today.','',...all.map(x=>`- ${proofFor(x.id)?.status||'HOLD'}: ${x.title}`),'','Safety: privacy masking remains fail-closed; no customer send, payment, purchase, refund, or external scheduling action is executed.',''].join('\n'));
 if(status!=='PASS'){
