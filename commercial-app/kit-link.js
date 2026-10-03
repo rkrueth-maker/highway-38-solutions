@@ -29,8 +29,8 @@
     anchor.href = KIT_URL;
     anchor.target = '_blank';
     anchor.rel = 'noopener';
-    anchor.setAttribute('aria-label', 'Ask Kit in Muse');
-    anchor.title = 'Open Kit, your Muse assistant, in a new tab';
+    anchor.setAttribute('aria-label', 'Open Muse (Kit is your assistant there)');
+    anchor.title = 'Open Muse in a new tab — Kit is your assistant';
     anchor.innerHTML = '<span aria-hidden="true">🤖</span><span class="ai-launcher-label">Ask Kit</span>';
     var aiButton = document.getElementById('globalAiButton');
     if (aiButton && aiButton.parentNode === actions) {
