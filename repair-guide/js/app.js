@@ -2,7 +2,13 @@
 'use strict';
 
 // Repair Guide App - frontend
-// Sends diagnosis requests to Kit via the handoff API
+// Submits diagnosis requests to Kit via Supabase ai_handoff_tasks
+
+const SUPABASE_URL = 'https://jqukmwtsgcsaruucnqja.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1';
+// Note: Using H38 business ID for now - Repair Guide is standalone but
+// uses the shared backend for Kit processing
+const BUSINESS_ID = '10b85a89-5834-436d-95b0-c6ee2eb335ad';
 
 const state = {
   category: null,
@@ -61,10 +67,9 @@ $('diagnoseBtn').addEventListener('click', async () => {
   showScreen('resultScreen');
   $('diagnosisLoading').hidden = false;
   $('diagnosisResult').hidden = true;
+  $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is analyzing...</p>';
   
   try {
-    // For now, this calls a backend endpoint that routes to Kit
-    // TODO: wire up to actual backend (Supabase edge function or direct API)
     const result = await requestDiagnosis({
       category: state.category,
       symptoms,
@@ -77,17 +82,127 @@ $('diagnoseBtn').addEventListener('click', async () => {
   }
 });
 
+async function supabaseFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${text.substring(0, 200)}`);
+  }
+  return res.json();
+}
+
 async function requestDiagnosis(data) {
-  // Placeholder - will connect to Kit backend
-  // For now, return a structured empty to show the UI works
-  // In production, this POSTs to the diagnosis endpoint
-  throw new Error('Backend not connected yet. The app shell is ready — Kit integration coming next.');
+  // 1. Insert task into ai_handoff_tasks
+  const tasks = await supabaseFetch('ai_handoff_tasks', {
+    method: 'POST',
+    body: JSON.stringify({
+      business_id: BUSINESS_ID,
+      task_type: 'repair_diagnosis',
+      status: 'pending',
+      payload: {
+        category: data.category,
+        symptoms: data.symptoms,
+        unitInfo: data.unitInfo || null,
+        // Note: photo as data URL is too large for the payload
+        // For now, we note if a photo was provided
+        hasPhoto: !!data.photo,
+      },
+    }),
+  });
+  
+  if (!tasks || !tasks.length) throw new Error('Failed to create diagnosis task');
+  const taskId = tasks[0].id;
+  
+  // 2. Poll for result (Kit's poller runs every 1 min)
+  $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is analyzing...<br><small>This usually takes under a minute</small></p>';
+  
+  const maxAttempts = 30; // 5 minutes max
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 10000)); // wait 10s
+    
+    const rows = await supabaseFetch(`ai_handoff_tasks?id=eq.${taskId}&select=status,result,last_error`);
+    if (!rows || !rows.length) continue;
+    
+    const task = rows[0];
+    if (task.status === 'done' && task.result) {
+      return task.result;
+    }
+    if (task.status === 'failed') {
+      throw new Error(task.last_error || 'Diagnosis failed');
+    }
+    // still pending/claimed, keep waiting
+  }
+  
+  throw new Error('Timed out waiting for diagnosis. Please try again.');
 }
 
 function renderResult(result) {
   $('diagnosisLoading').hidden = true;
   $('diagnosisResult').hidden = false;
-  // TODO: render actual diagnosis data
+  
+  const d = result.diagnosis || result;
+  
+  // Likely issues
+  const issuesHtml = (d.likelyIssues || []).map((item, i) => `
+    <div class="issue">
+      <div class="issue-rank">${i === 0 ? 'MOST LIKELY' : '#' + (i + 1)} • ${item.probability || ''}</div>
+      <strong>${escapeHtml(item.issue || '')}</strong>
+      <p>${escapeHtml(item.explanation || '')}</p>
+    </div>
+  `).join('');
+  $('issuesList').innerHTML = issuesHtml || '<p>No specific issues identified.</p>';
+  
+  // Check plan
+  const checksHtml = (d.checkPlan || []).map((step, i) => `
+    <div class="check"><strong>${i + 1}.</strong> ${escapeHtml(step)}</div>
+  `).join('');
+  $('checksList').innerHTML = checksHtml || '<p>No check steps provided.</p>';
+  
+  // Fix plan
+  const fixHtml = (d.fixPlan || []).map((step, i) => `
+    <div class="step"><strong>Step ${i + 1}:</strong> ${escapeHtml(step)}</div>
+  `).join('');
+  $('fixPlan').innerHTML = fixHtml || '<p>No fix plan provided.</p>';
+  
+  // Estimate
+  const partsRows = (d.partsEstimate || []).map(p => `
+    <div class="estimate-row"><span>${escapeHtml(p.part || '')}</span><span>${escapeHtml(p.estimatedCost || '')}</span></div>
+  `).join('');
+  $('estimateBox').innerHTML = `
+    <div class="estimate-row"><span><strong>Time:</strong></span><span>${escapeHtml(d.timeEstimate || 'TBD')}</span></div>
+    ${partsRows}
+    <div class="estimate-row estimate-total"><span>Total estimate:</span><span>${escapeHtml(d.totalEstimate || 'TBD')}</span></div>
+    ${(d.serviceBulletins && d.serviceBulletins.length) ? `<div style="margin-top:12px"><strong>Service bulletins:</strong><ul>${d.serviceBulletins.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul></div>` : ''}
+  `;
+  
+  // Parts links
+  const partsLinksHtml = (d.partsEstimate || []).map(p => {
+    const query = encodeURIComponent(p.part || '');
+    return `
+    <div class="part">
+      <div class="part-name">${escapeHtml(p.part || '')} — ${escapeHtml(p.estimatedCost || '')}</div>
+      <div class="part-links">
+        <a href="https://www.amazon.com/s?k=${query}" target="_blank" rel="noopener">Amazon</a>
+        <a href="https://www.rockauto.com/en/catalog/" target="_blank" rel="noopener">RockAuto</a>
+      </div>
+    </div>`;
+  }).join('');
+  $('partsList').innerHTML = partsLinksHtml || '<p>No parts listed.</p>';
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
 }
 
 })();
