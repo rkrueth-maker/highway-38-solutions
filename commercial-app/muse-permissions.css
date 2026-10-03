@@ -1,0 +1,12 @@
+/* H38 Muse Permissions styles */
+.h38-perm-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.h38-perm-row:last-child{border-bottom:none}
+.h38-perm-icon{font-size:1.6rem;flex-shrink:0}
+.h38-perm-row>span:nth-child(2){flex:1}
+.h38-perm-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0}
+.h38-perm-toggle input{width:18px;height:18px;margin:0}
+.h38-perm-list{margin:8px 0;padding-left:18px;font-size:.88rem}
+.h38-perm-list li{margin:5px 0}
+.h38-perm-status{padding:12px;border-radius:8px;font-weight:600;margin-bottom:8px}
+.h38-perm-status.good{background:#e8f5e9;color:#2e7d32}
+.h38-perm-status.warn{background:#fff3e0;color:#e65100}
