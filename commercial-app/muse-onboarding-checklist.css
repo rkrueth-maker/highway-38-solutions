@@ -1,0 +1,19 @@
+/* H38 Onboarding Checklist styles */
+.h38-checklist-progress{display:flex;align-items:center;gap:12px}
+.h38-progress-bar{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.h38-progress-fill{height:100%;background:var(--blue);transition:width .3s}
+.h38-checklist{display:grid;gap:10px;margin-top:12px}
+.h38-check-item{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+.h38-check-item.done{opacity:.7;background:#f8faf8}
+.h38-check-select{display:flex;align-items:center;gap:10px;cursor:pointer}
+.h38-check-select input{width:18px;height:18px;margin:0}
+.h38-check-icon{font-size:1.4rem}
+.h38-check-select strong{display:block;font-size:.92rem}
+.h38-check-select small{color:var(--muted);font-size:.78rem}
+.h38-check-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.h38-check-hint{margin-top:10px}
+.h38-copy-box{background:#f5f7f9;border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.h38-copy-box code{flex:1;font-size:.82rem}
+.h38-how-list{margin:8px 0;padding-left:20px}
+.h38-how-list li{margin:6px 0;font-size:.9rem}
+.h38-playbook{background:#f8f9fa;border:1px solid var(--line);border-radius:8px;padding:14px;font-size:.85rem;line-height:1.6;white-space:pre-wrap;max-height:500px;overflow-y:auto;margin:10px 0}
