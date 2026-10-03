@@ -59,6 +59,20 @@
     return /^(how|where|what|why|when|which|can you explain|could you explain|show me how|teach me|help me understand)\b/i.test(text(question).trim());
   }
 
+  // Kit single-AI (Phase 1): route assistant Q&A to Kit via ai_handoff_tasks
+  // before falling back to the OpenAI edge function. Read-only advisory only.
+  function notify(message,bad){if(typeof window.toast==='function')window.toast(message,!!bad);else console[bad?'error':'log']('[H38 AI]',message);}
+  function kitSafeContext(args){
+    const c=safeContext(args||{});
+    delete c.experienceMode;delete c.receptionistProfile; // receptionist test never goes to Kit
+    return c;
+  }
+  function kitUnavailableError(e){
+    const msg=text(e&&(e.message||e)||'');
+    return (e&&e.code==='HANDOFF_NOT_DEPLOYED')||/timed out|Kit could not complete|handoff|disappeared|no answer/i.test(msg);
+  }
+  const KIT_SPECIALISTS=['general','quote','site_visit','jobs','schedule','money','documents','communications'];
+
   function controlledActionRequest(question){
     const q=text(question).trim();
     if(!q || howToQuestion(q))return false;
@@ -89,6 +103,33 @@
     const businessId=text(args?.businessId||window.state?.businessId).trim();
     if(!businessId)throw new Error('Open an authorized business before using H38 AI.');
     const timeoutMs=Math.max(15000,Math.min(Number(timeout)||50000,65000));
+    // Kit-first: try Kit via the handoff table; fall back to the OpenAI edge
+    // function when Kit is unavailable. Receptionist test mode always uses the
+    // edge function directly (it owns the TTS path). Controlled-action gating
+    // already ran in ask(); Kit answers are read-only advisory.
+    const rawCtx=args&&args.context&&typeof args.context==='object'?args.context:{};
+    const isReceptionistTest=text(rawCtx.experienceMode)==='receptionist_test';
+    if(!isReceptionistTest&&window.H38_AI_HANDOFF){
+      notify('Kit is thinking…');
+      try{
+        const kit=await window.H38_AI_HANDOFF.runTask('assistant_qa',{
+          businessId,
+          question:text(args?.question).trim(),
+          context:kitSafeContext(args||{}),
+          role:text(window.state?.snapshot?.user?.roleName||'')
+        },{timeoutMs:90000});
+        if(!text(kit.answer).trim())throw new Error('Kit returned no answer.');
+        return {status:'PASS',answer:text(kit.answer),
+          specialist:KIT_SPECIALISTS.includes(kit.specialist)?kit.specialist:'general',
+          recommendedPage:text(kit.recommendedPage),
+          requiresExistingOfficeControl:kit.requiresExistingOfficeControl===true,
+          reason:text(kit.reason),provider:'Kit AI handoff',externalActionOccurred:false};
+      }catch(e){
+        if(!kitUnavailableError(e))throw e; // real errors (auth, validation) surface
+        notify('Kit is unavailable — using built-in AI instead.');
+        // fall through to the OpenAI edge function below, unchanged
+      }
+    }
     let timer=null;
     try{
       const invoke=api.functions.invoke(ENDPOINT,{
