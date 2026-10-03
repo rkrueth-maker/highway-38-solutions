@@ -102,7 +102,7 @@ $('loginBtn').addEventListener('click', async () => {
     await login(email, password);
     $('loginPassword').value = '';
     $('logoutBtn').hidden = false;
-    showScreen('categoryScreen');
+    showScreen('homeScreen');
   } catch (err) {
     errBox.textContent = err.message;
     errBox.hidden = false;
@@ -121,11 +121,136 @@ $('logoutBtn').addEventListener('click', logout);
   const token = await getAccessToken();
   if (token) {
     $('logoutBtn').hidden = false;
-    showScreen('categoryScreen');
+    showScreen('homeScreen');
   } else {
     showScreen('loginScreen');
   }
 })();
+
+// Parts lookup
+$('findPartsBtn').addEventListener('click', async () => {
+  const vehicle = $('partsVehicle').value.trim();
+  const needed = $('partsNeeded').value.trim();
+  if (!vehicle || !needed) {
+    alert('Enter the vehicle and the parts you need.');
+    return;
+  }
+
+  showScreen('partsResultScreen');
+  $('partsLoading').hidden = false;
+  $('partsResult').hidden = true;
+  $('partsLoading').innerHTML = '<div class="spinner"></div><p>Kit is looking up parts...<br><small>This usually takes under a minute</small></p>';
+
+  try {
+    const result = await requestParts({ vehicle, needed });
+    renderParts(result);
+    saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle,
+      topIssue: result && result.summary ? result.summary : '' });
+  } catch (err) {
+    $('partsLoading').innerHTML = `<p style="color:#ef9a9a">Couldn't look up parts: ${err.message}<br><br>Check your connection and try again.</p>`;
+  }
+});
+
+async function requestParts(data) {
+  const tasks = await supabaseFetch('ai_handoff_tasks', {
+    method: 'POST',
+    body: JSON.stringify({
+      business_id: BUSINESS_ID,
+      task_type: 'parts_lookup',
+      status: 'pending',
+      payload: {
+        vehicle: data.vehicle,
+        needed: data.needed,
+      },
+    }),
+  });
+
+  if (!tasks || !tasks.length) throw new Error('Failed to create parts lookup task');
+  const taskId = tasks[0].id;
+
+  const maxAttempts = 30;
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 10000));
+    const rows = await supabaseFetch(`ai_handoff_tasks?id=eq.${taskId}&select=status,result,last_error`);
+    if (!rows || !rows.length) continue;
+    const task = rows[0];
+    if (task.status === 'done' && task.result) return task.result;
+    if (task.status === 'failed') throw new Error(task.last_error || 'Parts lookup failed');
+  }
+  throw new Error('Timed out waiting for parts. Try again.');
+}
+
+function renderParts(result) {
+  $('partsLoading').hidden = true;
+  $('partsResult').hidden = false;
+  const opts = $('partsOptions'), time = $('partsTime'), howto = $('partsHowTo'),
+        stores = $('partsStores'), notes = $('partsNotes');
+  const list = result.options || result.parts || [];
+  opts.innerHTML = list.length
+    ? list.map(p => `<div class="part"><div class="part-name">${escapeHtml(p.name || p.title || '')}</div>
+        ${p.detail ? `<div>${escapeHtml(p.detail)}</div>` : ''}
+        ${p.price ? `<div class="part-price">${escapeHtml(p.price)}</div>` : ''}</div>`).join('')
+    : '<p class="muted">No specific options returned.</p>';
+  time.innerHTML = result.time_estimate
+    ? `<p>${escapeHtml(result.time_estimate)}</p>`
+    : '<p class="muted">—</p>';
+  const steps = result.how_to || result.instructions || result.steps || [];
+  howto.innerHTML = steps.length
+    ? `<ol>${steps.map(s => `<li>${escapeHtml(typeof s === 'string' ? s : (s.text || s.step || ''))}</li>`).join('')}</ol>`
+    : (result.how_to_text ? `<p>${escapeHtml(result.how_to_text)}</p>` : '<p class="muted">—</p>');
+  const buyList = result.stores || result.where_to_buy || [];
+  stores.innerHTML = buyList.length
+    ? buyList.map(s => `<div class="part"><div class="part-name">${escapeHtml(typeof s === 'string' ? s : (s.name || ''))}</div>
+        ${typeof s === 'object' && s.detail ? `<div>${escapeHtml(s.detail)}</div>` : ''}</div>`).join('')
+    : '<p class="muted">No store suggestions returned.</p>';
+  notes.innerHTML = result.notes
+    ? `<p>${escapeHtml(result.notes)}</p>`
+    : (result.summary ? `<p>${escapeHtml(result.summary)}</p>` : '<p class="muted">—</p>');
+}
+$('goDiagnose').addEventListener('click', () => showScreen('categoryScreen'));
+$('goParts').addEventListener('click', () => showScreen('partsScreen'));
+$('goRepairs').addEventListener('click', () => { renderRepairs(); showScreen('repairsScreen'); });
+$('backToHome').addEventListener('click', () => showScreen('homeScreen'));
+$('backToHomeFromCategory').addEventListener('click', () => showScreen('homeScreen'));
+$('backToHomeFromParts').addEventListener('click', () => showScreen('homeScreen'));
+$('backToParts').addEventListener('click', () => showScreen('partsScreen'));
+$('newPartsBtn').addEventListener('click', () => {
+  $('partsVehicle').value = '';
+  $('partsNeeded').value = '';
+  showScreen('homeScreen');
+});
+
+// Repair log (stored on this phone)
+const REPAIRS_KEY = 'h38-repair-guide-log';
+function getRepairs() {
+  try { return JSON.parse(localStorage.getItem(REPAIRS_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveRepair(entry) {
+  const log = getRepairs();
+  log.unshift({ ...entry, when: new Date().toISOString() });
+  localStorage.setItem(REPAIRS_KEY, JSON.stringify(log.slice(0, 100)));
+}
+function renderRepairs() {
+  const log = getRepairs();
+  const box = $('repairsList');
+  if (!log.length) {
+    box.innerHTML = '<p class="muted">No repairs logged yet. Run a diagnosis and it will show up here.</p>';
+    return;
+  }
+  const labels = {car:'Car / Truck', atv:'ATV / UTV', 'small-engine':'Small Engine', appliance:'Appliance'};
+  box.innerHTML = log.map((r, i) => `
+    <div class="repair-entry" data-i="${i}">
+      <div class="repair-head"><strong>${labels[r.category] || r.category}</strong>
+      <span class="repair-date">${new Date(r.when).toLocaleDateString()}</span></div>
+      <div class="repair-symptoms">${escapeHtml(r.symptoms)}</div>
+      ${r.unitInfo ? `<div class="repair-unit">${escapeHtml(r.unitInfo)}</div>` : ''}
+      ${r.topIssue ? `<div class="repair-issue">→ ${escapeHtml(r.topIssue)}</div>` : ''}
+    </div>`).join('');
+}
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 document.querySelectorAll('.category-card').forEach(card => {
   card.addEventListener('click', () => {
     state.category = card.dataset.category;
@@ -142,7 +267,7 @@ $('newDiagnosisBtn').addEventListener('click', () => {
   $('unitInfo').value = '';
   $('photoPreview').innerHTML = '';
   state.photo = null;
-  showScreen('categoryScreen');
+  showScreen('homeScreen');
 });
 
 // Photo handling
@@ -177,6 +302,14 @@ $('diagnoseBtn').addEventListener('click', async () => {
       symptoms,
       unitInfo: $('unitInfo').value.trim(),
       photo: state.photo,
+    });
+    saveRepair({
+      category: state.category,
+      symptoms,
+      unitInfo: $('unitInfo').value.trim(),
+      topIssue: result && result.issues && result.issues[0]
+        ? (result.issues[0].title || result.issues[0].name || '')
+        : '',
     });
     renderResult(result);
   } catch (err) {
