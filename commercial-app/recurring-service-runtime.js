@@ -126,7 +126,7 @@ function patchWork(){
   const panel=document.querySelector('.h38-life-work'),select=document.getElementById('h38LifecycleJob');if(!panel||!select)return;
   const job=jobById(select.value),prior=panel.querySelector('[data-h38-recurring-simple]');panel.classList.toggle('h38-recurring-simple',recurring(job));
   if(!recurring(job)){prior?.remove();return;}
-  const desc=panel.querySelector('.h38-life-head p');setText(desc,'Recurring service visit · no site visit or quote required.');
+  const desc=panel.querySelector('.h38-life-head p');setText(desc,'Recurring service · start a new visit below. No site visit or quote required.');
   const sig=workSignature(job);if(prior?.dataset?.signature===sig)return;prior?.remove();
   const rates=rateLines(job),box=document.createElement('div');box.className='h38-recurring-service-simple';box.dataset.h38RecurringSimple='1';box.dataset.signature=sig;
   box.innerHTML=`<div><span class="h38-service-status">${esc(text(val(job,'Status'))||'Scheduled')}</span><strong>${esc(text(val(job,'Service Type'))||'Recurring service')}</strong><small>${esc(customerName(job))}</small>${rates.length?`<div class="h38-service-rate-lines">${rates.map(rate=>`<span>${esc(rate)}</span>`).join('')}</div>`:'<small>Saved customer rate</small>'}<p>Use Start visit when work begins. Finish visit closes this service visit and opens Money for invoice draft review. Nothing is created, sent, or charged automatically.</p></div>`;

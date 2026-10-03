@@ -44,7 +44,7 @@ function parseDate(command){const q=lower(command),d=new Date();if(/\btomorrow\b
 function focusAfter(id,callback){setTimeout(()=>{const node=document.getElementById(id);if(node){callback?.(node);node.scrollIntoView?.({block:'center'});node.focus?.();}},60);}
 function agentStatus(){
   const agents=[
-    ['Personal Assistant',!!window.H38_PERSONAL_ASSISTANT],['Command Bus',true],['Customer 360',!!window.H38_CUSTOMER_360],['Quote Agent',!!window.H38_QUOTE_AGENT_CONTRACT],['Conversation / Meeting Assistant',!!window.H38_CONVERSATION_MEETING_ASSISTANT],['Site Visit',!!window.H38_FIELD_VISIT||!!window.H38_FIELD_VISIT_CORE],['Site Visit AI Evidence',!!window.H38_SITE_VISIT_AI_EVIDENCE_BRIDGE],['Job Lifecycle',!!window.H38_JOB_LIFECYCLE],['Photo Quote',!!window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH],['Example Data',!!window.H38_EXAMPLE_DATA_MANAGER]
+    ['Personal Assistant',!!window.H38_PERSONAL_ASSISTANT],['Assistant Core',true],['Customer 360',!!window.H38_CUSTOMER_360],['Quote Agent',!!window.H38_QUOTE_AGENT_CONTRACT],['Conversation / Meeting Assistant',!!window.H38_CONVERSATION_MEETING_ASSISTANT],['Site Visit',!!window.H38_FIELD_VISIT||!!window.H38_FIELD_VISIT_CORE],['Site Visit AI Evidence',!!window.H38_SITE_VISIT_AI_EVIDENCE_BRIDGE],['Job Lifecycle',!!window.H38_JOB_LIFECYCLE],['Photo Quote',!!window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH],['Example Data',!!window.H38_EXAMPLE_DATA_MANAGER]
   ];
   return{agents,ready:agents.filter(x=>x[1]).length,total:agents.length,summary:agents.map(([name,ok])=>`${ok?'✓':'○'} ${name}`).join('\n')};
 }
