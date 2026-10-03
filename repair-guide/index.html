@@ -15,11 +15,28 @@
   <header>
     <h1>🔧 Repair Guide</h1>
     <p class="subtitle">What are we fixing today?</p>
+    <button id="logoutBtn" class="link-btn" hidden>Sign out</button>
   </header>
 
   <main id="main">
+    <!-- Login (H38 Office account) -->
+    <section id="loginScreen" class="screen">
+      <h2>Sign in</h2>
+      <p class="muted">Use your H38 Office login.</p>
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      </div>
+      <p id="loginError" class="error" hidden></p>
+      <button id="loginBtn" class="primary-btn">Sign In →</button>
+    </section>
+
     <!-- Category picker -->
-    <section id="categoryScreen" class="screen active">
+    <section id="categoryScreen" class="screen">
       <div class="category-grid">
         <button class="category-card" data-category="car">
           <span class="cat-icon">🚗</span>

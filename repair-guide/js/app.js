@@ -9,6 +9,68 @@ const SUPABASE_KEY = 'sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1';
 // Note: Using H38 business ID for now - Repair Guide is standalone but
 // uses the shared backend for Kit processing
 const BUSINESS_ID = '10b85a89-5834-436d-95b0-c6ee2eb335ad';
+const SESSION_KEY = 'h38-repair-guide-session';
+
+// --- H38 Office login (same Supabase auth as the Business Office) ---
+function getSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveSession(s) { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
+function sessionExpired(s) {
+  return !s || !s.access_token || (s.expires_at && Date.now() >= s.expires_at * 1000 - 60000);
+}
+async function refreshSession() {
+  const s = getSession();
+  if (!s || !s.refresh_token) { clearSession(); return null; }
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: s.refresh_token }),
+  });
+  if (!res.ok) { clearSession(); return null; }
+  const data = await res.json();
+  const next = {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || s.refresh_token,
+    expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    user: data.user || s.user,
+  };
+  saveSession(next);
+  return next;
+}
+async function getAccessToken() {
+  let s = getSession();
+  if (sessionExpired(s)) s = await refreshSession();
+  return s ? s.access_token : null;
+}
+async function login(email, password) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text.includes('Invalid login credentials') ? 'Wrong email or password.' : 'Sign in failed. Check your connection and try again.');
+  }
+  const data = await res.json();
+  saveSession({
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    user: data.user,
+  });
+  return data.user;
+}
+function logout() {
+  clearSession();
+  $('logoutBtn').hidden = true;
+  showScreen('loginScreen');
+}
 
 const state = {
   category: null,
@@ -23,7 +85,47 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-// Category selection
+// Login form
+$('loginBtn').addEventListener('click', async () => {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPassword').value;
+  const errBox = $('loginError');
+  errBox.hidden = true;
+  if (!email || !password) {
+    errBox.textContent = 'Enter your email and password.';
+    errBox.hidden = false;
+    return;
+  }
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = 'Signing in…';
+  try {
+    await login(email, password);
+    $('loginPassword').value = '';
+    $('logoutBtn').hidden = false;
+    showScreen('categoryScreen');
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.hidden = false;
+  } finally {
+    $('loginBtn').disabled = false;
+    $('loginBtn').textContent = 'Sign In →';
+  }
+});
+$('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('loginBtn').click();
+});
+$('logoutBtn').addEventListener('click', logout);
+
+// Startup: require H38 login before anything else
+(async function init() {
+  const token = await getAccessToken();
+  if (token) {
+    $('logoutBtn').hidden = false;
+    showScreen('categoryScreen');
+  } else {
+    showScreen('loginScreen');
+  }
+})();
 document.querySelectorAll('.category-card').forEach(card => {
   card.addEventListener('click', () => {
     state.category = card.dataset.category;
@@ -83,11 +185,16 @@ $('diagnoseBtn').addEventListener('click', async () => {
 });
 
 async function supabaseFetch(path, options = {}) {
+  const token = await getAccessToken();
+  if (!token) {
+    logout();
+    throw new Error('Please sign in first.');
+  }
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...options.headers,
@@ -95,6 +202,7 @@ async function supabaseFetch(path, options = {}) {
   });
   if (!res.ok) {
     const text = await res.text();
+    if (res.status === 401) { logout(); }
     throw new Error(`Supabase error ${res.status}: ${text.substring(0, 200)}`);
   }
   return res.json();
