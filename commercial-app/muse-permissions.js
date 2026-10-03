@@ -13,10 +13,10 @@ const REQUIRED_PERMS=[
   {id:'office',title:'Business Office Access',desc:'Read and manage your customers, quotes, jobs, schedule, and money. Required for Muse to help run your business.',icon:'🏢',required:true},
   {id:'email',title:'Business Email',desc:'Send quotes, invoices, and customer messages from your business email. Required at minimum.',icon:'📧',required:true},
   {id:'drive',title:'Google Drive',desc:'Access job files, photos, documents, and customer records stored in Drive. Required for installation.',icon:'💾',required:true},
+  {id:'calendar',title:'Calendar',desc:'View and manage your work schedule. Required for installation.',icon:'📅',required:true},
 ];
 
 const OPTIONAL_PERMS=[
-  {id:'calendar',title:'Calendar',desc:'View and manage your work schedule.',icon:'📅',required:false},
   {id:'sms',title:'Business SMS',desc:'Send text messages to customers.',icon:'💬',required:false},
   {id:'fleet',title:'Fleet Location',desc:'View vehicle locations for dispatch.',icon:'🚛',required:false},
 ];
