@@ -1,0 +1,30 @@
+/* H38 AI Onboarding styles */
+.h38-onboard-steps{display:flex;gap:8px;margin:0 0 16px;overflow-x:auto;padding-bottom:4px}
+.h38-onboard-step{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:140px;text-align:left;cursor:pointer}
+.h38-onboard-step.active{border-color:var(--blue);box-shadow:0 0 0 2px rgba(23,74,112,.12)}
+.h38-onboard-step.done{opacity:.75}
+.h38-onboard-step:disabled{cursor:default;opacity:.5}
+.h38-onboard-num{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--line);font-size:.8rem;font-weight:600;flex-shrink:0}
+.h38-onboard-step.active .h38-onboard-num{background:var(--blue);color:#fff}
+.h38-onboard-step strong{display:block;font-size:.85rem}
+.h38-onboard-step small{color:var(--muted);font-size:.72rem}
+.h38-onboard-choice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.h38-onboard-card{display:grid;gap:6px;padding:18px;border:2px solid var(--line);border-radius:14px;background:#fff;text-align:left;cursor:pointer;transition:border-color .15s}
+.h38-onboard-card:hover{border-color:var(--blue)}
+.h38-onboard-card span{font-size:1.8rem}
+.h38-onboard-card strong{font-size:1rem}
+.h38-onboard-card small{color:var(--muted);font-size:.82rem;line-height:1.4}
+.h38-onboard-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+.h38-onboard-ai-box{border:1px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#fafbfc}
+.h38-ai-suggestions{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff}
+.h38-ai-sug{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer}
+.h38-ai-sug input{margin:0}
+.h38-onboard-review{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.h38-onboard-review section{border:1px solid var(--line);border-radius:8px;padding:10px}
+.h38-onboard-review h3{margin:0 0 8px;font-size:.9rem;color:var(--navy)}
+.h38-onboard-review p{margin:4px 0;font-size:.85rem}
+@media(max-width:700px){
+  .h38-onboard-choice{grid-template-columns:1fr}
+  .h38-onboard-review{grid-template-columns:1fr}
+  .h38-onboard-row{grid-template-columns:1fr;gap:6px}
+}
