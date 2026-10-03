@@ -22,7 +22,7 @@ for(const s of ['retiredRecorder:true','sameWalkthroughSpeech:true','microphoneR
 absent(voice,'navigator.mediaDevices','same-video audio derivative');absent(voice,'new MediaRecorder','same-video audio derivative');
 for(const s of ['walkthroughVideoToProfessionalNotes:true','editableSavedNotes:true','videoMeasurementCandidates:true','plainVideoDepthGeometry:false','NO_AUDIO','Original spoken transcript — internal evidence','spokenMeasurementsFieldVerified:false','h38-walkthrough-transcription','refreshAuthBeforeSiteVisitSync:true'])must(transcription,s,'transcription');
 for(const s of ['NO_USABLE_AUDIO','https://api.openai.com/v1/audio/transcriptions'])must(server,s,'transcription edge function');
-for(const s of ['letsource=video','if(audioId)source=awaitrequireEvidence','automaticApproval:false','automaticCustomerSending:false'])must(compactServer,s,'transcription edge function');
+for(const s of ['letsource=video','if(audioId)source=await','requireEvidence(service,businessId,captureSessionId,quoteId,audioId','automaticApproval:false','automaticCustomerSending:false'])must(compactServer,s,'transcription edge function');
 for(const s of ['retired:true','cameraAuthority:false','microphoneAuthority:false','webSiteVisitPrimary:true','siteManagerAppRequired:false','nativeCompanionOptional:true'])must(direct,s,'retired Android WebView camera');
 for(const s of ["primary:'business-office-web'","browserRecorder:'commercial-app/field-visit-video.js'",'cameraMicrophoneViaBrowser:true'])must(direct,s,'web-first Site Visit authority');
 absent(direct,'media.getUserMedia','retired Android WebView camera');
