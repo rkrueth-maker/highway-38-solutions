@@ -324,11 +324,11 @@ async function handleBusinessControl(command){
   }
   if(kind==='team'){
     openErpSurface('erp','#h38TeamAccess',false);
-    return'Opened Team Access in ERP Center. Adding, changing, or removing employee access still requires the explicit Team Access controls.';
+    return'Opened Team Access in Business Center. Adding, changing, or removing employee access still requires the explicit Team Access controls.';
   }
   if(kind==='data'){
     openErpSurface('erp','#h38DataUptake',false);
-    return'Opened Existing-data uptake in ERP Center. H38 does not stage or apply an import until you use those explicit controls.';
+    return'Opened Existing-data uptake in Business Center. H38 does not stage or apply an import until you use those explicit controls.';
   }
   if(kind==='learning'){
     const runAnalysis=/\b(analy[sz]e|run|check|review|learn from)\b/.test(lower(command));
@@ -336,7 +336,7 @@ async function handleBusinessControl(command){
     return runAnalysis?'Opened Business-specific quote learning and started the internal advisory analysis. It does not change quote prices, approve, or send anything.':'Opened Business-specific quote learning. It remains tenant-only and advisory.';
   }
   openErpSurface('erp','',false);
-  return'Opened H38 ERP Center. External actions remain owner-controlled.';
+  return'Opened H38 Business Center. External actions remain owner-controlled.';
 }
 function augmentCommandBus(){
   const base=window.H38_ASSISTANT_COMMAND_BUS;
@@ -396,7 +396,7 @@ function addManagementChips(){
   if(window.state?.page!=='assistant'||isStaff())return;
   const chips=document.querySelector('#paCommandForm .h38-assistant-command-chips');
   if(!chips)return;
-  managementChip(chips,'ERP center','Open ERP Center','erp');
+  managementChip(chips,'Business center','Open Business Center','erp');
   managementChip(chips,'Time & attendance','Open Time & Attendance','time');
   managementChip(chips,'Team access','Open Team Access','team');
 }
