@@ -7,11 +7,13 @@ function renderPage(){if(!state.snapshot){renderWelcome();return;}const renderer
 openPage.__h38Meetings=true;
 renderPage.__h38Meetings=true;
 function records(name){return state.snapshot?.[name]||[];}
+function isTestRecord(row){if(!row||typeof row!=='object')return false;const t=v=>String(v==null?'':v).trim();const name=t(v(row,'Customer Name','Project Title','Job Name','Display Name','name','title'));const status=t(v(row,'Status','status'));const id=t(rowId(row,'Customer ID','Job ID','User ID','customerId','jobId','userId'));return /\bTEST\b/i.test(name)||/\bTEST\b/i.test(status)||/^(LOCAL-|TEST-)/i.test(id)||row.__localTest===true;}
+function visibleRecords(name){return records(name).filter(row=>!isTestRecord(row));}
 function customerName(id){const row=records('customers').find(x=>rowId(x,'Customer ID','customerId')===String(id));return v(row,'Customer Name','name')||'No customer';}
 function jobName(id){const row=records('jobs').find(x=>rowId(x,'Job ID','jobId')===String(id));return v(row,'Project Title','projectTitle')||'No job';}
 function userName(id){if(id==='USER-OWNER')return state.snapshot?.business?.ownerName||'Owner';const row=records('users').find(x=>rowId(x,'User ID','userId')===String(id));return v(row,'Display Name','displayName','Email')||id||'Unassigned';}
 function assetName(id){const row=records('assets').find(x=>rowId(x,'Asset ID','assetId')===String(id));return v(row,'Description','description')||id||'Equipment';}
-function optionRows(rows,idKeys,labelFn,blank='Select'){return`<option value="">${esc(blank)}</option>`+rows.map(row=>`<option value="${esc(rowId(row,...idKeys))}">${esc(labelFn(row))}</option>`).join('');}
+function optionRows(rows,idKeys,labelFn,blank='Select'){const seen=new Set();const clean=(rows||[]).filter(row=>{if(isTestRecord(row))return false;const id=String(rowId(row,...idKeys));if(seen.has(id))return false;seen.add(id);return true;});return`<option value="">${esc(blank)}</option>`+clean.map(row=>`<option value="${esc(rowId(row,...idKeys))}">${esc(labelFn(row))}</option>`).join('');}
 function activeRows(rows){return rows.filter(row=>!['ARCHIVED','INACTIVE','CANCELLED'].includes(String(v(row,'Status','status')).toUpperCase()));}
 function dueSoon(value,days=14){if(!value)return false;const time=new Date(value).getTime();return Number.isFinite(time)&&time<=Date.now()+days*86400000;}
 function serverSafeguard(){return`<div class="notice warn"><strong>Owner control:</strong> drafts and internal work can be created here. Nothing is automatically sent, published, purchased, paid, deleted or approved.</div>`;}
