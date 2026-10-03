@@ -94,7 +94,7 @@ function patchQuickDialog(){
   }
   const existingOps=grid.querySelector('[data-h38-owner-quick="operations"]');
   if(mobile()&&manager()&&!existingOps){
-    const ops=makeAction('operations','📊','Operations Intelligence','Pre-visit brief and operating signals',openOperations);
+    const ops=makeAction('operations','📊','Operations Intelligence','Pre-visit brief and business health scores',openOperations);
     grid.appendChild(ops);
   }else if(!mobile()&&existingOps)existingOps.remove();
   if(dialog.dataset.h38OwnerMobileQuickActions!=='7')dialog.dataset.h38OwnerMobileQuickActions='7';
