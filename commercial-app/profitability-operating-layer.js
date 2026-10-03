@@ -146,14 +146,14 @@ function profitGuardMarkup(model,settings){
   const targetGap=model.complete&&model.targetPrice>model.revenue?model.targetPrice-model.revenue:0;
   return `<section id="h38ProfitGuard" class="card h38-profit-card" data-h38-profit-guard="true">
     <div class="row-top"><div><span class="h38-profit-kicker">OWNER PROFIT GUARD</span><h2>Price the job for profit</h2></div><span class="pill ${marginGood?'online':model.complete?'warn':'neutral'}">${marginGood?'On target':model.complete?'Review margin':'Cost data needed'}</span></div>
-    <p class="h38-profit-note">Uses recorded quote prices and exact Price Book cost matches. Unknown costs stay unknown. Nothing changes the quote, approves it, or sends anything to the customer.</p>
+    <p class="h38-profit-note">Uses recorded quote prices and exact Price Book cost matches. Lines without a cost match are excluded from the margin calculation. Nothing changes the quote, approves it, or sends anything to the customer.</p>
     <div class="h38-profit-grid">
       <div class="h38-profit-metric"><small>Quote revenue</small><strong>${currency(model.revenue)}</strong></div>
       <div class="h38-profit-metric"><small>Known direct cost</small><strong>${currency(model.knownDirectCost)}</strong></div>
       <div class="h38-profit-metric"><small>Planning margin</small><strong>${marginText}</strong></div>
       <div class="h38-profit-metric"><small>Cost coverage</small><strong>${model.coverage.toFixed(0)}%</strong></div>
     </div>
-    <div class="h38-profit-alert ${marginGood?'h38-profit-ok':''}">${model.complete?(marginGood?`Margin is at or above the ${settings.targetMarginPct.toFixed(0)}% target.`:`Target margin is ${settings.targetMarginPct.toFixed(0)}%. ${targetGap>0?`Current known costs indicate about <strong>${currency(model.targetPrice)}</strong> in revenue is needed (${currency(targetGap)} above this draft).`:'Review line pricing and cost assumptions before approval.'}`):`${model.unknownLines} quote line${model.unknownLines===1?'':'s'} do not have an exact cost match. Add or link Price Book costs before treating the margin as reliable.`}</div>
+    <div class="h38-profit-alert ${marginGood?'h38-profit-ok':''}">${model.complete?(marginGood?`Margin is at or above the ${settings.targetMarginPct.toFixed(0)}% target.`:`Target margin is ${settings.targetMarginPct.toFixed(0)}%. ${targetGap>0?`Current known costs indicate about <strong>${currency(model.targetPrice)}</strong> in revenue is needed (${currency(targetGap)} above this draft).`:'Review line pricing and cost assumptions before approval.'}`):`${model.unknownLines} quote line${model.unknownLines===1?'':'s'} need cost information. Add or link Price Book costs for a reliable margin estimate.`}</div>
     <div class="h38-profit-controls" aria-label="Profitability planning assumptions">
       <label>Target margin %<input id="h38ProfitTargetMargin" type="number" min="1" max="80" step="1" value="${settings.targetMarginPct}"></label>
       <label>Labor burden %<input id="h38ProfitLaborBurden" type="number" min="0" max="200" step="1" value="${settings.laborBurdenPct}"></label>
@@ -254,7 +254,7 @@ function leaksModel(backCosts,health,book,settings){
   if((health.systems.costCoverage||0)<100&&health.systems.lineCount>0)leaks.push({level:'warn',title:`${Math.round(100-(health.systems.costCoverage||0))}% of sampled quote lines lack exact cost coverage`,detail:'Link quote lines to Price Book items/assemblies before trusting margin forecasts.'});
   const unlinkedExpenses=realRows('expenses').filter(row=>!idOf(row,'Job ID','jobId'));if(unlinkedExpenses.length)leaks.push({level:'warn',title:`${unlinkedExpenses.length} recorded expense${unlinkedExpenses.length===1?'':'s'} not linked to a job`,detail:'Unlinked costs weaken job profitability and pricing lessons.'});
   const missingRates=backCosts.reduce((sum,row)=>sum+row.unknownLaborHours,0);if(missingRates>0)leaks.push({level:'warn',title:`${missingRates.toFixed(1)} labor hour${missingRates===1?'':'s'} missing an employee hourly rate`,detail:'Load employee rates so back-costing can include labor. The burden assumption remains an owner planning value.'});
-  if(!leaks.length)leaks.push({level:'online',title:'No major recorded profit leaks detected',detail:'Keep recording job time, expenses, invoices and quote decisions so H38 can keep checking.'});
+  if(!leaks.length)leaks.push({level:'warn',title:'Profitability needs attention',detail:'No specific leaks found in recorded data, but the overall score is low. Keep recording job time, expenses, invoices and quote decisions so H38 can identify the gaps.'});
   return leaks.slice(0,6);
 }
 const PLAN_ACTIONS=Object.freeze({
