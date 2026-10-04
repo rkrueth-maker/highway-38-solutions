@@ -17,7 +17,46 @@ const FEATURE_TOGGLES=[
   {id:'auto_reminders',title:'Auto payment reminders',desc:'Automatically send payment reminders for overdue invoices.',icon:'🔔',default:false,category:'Money'},
   {id:'gps_tracking',title:'GPS location tracking',desc:'Track staff location during work hours.',icon:'📍',default:false,category:'Fleet'},
   {id:'ai_suggestions',title:'AI suggestions',desc:'Show AI-powered suggestions throughout the app.',icon:'🤖',default:true,category:'AI'},
+  {id:'repair_guide_enabled',title:'Repair Guide integration',desc:'Connect the standalone Repair Guide app: send diagnoses to Office jobs and quote drafts, link garage vehicles to customers, deep links both ways. Off by default — the Repair Guide keeps working standalone.',icon:'🔧',default:false,category:'Modules'},
 ];
+
+// Repair Guide module setting (server-side mirror).
+// The standalone Repair Guide app verifies this row server-side before it
+// activates its Office features, so the owner's intent here is enforced even
+// when the Guide is opened on another device or by another user.
+const REPAIR_GUIDE_MODULE_KEY='repair_guide';
+function repairGuideSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===REPAIR_GUIDE_MODULE_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isRepairGuideEnabled(){
+  const row=repairGuideSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('repair_guide_enabled');
+}
+// Owner/admin only. Mirrors the toggle to business_module_settings and keeps
+// the local toggle in sync. Throws when the server write fails.
+async function setRepairGuideEnabled(enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can turn the Repair Guide integration on or off.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const row={business_id:bid,module_key:REPAIR_GUIDE_MODULE_KEY,enabled:!!enabled,config:{},updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===REPAIR_GUIDE_MODULE_KEY);
+    const snap={moduleKey:REPAIR_GUIDE_MODULE_KEY,module_key:REPAIR_GUIDE_MODULE_KEY,enabled:!!enabled,config:{}};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['repair_guide_enabled']=!!enabled;
+  saveToggles(toggles);
+}
 
 // Module visibility - show/hide entire sections
 const MODULES=[
@@ -215,7 +254,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${toggles[f.id]?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -263,7 +302,29 @@ function renderOwnerControls(){
 function bindOwnerControls(){
   bindMachineShop();
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
-    checkbox.onchange=()=>{
+    checkbox.onchange=async()=>{
+      const id=checkbox.dataset.toggle;
+      // The Repair Guide toggle is mirrored to the server so the standalone
+      // app can verify the owner's intent. Revert locally if the write fails.
+      if(id==='repair_guide_enabled'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON the Repair Guide integration? The standalone Repair Guide app can then send diagnoses to this Office as job and quote drafts (owner review required, nothing is sent to customers). The Repair Guide keeps working on its own either way.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setRepairGuideEnabled(want);
+          if(typeof toast==='function') toast('Repair Guide integration '+(want?'turned ON.':'turned OFF.'));
+          if(window.renderNav) try{window.renderNav();}catch(e){}
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       const toggles=getToggles();
       toggles[checkbox.dataset.toggle]=checkbox.checked;
       saveToggles(toggles);
@@ -286,6 +347,8 @@ window.H38OwnerControls={
   render:renderOwnerControls,
   bind:bindOwnerControls,
   isEnabled:isFeatureEnabled,
+  isRepairGuideEnabled:isRepairGuideEnabled,
+  setRepairGuideEnabled:setRepairGuideEnabled,
   isModuleVisible:isModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,

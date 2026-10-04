@@ -269,6 +269,9 @@ window.H38_HEARTBEAT = {
 </script>
 <script src="js/heartbeat.js"></script>
 <script src="js/app.js"></script>
+  <!-- Office integration bridge: fully dormant unless ?office_business= is present
+       and the business enabled the integration server-side. -->
+  <script src="js/office-bridge.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
