@@ -139,6 +139,69 @@ $('logoutBtn').addEventListener('click', logout);
 })();
 
 // Parts lookup
+async function decodeVIN(vin) {
+  vin = String(vin || '').trim().toUpperCase();
+  if (vin.length !== 17) throw new Error('VIN must be 17 characters.');
+  const res = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`);
+  if (!res.ok) throw new Error('VIN lookup failed.');
+  const data = await res.json();
+  const get = (name) => {
+    const row = (data.Results || []).find(r => r.Variable === name);
+    const v = row && String(row.Value || '').trim();
+    return v && v !== 'Not Applicable' ? v : '';
+  };
+  return {
+    year: get('Model Year'),
+    make: get('Make'),
+    model: get('Model'),
+    trim: get('Trim'),
+    engine: get('Engine Model') || get('Displacement (L)'),
+    vehicleType: get('Vehicle Type'),
+    error: get('Error Text'),
+  };
+}
+
+async function checkRecalls(make, model, year) {
+  if (!make || !model || !year) return [];
+  const res = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.results || []).slice(0, 10).map(r => ({
+    component: r.Component || '',
+    summary: r.Summary || '',
+    consequence: r.Consequence || '',
+  }));
+}
+
+$('vinDecodeBtn').addEventListener('click', async () => {
+  const vinEl = $('vinInput'), outEl = $('vinResult'), recallEl = $('recallResult');
+  outEl.textContent = 'Decoding…';
+  recallEl.innerHTML = '';
+  try {
+    const info = await decodeVIN(vinEl.value);
+    if (info.error && !info.make) throw new Error(info.error);
+    const vehicle = [info.year, info.make, info.model, info.trim].filter(Boolean).join(' ');
+    if (vehicle) {
+      $('partsVehicle').value = vehicle;
+      outEl.textContent = `✓ ${vehicle}${info.engine ? ' — ' + info.engine : ''}${info.error ? ' (note: ' + info.error + ')' : ''}`;
+    } else {
+      outEl.textContent = 'Could not decode this VIN.' + (info.error ? ' ' + info.error : '');
+      return;
+    }
+    recallEl.innerHTML = '<p class="small muted">Checking recalls…</p>';
+    const recalls = await checkRecalls(info.make, info.model, info.year);
+    if (recalls.length) {
+      recallEl.innerHTML = `<div class="notice warn"><strong>⚠ ${recalls.length} open recall${recalls.length === 1 ? '' : 's'} found</strong>` +
+        recalls.map(r => `<div class="small" style="margin-top:6px"><strong>${esc(r.component)}</strong><br>${esc(r.summary.slice(0, 200))}</div>`).join('') +
+        `<div class="small muted" style="margin-top:6px">Check with a dealer — recall repairs are free.</div></div>`;
+    } else {
+      recallEl.innerHTML = '<p class="small muted">✓ No open recalls found for this vehicle.</p>';
+    }
+  } catch (err) {
+    outEl.textContent = 'VIN lookup failed: ' + (err.message || err);
+  }
+});
+
 $('findPartsBtn').addEventListener('click', async () => {
   const vehicle = $('partsVehicle').value.trim();
   const needed = $('partsNeeded').value.trim();
@@ -173,6 +236,7 @@ async function requestParts(data) {
         businessId: BUSINESS_ID,
         vehicle: data.vehicle,
         needed: data.needed,
+        mode: data.mode || 'full',
       },
     }),
   });
@@ -196,13 +260,22 @@ function renderParts(result) {
   $('partsLoading').hidden = true;
   $('partsResult').hidden = false;
   const opts = $('partsOptions'), time = $('partsTime'), howto = $('partsHowTo'),
-        stores = $('partsStores'), notes = $('partsNotes');
+        stores = $('partsStores'), notes = $('partsNotes'), priceCmp = $('partsPriceCompare');
   const list = result.options || result.parts || [];
   opts.innerHTML = list.length
     ? list.map(p => `<div class="part"><div class="part-name">${escapeHtml(p.name || p.title || '')}</div>
         ${p.detail ? `<div>${escapeHtml(p.detail)}</div>` : ''}
         ${p.price ? `<div class="part-price">${escapeHtml(p.price)}</div>` : ''}</div>`).join('')
     : '<p class="muted">No specific options returned.</p>';
+  const pc = result.price_comparison;
+  priceCmp.innerHTML = pc
+    ? `<div class="price-compare">
+        ${pc.local ? `<div class="price-row"><span class="price-source">🏪 Local stores</span><span class="part-price">${escapeHtml(pc.local)}</span>${pc.local_note ? `<div class="small muted">${escapeHtml(pc.local_note)}</div>` : ''}</div>` : ''}
+        ${pc.amazon ? `<div class="price-row"><span class="price-source">📦 Amazon</span><span class="part-price">${escapeHtml(pc.amazon)}</span>${pc.amazon_note ? `<div class="small muted">${escapeHtml(pc.amazon_note)}</div>` : ''}</div>` : ''}
+        ${pc.rockauto ? `<div class="price-row"><span class="price-source">🔧 RockAuto</span><span class="part-price">${escapeHtml(pc.rockauto)}</span><div class="small muted">+ shipping — RockAuto does NOT offer free shipping${pc.rockauto_note ? ' · ' + escapeHtml(pc.rockauto_note) : ''}</div></div>` : ''}
+        ${pc.best_value ? `<div class="notice good" style="margin-top:8px"><strong>Best value:</strong> ${escapeHtml(pc.best_value)}</div>` : ''}
+      </div>`
+    : '<p class="muted">No price comparison returned.</p>';
   time.innerHTML = result.time_estimate
     ? `<p>${escapeHtml(result.time_estimate)}</p>`
     : '<p class="muted">—</p>';
@@ -230,6 +303,140 @@ $('newPartsBtn').addEventListener('click', () => {
   $('partsVehicle').value = '';
   $('partsNeeded').value = '';
   showScreen('homeScreen');
+});
+
+// Quick parts sourcing: just prices, no job guide
+$('goSource').addEventListener('click', () => showScreen('sourceScreen'));
+$('backToHomeFromSource').addEventListener('click', () => showScreen('homeScreen'));
+$('backToSource').addEventListener('click', () => showScreen('sourceScreen'));
+$('newSourceBtn').addEventListener('click', () => {
+  $('sourceNeeded').value = ''; $('sourceVehicle').value = '';
+  showScreen('homeScreen');
+});
+$('sourceBtn').addEventListener('click', async () => {
+  const needed = $('sourceNeeded').value.trim();
+  if (!needed) { alert('Tell me what part you need.'); return; }
+  const vehicle = $('sourceVehicle').value.trim();
+  showScreen('sourceResultScreen');
+  $('sourceLoading').hidden = false;
+  $('sourceResult').hidden = true;
+  $('sourceLoading').innerHTML = '<div class="spinner"></div><p>Kit is checking prices...<br><small>This usually takes under a minute</small></p>';
+  try {
+    const result = await requestParts({ vehicle: vehicle || 'Not specified', needed, mode: 'sourcing' });
+    renderSourcing(result);
+    saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle,
+      topIssue: result && result.summary ? result.summary : '' });
+  } catch (err) {
+    $('sourceLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
+  }
+});
+function renderSourcing(result) {
+  $('sourceLoading').hidden = true;
+  $('sourceResult').hidden = false;
+  const pc = result.price_comparison;
+  $('sourcePriceCompare').innerHTML = pc
+    ? `<div class="price-compare">
+        ${pc.local ? `<div class="price-row"><span class="price-source">🏪 Local stores</span><span class="part-price">${escapeHtml(pc.local)}</span>${pc.local_note ? `<div class="small muted">${escapeHtml(pc.local_note)}</div>` : ''}</div>` : ''}
+        ${pc.amazon ? `<div class="price-row"><span class="price-source">📦 Amazon</span><span class="part-price">${escapeHtml(pc.amazon)}</span>${pc.amazon_note ? `<div class="small muted">${escapeHtml(pc.amazon_note)}</div>` : ''}</div>` : ''}
+        ${pc.rockauto ? `<div class="price-row"><span class="price-source">🔧 RockAuto</span><span class="part-price">${escapeHtml(pc.rockauto)}</span><div class="small muted">+ shipping — RockAuto does NOT offer free shipping${pc.rockauto_note ? ' · ' + escapeHtml(pc.rockauto_note) : ''}</div></div>` : ''}
+        ${pc.best_value ? `<div class="notice good" style="margin-top:8px"><strong>Best value:</strong> ${escapeHtml(pc.best_value)}</div>` : ''}
+      </div>`
+    : '<p class="muted">No price comparison returned.</p>';
+  const list = result.options || [];
+  $('sourceOptions').innerHTML = list.length
+    ? list.map(p => `<div class="part"><div class="part-name">${escapeHtml(p.name || p.title || '')}</div>
+        ${p.detail ? `<div>${escapeHtml(p.detail)}</div>` : ''}
+        ${p.price ? `<div class="part-price">${escapeHtml(p.price)}</div>` : ''}</div>`).join('')
+    : '<p class="muted">No options returned.</p>';
+  const buyList = result.stores || [];
+  $('sourceStores').innerHTML = buyList.length
+    ? buyList.map(s => `<div class="part"><div class="part-name">${escapeHtml(typeof s === 'string' ? s : (s.name || ''))}</div>
+        ${typeof s === 'object' && s.detail ? `<div>${escapeHtml(s.detail)}</div>` : ''}</div>`).join('')
+    : '<p class="muted">No store suggestions returned.</p>';
+}
+
+// My Garage: vehicles + maintenance reminders (stored on this phone)
+const GARAGE_KEY = 'h38-repair-guide-garage';
+function getGarage() {
+  try { return JSON.parse(localStorage.getItem(GARAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveGarage(list) {
+  localStorage.setItem(GARAGE_KEY, JSON.stringify(list));
+}
+const MAINTENANCE_ITEMS = [
+  { name: 'Oil change', miles: 5000, months: 6 },
+  { name: 'Tire rotation', miles: 7500, months: 6 },
+  { name: 'Air filter', miles: 15000, months: 12 },
+  { name: 'Brake inspection', miles: 12000, months: 12 },
+  { name: 'Coolant flush', miles: 30000, months: 24 },
+  { name: 'Transmission service', miles: 30000, months: 24 },
+];
+function renderGarage() {
+  const list = getGarage();
+  const el = $('garageList');
+  if (!list.length) {
+    el.innerHTML = '<p class="muted">No vehicles yet. Add one below.</p>';
+    return;
+  }
+  const now = Date.now();
+  el.innerHTML = list.map((v, i) => {
+    const reminders = MAINTENANCE_ITEMS.map(item => {
+      const lastMiles = v.lastService && v.lastService[item.name] ? v.lastService[item.name].miles : 0;
+      const lastDate = v.lastService && v.lastService[item.name] ? v.lastService[item.name].date : null;
+      const milesDue = v.miles ? (lastMiles + item.miles - v.miles) : null;
+      const dateDue = lastDate ? new Date(new Date(lastDate).getTime() + item.months * 30 * 86400000) : null;
+      const overdue = (milesDue !== null && milesDue <= 0) || (dateDue && dateDue < now);
+      const dueSoon = (milesDue !== null && milesDue <= 500) || (dateDue && dateDue < now + 30 * 86400000);
+      if (!overdue && !dueSoon && lastDate) return '';
+      const status = overdue ? '🔴 Overdue' : (dueSoon ? '🟡 Due soon' : '⚪ No record — set a baseline');
+      return `<div class="small">${status}: ${escapeHtml(item.name)}${milesDue !== null && lastMiles ? ` (in ~${Math.max(0, milesDue).toLocaleString()} mi)` : ''}</div>`;
+    }).filter(Boolean).join('');
+    return `<div class="part"><div class="part-name">${escapeHtml(v.name || v.vehicle)}</div>
+      <div class="small muted">${escapeHtml(v.vehicle || '')}${v.miles ? ' · ' + Number(v.miles).toLocaleString() + ' mi' : ''}</div>
+      ${reminders ? `<div style="margin-top:8px">${reminders}</div>` : '<div class="small muted" style="margin-top:8px">No service history — tap "Log service" after your next oil change.</div>'}
+      <div class="actions" style="margin-top:8px">
+        <button class="secondary-btn" data-garage-service="${i}">Log service</button>
+        <button class="secondary-btn" data-garage-miles="${i}">Update miles</button>
+        <button class="danger" data-garage-del="${i}">Remove</button>
+      </div></div>`;
+  }).join('');
+  el.querySelectorAll('[data-garage-del]').forEach(b => b.onclick = () => {
+    const l = getGarage(); l.splice(Number(b.dataset.garageDel), 1); saveGarage(l); renderGarage();
+  });
+  el.querySelectorAll('[data-garage-miles]').forEach(b => b.onclick = () => {
+    const miles = prompt('Current odometer reading:');
+    if (miles && !isNaN(Number(miles))) {
+      const l = getGarage(); l[Number(b.dataset.garageMiles)].miles = Number(miles); saveGarage(l); renderGarage();
+    }
+  });
+  el.querySelectorAll('[data-garage-service]').forEach(b => b.onclick = () => {
+    const item = prompt('What service? (e.g. Oil change)\n' + MAINTENANCE_ITEMS.map(m => m.name).join(', '));
+    if (!item) return;
+    const miles = prompt('Odometer at service (optional):');
+    const l = getGarage(); const v = l[Number(b.dataset.garageService)];
+    v.lastService = v.lastService || {};
+    v.lastService[item] = { date: new Date().toISOString(), miles: miles && !isNaN(Number(miles)) ? Number(miles) : (v.miles || 0) };
+    if (miles && !isNaN(Number(miles))) v.miles = Number(miles);
+    saveGarage(l); renderGarage();
+  });
+}
+$('goGarage').addEventListener('click', () => { renderGarage(); showScreen('garageScreen'); });
+$('backToHomeFromGarage').addEventListener('click', () => showScreen('homeScreen'));
+$('garageAddBtn').addEventListener('click', () => {
+  const vehicle = $('garageVehicle').value.trim();
+  if (!vehicle) { alert('Enter the vehicle.'); return; }
+  const list = getGarage();
+  list.push({
+    name: $('garageName').value.trim(),
+    vehicle,
+    miles: $('garageMiles').value ? Number($('garageMiles').value) : 0,
+    lastService: {},
+    addedAt: new Date().toISOString(),
+  });
+  saveGarage(list);
+  $('garageName').value = ''; $('garageVehicle').value = ''; $('garageMiles').value = '';
+  renderGarage();
 });
 
 // Repair log (stored on this phone)
