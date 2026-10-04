@@ -50,3 +50,8 @@ header{position:relative}
 .repair-symptoms{margin-bottom:4px}
 .repair-unit{font-size:.9rem;color:#a5d6a7}
 .repair-issue{font-size:.9rem;color:#ffcc80;margin-top:4px}
+.price-compare{background:#1a3a24;border-radius:8px;padding:12px;margin-bottom:8px}
+.price-row{padding:10px 0;border-bottom:1px solid #2d5a3d}
+.price-row:last-child{border-bottom:none}
+.price-source{font-weight:600;display:block;margin-bottom:4px}
+.price-compare .part-price{font-size:1.1rem;color:#ffd54f;font-weight:600}
