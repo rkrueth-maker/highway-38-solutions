@@ -60,7 +60,7 @@ function renderProfile(){
       <div><label>Business name</label><input name="businessName" value="${esc(d.businessName)}" required placeholder="Highway 38 Solutions"></div>
       <div><label>Business type</label><select name="businessType">
         <option value="">Select type...</option>
-        ${['General Contractor','Home Services','Lawn Care & Landscaping','Snow Removal','Plumbing','Electrical','HVAC','Painting','Roofing','Cleaning Services','Other'].map(t=>`<option ${d.businessType===t?'selected':''}>${t}</option>`).join('')}
+        ${['General Contractor','Home Services','Lawn Care & Landscaping','Snow Removal','Plumbing','Electrical','HVAC','Painting','Roofing','Cleaning Services','Machine Shop','Other'].map(t=>`<option ${d.businessType===t?'selected':''}>${t}</option>`).join('')}
       </select></div>
     </div>
     <div class="two">
@@ -141,6 +141,7 @@ function renderReview(){
       <section><h3>Customers (${d.customers.length})</h3>${d.customers.map(c=>`<p>${esc(c.name)}${c.phone?' — '+esc(c.phone):''}</p>`).join('')||'<p class="muted">None</p>'}</section>
       <section><h3>Team (${d.team.length})</h3>${d.team.map(t=>`<p>${esc(t.name)}${t.email?' — '+esc(t.email):''}</p>`).join('')||'<p class="muted">None</p>'}</section>
     </div>
+    ${d.businessType==='Machine Shop'?`<div class="card" style="margin-top:12px"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="h38OnboardEnableShop" style="margin-top:4px"><span><strong>Enable the Machine Shop module</strong><br><span class="muted small">Adds the Machine Shop workspace: RFQ intake, supplier quote comparison, purchase orders, QC checks, shipping and reorder tracking. You can turn it off anytime in Settings → Owner Controls.</span></span></label></div>`:''}
     <div class="actions"><button type="button" class="secondary" data-onboard-nav="back">Back</button><button data-onboard-finish class="primary">✓ Launch my Office</button></div>
     <p class="muted small">This saves your business profile, services, customers, and team. You can change anything later in Settings.</p>
   </div>`;
@@ -305,6 +306,14 @@ async function finish(){
       }
     }
     toast('✓ Your Office is ready!');
+    // Machine-shop opt-in: only when the owner explicitly checked the box on the
+    // review step. The machine_shop module setting defaults OFF everywhere else.
+    try{
+      if(document.getElementById('h38OnboardEnableShop')?.checked &&
+         window.H38OwnerControls && typeof window.H38OwnerControls.setMachineShop==='function'){
+        await window.H38OwnerControls.setMachineShop(true).catch(()=>{});
+      }
+    }catch(e){/* module can be enabled later in Settings → Owner Controls */}
     if(window.openPage)window.openPage('today');
   }catch(e){
     toast('Save failed: '+e.message,true);
