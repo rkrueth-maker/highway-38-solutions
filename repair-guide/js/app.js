@@ -170,6 +170,7 @@ async function requestParts(data) {
       task_type: 'parts_lookup',
       status: 'pending',
       payload: {
+        businessId: BUSINESS_ID,
         vehicle: data.vehicle,
         needed: data.needed,
       },
