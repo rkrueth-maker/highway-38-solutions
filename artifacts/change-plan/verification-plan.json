@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-04T08:39:07.124Z",
+  "base": null,
+  "head": "HEAD",
+  "files": [
+    "commercial-app/app-09.js",
+    "commercial-app/index.html",
+    "commercial-app/sms-provider-setup.js",
+    "commercial-app/sms-provider.js",
+    "scripts/verify-sms-provider-setup.js",
+    "sms-providers-setup-pr-body.md"
+  ],
+  "fileCount": 6,
+  "scopes": {
+    "publicWebsite": true,
+    "authenticatedApp": true,
+    "customerPortal": false,
+    "sharedArchitecture": false,
+    "performanceReliability": true,
+    "workflowOnly": false,
+    "documentationOnly": false
+  },
+  "risk": {
+    "productionWorkflow": false,
+    "schemaOrDataOwner": false,
+    "approvedAssets": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
+    "externalActionBoundary": false,
+    "longRunningData": false
+  },
+  "fastChecks": [
+    "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
+  ],
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
+  ],
+  "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+  ],
+  "reusableEvidence": [],
+  "executionRules": [
+    "Run fast checks before expensive or live checks.",
+    "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
+    "Inspect the first failing stage before rerunning.",
+    "Rerun only the failed or affected scope when inputs are unchanged.",
+    "After the same failure twice, change the execution design instead of repeating the pipeline.",
+    "Preserve the live system and external-action locks when verification is HOLD."
+  ]
+}

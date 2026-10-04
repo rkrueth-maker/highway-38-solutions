@@ -1,0 +1,654 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-04T08:39:07.240Z",
+  "policy": "website-and-web-app-governance-v4-fast-reliable-execution",
+  "passed": 161,
+  "failed": 0,
+  "pass": [
+    {
+      "name": "agents exists",
+      "detail": "AGENTS.md"
+    },
+    {
+      "name": "governance exists",
+      "detail": "docs/architecture/WEBSITE_AND_WEB_APP_CHANGE_GOVERNANCE.md"
+    },
+    {
+      "name": "fastProcess exists",
+      "detail": "docs/architecture/FAST_RELIABLE_CHANGE_PROCESS.md"
+    },
+    {
+      "name": "appRules exists",
+      "detail": "docs/architecture/UNIFIED_APP_CHANGE_RULES.md"
+    },
+    {
+      "name": "performanceStandard exists",
+      "detail": "docs/architecture/MODULE_PERFORMANCE_STANDARD.md"
+    },
+    {
+      "name": "prTemplate exists",
+      "detail": ".github/PULL_REQUEST_TEMPLATE.md"
+    },
+    {
+      "name": "appModuleIssueForm exists",
+      "detail": ".github/ISSUE_TEMPLATE/app-module-change.yml"
+    },
+    {
+      "name": "performanceIssueForm exists",
+      "detail": ".github/ISSUE_TEMPLATE/performance-regression.yml"
+    },
+    {
+      "name": "websiteRules exists",
+      "detail": "docs/architecture/PUBLIC_WEBSITE_CHANGE_RULES.md"
+    },
+    {
+      "name": "moduleContract exists",
+      "detail": "apps-script/business-office/BusinessOffice_ModuleContract.gs"
+    },
+    {
+      "name": "actionContract exists",
+      "detail": "apps-script/business-office/BusinessOffice_ActionContract.gs"
+    },
+    {
+      "name": "moduleRegistry exists",
+      "detail": "apps-script/core-engine/owner-portal-next/Portal_Module_Registry.js"
+    },
+    {
+      "name": "siteShell exists",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "siteStyles exists",
+      "detail": "assets/css/h38-site-v2.css"
+    },
+    {
+      "name": "routeRegistry exists",
+      "detail": "scripts/config/public-website-routes.json"
+    },
+    {
+      "name": "approvedAssets exists",
+      "detail": "scripts/config/approved-public-assets.json"
+    },
+    {
+      "name": "imagePlacements exists",
+      "detail": "scripts/config/approved-public-image-placements.json"
+    },
+    {
+      "name": "pagesWorkflow exists",
+      "detail": ".github/workflows/pages-branch-fallback.yml"
+    },
+    {
+      "name": "appWorkflow exists",
+      "detail": ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    },
+    {
+      "name": "governanceWorkflow exists",
+      "detail": ".github/workflows/change-governance.yml"
+    },
+    {
+      "name": "websiteVerifier exists",
+      "detail": "scripts/verify-public-website-architecture.js"
+    },
+    {
+      "name": "appVerifier exists",
+      "detail": "scripts/verify-unified-app-architecture.js"
+    },
+    {
+      "name": "changePlanner exists",
+      "detail": "scripts/plan-change-verification.js"
+    },
+    {
+      "name": "packageJson exists",
+      "detail": "package.json"
+    },
+    {
+      "name": "root rules apply to every chat and change",
+      "detail": ""
+    },
+    {
+      "name": "root rules reference combined governance",
+      "detail": ""
+    },
+    {
+      "name": "root rules reference fast reliable process",
+      "detail": ""
+    },
+    {
+      "name": "root rules identify canonical module contract",
+      "detail": ""
+    },
+    {
+      "name": "root rules identify canonical action contract",
+      "detail": ""
+    },
+    {
+      "name": "root rules identify canonical public shell",
+      "detail": ""
+    },
+    {
+      "name": "root rules identify canonical image placement manifest",
+      "detail": ""
+    },
+    {
+      "name": "root rules require governance verification",
+      "detail": ""
+    },
+    {
+      "name": "root rules require change planning",
+      "detail": ""
+    },
+    {
+      "name": "root rules make performance a release requirement",
+      "detail": ""
+    },
+    {
+      "name": "root rules prohibit blind repeat failures",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Classify the change before editing",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Required change intake",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Adding to the public website",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Adding to the authenticated web app",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Deleting or retiring",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Prohibited additions",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Performance requirements",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Mandatory verification",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Deployment authority",
+      "detail": ""
+    },
+    {
+      "name": "governance section: Definition of done",
+      "detail": ""
+    },
+    {
+      "name": "governance locks logo and image binaries",
+      "detail": ""
+    },
+    {
+      "name": "governance preserves records and deployment IDs",
+      "detail": ""
+    },
+    {
+      "name": "governance blocks duplicate architecture",
+      "detail": ""
+    },
+    {
+      "name": "governance requires one app startup RPC",
+      "detail": ""
+    },
+    {
+      "name": "governance names both deployment authorities",
+      "detail": ""
+    },
+    {
+      "name": "performance and reliability rule changes are explicitly governed",
+      "detail": ""
+    },
+    {
+      "name": "protected invariants cannot be weakened",
+      "detail": ""
+    },
+    {
+      "name": "stale checks must be corrected not bypassed",
+      "detail": ""
+    },
+    {
+      "name": "verification is scope aware",
+      "detail": ""
+    },
+    {
+      "name": "security and destructive controls remain fail closed",
+      "detail": ""
+    },
+    {
+      "name": "fast checks run before expensive checks",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Primary operating rule",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Ten-line change brief",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Staged execution path",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Data generation and long-running operations",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Failure-handling rules",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Evidence reuse rules",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Workflow and verifier ownership",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Documentation update rule",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Fast handoff format",
+      "detail": ""
+    },
+    {
+      "name": "fast process section: Definition of done",
+      "detail": ""
+    },
+    {
+      "name": "fast process preserves protected invariants",
+      "detail": ""
+    },
+    {
+      "name": "fast process enforces one workstream and workflow",
+      "detail": ""
+    },
+    {
+      "name": "fast process requires planning command",
+      "detail": ""
+    },
+    {
+      "name": "fast process requires small resumable batches",
+      "detail": ""
+    },
+    {
+      "name": "fast process requires exact final counts and idempotency",
+      "detail": ""
+    },
+    {
+      "name": "fast process stops blind rerun loops",
+      "detail": ""
+    },
+    {
+      "name": "fast process preserves live system on HOLD",
+      "detail": ""
+    },
+    {
+      "name": "fast process defines evidence reuse",
+      "detail": ""
+    },
+    {
+      "name": "fast process requires one verifier per invariant",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Performance is part of the design",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Startup rules",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Module loading rules",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Data-read rules",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Cache rules",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Prefetch rules",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Release targets",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Required performance evidence",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Required module intake form",
+      "detail": ""
+    },
+    {
+      "name": "performance standard section: Definition of done",
+      "detail": ""
+    },
+    {
+      "name": "performance standard protects one startup RPC",
+      "detail": ""
+    },
+    {
+      "name": "performance standard requires bounded first loads",
+      "detail": ""
+    },
+    {
+      "name": "performance standard requires in-flight reuse",
+      "detail": ""
+    },
+    {
+      "name": "performance standard requires stale-response protection",
+      "detail": ""
+    },
+    {
+      "name": "performance standard requires scoped cache and invalidation",
+      "detail": ""
+    },
+    {
+      "name": "performance standard defines measurable targets",
+      "detail": ""
+    },
+    {
+      "name": "performance standard requires cold and warm evidence",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Scope classification",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Canonical ownership",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Fast and reliable execution plan",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Architecture and safety",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Performance design",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Required performance checks",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Measured evidence",
+      "detail": ""
+    },
+    {
+      "name": "PR template section: Verification",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires scope planner",
+      "detail": ""
+    },
+    {
+      "name": "PR template blocks startup RPC growth",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires bounded reads",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires cache invalidation",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires stale and previous-workspace behavior",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires measured cold and warm timings",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires failure diagnosis and evidence reuse",
+      "detail": ""
+    },
+    {
+      "name": "PR template requires resumable exact-count data work",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form references performance standard",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form references fast process",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Requested outcome",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Canonical ownership",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Fast and reliable execution path",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Failure diagnosis and rerun rules",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Loading strategy",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Normal first-load record limit",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Data sources and expected reads",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Cache plan",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Cache invalidation",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Prefetch and in-flight reuse",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Performance targets and baseline",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Generation, migration, or backfill controls",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form field: Verification plan",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form requires stale-response and in-flight safeguards",
+      "detail": ""
+    },
+    {
+      "name": "app module issue form prevents blind reruns",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Production commit or deployment run",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Exact route sequence",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Measured timing",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Observed symptoms",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Recording, screenshots, console timing, or network evidence",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Expected behavior",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form field: Data or external-action impact",
+      "detail": ""
+    },
+    {
+      "name": "performance issue form requires cold and warm retest",
+      "detail": ""
+    },
+    {
+      "name": "app rules reference governance verifier",
+      "detail": ""
+    },
+    {
+      "name": "website rules reference governance verifier",
+      "detail": ""
+    },
+    {
+      "name": "website rules use only canonical placement manifest",
+      "detail": ""
+    },
+    {
+      "name": "duplicate image placement manifest is absent",
+      "detail": ""
+    },
+    {
+      "name": "module contract is canonical",
+      "detail": ""
+    },
+    {
+      "name": "action contract is canonical",
+      "detail": ""
+    },
+    {
+      "name": "module registry derives from contract",
+      "detail": ""
+    },
+    {
+      "name": "public shell owns one registry",
+      "detail": ""
+    },
+    {
+      "name": "public route registry has primary routes",
+      "detail": "13"
+    },
+    {
+      "name": "image placement manifest locks runtime source changes",
+      "detail": ""
+    },
+    {
+      "name": "change planner supports base and head refs",
+      "detail": ""
+    },
+    {
+      "name": "change planner classifies all primary scopes",
+      "detail": ""
+    },
+    {
+      "name": "change planner separates fast and expensive checks",
+      "detail": ""
+    },
+    {
+      "name": "change planner records evidence reuse",
+      "detail": ""
+    },
+    {
+      "name": "change planner emits machine-readable evidence",
+      "detail": ""
+    },
+    {
+      "name": "package exposes change planner",
+      "detail": ""
+    },
+    {
+      "name": "package exposes fast public and app checks",
+      "detail": ""
+    },
+    {
+      "name": "governance workflow runs on pull requests",
+      "detail": ""
+    },
+    {
+      "name": "governance workflow watches canonical rule and contract files",
+      "detail": ""
+    },
+    {
+      "name": "governance workflow watches development forms",
+      "detail": ""
+    },
+    {
+      "name": "governance workflow checks out comparison history",
+      "detail": ""
+    },
+    {
+      "name": "governance workflow runs planner before verifier",
+      "detail": ""
+    },
+    {
+      "name": "governance workflow uploads plan and governance evidence",
+      "detail": ""
+    },
+    {
+      "name": "Pages production workflow owns filtered gh-pages publication",
+      "detail": ""
+    },
+    {
+      "name": "Pages production workflow verifies current Business Office target",
+      "detail": ""
+    },
+    {
+      "name": "website architecture verifier runs governance first",
+      "detail": ""
+    },
+    {
+      "name": "Business Office production workflow runs the app architecture verifier",
+      "detail": ""
+    },
+    {
+      "name": "app architecture verifier runs governance first",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

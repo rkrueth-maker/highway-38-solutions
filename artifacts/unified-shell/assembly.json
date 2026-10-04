@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "sourceCommit": "",
+  "projectDir": "/tmp/h38-unified-assembly-hahsOp",
+  "shell": "Unified_AppShell.gs",
+  "publicIntake": "Unified_PublicIntake.gs",
+  "entryPoints": [
+    "Unified_AppShell.gs"
+  ],
+  "legacyPortalBridgeRemoved": true,
+  "standaloneEntriesRenamed": {
+    "ownerPortal": "h38PortalStandaloneDoGet_",
+    "businessOffice": "boBusinessOfficeStandaloneDoGet_"
+  },
+  "capabilityOwner": {
+    "quotes": "quoteBuilder when enabled; legacyQuotes otherwise"
+  },
+  "customerProposalRoute": "public token validated by commercial proposal engine",
+  "publicUqbDemoRoute": "sanitized published Office records and attachments only",
+  "publicIntakeRoute": "validated request record only; no automatic external action",
+  "firstRunSetupRoute": "available only when the installed business pack explicitly supplies setup controls",
+  "externalActionsEnabled": false
+}
