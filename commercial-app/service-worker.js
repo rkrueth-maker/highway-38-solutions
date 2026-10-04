@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20261001-0003';
+const CACHE_NAME='h38-business-office-20261004-offline-1';
 const PREVIOUS_FIELD_MODE_CACHE_NAME='h38-business-office-20260918-0145';
 const PREVIOUS_ERP_CACHE_NAME='h38-business-office-20260903-2110';
 const PREVIOUS_CUSTOMER_ACTION_CACHE_NAME='h38-business-office-20260827-1350';
@@ -26,7 +26,7 @@ const SHELL=[
   './app-01.js','./runtime-rowid-fix.js','./app-02.js','./app-03.js','./app-04.js','./app-05.js',
   './app-06.js','./app-07.js','./app-08.js','./app-09.js','./app-10.js',
   './app-11.js','./app-12.js','./app-13.js','./app-14.js','./smart-upload.js','./app-15.js',
-  './communications-native-receptionist.js','./app-16.js','./app-17.js','./app-18.js','./app-19.js','./app-20.js',
+  './communications-native-receptionist.js','./app-16.js','./app-17.js','./app-18.js','./app-19.js','./app-20.js','./offline-mode.js',
   '../assets/highway38-logo.png',SUPABASE_CDN
 ];
 function freshLiveRequest(request,file){
