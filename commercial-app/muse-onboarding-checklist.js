@@ -3,7 +3,7 @@
 // H38 Onboarding Checklist: pick what to set up, choose Muse-guided or manual.
 // The checklist runs in the contractor's downloaded Muse app via the playbook.
 // Each item tracks completion. Manual fallback always available.
-const BUILD='20261003-muse-onboarding-checklist-1';
+const BUILD='20261004-online-booking-toggle-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -27,6 +27,8 @@ const CHECKLIST=[
    manual:'Quotes → Templates'},
   {id:'notifications',title:'Notifications',desc:'What alerts you and your team get',icon:'🔔',muse:'Tell me what you want to know about (new quotes, schedule changes, payments). I\'ll set it up.',
    manual:'Settings → Notifications'},
+  {id:'onlinebooking',title:'Online Booking',desc:'Let customers request bookings online — stays off until you turn it on',icon:'📅',muse:'Online booking stays OFF until you are ready. When you want it live, I can walk you through flipping the switch in Settings → Owner Controls → Online Booking.',
+   manual:'Settings → Owner Controls → Online Booking'},
 ];
 
 let selected=new Set();
@@ -156,7 +158,7 @@ function startManual(id){
     hint.innerHTML=`<div class="notice"><strong>Manual: ${esc(item.title)}</strong><br>Go to: ${esc(item.manual)}</div>`;
   }
   // Try to navigate to the manual location
-  const pageMap={profile:'settings',services:'quotes',customers:'customers',team:'people',schedule:'schedule',bouncie:'fleet',quickbooks:'accounting',templates:'quotes',notifications:'settings'};
+  const pageMap={profile:'settings',services:'quotes',customers:'customers',team:'people',schedule:'schedule',bouncie:'fleet',quickbooks:'accounting',templates:'quotes',notifications:'settings',onlinebooking:'settings'};
   const page=pageMap[id];
   if(page&&window.openPage){
     setTimeout(()=>{if(confirm(`Open ${item.manual}?`))window.openPage(page);},300);
@@ -202,6 +204,7 @@ SETUP AREAS (ask which ones they want):
 7. QuickBooks — walk through: Accounting → Connect QuickBooks → authorize. Reassure about data privacy.
 8. Quote Templates — ask about common jobs, draft 2-3 reusable templates.
 9. Notifications — ask what alerts they want (new quotes, schedule changes, payments).
+10. Online Booking — stays OFF until the owner turns it on in Settings → Owner Controls → Online Booking. Explain that the booking page link appears there once it is on, and that requests land in the Office for owner review — nothing is auto-approved.
 
 For each area: explain → ask → prepare → review → approve → mark done.
 Celebrate progress. Keep it under 15 minutes total if possible.`;

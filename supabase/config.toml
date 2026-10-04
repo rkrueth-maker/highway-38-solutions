@@ -18,3 +18,9 @@ verify_jwt = false
 # short-lived tenant/user state before touching connection records.
 [functions.h38-quickbooks-bridge]
 verify_jwt = false
+
+# Public booking intake. Anonymous access is intentional: customers have no
+# H38 login. Tenant isolation and the owner-controlled on/off gate are enforced
+# inside the function via business_module_settings (module_key online_booking).
+[functions.h38-public-booking]
+verify_jwt = false
