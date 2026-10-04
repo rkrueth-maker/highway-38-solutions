@@ -85,6 +85,17 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
+function friendlyError(err) {
+  const msg = String((err && err.message) || err || '');
+  if (/42501|row-level security|permission denied/i.test(msg))
+    return "Your account doesn't have access yet. Make sure you're signed in with your H38 login, then try again.";
+  if (/401|unauthorized|invalid.*token|jwt/i.test(msg))
+    return "Your sign-in expired. Please sign out and sign back in.";
+  if (/timeout|timed out|network|fetch failed|failed to fetch/i.test(msg))
+    return "Couldn't reach the server. Check your connection and try again.";
+  return "Something went wrong. Please try again.";
+}
+
 // Login form
 $('loginBtn').addEventListener('click', async () => {
   const email = $('loginEmail').value.trim();
@@ -104,7 +115,7 @@ $('loginBtn').addEventListener('click', async () => {
     $('logoutBtn').hidden = false;
     showScreen('homeScreen');
   } catch (err) {
-    errBox.textContent = err.message;
+    errBox.textContent = friendlyError(err);
     errBox.hidden = false;
   } finally {
     $('loginBtn').disabled = false;
@@ -147,7 +158,7 @@ $('findPartsBtn').addEventListener('click', async () => {
     saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle,
       topIssue: result && result.summary ? result.summary : '' });
   } catch (err) {
-    $('partsLoading').innerHTML = `<p style="color:#ef9a9a">Couldn't look up parts: ${err.message}<br><br>Check your connection and try again.</p>`;
+    $('partsLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
   }
 });
 
@@ -313,7 +324,7 @@ $('diagnoseBtn').addEventListener('click', async () => {
     });
     renderResult(result);
   } catch (err) {
-    $('diagnosisLoading').innerHTML = `<p style="color:#ef9a9a">Couldn't get a diagnosis: ${err.message}<br><br>Check your connection and try again.</p>`;
+    $('diagnosisLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
   }
 });
 
