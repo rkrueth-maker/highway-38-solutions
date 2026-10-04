@@ -2,7 +2,7 @@
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261003-owner-controls-1';
+const BUILD='20261004-machine-shop-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -93,6 +93,109 @@ function isModuleVisible(moduleId){
   return visibility[moduleId]!==false;
 }
 
+// ---- Machine Shop: server-backed tenant setting ----
+// Stored in business_module_settings (module_key='machine_shop', enabled).
+// Missing row or enabled!==true means OFF. The entire shop module — nav entry,
+// RFQ workflow, and shop pricing templates — is hidden unless this is ON.
+// Server-backed (not localStorage) so the setting follows the business across
+// the owner's devices.
+const MACHINE_SHOP_KEY='machine_shop';
+
+function machineShopSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===MACHINE_SHOP_KEY)||null;
+}
+
+function isMachineShopEnabled(){
+  const row=machineShopSettingRow();
+  return row!==null?row.enabled===true:false;
+}
+
+function canManageModules(){
+  const role=text(window.state&&window.state.user&&(window.state.user.roleName||window.state.user.role)).toLowerCase();
+  return role==='owner'||role==='administrator';
+}
+
+async function setMachineShop(enabled){
+  if(!canManageModules()) throw new Error('Only a business owner or administrator can change module settings.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const sess=await api.auth.getSession();
+  const user=sess&&sess.data&&sess.data.session&&sess.data.session.user;
+  if(!user) throw new Error('Sign in again before changing this setting.');
+  const nowTs=new Date().toISOString();
+  const row={business_id:bid,module_key:MACHINE_SHOP_KEY,enabled:!!enabled,
+    config:{updatedBy:user.id,updatedAt:nowTs},updated_at:nowTs};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res.error) throw res.error;
+  // Keep the in-memory snapshot in sync so nav gating and this card agree.
+  if(window.state&&window.state.snapshot){
+    if(!Array.isArray(window.state.snapshot.moduleSettings)) window.state.snapshot.moduleSettings=[];
+    const list=window.state.snapshot.moduleSettings;
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===MACHINE_SHOP_KEY);
+    const snapRow={module_key:MACHINE_SHOP_KEY,enabled:!!enabled,config:row.config};
+    if(i>=0) list[i]=Object.assign({},list[i],snapRow); else list.push(snapRow);
+  }
+  // Refresh navigation so the Machine Shop entry appears/disappears immediately.
+  try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
+  try{if(window.H38_DESKTOP_NAVIGATION_CORE&&typeof window.H38_DESKTOP_NAVIGATION_CORE.reconcile==='function')window.H38_DESKTOP_NAVIGATION_CORE.reconcile();}catch(e){}
+  return !!enabled;
+}
+
+function renderMachineShopCard(){
+  const enabled=isMachineShopEnabled();
+  const can=canManageModules();
+  return `
+    <section class="card span12" id="machineShopCard">
+      <h2>🏭 Machine Shop</h2>
+      <p class="muted small">Adds the Machine Shop workspace: RFQ intake, supplier quote comparison, markup into quotes, purchase orders, QC checks, shipping and reorder tracking. <strong>Stays off until you turn it on</strong> — contractors who are not shops never see it.</p>
+      <div class="row">
+        <div class="row-top">
+          <strong>Machine Shop module ${enabled?'is ON':'is OFF'}</strong>
+          <label class="switch">
+            <input type="checkbox" data-machine-shop ${enabled?'checked':''} ${can?'':'disabled'}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <small>${can?'Flip the switch to show the Machine Shop workspace in navigation.':'Only an owner or administrator can change this.'}</small>
+        ${enabled?'<small>Price-book templates and the RFQ workflow live under 🏭 Machine Shop in the nav.</small>':'<small>While off, the shop nav entry, RFQ workflow and shop pricing templates are hidden.</small>'}
+      </div>
+    </section>
+  `;
+}
+
+function bindMachineShop(){
+  const checkbox=document.querySelector('[data-machine-shop]');
+  if(!checkbox||checkbox.dataset.h38Bound) return;
+  checkbox.dataset.h38Bound='1';
+  checkbox.onchange=async()=>{
+    const want=checkbox.checked;
+    if(want){
+      const ok=window.confirm('Turn ON the Machine Shop module? The 🏭 Machine Shop workspace (RFQ intake, supplier quotes, purchase orders, QC, shipping, reorder tracking) will appear in navigation.');
+      if(!ok){checkbox.checked=false;return;}
+    }
+    checkbox.disabled=true;
+    try{
+      const enabled=await setMachineShop(want);
+      const card=document.getElementById('machineShopCard');
+      if(card){
+        const tmp=document.createElement('div');
+        tmp.innerHTML=renderMachineShopCard();
+        const fresh=tmp.firstElementChild;
+        if(fresh){card.replaceWith(fresh);bindMachineShop();}
+      }
+      if(typeof toast==='function') toast('Machine Shop module '+(enabled?'turned ON.':'turned OFF.'));
+    }catch(e){
+      checkbox.checked=!want;
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }finally{
+      checkbox.disabled=false;
+    }
+  };
+}
+
 function renderOwnerControls(){
   const toggles=getToggles();
   const visibility=getModuleVisibility();
@@ -150,6 +253,7 @@ function renderOwnerControls(){
         <h2>Owner Controls</h2>
         <p class="muted">Turn features on/off and control which modules appear in your Office. Changes apply immediately.</p>
       </section>
+      ${renderMachineShopCard()}
       ${toggleSections}
       ${moduleSection}
     </div>
@@ -157,6 +261,7 @@ function renderOwnerControls(){
 }
 
 function bindOwnerControls(){
+  bindMachineShop();
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
     checkbox.onchange=()=>{
       const toggles=getToggles();
@@ -182,6 +287,8 @@ window.H38OwnerControls={
   bind:bindOwnerControls,
   isEnabled:isFeatureEnabled,
   isModuleVisible:isModuleVisible,
+  isMachineShopEnabled:isMachineShopEnabled,
+  setMachineShop:setMachineShop,
   applyVisibility:()=>applyModuleVisibility(getModuleVisibility()),
   FEATURES:FEATURE_TOGGLES,
   MODULES:MODULES,
