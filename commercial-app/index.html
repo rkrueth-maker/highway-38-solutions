@@ -208,6 +208,24 @@
   <script src="./offline-mode.js?build=20261004-offline-1"></script>
   <script src="./sms-provider-setup.js?build=20261004-sms-providers-1"></script>
   <script>
+  /* Training guides: on-demand loader (not in startup bundle per performance rules) */
+  window.H38TrainingGuidesLoader = {
+    load: function(){
+      return new Promise(function(resolve, reject){
+        if(window.H38TrainingGuides) return resolve(window.H38TrainingGuides);
+        var s = document.createElement('script');
+        s.src = './training-guides.js?build=20261004-training-1';
+        s.onload = function(){ resolve(window.H38TrainingGuides); };
+        s.onerror = function(){ reject(new Error('Training guides failed to load')); };
+        document.head.appendChild(s);
+      });
+    },
+    start: function(guideId){
+      return this.load().then(function(g){ g.start(guideId); });
+    }
+  };
+  </script>
+  <script>
   window.H38_HEARTBEAT = {
     app: 'office',
     supabaseUrl: 'https://jqukmwtsgcsaruucnqja.supabase.co',
