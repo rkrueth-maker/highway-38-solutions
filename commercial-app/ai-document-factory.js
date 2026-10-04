@@ -18,12 +18,23 @@ async function saveEmailDraft(result){if(result.format!=='eml'||typeof window.qu
 async function invoke(command){
   if(!allowedRole())throw new Error('Only an Owner or Administrator can create arbitrary business documents with the assistant.');
   if(SEND.test(command))throw new Error('I can draft the document or email, but I will not send, approve, purchase, pay, publish, file, deploy, delete, invite, or change permissions.');
-  const api=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(!api)throw new Error('Supabase client is unavailable.');
-  const sessionResult=await api.auth.getSession();if(sessionResult.error)throw sessionResult.error;const session=sessionResult.data?.session;if(!session?.access_token)throw new Error('Sign in again before creating a document.');
-  if(api.functions&&typeof api.functions.setAuth==='function')api.functions.setAuth(session.access_token);
   const businessId=text(window.state?.businessId||window.H38_SUPABASE_AUTH?.getState?.().selectedBusinessId);if(!businessId)throw new Error('Open the business before creating a document.');
-  const response=await api.functions.invoke(ENDPOINT,{body:{businessId,request:text(command).slice(0,6000),context:context()},headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-ai-document-factory-v1'}});
-  if(response.error)throw new Error(text(response.error.message||response.error));const result=response.data||{};if(result.status!=='PASS'||!result.base64)throw new Error(text(result.message||'The document factory did not return a file.'));
+  const payload={businessId,request:text(command).slice(0,6000),context:context()};
+  let result=null;
+  try{
+    if(!window.H38_AI_HANDOFF)throw Object.assign(Error('AI handoff helper not loaded.'),{code:'HANDOFF_NOT_DEPLOYED'});
+    result=await window.H38_AI_HANDOFF.runTask('generate_document',payload);
+    if(!result||!result.base64)throw new Error('The document factory did not return a file.');
+  }catch(kitError){
+    const kitMsg=String(kitError?.message||kitError||'');
+    const kitUnavailable=kitError?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|Kit could not complete|handoff/i.test(kitMsg);
+    if(!kitUnavailable)throw kitError;
+    const api=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(!api)throw new Error('Supabase client is unavailable.');
+    const sessionResult=await api.auth.getSession();if(sessionResult.error)throw sessionResult.error;const session=sessionResult.data?.session;if(!session?.access_token)throw new Error('Sign in again before creating a document.');
+    if(api.functions&&typeof api.functions.setAuth==='function')api.functions.setAuth(session.access_token);
+    const response=await api.functions.invoke(ENDPOINT,{body:payload,headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-ai-document-factory-v1'}});
+    if(response.error)throw new Error(text(response.error.message||response.error));result=response.data||{};if(result.status!=='PASS'||!result.base64)throw new Error(text(result.message||'The document factory did not return a file.'));
+  }
   await saveEmailDraft(result);const stored=await saveAttachment(result);const size=download(result.fileName,result.mimeType,result.base64);try{window.toast?.(`${result.fileName} created${stored?' and saved to Documents':''}.`);}catch(_){}return{...result,stored,downloadBytes:size};
 }
 async function createFromCommand(command){if(!canHandle(command))throw new Error('That is not a document-creation request.');return invoke(command);}
