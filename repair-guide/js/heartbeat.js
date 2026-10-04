@@ -1,1 +1,96 @@
-KGZ1bmN0aW9uKCl7Cid1c2Ugc3RyaWN0JzsKLy8gQXBwIHVzYWdlIGhlYXJ0YmVhdCDigJQgdHJhY2tzIHdobyBvcGVucyB0aGUgYXBwLCB3aGVuLCBhbmQgZm9yIGhvdyBsb25nLgovLyBJbmNsdWRlIGFmdGVyIHRoZSBhcHAncyBTdXBhYmFzZSBjbGllbnQgaXMgYXZhaWxhYmxlLiBXcml0ZXMgdG8gYnVzaW5lc3NfcmVjb3JkcwovLyBjb2xsZWN0aW9uICdhcHBfc2Vzc2lvbnMnLiBDb25maWd1cmUgdmlhIHdpbmRvdy5IMzhfSEVBUlRCRUFUID0ge2FwcDonb2ZmaWNlJ30uCgpjb25zdCBDRkcgPSB3aW5kb3cuSDM4X0hFQVJUQkVBVCB8fCB7fTsKY29uc3QgQVBQID0gQ0ZHLmFwcCB8fCAnb2ZmaWNlJzsKY29uc3QgU0VTU0lPTl9LRVkgPSAnaDM4LWhlYXJ0YmVhdC1zZXNzaW9uJzsKCmZ1bmN0aW9uIGdldFNlc3Npb25JZCgpewogIHRyeSB7CiAgICBsZXQgaWQgPSBzZXNzaW9uU3RvcmFnZS5nZXRJdGVtKFNFU1NJT05fS0VZKTsKICAgIGlmKCFpZCl7IGlkID0gJ3Nlc3MtJyArIERhdGUubm93KCkgKyAnLScgKyBNYXRoLnJhbmRvbSgpLnRvU3RyaW5nKDM2KS5zbGljZSgyLDkpOyBzZXNzaW9uU3RvcmFnZS5zZXRJdGVtKFNFU1NJT05fS0VZLCBpZCk7IH0KICAgIHJldHVybiBpZDsKICB9IGNhdGNoKGUpeyByZXR1cm4gJ3Nlc3MtJyArIERhdGUubm93KCk7IH0KfQoKYXN5bmMgZnVuY3Rpb24gZ2V0VG9rZW4oKXsKICBpZih0eXBlb2YgQ0ZHLmdldFRva2VuID09PSAnZnVuY3Rpb24nKXsgdHJ5eyByZXR1cm4gYXdhaXQgQ0ZHLmdldFRva2VuKCk7IH1jYXRjaChlKXsgcmV0dXJuIG51bGw7IH0gfQogIHJldHVybiBudWxsOwp9CmZ1bmN0aW9uIGdldFVzZXIoKXsKICBpZih0eXBlb2YgQ0ZHLmdldFVzZXIgPT09ICdmdW5jdGlvbicpeyB0cnl7IHJldHVybiBDRkcuZ2V0VXNlcigpIHx8IHt9OyB9Y2F0Y2goZSl7IHJldHVybiB7fTsgfSB9CiAgcmV0dXJuIHt9Owp9CmZ1bmN0aW9uIGdldEJ1c2luZXNzSWQoKXsKICBpZih0eXBlb2YgQ0ZHLmdldEJ1c2luZXNzSWQgPT09ICdmdW5jdGlvbicpeyB0cnl7IHJldHVybiBDRkcuZ2V0QnVzaW5lc3NJZCgpOyB9Y2F0Y2goZSl7IHJldHVybiBudWxsOyB9IH0KICByZXR1cm4gbnVsbDsKfQpmdW5jdGlvbiBnZXRTdXBhYmFzZSgpewogIGlmKENGRy5zdXBhYmFzZVVybCAmJiBDRkcuc3VwYWJhc2VLZXkpIHJldHVybiB7dXJsOiBDRkcuc3VwYWJhc2VVcmwsIGtleTogQ0ZHLnN1cGFiYXNlS2V5fTsKICByZXR1cm4gbnVsbDsKfQoKYXN5bmMgZnVuY3Rpb24gd3JpdGVTZXNzaW9uKHBhdGNoKXsKICBjb25zdCBzYiA9IGdldFN1cGFiYXNlKCk7CiAgY29uc3QgdG9rZW4gPSBhd2FpdCBnZXRUb2tlbigpOwogIGlmKCFzYiB8fCAhdG9rZW4pIHJldHVybjsKICBjb25zdCB1c2VyID0gZ2V0VXNlcigpOwogIGNvbnN0IHNlc3Npb25JZCA9IGdldFNlc3Npb25JZCgpOwogIGNvbnN0IGJvZHkgPSB7CiAgICBidXNpbmVzc19pZDogZ2V0QnVzaW5lc3NJZCgpLAogICAgY29sbGVjdGlvbjogJ2FwcF9zZXNzaW9ucycsCiAgICByZWNvcmRfa2V5OiBzZXNzaW9uSWQsCiAgICByZWNvcmRfc3RhdHVzOiAnYWN0aXZlJywKICAgIHBheWxvYWQ6IE9iamVjdC5hc3NpZ24oewogICAgICAnU2Vzc2lvbiBJRCc6IHNlc3Npb25JZCwKICAgICAgJ0FwcCc6IEFQUCwKICAgICAgJ1VzZXIgRW1haWwnOiB1c2VyLmVtYWlsIHx8ICcnLAogICAgICAnVXNlciBJRCc6IHVzZXIuaWQgfHwgJycsCiAgICAgICdTdGFydGVkIEF0JzogbmV3IERhdGUoKS50b0lTT1N0cmluZygpLAogICAgICAnTGFzdCBTZWVuIEF0JzogbmV3IERhdGUoKS50b0lTT1N0cmluZygpLAogICAgfSwgcGF0Y2ggfHwge30pLAogIH07CiAgdHJ5ewogICAgYXdhaXQgZmV0Y2goc2IudXJsICsgJy9yZXN0L3YxL2J1c2luZXNzX3JlY29yZHMnLCB7CiAgICAgIG1ldGhvZDogJ1BPU1QnLAogICAgICBoZWFkZXJzOiB7CiAgICAgICAgJ2FwaWtleSc6IHNiLmtleSwKICAgICAgICAnQXV0aG9yaXphdGlvbic6ICdCZWFyZXIgJyArIHRva2VuLAogICAgICAgICdDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsCiAgICAgICAgJ1ByZWZlcic6ICdyZXNvbHV0aW9uPW1lcmdlLWR1cGxpY2F0ZXMscmV0dXJuPW1pbmltYWwnLAogICAgICB9LAogICAgICBib2R5OiBKU09OLnN0cmluZ2lmeShib2R5KSwKICAgIH0pOwogIH1jYXRjaChlKXsgLyogaGVhcnRiZWF0IGlzIGJlc3QtZWZmb3J0ICovIH0KfQoKYXN5bmMgZnVuY3Rpb24gYmVhdCgpewogIGF3YWl0IHdyaXRlU2Vzc2lvbih7fSk7Cn0KCi8vIFN0YXJ0OiByZWNvcmQgc2Vzc2lvbiBvcGVuCmJlYXQoKTsKLy8gSGVhcnRiZWF0IGV2ZXJ5IDYwcyB3aGlsZSB0aGUgcGFnZSBpcyB2aXNpYmxlCnNldEludGVydmFsKCgpPT57IGlmKCFkb2N1bWVudC5oaWRkZW4pIGJlYXQoKTsgfSwgNjAwMDApOwovLyBPbiBjbG9zZTogbWFyayBlbmRlZAp3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcignYmVmb3JldW5sb2FkJywgKCk9PnsKICBjb25zdCBzYiA9IGdldFN1cGFiYXNlKCk7CiAgZ2V0VG9rZW4oKS50aGVuKHRva2VuPT57CiAgICBpZighc2IgfHwgIXRva2VuKSByZXR1cm47CiAgICBjb25zdCBwYXlsb2FkID0gSlNPTi5zdHJpbmdpZnkoewogICAgICBidXNpbmVzc19pZDogZ2V0QnVzaW5lc3NJZCgpLAogICAgICBjb2xsZWN0aW9uOiAnYXBwX3Nlc3Npb25zJywKICAgICAgcmVjb3JkX2tleTogZ2V0U2Vzc2lvbklkKCksCiAgICAgIHJlY29yZF9zdGF0dXM6ICdhY3RpdmUnLAogICAgICBwYXlsb2FkOiB7ICdFbmRlZCBBdCc6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKSwgJ0xhc3QgU2VlbiBBdCc6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKSB9LAogICAgfSk7CiAgICB0cnl7CiAgICAgIG5hdmlnYXRvci5zZW5kQmVhY29uKHNiLnVybCArICcvcmVzdC92MS9idXNpbmVzc19yZWNvcmRzP29uX2NvbmZsaWN0PXJlY29yZF9rZXknLAogICAgICAgIG5ldyBCbG9iKFtwYXlsb2FkXSwge3R5cGU6J2FwcGxpY2F0aW9uL2pzb24nfSkpOwogICAgfWNhdGNoKGUpe30KICB9KTsKfSk7Cn0pKCk7Cg==
+(function(){
+'use strict';
+// App usage heartbeat — tracks who opens the app, when, and for how long.
+// Include after the app's Supabase client is available. Writes to business_records
+// collection 'app_sessions'. Configure via window.H38_HEARTBEAT = {app:'office'}.
+
+const CFG = window.H38_HEARTBEAT || {};
+const APP = CFG.app || 'office';
+const SESSION_KEY = 'h38-heartbeat-session';
+
+function getSessionId(){
+  try {
+    let id = sessionStorage.getItem(SESSION_KEY);
+    if(!id){ id = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2,9); sessionStorage.setItem(SESSION_KEY, id); }
+    return id;
+  } catch(e){ return 'sess-' + Date.now(); }
+}
+
+async function getToken(){
+  if(typeof CFG.getToken === 'function'){ try{ return await CFG.getToken(); }catch(e){ return null; } }
+  return null;
+}
+function getUser(){
+  if(typeof CFG.getUser === 'function'){ try{ return CFG.getUser() || {}; }catch(e){ return {}; } }
+  return {};
+}
+function getBusinessId(){
+  if(typeof CFG.getBusinessId === 'function'){ try{ return CFG.getBusinessId(); }catch(e){ return null; } }
+  return null;
+}
+function getSupabase(){
+  if(CFG.supabaseUrl && CFG.supabaseKey) return {url: CFG.supabaseUrl, key: CFG.supabaseKey};
+  return null;
+}
+
+async function writeSession(patch){
+  const sb = getSupabase();
+  const token = await getToken();
+  if(!sb || !token) return;
+  const user = getUser();
+  const sessionId = getSessionId();
+  const body = {
+    business_id: getBusinessId(),
+    collection: 'app_sessions',
+    record_key: sessionId,
+    record_status: 'active',
+    payload: Object.assign({
+      'Session ID': sessionId,
+      'App': APP,
+      'User Email': user.email || '',
+      'User ID': user.id || '',
+      'Started At': new Date().toISOString(),
+      'Last Seen At': new Date().toISOString(),
+    }, patch || {}),
+  };
+  try{
+    await fetch(sb.url + '/rest/v1/business_records', {
+      method: 'POST',
+      headers: {
+        'apikey': sb.key,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify(body),
+    });
+  }catch(e){ /* heartbeat is best-effort */ }
+}
+
+async function beat(){
+  await writeSession({});
+}
+
+// Start: record session open
+beat();
+// Heartbeat every 60s while the page is visible
+setInterval(()=>{ if(!document.hidden) beat(); }, 60000);
+// On close: mark ended
+window.addEventListener('beforeunload', ()=>{
+  const sb = getSupabase();
+  getToken().then(token=>{
+    if(!sb || !token) return;
+    const payload = JSON.stringify({
+      business_id: getBusinessId(),
+      collection: 'app_sessions',
+      record_key: getSessionId(),
+      record_status: 'active',
+      payload: { 'Ended At': new Date().toISOString(), 'Last Seen At': new Date().toISOString() },
+    });
+    try{
+      navigator.sendBeacon(sb.url + '/rest/v1/business_records?on_conflict=record_key',
+        new Blob([payload], {type:'application/json'}));
+    }catch(e){}
+  });
+});
+})();
