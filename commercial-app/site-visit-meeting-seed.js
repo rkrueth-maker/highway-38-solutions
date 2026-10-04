@@ -110,15 +110,26 @@ function applySeedLocally(v,seed){
 async function requestSeed(row=linkedMeeting()){
   const v=visit();
   if(!v||!row||!v.sessionId||!navigator.onLine||!cfg.url||!cfg.publishableKey)return null;
-  const a=await auth();
-  const response=await fetch(`${cfg.url}/functions/v1/h38-site-visit-context`,{
-    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
-    headers:{authorization:`Bearer ${a.session.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':BUILD},
-    body:JSON.stringify({businessId:v.businessId||window.state?.businessId,captureSessionId:v.sessionId,meetingId:meetingId(row)})
-  });
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok||payload?.status!=='PASS')throw Error(payload?.message||`Optional Site Visit guidance failed (${response.status}).`);
-  const seed=payload.siteVisitSeed||payload.seed;
+  const kitPayload={businessId:v.businessId||window.state?.businessId,captureSessionId:v.sessionId,meetingId:meetingId(row)};
+  let seed=null;
+  try{
+    if(!window.H38_AI_HANDOFF)throw Object.assign(Error('AI handoff helper not loaded.'),{code:'HANDOFF_NOT_DEPLOYED'});
+    const kitResult=await window.H38_AI_HANDOFF.runTask('site_visit_context',kitPayload);
+    seed=kitResult&&kitResult.siteVisitSeed;
+  }catch(kitError){
+    const kitMsg=String(kitError?.message||kitError||'');
+    const kitUnavailable=kitError?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|Kit could not complete|handoff/i.test(kitMsg);
+    if(!kitUnavailable)throw kitError;
+    const a=await auth();
+    const response=await fetch(`${cfg.url}/functions/v1/h38-site-visit-context`,{
+      method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
+      headers:{authorization:`Bearer ${a.session.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':BUILD},
+      body:JSON.stringify(kitPayload)
+    });
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok||payload?.status!=='PASS')throw Error(payload?.message||`Optional Site Visit guidance failed (${response.status}).`);
+    seed=payload.siteVisitSeed||payload.seed;
+  }
   if(seed&&typeof seed==='object'){
     applySeedLocally(v,seed);
     await C.saveDraft?.();
