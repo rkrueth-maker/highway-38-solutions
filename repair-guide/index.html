@@ -63,6 +63,11 @@
           <span class="cat-label">My Garage</span>
           <small>Vehicles + maintenance reminders</small>
         </button>
+        <button class="category-card" id="goVideos">
+          <span class="cat-icon">📹</span>
+          <span class="cat-label">Repair Videos</span>
+          <small>How-to video library</small>
+        </button>
       </div>
     </section>
 
@@ -176,6 +181,14 @@
       <div id="repairsList"></div>
     </section>
 
+    <!-- Repair videos: how-to video library -->
+    <section id="videosScreen" class="screen">
+      <button class="back-btn" id="backToHomeFromVideos">← Home</button>
+      <h2>📹 Repair Videos</h2>
+      <p class="muted">How-to videos you can link to diagnoses. Stored on this phone.</p>
+      <div id="videosContainer"></div>
+    </section>
+
     <!-- Category picker -->
     <section id="categoryScreen" class="screen">
       <button class="back-btn" id="backToHomeFromCategory">← Home</button>
@@ -269,6 +282,7 @@ window.H38_HEARTBEAT = {
 </script>
 <script src="js/heartbeat.js"></script>
 <script src="js/app.js"></script>
+<script src="js/repair-videos.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
