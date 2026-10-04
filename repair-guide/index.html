@@ -63,7 +63,17 @@
           <span class="cat-label">My Garage</span>
           <small>Vehicles + maintenance reminders</small>
         </button>
+        <button class="category-card" id="goVideos">
+          <span class="cat-icon">📹</span>
+          <span class="cat-label">Repair Videos</span>
+          <small>How-to video library</small>
+
+        <button class="category-card" id="goObd2" hidden>
+          <span class="cat-icon">🔌</span>
+          <span class="cat-label">OBD2 Diagnostics</span>
+          <small>Live data + fault codes</small>        </button>
       </div>
+      <p id="obd2OffNote" class="small muted" style="text-align:center;margin-top:16px" hidden>🔌 OBD2 diagnostics is <button id="obd2EnableLink" class="link-btn">turned off</button> — tap to set it up.</p>
     </section>
 
     <!-- My Garage: vehicles + maintenance reminders -->
@@ -176,6 +186,72 @@
       <div id="repairsList"></div>
     </section>
 
+    <!-- Repair videos: how-to video library -->
+    <section id="videosScreen" class="screen">
+      <button class="back-btn" id="backToHomeFromVideos">← Home</button>
+      <h2>📹 Repair Videos</h2>
+      <p class="muted">How-to videos you can link to diagnoses. Stored on this phone.</p>
+      <div id="videosContainer"></div>
+
+    <!-- OBD2 Diagnostics -->
+    <section id="obd2Screen" class="screen">
+      <button class="back-btn" id="backToHomeFromObd2">← Home</button>
+      <h2>🔌 OBD2 Diagnostics</h2>
+      <div class="obd2-row">
+        <div>
+          <strong>OBD2 diagnostics</strong>
+          <div class="small muted">Needs a Bluetooth OBD2 dongle. Turn off when not in use.</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="obd2Toggle"><span class="slider"></span></label>
+      </div>
+      <div id="obd2DisabledNote" class="notice warn"><strong>OBD2 is turned off.</strong> Flip the switch above to use diagnostics.</div>
+      <div id="obd2Main" hidden>
+        <div id="obd2SimBanner" class="notice sim" hidden><strong>🧪 SIMULATED DATA</strong> — no dongle connected. The numbers and codes below are made up so you can try every screen.</div>
+        <h3>Vehicle</h3>
+        <div class="input-group">
+          <label>Pick from My Garage</label>
+          <select id="obd2VehicleSelect"></select>
+        </div>
+        <div class="input-group">
+          <label>Or type it in</label>
+          <input type="text" id="obd2VehicleText" placeholder="e.g. 2004 Jeep Grand Cherokee">
+        </div>
+        <button id="obd2SaveVehicleBtn" class="secondary-btn">＋ Save to My Garage</button>
+        <h3>Connection</h3>
+        <p id="obd2Status" class="muted">Not connected.</p>
+        <p id="obd2Error" class="error" hidden></p>
+        <div class="actions-row">
+          <button id="obd2ConnectBtn" class="primary-btn">Connect Dongle →</button>
+          <button id="obd2SimBtn" class="secondary-btn">Use Simulator (no dongle)</button>
+        </div>
+        <button id="obd2DisconnectBtn" class="secondary-btn" hidden>Disconnect</button>
+        <div id="obd2Live" hidden>
+          <h3>Live Data</h3>
+          <div class="gauge-grid">
+            <div class="gauge"><div class="gauge-label">RPM</div><div class="gauge-val" id="gaugeRpm">—</div></div>
+            <div class="gauge"><div class="gauge-label">Speed</div><div class="gauge-val" id="gaugeSpeed">—</div><div class="gauge-unit">mph</div></div>
+            <div class="gauge"><div class="gauge-label">Coolant</div><div class="gauge-val" id="gaugeCoolant">—</div><div class="gauge-unit">°F</div></div>
+            <div class="gauge"><div class="gauge-label">Throttle</div><div class="gauge-val" id="gaugeThrottle">—</div><div class="gauge-unit">%</div></div>
+          </div>
+          <h3>Fault Codes</h3>
+          <div class="actions-row">
+            <button id="obd2ReadBtn" class="primary-btn">Read Codes</button>
+            <button id="obd2ClearBtn" class="secondary-btn">Clear Codes</button>
+          </div>
+          <div id="obd2ClearConfirm" hidden>
+            <div class="notice warn"><strong>Clearing codes</strong> erases stored fault codes and resets emissions monitors. Only do this <em>after</em> the repair — the check-engine light will come back if the problem isn't fixed.</div>
+            <div class="input-group">
+              <label>Type CLEAR to confirm</label>
+              <input type="text" id="obd2ClearText" placeholder="CLEAR" autocomplete="off">
+            </div>
+            <button id="obd2ClearGo" class="danger-btn">Clear Codes Now</button>
+          </div>
+          <div id="obd2DtcList"></div>
+          <h3>Session History</h3>
+          <div id="obd2Sessions"></div>
+        </div>
+      </div>    </section>
+
     <!-- Category picker -->
     <section id="categoryScreen" class="screen">
       <button class="back-btn" id="backToHomeFromCategory">← Home</button>
@@ -272,6 +348,8 @@ window.H38_HEARTBEAT = {
   <!-- Office integration bridge: fully dormant unless ?office_business= is present
        and the business enabled the integration server-side. -->
   <script src="js/office-bridge.js"></script>
+  <script src="js/repair-videos.js"></script>
+  <script src="js/obd2.js?build=20261004-obd2-1"></script>
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(()=>{});
