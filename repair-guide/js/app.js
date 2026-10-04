@@ -262,7 +262,7 @@ function renderRepairs() {
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-document.querySelectorAll('.category-card').forEach(card => {
+document.querySelectorAll('#categoryScreen .category-card').forEach(card => {
   card.addEventListener('click', () => {
     state.category = card.dataset.category;
     const labels = {car:'Car / Truck', atv:'ATV / UTV', 'small-engine':'Small Engine', appliance:'Appliance'};
