@@ -217,6 +217,8 @@ $('findPartsBtn').addEventListener('click', async () => {
 
   try {
     const result = await requestParts({ vehicle, needed });
+    // Stash for the optional Office bridge (dormant without ?office_business=).
+    window.H38_LAST_PARTS={input:{vehicle:vehicle,needed:needed},result:result};
     renderParts(result);
     saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle,
       topIssue: result && result.summary ? result.summary : '' });
@@ -530,6 +532,8 @@ $('diagnoseBtn').addEventListener('click', async () => {
         ? (result.issues[0].title || result.issues[0].name || '')
         : '',
     });
+    // Stash for the optional Office bridge (dormant without ?office_business=).
+    window.H38_LAST_DIAGNOSIS={input:{category:state.category,symptoms:symptoms,unitInfo:$('unitInfo').value.trim()},result:result};
     renderResult(result);
   } catch (err) {
     $('diagnosisLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
