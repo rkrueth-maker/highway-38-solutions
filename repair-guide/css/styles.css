@@ -55,3 +55,33 @@ header{position:relative}
 .price-row:last-child{border-bottom:none}
 .price-source{font-weight:600;display:block;margin-bottom:4px}
 .price-compare .part-price{font-size:1.1rem;color:#ffd54f;font-weight:600}
+
+/* OBD2 Diagnostics */
+.obd2-row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#1a3a24;border-radius:12px;padding:14px;margin-bottom:12px}
+.switch{position:relative;display:inline-block;width:64px;height:36px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#3a5a44;border-radius:36px;transition:.2s}
+.slider:before{position:absolute;content:"";height:28px;width:28px;left:4px;bottom:4px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked + .slider{background:#2e7d32}
+.switch input:checked + .slider:before{transform:translateX(28px)}
+.notice{border-radius:8px;padding:12px;margin-bottom:12px}
+.notice.warn{background:#3a2a1a;border-left:4px solid #ff9800}
+.notice.good{background:#1a3a24;border-left:4px solid #2e7d32}
+.notice.sim{background:#1a2a3a;border-left:4px solid #29b6f6}
+.gauge-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.gauge{background:#1a3a24;border:2px solid #2e7d32;border-radius:12px;padding:16px 8px;text-align:center}
+.gauge-label{font-size:.85rem;color:#a5d6a7;font-weight:600}
+.gauge-val{font-size:2rem;font-weight:700;margin:4px 0;min-height:2.4rem}
+.gauge-unit{font-size:.8rem;color:#a5d6a7}
+.actions-row{display:flex;gap:10px;margin:12px 0;flex-wrap:wrap}
+.actions-row .primary-btn,.actions-row .secondary-btn{flex:1;margin-top:0;min-width:150px}
+.danger-btn{width:100%;padding:16px;background:#8b1a1a;color:#fff;border:none;border-radius:12px;font-size:1.1rem;font-weight:600;cursor:pointer;margin-top:8px}
+.danger-btn:active{background:#5c1010}
+.dtc-card{background:#1a3a24;border-radius:12px;padding:14px;margin-bottom:12px;border-left:4px solid #ff9800}
+.dtc-code{font-size:1.3rem;font-weight:700;color:#ffcc80}
+.dtc-title{font-weight:600;margin:4px 0}
+.dtc-checks{margin:8px 0 12px 20px}
+.dtc-checks li{margin-bottom:4px}
+.session-card{background:#1a3a24;border-radius:8px;padding:12px;margin-bottom:8px}
+select{width:100%;padding:12px;border-radius:8px;border:1px solid #2e7d32;background:#1a3a24;color:#fff;font-size:1rem}
+.small{font-size:.85rem}
