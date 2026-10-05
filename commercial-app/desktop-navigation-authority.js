@@ -85,9 +85,9 @@ function groupedNavigationHtml(pages,defs,current){
   NAV_GROUPS.forEach(([group,keys])=>{
     const visible=keys.filter(key=>pageSet.has(key));if(!visible.length)return;
     chunks.push(`<div class="h38-nav-section-label" data-h38-nav-group="${group}">${group}</div>`);
-    visible.forEach(key=>{const def=defs[key]||['•',key];rendered.add(key);chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}"><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`);});
+    visible.forEach(key=>{const def=defs[key]||['•',key],icon=def.length>1?def[0]:'',label=def.length>1?def[1]:def[0];rendered.add(key);chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`);});
   });
-  pages.filter(key=>!rendered.has(key)).forEach(key=>{const def=defs[key]||['•',key];chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}"><span class="nav-icon">${def[0]}</span><span>${def[1]}</span></button>`);});
+  pages.filter(key=>!rendered.has(key)).forEach(key=>{const def=defs[key]||['•',key],icon=def.length>1?def[0]:'',label=def.length>1?def[1]:def[0];chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`);});
   return chunks.join('');
 }
 function renderDesktopNavigation(){

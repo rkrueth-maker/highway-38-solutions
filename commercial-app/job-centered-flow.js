@@ -9,7 +9,7 @@ const esc=value=>typeof window.esc==='function'?window.esc(value):text(value).re
 let navBusy=false,photoSyncBusy=false,photoInputBefore=null;
 function officeState(){try{return typeof state!=='undefined'?state:window.state;}catch(_){return window.state;}}
 function allowed(){try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}}
-function pageLabel(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}}
+function pageLabel(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?(PAGE_DEFS[key].length>1?PAGE_DEFS[key][1]:PAGE_DEFS[key][0]):key;}catch(_){return key;}}
 function pageIcon(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][0]:'•';}catch(_){return'•';}}
 function toast(message,bad){try{window.toast?.(message,!!bad);}catch(_){} }
 function setText(node,value){if(node&&node.textContent!==value)node.textContent=value;}
