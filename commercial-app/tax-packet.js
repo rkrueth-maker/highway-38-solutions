@@ -7,6 +7,10 @@
 
 function taxPacketYear(){return state.taxPacketYear||new Date().getFullYear();}
 
+/* 1099-NEC reporting threshold (IRS): $2,000 for payments made in 2026 and
+ * later (One Big Beautiful Bill Act), $600 for payments made in 2025. */
+function tax1099Threshold(year){return year>=2026?2000:600;}
+
 function taxYearRange(year){return [`${year}-01-01`,`${year}-12-31`];}
 
 function taxPacketData(year){
@@ -71,7 +75,8 @@ function taxPacketSection(){
   const year=taxPacketYear(),data=taxPacketData(year),pl=taxPL(data),m=taxMileageTotals(data),subs=tax1099(data),ho=taxHomeOffice(data.settings);
   const bizName=esc(state.snapshot?.business?.businessName||'');
   const years=[];for(let y=new Date().getFullYear();y>=2023;y--)years.push(y);
-  const need1099=subs.filter(s=>s.total>=600);
+  const threshold1099=tax1099Threshold(year);
+  const need1099=subs.filter(s=>s.total>=threshold1099);
   return `<section class="card span12" id="h38-tax-packet"><h2>Accountant Tax Packet — ${year}</h2>
   <p class="muted small">Professional year-end documents for your accountant to verify and file. The Office prepares — it never files a return.</p>
   <div class="two"><div><label>Tax year</label><select id="taxPacketYear">${years.map(y=>`<option value="${y}"${y===year?' selected':''}>${y}</option>`).join('')}</select></div>
@@ -98,12 +103,12 @@ function taxPacketSection(){
   <div class="actions"><button>Add mileage entry</button></div></form>
   <div class="list">${data.mileage.length?data.mileage.slice(0,100).map(row=>`<div class="row"><div class="row-top"><strong>${esc(v(row,'Purpose'))}</strong><span>${num(v(row,'Miles')).toFixed(1)} mi</span></div><small>${dateOnly(v(row,'Trip Date'))} · ${esc(v(row,'Origin')||'')} → ${esc(v(row,'Destination')||'')}</small></div>`).join(''):empty('No mileage entries for '+year+'. Log trips above or in Field → Receipt & mileage.')}</div>
   <h3>1099-NEC summary — ${year}</h3>
-  <p class="muted small">Subcontractors paid $600 or more need a 1099-NEC. Give this list to your accountant.</p>
+  <p class="muted small">Subcontractors paid $${threshold1099.toLocaleString()} or more in ${year} need a 1099-NEC. (IRS threshold: $600 for 2025 payments, $2,000 for 2026 and later.) Give this list to your accountant.</p>
   <form id="subPaymentForm"><div class="two"><div><label>Subcontractor name</label><input name="subName" required></div><div><label>TIN (optional)</label><input name="tin" placeholder="XX-XXXXXXX"></div></div>
   <div class="two"><div><label>Amount</label><input name="amount" type="number" min="0" step="0.01" required></div><div><label>Payment date</label><input name="paymentDate" type="date" required value="${new Date().toISOString().slice(0,10)}"></div></div>
   <label>Notes</label><input name="notes" placeholder="Job or invoice reference">
   <div class="actions"><button>Record subcontractor payment</button></div></form>
-  <div class="list">${subs.length?subs.map(s=>`<div class="row"><div class="row-top"><strong>${esc(s.name)}</strong>${s.total>=600?pill('1099 required'):pill('under $600')}</div><small>${money(s.total)} across ${s.payments} payment${s.payments===1?'':'s'}${s.tin?` · TIN on file`:''}</small></div>`).join(''):empty('No subcontractor payments recorded for '+year+'.')}</div>
+  <div class="list">${subs.length?subs.map(s=>`<div class="row"><div class="row-top"><strong>${esc(s.name)}</strong>${s.total>=threshold1099?pill('1099 required'):pill('under $'+threshold1099.toLocaleString())}</div><small>${money(s.total)} across ${s.payments} payment${s.payments===1?'':'s'}${s.tin?` · TIN on file`:''}</small></div>`).join(''):empty('No subcontractor payments recorded for '+year+'.')}</div>
   <h3>Home office deduction — ${year}</h3>
   <form id="homeOfficeForm"><div class="two"><div><label>Office sq ft</label><input name="officeSqft" type="number" min="0" step="1" value="${esc(v(data.settings,'Office Sq Ft')||'')}"></div><div><label>Total home sq ft</label><input name="homeSqft" type="number" min="0" step="1" value="${esc(v(data.settings,'Home Sq Ft')||'')}"></div></div>
   <div class="two"><div><label>Method</label><select name="method"><option${(v(data.settings,'Method')||'Simplified')==='Simplified'?' selected':''}>Simplified</option><option${v(data.settings,'Method')==='Actual'?' selected':''}>Actual</option></select></div><div><label>Total home expenses (actual method)</label><input name="actualExpenses" type="number" min="0" step="0.01" value="${esc(v(data.settings,'Actual Home Expenses')||'')}"></div></div>
@@ -157,6 +162,7 @@ function taxPacketPrintCss(){return `<style>
 
 function taxPacketPrintHtml(year){
   const data=taxPacketData(year),pl=taxPL(data),m=taxMileageTotals(data),subs=tax1099(data),ho=taxHomeOffice(data.settings);
+  const threshold1099=tax1099Threshold(year);
   const biz=esc(state.snapshot?.business?.businessName||'Business');
   const prepared=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   const catRows=obj=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([c,a])=>`<tr><td>${esc(c)}</td><td class="n">$${a.toFixed(2)}</td></tr>`).join('');
@@ -185,9 +191,9 @@ function taxPacketPrintHtml(year){
   <tr class="totals"><td colspan="3">Total business miles</td><td class="n">${m.miles.toFixed(1)}</td></tr></table>
 
   <h2 class="pagebreak">4. 1099-NEC Summary — ${year}</h2>
-  <div class="meta">Subcontractors paid $600 or more generally require a Form 1099-NEC. Confirm thresholds and filing with your accountant.</div>
+  <div class="meta">Subcontractors paid $${threshold1099.toLocaleString()} or more in ${year} generally require a Form 1099-NEC. (IRS threshold: $600 for 2025 payments, $2,000 for 2026 and later.) Confirm thresholds and filing with your accountant.</div>
   <table><tr><th>Subcontractor</th><th class="n">Payments</th><th class="n">Total paid</th><th>1099 needed</th></tr>
-  ${subs.length?subs.map(s=>`<tr><td>${esc(s.name)}${s.tin?` (TIN on file)`:''}</td><td class="n">${s.payments}</td><td class="n">$${s.total.toFixed(2)}</td><td>${s.total>=600?'<strong>YES</strong>':'No'}</td></tr>`).join(''):'<tr><td colspan="4">No subcontractor payments recorded.</td></tr>'}
+  ${subs.length?subs.map(s=>`<tr><td>${esc(s.name)}${s.tin?` (TIN on file)`:''}</td><td class="n">${s.payments}</td><td class="n">$${s.total.toFixed(2)}</td><td>${s.total>=threshold1099?'<strong>YES</strong>':'No'}</td></tr>`).join(''):'<tr><td colspan="4">No subcontractor payments recorded.</td></tr>'}
   </table>
 
   <h2>5. Home Office Deduction — ${year}</h2>
