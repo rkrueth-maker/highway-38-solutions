@@ -8,7 +8,7 @@
 .h38-c360-tabs button[aria-selected="true"]{background:var(--navy,#0b2438);border-color:var(--navy,#0b2438);color:#fff}
 .h38-c360-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .h38-c360-panel[hidden]{display:none!important}
-.h38-c360-panel>.h38-c360-customer-details,.h38-c360-panel>.h38-c360-balance{grid-column:1/-1}
+.h38-c360-panel>.h38-c360-customer-details,.h38-c360-panel>.h38-c360-balance,.h38-c360-customer-details{grid-column:1/-1;min-width:0;width:100%;box-sizing:border-box}
 .h38-c360-detail-columns-two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .h38-c360-money-stats{grid-template-columns:repeat(3,minmax(100px,1fr))}
 @media(max-width:760px){
