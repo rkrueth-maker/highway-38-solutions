@@ -31,7 +31,7 @@ function deriveContext(){
 }
 function bundleFor(id){return c360()?.customerBundle?.(snapshot(),id)||null;}
 function primaryProperty(bundle){return bundle?.groups?.properties?.[0]||null;}
-function pageNames(){try{if(window.PAGE_DEFS?.work)window.PAGE_DEFS.work[1]='Jobs';if(window.PAGE_DEFS?.field)window.PAGE_DEFS.field[1]='Site Visit';if(window.PAGE_DEFS?.documents)window.PAGE_DEFS.documents[1]='Files';}catch(_){} }
+function pageNames(){try{if(window.PAGE_DEFS?.work)window.PAGE_DEFS.work=['','Jobs'];if(window.PAGE_DEFS?.field)window.PAGE_DEFS.field=['','Site Visit'];if(window.PAGE_DEFS?.documents)window.PAGE_DEFS.documents=['','Files'];}catch(_){} }
 function polishNav(){
   pageNames();const nav=document.getElementById('mainNav');if(!nav)return;
   const rename=(selector,label)=>{const b=nav.querySelector(selector),span=b?.querySelector('span:last-child');if(span)span.textContent=label;};
