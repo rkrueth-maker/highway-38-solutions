@@ -225,10 +225,10 @@
       `<section class="card span12" id="digestCard"><h2>${esc(greeting())}${d.name?', '+esc(d.name):''}</h2>`+
       `<p class="muted">Here is ${esc(d.bizName)} today, ${esc(new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}))}.</p>`+
       `<div class="stats">`+
-      `<div class="stat"><strong>${d.today.length}</strong><span>Jobs today</span></div>`+
-      `<div class="stat"><strong>${money(d.outstanding)}</strong><span>Outstanding</span></div>`+
-      `<div class="stat"><strong>${d.overdue.length}</strong><span>Overdue invoices</span></div>`+
-      `<div class="stat"><strong>${d.dueWeek.length}</strong><span>Due this week</span></div>`+
+      `<button type="button" class="stat" data-open-page="schedule"><strong>${d.today.length}</strong><span>Jobs today</span></button>`+
+      `<button type="button" class="stat" data-open-page="money"><strong>${money(d.outstanding)}</strong><span>Outstanding</span></button>`+
+      `<button type="button" class="stat" data-open-page="money"><strong>${d.overdue.length}</strong><span>Overdue invoices</span></button>`+
+      `<button type="button" class="stat" data-open-page="money"><strong>${d.dueWeek.length}</strong><span>Due this week</span></button>`+
       `</div>`+
       (firstJob
         ?`<p><strong>First up:</strong> ${esc(v(firstJob,'Title'))} at ${esc(dateTime(v(firstJob,'Start Time')))}${v(firstJob,'Location')?` — ${esc(v(firstJob,'Location'))}`:''}</p>`
