@@ -1,12 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-05T04:34:33.632Z",
+  "generatedAt": "2026-10-05T23:56:23.875Z",
   "policyVersion": "2026-07-24-direct-raster-visual-gate-v3",
   "approvedLogoLocked": true,
   "contentImageSourcesLocked": true,
   "runtimeImageSourceChangesAllowed": false,
   "directProjectImagesRequired": true,
-  "passed": 232,
+  "passed": 226,
   "failed": 0,
   "passes": [
     {
@@ -34,47 +34,11 @@
       "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
     },
     {
-      "name": "index.html plans-card exact source",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
-    },
-    {
-      "name": "index.html plans-card exact alt",
-      "detail": "Three-bedroom cabin plan sheet"
-    },
-    {
-      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
-    },
-    {
-      "name": "index.html quote-card exact source",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
-    },
-    {
-      "name": "index.html quote-card exact alt",
-      "detail": "Completed kitchen remodel example"
-    },
-    {
-      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
-    },
-    {
-      "name": "index.html instructions-card exact source",
-      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
-    },
-    {
-      "name": "index.html instructions-card exact alt",
-      "detail": "Project planning documents"
-    },
-    {
-      "name": "assets/approved-website-images/10-project-planning-documents.jpg exists",
-      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
-    },
-    {
-      "name": "index.html business-office-card exact source",
+      "name": "index.html what-it-is exact source",
       "detail": "assets/approved-website-images/business-workflow-office.webp"
     },
     {
-      "name": "index.html business-office-card exact alt",
+      "name": "index.html what-it-is exact alt",
       "detail": "Connected Business Office workflow"
     },
     {
@@ -82,7 +46,47 @@
       "detail": "assets/approved-website-images/business-workflow-office.webp"
     },
     {
+      "name": "index.html demo-proof-1 exact source",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "index.html demo-proof-1 exact alt",
+      "detail": "Three-bedroom cabin plan sheet"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "index.html demo-proof-2 exact source",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "index.html demo-proof-2 exact alt",
+      "detail": "Completed kitchen remodel example"
+    },
+    {
+      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "index.html demo-proof-3 exact source",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "index.html demo-proof-3 exact alt",
+      "detail": "Project planning documents"
+    },
+    {
+      "name": "assets/approved-website-images/10-project-planning-documents.jpg exists",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
       "name": "index.html preserves assets/demo-workthroughs/cabin-exterior-render.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "index.html preserves assets/approved-website-images/business-workflow-office.webp occurrence count",
       "detail": "1/1"
     },
     {
@@ -95,10 +99,6 @@
     },
     {
       "name": "index.html preserves assets/approved-website-images/10-project-planning-documents.jpg occurrence count",
-      "detail": "1/1"
-    },
-    {
-      "name": "index.html preserves assets/approved-website-images/business-workflow-office.webp occurrence count",
       "detail": "1/1"
     },
     {
@@ -719,30 +719,6 @@
     },
     {
       "name": "business-in-a-box.html images have alt text",
-      "detail": "1 images"
-    },
-    {
-      "name": "business-in-a-box-pricing.html exists",
-      "detail": ""
-    },
-    {
-      "name": "business-in-a-box-pricing.html hero exact source",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
-    },
-    {
-      "name": "business-in-a-box-pricing.html hero exact alt",
-      "detail": "Detailed project planning and quote example"
-    },
-    {
-      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
-    },
-    {
-      "name": "business-in-a-box-pricing.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
-      "detail": "1/1"
-    },
-    {
-      "name": "business-in-a-box-pricing.html images have alt text",
       "detail": "1 images"
     },
     {
