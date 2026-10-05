@@ -247,7 +247,7 @@ async function execLogTime(params){
     'Hours':params.hours,'Status':'Recorded','Notes':'Voice entry',
     'Created Time':nowIso(),'Updated Time':nowIso(),'Record Version':1
   };
-  await queue('RECORD_TIME','Time Entry',id,{timeEntryId:id,hours:params.hours,jobId:jobId},
+  await queue('RECORD_TIME','Time Entry',id,{timeEntryId:id,hours:params.hours,jobId:jobId,timeSource:'voice'},
     {collection:'timeEntries',record:record,idKeys:['Time Entry ID']});
   return 'Logged '+params.hours+' hour'+(params.hours===1?'':'s')+' on '+jobLabel(job)+'.';
 }

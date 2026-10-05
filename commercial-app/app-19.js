@@ -114,8 +114,10 @@ function h38FindEmployeeForTime(row){
 async function h38SetTimeApproval(entryId, approved){
   const row=records('timeEntries').find(r=>rowId(r,'Time Entry ID','id')===entryId);
   if(!row){toast('Time entry not found.',true);return;}
+  // Approval writes go through the audited RPC (direct timeEntries writes are
+  // RLS-blocked for every role). The optimistic record keeps the UI snappy.
   const updated=Object.assign({},row,{'Approval Status':approved?'Approved':'Rejected','Approved By':state.snapshot.user.userId,'Approved Time':now(),'Updated Time':now(),'Record Version':num(v(row,'Record Version'))+1});
-  await saveParity('timeEntries','Time Entry',entryId,updated,'timeEntries',['Time Entry ID']);
+  await queueOperation('APPROVE_TIME_ENTRY','Time Entry',entryId,{timeEntryId:entryId,approved:!!approved,note:''},{collection:'timeEntries',record:updated,idKeys:['Time Entry ID']},false);
   await sync(false);renderPayrollPrep();
 }
 async function h38ApproveAllTime(){
@@ -125,7 +127,7 @@ async function h38ApproveAllTime(){
   for(const row of pending){
     const id=rowId(row,'Time Entry ID','id');
     const updated=Object.assign({},row,{'Approval Status':'Approved','Approved By':state.snapshot.user.userId,'Approved Time':now(),'Updated Time':now(),'Record Version':num(v(row,'Record Version'))+1});
-    await saveParity('timeEntries','Time Entry',id,updated,'timeEntries',['Time Entry ID']);
+    await queueOperation('APPROVE_TIME_ENTRY','Time Entry',id,{timeEntryId:id,approved:true,note:''},{collection:'timeEntries',record:updated,idKeys:['Time Entry ID']},false);
   }
   await sync(false);toast(`${pending.length} time entries approved.`);renderPayrollPrep();
 }

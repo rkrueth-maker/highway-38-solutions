@@ -416,7 +416,56 @@
     return {collection:'payments',recordKey:paymentKey,record:paymentRecord};
   }
 
+  // Time entries: direct writes to the timeEntries collection are blocked for
+  // every role by RLS (private.business_record_row_access_context). The only
+  // write authority is the audited RPC public.business_office_record_manual_time,
+  // which validates membership, inserts the entry, and writes an audit row.
+  // This single chokepoint covers the Field time form, voice "log hours", the
+  // offline queue, and field-ops "Add time" — all of them sync RECORD_TIME ops.
+  function toIsoOrNull(value) {
+    const s = text(value).trim();
+    if (!s) return null;
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  async function recordTimeEntry(operation) {
+    const p = operation.payload || {};
+    const params = {
+      p_business_id: text(operation.businessId),
+      p_time_entry_id: text(p.timeEntryId || p['Time Entry ID'] || operation.recordId || ''),
+      p_job_id: text(p.jobId || p['Job ID'] || ''),
+      p_start_time: toIsoOrNull(p.startTime || p['Start Time']),
+      p_end_time: toIsoOrNull(p.endTime || p['End Time']),
+      p_break_minutes: number(p.breakMinutes != null ? p.breakMinutes : p['Break Minutes']),
+      p_hours: (p.hours != null ? number(p.hours) : (p['Hours'] != null ? number(p['Hours']) : null)),
+      p_notes: text(p.notes || p['Notes'] || ''),
+      p_source: text(p.timeSource || 'field_form'),
+      p_user_id: null
+    };
+    const { data, error } = await client().rpc('business_office_record_manual_time', params);
+    if (error) throw error;
+    const record = data || {};
+    const recordKey = text(record['Time Entry ID'] || params.p_time_entry_id);
+    mergeTimeEntrySnapshot(record, recordKey);
+    return { collection: 'timeEntries', recordKey, record };
+  }
+
+  function mergeTimeEntrySnapshot(record, recordKey) {
+    try {
+      const snap = window.state && window.state.snapshot;
+      if (!snap || !record || typeof record !== 'object') return;
+      if (!Array.isArray(snap.timeEntries)) snap.timeEntries = [];
+      const keys = ['Time Entry ID', 'timeEntryId', 'id'];
+      const wanted = keys.map(k => text(record[k])).find(Boolean) || recordKey;
+      const idx = wanted ? snap.timeEntries.findIndex(item => keys.some(k => text(item && item[k]) === wanted)) : -1;
+      if (idx >= 0) snap.timeEntries[idx] = Object.assign({}, snap.timeEntries[idx], record);
+      else snap.timeEntries.push(record);
+    } catch (ignore) {}
+  }
+
   async function processOperation(operation) {
+    if (operation.action === 'RECORD_TIME') return recordTimeEntry(operation);
     if (operation.action === 'RECORD_PAYMENT') return processPayment(operation);
     if (operation.action === 'SAVE_ATTACHMENT') return uploadAttachment(operation);
     if (operation.action === 'SAVE_USER') return saveMembership(operation);
