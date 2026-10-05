@@ -1,21 +1,20 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-05T14:22:45.700Z",
+  "generatedAt": "2026-10-05T14:26:55.102Z",
   "base": "origin/main",
-  "head": "fix/sandbox-qa-bugs",
+  "head": "fix/pricing-brand-kit-bundle",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "artifacts/public-image-placements/verification.json",
-    "business-in-a-box-pricing.html",
-    "business-in-a-box.html",
-    "scripts/config/approved-public-image-placements.json"
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
+    "commercial-app/operator-direct-controls.js",
+    "launch-control/evidence/unified-app-architecture-verification.json"
   ],
-  "fileCount": 7,
+  "fileCount": 6,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": false,
+    "publicWebsite": false,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -25,28 +24,25 @@
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
-    "approvedAssets": true,
-    "publicRendering": true,
-    "authenticatedRendering": false,
+    "approvedAssets": false,
+    "publicRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "python3 scripts/verify-public-images.py",
-    "node scripts/verify-public-image-placements.js"
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "rendered pixel and direct-image verification"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+    "Public browser and image evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
