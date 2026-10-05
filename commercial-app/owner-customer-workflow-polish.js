@@ -34,7 +34,7 @@ function primaryProperty(bundle){return bundle?.groups?.properties?.[0]||null;}
 function pageNames(){try{if(window.PAGE_DEFS?.work)window.PAGE_DEFS.work=['','Jobs'];if(window.PAGE_DEFS?.field)window.PAGE_DEFS.field=['','Site Visit'];if(window.PAGE_DEFS?.documents)window.PAGE_DEFS.documents=['','Files'];}catch(_){} }
 function polishNav(){
   pageNames();const nav=document.getElementById('mainNav');if(!nav)return;
-  const rename=(selector,label)=>{const b=nav.querySelector(selector),span=b?.querySelector('span:last-child');if(span)span.textContent=label;};
+  const rename=(selector,label)=>{const b=nav.querySelector(selector);if(!b)return;const spans=b.querySelectorAll(':scope > span');if(spans.length>1)spans[0].remove();const span=b.querySelector('span:last-child');if(span&&span.textContent!==label)span.textContent=label;};
   rename('[data-page="work"],[data-h38-primary="work"]','Jobs');rename('[data-page="field"],[data-more-page="field"]','Site Visit');rename('[data-page="documents"],[data-more-page="documents"]','Files');
   const today=nav.querySelector('[data-page="today"],[data-h38-primary="today"]'),customers=nav.querySelector('[data-page="customers"],[data-h38-primary="customers"]'),work=nav.querySelector('[data-page="work"],[data-h38-primary="work"]');
   const mobile=!!window.matchMedia?.('(max-width:760px)').matches;
