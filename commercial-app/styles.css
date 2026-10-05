@@ -60,3 +60,26 @@ input[type="file"]::file-selector-button:hover{background:#e8eef3}
 /* General: Prevent flex item overflow in row-top layouts */
 .row-top > strong{flex:1;min-width:0}
 .row-top .switch{flex-shrink:0;margin-left:auto}
+
+/* === H38 VOICE COMMANDS (v2.0) === */
+/* Hands-free field actions: big mic, listening state, confirmation */
+.h38-voice-bar{display:flex;gap:12px;align-items:center;padding:4px 0}
+.h38-voice-mic{flex:0 0 auto;width:64px;height:64px;border-radius:50%;border:0;background:var(--navy);color:#fff;font-size:.8rem;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(11,36,56,.25)}
+.h38-voice-mic:hover{background:#1a3a52}
+.h38-voice-mic.h38-voice-listening{background:#c0392b;animation:pulse 1.1s infinite}
+.h38-voice-main{flex:1;min-width:0}
+.h38-voice-status{font-weight:700;font-size:.92rem}
+.h38-voice-transcript{font-size:.85rem;color:var(--muted,#5b6b7a);margin-top:2px;min-height:1.2em}
+.h38-voice-transcript.h38-voice-final{color:var(--navy);font-weight:600}
+.h38-voice-type-row{display:flex;gap:8px;margin-top:10px}
+.h38-voice-type-row input{flex:1;min-width:0;min-height:44px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;font-size:.9rem}
+.h38-voice-confirm{margin-top:10px}
+.h38-voice-confirm-card{border:1px solid var(--line-strong);border-radius:12px;padding:12px;background:#f7fafc}
+.h38-voice-confirm-action{font-size:1.05rem;font-weight:800;margin:6px 0 10px}
+.h38-voice-hint{margin-top:10px;margin-bottom:0}
+.h38-driving-voice{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+@media(max-width:760px){
+  .h38-voice-mic{width:72px;height:72px;font-size:.85rem}
+  .h38-voice-type-row{flex-direction:column}
+  .h38-voice-type-row button{min-height:44px}
+}
