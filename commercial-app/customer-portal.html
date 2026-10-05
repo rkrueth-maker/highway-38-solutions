@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Customer Portal</title>
+<meta name="description" content="View your quotes, approve work, pay invoices, and request service online.">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f0f4f8;color:#16262f;line-height:1.5;min-height:100vh}
+.hero{background:linear-gradient(135deg,#0b2438,#123a5c);color:#fff;padding:32px 20px 44px;text-align:center}
+.hero h1{font-size:24px;margin-bottom:6px;letter-spacing:-.5px}
+.hero p{opacity:.8;font-size:14px}
+.wrap{max-width:640px;margin:-24px auto 90px;padding:0 16px}
+.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:14px}
+.card h2{font-size:17px;margin-bottom:10px}
+.card h3{font-size:15px;margin:14px 0 8px}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:650;font-size:14px;margin-bottom:6px;color:#3d5261}
+.field input,.field select,.field textarea{width:100%;padding:12px;border:1.5px solid #cbd7df;border-radius:10px;font:inherit;font-size:15px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#0b6aa2;box-shadow:0 0 0 3px rgba(11,106,162,.12)}
+button{padding:12px 18px;background:#0b6aa2;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+button:hover{background:#095a8a}
+button:disabled{opacity:.6;cursor:wait}
+button.secondary{background:#e8eef3;color:#0b2438}
+button.danger{background:#b33636}
+button.block{width:100%}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.row{grid-template-columns:1fr}}
+.ok{background:#e8f7ee;border:1px solid #b6dec4;color:#126132;padding:16px;border-radius:10px;text-align:center}
+.err{background:#ffe9e9;border:1px solid #efb4b4;color:#a83232;padding:12px;border-radius:10px;margin-bottom:12px}
+.note{font-size:13px;color:#687e8d;text-align:center;margin-top:14px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.stat{background:#f4f8fb;border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font-size:19px;color:#0b2438}
+.stat span{font-size:12px;color:#687e8d}
+.item{border:1px solid #e1e9ef;border-radius:12px;padding:14px;margin-bottom:10px}
+.item .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.item .top strong{font-size:15px}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e8eef3;color:#3d5261}
+.pill.green{background:#e8f7ee;color:#126132}
+.pill.amber{background:#fdf3e0;color:#8a5b00}
+.pill.red{background:#ffe9e9;color:#a83232}
+.muted{color:#687e8d;font-size:13px}
+.small{font-size:13px}
+.tier{border:2px solid #dbe6ee;border-radius:12px;padding:14px;margin-bottom:10px}
+.tier.popular{border-color:#0b6aa2;background:#f2f8fc}
+.tier .tname{font-weight:800;font-size:15px}
+.tier .tprice{font-size:20px;font-weight:800;color:#0b2438;margin:6px 0}
+.tag{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#0b6aa2;margin-bottom:4px}
+.line{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eef2f6;font-size:14px}
+.line:last-child{border-bottom:0}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dbe4ec;display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;background:none;color:#687e8d;border:0;border-radius:0;padding:10px 4px 12px;font-size:11px;font-weight:700}
+.tabs button.active{color:#0b6aa2;border-top:3px solid #0b6aa2;padding-top:7px}
+.view{display:none}
+.view.active{display:block}
+.center{text-align:center;padding:30px 10px;color:#687e8d}
+.spinner{width:28px;height:28px;border:3px solid #cbd7df;border-top-color:#0b6aa2;border-radius:50%;animation:sp 0.8s linear infinite;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="hero"><h1 id="bizName">Customer Portal</h1><p id="bizSub">Quotes, invoices, and service requests in one place.</p></div>
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <div class="card" id="loginCard">
+    <h2>Sign in</h2>
+    <p class="muted small" style="margin-bottom:12px">Enter the email or phone number on your account and we'll send you a secure sign-in link. No password needed.</p>
+    <div id="loginErr" class="err" hidden></div>
+    <div class="field"><label for="fEmail">Email</label><input id="fEmail" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com"></div>
+    <div class="field"><label for="fPhone">Phone (if no email on file)</label><input id="fPhone" type="tel" maxlength="30" autocomplete="tel" placeholder="(218) 555-0123"></div>
+    <button class="block" id="loginBtn">Send me a sign-in link</button>
+    <p class="note">The link expires in 24 hours and works once.</p>
+  </div>
+  <div class="card ok" id="loginSentCard" hidden>
+    <h2>Check your messages</h2>
+    <p style="margin-top:8px" id="loginSentMsg">If we found your account, your secure sign-in link is on its way.</p>
+  </div>
+  <div class="card" id="loginOffCard" hidden>
+    <h2>Portal isn't available right now</h2>
+    <p class="muted">This business isn't offering online portal access at the moment. Please call us directly.</p>
+  </div>
+
+  <!-- LOADING / ERROR -->
+  <div class="card center" id="loadingCard" hidden><div class="spinner"></div><p>Loading your account…</p></div>
+  <div class="card" id="redeemErrCard" hidden>
+    <div class="err" id="redeemErr"></div>
+    <button class="secondary block" id="backToLoginBtn">Back to sign in</button>
+  </div>
+
+  <!-- PORTAL -->
+  <div id="portalViews" hidden>
+    <div class="view active" id="view-home">
+      <div class="card"><h2 id="greetName">Welcome</h2><div class="stat-row">
+        <div class="stat"><b id="statQuotes">0</b><span>Open quotes</span></div>
+        <div class="stat"><b id="statDue">$0</b><span>Balance due</span></div>
+        <div class="stat"><b id="statAppts">0</b><span>Upcoming visits</span></div>
+      </div></div>
+      <div class="card"><h2>Needs your attention</h2><div id="actionList"></div></div>
+      <div class="card"><h2>Upcoming visits</h2><div id="apptList"></div></div>
+    </div>
+
+    <div class="view" id="view-quotes">
+      <div class="card"><h2>Quotes</h2><div id="quoteList"></div></div>
+    </div>
+
+    <div class="view" id="view-invoices">
+      <div class="card"><h2>Invoices</h2><div id="invoiceList"></div></div>
+    </div>
+
+    <div class="view" id="view-book">
+      <div class="card"><h2>Request service</h2><div id="bookErr" class="err" hidden></div>
+        <div id="bookFormWrap">
+          <div class="field"><label for="bService">What do you need?</label>
+            <select id="bService"><option value="">Choose a service…</option><option>General contracting</option><option>Remodeling</option><option>Repair</option><option>Property maintenance</option><option>Machine shop / parts</option><option>Other</option></select></div>
+          <div class="row">
+            <div class="field"><label for="bDate">Preferred date</label><input id="bDate" type="date"></div>
+            <div class="field"><label for="bTime">Preferred time</label><select id="bTime"><option value="">Flexible</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select></div>
+          </div>
+          <div class="field"><label for="bNotes">Details (optional)</label><textarea id="bNotes" rows="3" maxlength="1000" placeholder="Tell us about the project…"></textarea></div>
+          <button class="block" id="bookBtn">Request Service</button>
+          <p class="note">We'll call you back to confirm. No payment due until the work is agreed.</p>
+        </div>
+        <div class="ok" id="bookDone" hidden><h2>Request received</h2><p style="margin-top:8px">Thanks — we'll call you shortly to confirm.</p></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-history">
+      <div class="card"><h2>Job history</h2><div id="historyList"></div></div>
+    </div>
+
+    <nav class="tabs" id="tabBar">
+      <button data-view="view-home" class="active">Home</button>
+      <button data-view="view-quotes">Quotes</button>
+      <button data-view="view-invoices">Invoices</button>
+      <button data-view="view-book">Book</button>
+      <button data-view="view-history">History</button>
+    </nav>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var FN_URL='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-customer-portal';
+var DEFAULT_BUSINESS='10b85a89-5834-436d-95b0-c6ee2eb335ad';
+var params=new URLSearchParams(location.search);
+var businessId=params.get('business')||DEFAULT_BUSINESS;
+var magicToken=params.get('token')||'';
+var sessionToken=sessionStorage.getItem('h38-portal-session')||'';
+var bundle=null;
+
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(n){n=Number(n)||0;return '$'+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+function pill(text,cls){return '<span class="pill '+(cls||'')+'">'+esc(text)+'</span>';}
+function showLogin(){$('loginCard').hidden=false;$('loginSentCard').hidden=true;$('loginOffCard').hidden=true;$('loadingCard').hidden=true;$('portalViews').hidden=true;$('redeemErrCard').hidden=true;}
+function api(action,body,method){
+  var opts={method:method||'POST',headers:{'Content-Type':'application/json'}};
+  if(method==='GET'){return fetch(FN_URL+'?action='+encodeURIComponent(action)+'&token='+encodeURIComponent(magicToken||''),{headers:{}}).then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});});}
+  body=body||{};body.action=action;opts.body=JSON.stringify(body);
+  return fetch(FN_URL,opts).then(function(r){return r.json().then(function(o){return{ok:r.ok,status:r.status,o:o};});});
+}
+
+// ---- Boot: check tenant gate, then redeem token or resume session ----
+fetch(FN_URL+'?action=status&business_id='+encodeURIComponent(businessId))
+  .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
+  .then(function(r){
+    if(!(r.ok&&r.o&&r.o.portalEnabled===true)){showLogin();$('loginCard').hidden=true;$('loginOffCard').hidden=false;return;}
+    if(magicToken){redeem();}
+    else if(sessionToken){loadSession(sessionToken);}
+    else{showLogin();}
+  })
+  .catch(function(){showLogin();});
+
+function redeem(){
+  $('loginCard').hidden=true;$('loadingCard').hidden=false;
+  api('redeem',{token:magicToken}).then(function(r){
+    if(r.ok&&r.o&&r.o.sessionToken){
+      sessionToken=r.o.sessionToken;
+      sessionStorage.setItem('h38-portal-session',sessionToken);
+      history.replaceState(null,'',location.pathname+'?business='+encodeURIComponent(businessId));
+      loadSession(sessionToken);
+    }else{showRedeemError((r.o&&r.o.error)||'This link is invalid or has expired.');}
+  }).catch(function(){showRedeemError('Could not reach the portal. Please try again.');});
+}
+function showRedeemError(msg){$('loadingCard').hidden=true;$('redeemErr').textContent=msg;$('redeemErrCard').hidden=false;}
+$('backToLoginBtn').addEventListener('click',function(){showLogin();});
+
+function loadSession(token){
+  $('loginCard').hidden=true;$('loginSentCard').hidden=true;$('loadingCard').hidden=false;
+  // session bundle comes through the redeem-style GET with the session token
+  fetch(FN_URL+'?action=session&token='+encodeURIComponent(token))
+    .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
+    .then(function(r){
+      if(r.ok&&r.o&&r.o.customer){bundle=r.o;renderPortal();}
+      else{sessionStorage.removeItem('h38-portal-session');sessionToken='';showRedeemError((r.o&&r.o.error)||'Your session expired. Please sign in again.');}
+    })
+    .catch(function(){showRedeemError('Could not reach the portal. Please try again.');});
+}
+
+// ---- Login ----
+$('loginBtn').addEventListener('click',function(){
+  var btn=$('loginBtn'),err=$('loginErr');err.hidden=true;
+  var email=$('fEmail').value.trim(),phone=$('fPhone').value.trim();
+  if(!email&&!phone){err.textContent='Enter your email or phone number.';err.hidden=false;return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  api('request-link',{business_id:businessId,email:email,phone:phone}).then(function(r){
+    btn.disabled=false;btn.textContent='Send me a sign-in link';
+    if(r.ok){$('loginCard').hidden=true;$('loginSentCard').hidden=false;}
+    else if(r.status===403){$('loginCard').hidden=true;$('loginOffCard').hidden=false;}
+    else{err.textContent=(r.o&&r.o.error)||'Something went wrong.';err.hidden=false;}
+  }).catch(function(){btn.disabled=false;btn.textContent='Send me a sign-in link';err.textContent='Could not reach the portal.';err.hidden=false;});
+});
+
+// ---- Tabs ----
+$('tabBar').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('#tabBar button').forEach(function(x){x.classList.toggle('active',x===b);});
+  document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.id===b.dataset.view);});
+  window.scrollTo(0,0);
+});
+
+// ---- Render ----
+function statusPill(s){
+  s=String(s||'');var cls='';
+  if(/approved|paid|completed|confirmed/i.test(s))cls='green';
+  else if(/presented|sent|scheduled|pending/i.test(s))cls='amber';
+  else if(/overdue|declined|failed/i.test(s))cls='red';
+  return pill(s||'—',cls);
+}
+function fmtDate(s){try{var d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+(d.getHours()||d.getMinutes()?' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}):'');}catch(e){return s;}}
+
+function renderPortal(){
+  $('loadingCard').hidden=true;$('redeemErrCard').hidden=true;$('portalViews').hidden=false;
+  $('bizName').textContent=bundle.business.name+' Portal';
+  var cname=bundle.customer.name||'there';
+  $('greetName').textContent='Welcome, '+cname.split(' ')[0];
+  var openQuotes=bundle.quotes.filter(function(q){return/presented|sent/i.test(q.status);});
+  var openInvoices=bundle.invoices.filter(function(i){return (Number(i.balance)||0)>0;});
+  var due=openInvoices.reduce(function(s,i){return s+(Number(i.balance)||0);},0);
+  $('statQuotes').textContent=openQuotes.length;
+  $('statDue').textContent=money(due);
+  $('statAppts').textContent=bundle.appointments.length;
+
+  // Action list
+  var acts=[];
+  openQuotes.forEach(function(q){acts.push({t:'Review quote: '+q.title+' ('+money(q.total)+')',view:'view-quotes'});});
+  openInvoices.forEach(function(i){acts.push({t:'Pay invoice '+(i.number||'')+' — '+money(i.balance)+' due',view:'view-invoices'});});
+  $('actionList').innerHTML=acts.length?acts.map(function(a){
+    return '<div class="item"><div class="top"><strong>'+esc(a.t)+'</strong><button class="secondary" data-goto="'+a.view+'">Open</button></div></div>';
+  }).join(''):'<p class="muted">Nothing needs your attention right now.</p>';
+
+  // Appointments
+  $('apptList').innerHTML=bundle.appointments.length?bundle.appointments.map(function(a){
+    return '<div class="item"><div class="top"><strong>'+esc(a.title)+'</strong>'+statusPill(a.status)+'</div><div class="muted small">'+esc(fmtDate(a.start))+(a.location?' · '+esc(a.location):'')+'</div></div>';
+  }).join(''):'<p class="muted">No upcoming visits scheduled.</p>';
+
+  // Quotes
+  $('quoteList').innerHTML=bundle.quotes.length?bundle.quotes.map(function(q){
+    var canAct=/presented|sent/i.test(q.status);
+    var tiersHtml='';
+    if(q.tiers&&q.tiers.length===3){
+      tiersHtml=q.tiers.map(function(t,i){
+        return '<div class="tier'+(i===1?' popular':'')+'">'+(i===1?'<div class="tag">Most popular</div>':'')+'<div class="tname">'+esc(t.name)+'</div><div class="tprice">'+money(t.total)+'</div><div class="muted small">'+esc(t.description||'')+'</div>'+
+        (t.items||[]).map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join('')+
+        (canAct?'<button class="block" style="margin-top:10px" data-approve="'+esc(q.id)+'" data-tier="'+esc(t.name)+'">Approve '+esc(t.name)+'</button>':'')+'</div>';
+      }).join('');
+    }
+    var linesHtml=(q.lines||[]).length?'<h3>Line items</h3>'+q.lines.map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join(''):'';
+    return '<div class="item"><div class="top"><strong>'+esc(q.title||('Quote '+(q.number||'')))+'</strong>'+statusPill(q.status)+'</div>'+
+      '<div class="muted small">'+esc(q.number||'')+' · Total '+money(q.total)+'</div>'+
+      (q.scope?'<p class="small" style="margin:8px 0">'+esc(q.scope)+'</p>':'')+tiersHtml+linesHtml+
+      (canAct&&!(q.tiers&&q.tiers.length===3)?'<div class="row" style="margin-top:10px"><button class="block" data-approve="'+esc(q.id)+'">Approve quote</button><button class="secondary block" data-decline="'+esc(q.id)+'">Decline</button></div>':'')+
+      (canAct&&(q.tiers&&q.tiers.length===3)?'<button class="secondary block" data-decline="'+esc(q.id)+'">Decline all options</button>':'')+
+    '</div>';
+  }).join(''):'<p class="muted">No quotes yet.</p>';
+
+  // Invoices
+  $('invoiceList').innerHTML=bundle.invoices.length?bundle.invoices.map(function(i){
+    var bal=Number(i.balance)||0;
+    return '<div class="item"><div class="top"><strong>Invoice '+esc(i.number||'')+'</strong>'+statusPill(i.status)+'</div>'+
+      '<div class="muted small">Total '+money(i.total)+' · Balance '+money(bal)+(i.dueDate?' · Due '+esc(i.dueDate):'')+'</div>'+
+      (bal>0?'<button class="block" style="margin-top:10px" data-pay="'+esc(i.id)+'" data-amount="'+bal+'">Pay '+money(bal)+'</button>':'')+'</div>';
+  }).join(''):'<p class="muted">No invoices yet.</p>';
+
+  // History
+  var pastJobs=bundle.jobs.filter(function(j){return/complet/i.test(j.status);});
+  $('historyList').innerHTML=(pastJobs.length||bundle.invoices.length)?pastJobs.map(function(j){
+    return '<div class="item"><div class="top"><strong>'+esc(j.title||('Job '+(j.number||'')))+'</strong>'+statusPill(j.status)+'</div></div>';
+  }).join('')+(bundle.invoices.length?'<h3>Receipts</h3>'+bundle.invoices.filter(function(i){return (Number(i.balance)||0)<=0;}).map(function(i){
+    return '<div class="item"><div class="top"><strong>Invoice '+esc(i.number||'')+'</strong>'+pill('Paid','green')+'</div><div class="muted small">'+money(i.total)+'</div></div>';
+  }).join(''):''):'<p class="muted">No completed work yet.</p>';
+}
+
+// ---- Delegated actions ----
+document.addEventListener('click',function(e){
+  var g=e.target.closest('[data-goto]');
+  if(g){var b=document.querySelector('#tabBar button[data-view="'+g.dataset.goto+'"]');if(b)b.click();return;}
+  var ap=e.target.closest('[data-approve]');
+  if(ap){approveQuote(ap.dataset.approve,ap.dataset.tier||'');return;}
+  var dc=e.target.closest('[data-decline]');
+  if(dc){declineQuote(dc.dataset.decline);return;}
+  var py=e.target.closest('[data-pay]');
+  if(py){payInvoice(py.dataset.pay,py.dataset.amount);return;}
+});
+
+function approveQuote(quoteId,tier){
+  if(!confirm('Approve this quote'+(tier?' ('+tier+' option)':'')+'? We will contact you to schedule the work.'))return;
+  api('approve-quote',{session_token:sessionToken,quote_id:quoteId,tier:tier}).then(function(r){
+    alert((r.o&&(r.o.message||r.o.error))||'Done.');
+    if(r.ok)loadSession(sessionToken);
+  });
+}
+function declineQuote(quoteId){
+  var reason=prompt('Anything we should know? (optional)')||'';
+  api('decline-quote',{session_token:sessionToken,quote_id:quoteId,reason:reason}).then(function(r){
+    alert((r.o&&(r.o.message||r.o.error))||'Done.');
+    if(r.ok)loadSession(sessionToken);
+  });
+}
+function payInvoice(invoiceId,amount){
+  if(!confirm('Request payment of '+money(Number(amount))+'? We will process it and send your receipt.'))return;
+  api('pay-invoice',{session_token:sessionToken,invoice_id:invoiceId,amount:Number(amount)}).then(function(r){
+    alert((r.o&&(r.o.message||r.o.error))||'Done.');
+    if(r.ok)loadSession(sessionToken);
+  });
+}
+
+// ---- Book service ----
+$('bookBtn').addEventListener('click',function(){
+  var btn=$('bookBtn'),err=$('bookErr');err.hidden=true;
+  var service=$('bService').value;
+  if(!service){err.textContent='Choose a service.';err.hidden=false;return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  api('request-service',{session_token:sessionToken,service:service,date:$('bDate').value,time:$('bTime').value,notes:$('bNotes').value}).then(function(r){
+    btn.disabled=false;btn.textContent='Request Service';
+    if(r.ok){$('bookFormWrap').hidden=true;$('bookDone').hidden=false;}
+    else{err.textContent=(r.o&&r.o.error)||'Something went wrong.';err.hidden=false;}
+  }).catch(function(){btn.disabled=false;btn.textContent='Request Service';err.textContent='Could not reach the portal.';err.hidden=false;});
+});
+})();
+</script>
+</body>
+</html>

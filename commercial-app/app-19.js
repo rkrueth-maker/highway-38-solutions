@@ -8,11 +8,11 @@ Object.assign(PAGE_DEFS,{
   controls:['🛡️','Controls'],
   reports:['📊','Reports']
 });
-const H38_PARITY_OFFICE_PAGES=['today','customers','people','work','quotes','schedule','messages','field','inventory','fleet','money','accounting','payroll','tax','documents','social','controls','reports','ai','settings'];
+const H38_PARITY_OFFICE_PAGES=['today','customers','people','work','quotes','schedule','messages','field','inventory','fleet','money','memberships','accounting','payroll','tax','documents','social','controls','reports','ai','settings'];
 OFFICE_PAGES.splice(0,OFFICE_PAGES.length,...H38_PARITY_OFFICE_PAGES);
 SHELL_PAGES.office=OFFICE_PAGES;
 const H38_PARITY_REQUIREMENTS={
-  customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],accounting:['manageFinancial','viewFinancial'],payroll:['manageFinancial'],tax:['manageFinancial'],people:['manageUsers'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],controls:['manageSettings'],reports:['manageFinancial','viewFinancial','manageSettings'],settings:['manageSettings','manageUsers']
+  customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],memberships:['manageFinancial','viewFinancial'],accounting:['manageFinancial','viewFinancial'],payroll:['manageFinancial'],tax:['manageFinancial'],people:['manageUsers'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],controls:['manageSettings'],reports:['manageFinancial','viewFinancial','manageSettings'],settings:['manageSettings','manageUsers']
 };
 
 const H38_TEAM_ACCESS_COMPANION_BUILD='20260910-office-access-1';
@@ -36,7 +36,7 @@ function h38LoadTeamAccessCompanion(){
 allowedPages=function(){return SHELL_PAGES[state.shell].filter(page=>!H38_PARITY_REQUIREMENTS[page]||H38_PARITY_REQUIREMENTS[page].some(can));};
 renderNav=function(){const pages=allowedPages();$('mainNav').innerHTML=pages.map(key=>`<button type="button" data-page="${key}" class="${key===state.page?'active':''}"><span class="nav-icon">${PAGE_DEFS[key][0]}</span><span>${PAGE_DEFS[key][1]}</span></button>`).join('');$('mainNav').querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));};
 const h38ParityBaseRenderPage=renderPage;
-renderPage=function(){if(!state.snapshot){renderWelcome();return;}const parity={people:renderPeople,accounting:renderAccounting,payroll:renderPayrollPrep,tax:renderTaxPrep,controls:renderControls,reports:renderReports};if(parity[state.page])parity[state.page]();else h38ParityBaseRenderPage();};
+renderPage=function(){if(!state.snapshot){renderWelcome();return;}const parity={people:renderPeople,accounting:renderAccounting,payroll:renderPayrollPrep,tax:renderTaxPrep,controls:renderControls,reports:renderReports,memberships:renderMemberships};if(parity[state.page])parity[state.page]();else h38ParityBaseRenderPage();};
 
 network=function(){const online=navigator.onLine,node=$('networkBadge');node.textContent=online?'Internet':'No internet';node.className=`badge ${online?'online':'offline'}`;updateGatewayBadge();};
 function updateGatewayBadge(status=''){
