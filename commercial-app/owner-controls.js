@@ -94,6 +94,14 @@ function getModuleVisibility(){
   }catch(e){}
   const defaults={};
   MODULES.forEach(m=>defaults[m.id]=true);
+  // Business-level curation (e.g. the demo tenant hides back-office modules
+  // so prospects see the money workflows, not the factory). A per-browser
+  // localStorage value above still wins when present.
+  try{
+    const mc=window.state&&window.state.snapshot&&window.state.snapshot.business&&window.state.snapshot.business.moduleConfig;
+    const hidden=mc&&Array.isArray(mc.hiddenModules)?mc.hiddenModules:[];
+    hidden.forEach(id=>{if(defaults.hasOwnProperty(id))defaults[id]=false;});
+  }catch(e){}
   return defaults;
 }
 
