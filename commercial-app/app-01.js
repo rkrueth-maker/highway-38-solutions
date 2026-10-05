@@ -3,7 +3,7 @@ const H38Bridge=window.H38Bridge;
 
 const SECURE_OFFICE_URL='https://script.google.com/macros/s/AKfycbyY8cbfvGLzllw7rMhRY46wx_eIKhsK5oLlV6vIcDxDIKuCzX0_oTi4EyVufSxonLdxow/exec';
 const BRIDGE_URL=SECURE_OFFICE_URL+'?bridge=1';
-const PAGE_DEFS={today:['Today'],customers:['Customers'],meetings:['Meetings'],work:['Work'],quotes:['Quotes'],measure:['Measure'],schedule:['Schedule'],messages:['Messages'],field:['Field'],inventory:['Inventory'],fleet:['Fleet'],money:['Money'],accounting:['Accounting'],payroll:['Payroll Prep'],tax:['Tax Prep'],reports:['Reports'],documents:['Documents'],social:['Social'],ai:['H38 AI'],settings:['Settings']};
+const PAGE_DEFS={today:['Today'],customers:['Customers'],meetings:['Meetings'],work:['Work'],quotes:['Quotes'],measure:['Measure'],schedule:['Schedule'],messages:['Messages'],field:['Field'],inventory:['Inventory'],fleet:['Fleet'],money:['Money'],memberships:['','Memberships'],accounting:['Accounting'],payroll:['Payroll'],tax:['Tax Prep'],reports:['Reports'],documents:['Documents'],social:['Social'],ai:['H38 AI'],settings:['Settings']};
 const OFFICE_PAGES=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','accounting','payroll','tax','reports','documents','social','ai','settings'];
 const SHELL_PAGES={office:OFFICE_PAGES,quote:['quotes'],field:['today','work','measure','schedule','messages','field','fleet','documents','ai'],inventory:['today','work','messages','inventory','fleet','documents','ai'],social:['today','messages','social','ai','settings']};
 const SHELL_LABELS={office:'Full Business Office',quote:'Standalone Quote Builder',field:'Field & Crew',inventory:'Inventory & Fleet',social:'Social Control'};

@@ -1,0 +1,23 @@
+/* H38 Payroll — pay stub print styles */
+.paystub{border:1px solid #cbd5e1;border-radius:10px;padding:18px;background:#fff;max-width:720px;margin:0 auto 16px}
+.paystub-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}
+.paystub-head h2{margin:0;font-size:1.15rem}
+.paystub-meta{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;margin-bottom:12px;font-size:.92rem}
+.paystub-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:.92rem}
+.paystub-table th,.paystub-table td{padding:6px 8px;border-bottom:1px solid #eef2f7;text-align:left}
+.paystub-table .r{text-align:right}
+.paystub-table tr.total td{border-top:2px solid #94a3b8;border-bottom:none}
+.paystub-net{display:flex;justify-content:space-between;align-items:center;background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:1.1rem;margin-bottom:10px}
+.paystub-disc{margin:0}
+
+@media print{
+  body{background:#fff!important}
+  .topbar,.business-bar,.main-nav,.page-head,.toast,dialog,.bridge-frame,
+  .paystub-actions,.no-print{display:none!important}
+  .app-shell{display:block!important;min-height:0!important}
+  main{padding:0!important}
+  #mainContent{padding:0!important}
+  .paystub{border:1px solid #000;box-shadow:none;max-width:none;break-inside:avoid;page-break-inside:avoid;margin:0 0 12px}
+  .paystub-head,.paystub-meta,.paystub-table tr,.paystub-net{break-inside:avoid;page-break-inside:avoid}
+  .paystub-table thead{display:table-header-group}
+}

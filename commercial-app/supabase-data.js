@@ -289,8 +289,9 @@
       case 'SAVE_MEASUREMENT': return makeRecord(operation,'measurements',{'Measurement ID':p.measurementId || id,'Business ID':operation.businessId,'Job ID':p.jobId,'Quote ID':p.quoteId,'Measurement Name':p.measurementName,'Measurement Type':p.measurementType,'Value':number(p.value),'Unit':p.unit,'Method':p.method,'Confidence':p.confidence,'Reference Size':number(p.referenceSize),'Reference Unit':p.referenceUnit,'Notes':p.notes,'Status':'Active','Created By':auth.getState().userId,'Created Time':operation.localTimestamp || isoNow(),'Updated Time':isoNow(),'Record Version':1});
       case 'SAVE_QUOTE': {
         const lines = Array.isArray(p.lines) ? p.lines : [];
+        const tiers = Array.isArray(p.tiers) ? p.tiers : [];
         const total = lines.reduce((sum,line)=>sum+number(line.quantity)*number(line.unitPrice),0);
-        return makeRecord(operation,'quotes',{'Quote ID':p.quoteId || id,'Business ID':operation.businessId,'Customer ID':p.customerId,'Quote Number':`H38-${Date.now()}`,'Project Title':p.projectTitle,'Scope':p.scope,'Measurement Notes':p.measurementNotes,'Status':'Draft','Revision':1,'Subtotal':total,'Tax':number(p.tax),'Total':total+number(p.tax),'Created Time':operation.localTimestamp || isoNow(),'Updated Time':isoNow(),'Record Version':1,lines});
+        return makeRecord(operation,'quotes',{'Quote ID':p.quoteId || id,'Business ID':operation.businessId,'Customer ID':p.customerId,'Quote Number':`H38-${Date.now()}`,'Project Title':p.projectTitle,'Scope':p.scope,'Measurement Notes':p.measurementNotes,'Status':'Draft','Revision':1,'Tier Mode':p.tierMode?'Good-Better-Best':'Single','Subtotal':total,'Tax':number(p.tax),'Total':total+number(p.tax),'Created Time':operation.localTimestamp || isoNow(),'Updated Time':isoNow(),'Record Version':1,lines,tiers});
       }
       case 'SAVE_ENTITY': return makeRecord(operation,text(p.entity || 'actionQueue'),p.record || {'Record ID':id,...p});
       case 'RECORD_TIME': return makeRecord(operation,'timeEntries',{'Time Entry ID':p.timeEntryId || id,'Business ID':operation.businessId,'User ID':auth.getState().userId,'Job ID':p.jobId,'Start Time':p.startTime,'End Time':p.endTime,'Break Minutes':number(p.breakMinutes),'Hours':p.startTime&&p.endTime?Math.max(0,(new Date(p.endTime)-new Date(p.startTime))/3600000-number(p.breakMinutes)/60):0,'Status':'Recorded','Notes':p.notes,'Created Time':operation.localTimestamp || isoNow(),'Updated Time':isoNow(),'Record Version':1});
@@ -415,7 +416,56 @@
     return {collection:'payments',recordKey:paymentKey,record:paymentRecord};
   }
 
+  // Time entries: direct writes to the timeEntries collection are blocked for
+  // every role by RLS (private.business_record_row_access_context). The only
+  // write authority is the audited RPC public.business_office_record_manual_time,
+  // which validates membership, inserts the entry, and writes an audit row.
+  // This single chokepoint covers the Field time form, voice "log hours", the
+  // offline queue, and field-ops "Add time" — all of them sync RECORD_TIME ops.
+  function toIsoOrNull(value) {
+    const s = text(value).trim();
+    if (!s) return null;
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  async function recordTimeEntry(operation) {
+    const p = operation.payload || {};
+    const params = {
+      p_business_id: text(operation.businessId),
+      p_time_entry_id: text(p.timeEntryId || p['Time Entry ID'] || operation.recordId || ''),
+      p_job_id: text(p.jobId || p['Job ID'] || ''),
+      p_start_time: toIsoOrNull(p.startTime || p['Start Time']),
+      p_end_time: toIsoOrNull(p.endTime || p['End Time']),
+      p_break_minutes: number(p.breakMinutes != null ? p.breakMinutes : p['Break Minutes']),
+      p_hours: (p.hours != null ? number(p.hours) : (p['Hours'] != null ? number(p['Hours']) : null)),
+      p_notes: text(p.notes || p['Notes'] || ''),
+      p_source: text(p.timeSource || 'field_form'),
+      p_user_id: null
+    };
+    const { data, error } = await client().rpc('business_office_record_manual_time', params);
+    if (error) throw error;
+    const record = data || {};
+    const recordKey = text(record['Time Entry ID'] || params.p_time_entry_id);
+    mergeTimeEntrySnapshot(record, recordKey);
+    return { collection: 'timeEntries', recordKey, record };
+  }
+
+  function mergeTimeEntrySnapshot(record, recordKey) {
+    try {
+      const snap = window.state && window.state.snapshot;
+      if (!snap || !record || typeof record !== 'object') return;
+      if (!Array.isArray(snap.timeEntries)) snap.timeEntries = [];
+      const keys = ['Time Entry ID', 'timeEntryId', 'id'];
+      const wanted = keys.map(k => text(record[k])).find(Boolean) || recordKey;
+      const idx = wanted ? snap.timeEntries.findIndex(item => keys.some(k => text(item && item[k]) === wanted)) : -1;
+      if (idx >= 0) snap.timeEntries[idx] = Object.assign({}, snap.timeEntries[idx], record);
+      else snap.timeEntries.push(record);
+    } catch (ignore) {}
+  }
+
   async function processOperation(operation) {
+    if (operation.action === 'RECORD_TIME') return recordTimeEntry(operation);
     if (operation.action === 'RECORD_PAYMENT') return processPayment(operation);
     if (operation.action === 'SAVE_ATTACHMENT') return uploadAttachment(operation);
     if (operation.action === 'SAVE_USER') return saveMembership(operation);

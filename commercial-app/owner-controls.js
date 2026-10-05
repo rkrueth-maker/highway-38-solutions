@@ -18,6 +18,9 @@ const FEATURE_TOGGLES=[
   {id:'gps_tracking',title:'GPS location tracking',desc:'Track staff location during work hours.',icon:'📍',default:false,category:'Fleet'},
   {id:'ai_suggestions',title:'AI suggestions',desc:'Show AI-powered suggestions throughout the app.',icon:'🤖',default:true,category:'AI'},
   {id:'repair_guide_enabled',title:'Repair Guide integration',desc:'Connect the standalone Repair Guide app: send diagnoses to Office jobs and quote drafts, link garage vehicles to customers, deep links both ways. Off by default — the Repair Guide keeps working standalone.',icon:'🔧',default:false,category:'Modules'},
+  {id:'auto_review_requests',title:'Auto-ask for reviews',desc:'When a job is marked complete, prompt to send the customer a Google review request text. Uses your Google Review Link from Settings.',icon:'⭐',default:true,category:'Customers'},
+  {id:'on_my_way_texts',title:'"On My Way" texts',desc:'Show a "Text: On My Way" button on scheduled jobs so techs can text customers their ETA. Queued for owner approval — nothing sends automatically.',icon:'🚗',default:false,category:'Customers'},
+  {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:true,category:'Money'},
 ];
 
 // Repair Guide module setting (server-side mirror).
@@ -60,18 +63,18 @@ async function setRepairGuideEnabled(enabled){
 
 // Module visibility - show/hide entire sections
 const MODULES=[
-  {id:'today',title:'Today',icon:'📊',desc:'Daily dashboard and overview'},
-  {id:'customers',title:'Customers',icon:'👥',desc:'Customer list and details'},
-  {id:'quotes',title:'Quotes',icon:'📝',desc:'Quote builder and management'},
-  {id:'jobs',title:'Jobs',icon:'🔧',desc:'Job tracking and management'},
-  {id:'schedule',title:'Schedule',icon:'📅',desc:'Calendar and appointments'},
-  {id:'money',title:'Money',icon:'💰',desc:'Invoices, payments, expenses'},
-  {id:'fleet',title:'Fleet',icon:'🚛',desc:'Vehicle tracking and management'},
-  {id:'inventory',title:'Inventory',icon:'📦',desc:'Parts and materials inventory'},
-  {id:'documents',title:'Documents',icon:'📄',desc:'File storage and documents'},
-  {id:'reports',title:'Reports',icon:'📈',desc:'Business reports and analytics'},
-  {id:'team',title:'Team',icon:'👷',desc:'Staff management'},
-  {id:'messages',title:'Messages',icon:'💬',desc:'Customer communications'},
+  {id:'today',title:'Today',icon:'',desc:'Daily dashboard and overview'},
+  {id:'customers',title:'Customers',icon:'',desc:'Customer list and details'},
+  {id:'quotes',title:'Quotes',icon:'',desc:'Quote builder and management'},
+  {id:'jobs',title:'Jobs',icon:'',desc:'Job tracking and management'},
+  {id:'schedule',title:'Schedule',icon:'',desc:'Calendar and appointments'},
+  {id:'money',title:'Money',icon:'',desc:'Invoices, payments, expenses'},
+  {id:'fleet',title:'Fleet',icon:'',desc:'Vehicle tracking and management'},
+  {id:'inventory',title:'Inventory',icon:'',desc:'Parts and materials inventory'},
+  {id:'documents',title:'Documents',icon:'',desc:'File storage and documents'},
+  {id:'reports',title:'Reports',icon:'',desc:'Business reports and analytics'},
+  {id:'team',title:'Team',icon:'',desc:'Staff management'},
+  {id:'messages',title:'Messages',icon:'',desc:'Customer communications'},
 ];
 
 function getToggles(){
@@ -151,7 +154,8 @@ function isMachineShopEnabled(){
 }
 
 function canManageModules(){
-  const role=text(window.state&&window.state.user&&(window.state.user.roleName||window.state.user.role)).toLowerCase();
+  const user=window.state&&(window.state.snapshot&&window.state.snapshot.user||window.state.user);
+  const role=text(user&&(user.roleName||user.role)).toLowerCase();
   return role==='owner'||role==='administrator';
 }
 
@@ -235,6 +239,101 @@ function bindMachineShop(){
   };
 }
 
+// ---- Customer Portal: server-backed tenant setting ----
+// Stored in business_module_settings (module_key='customer_portal', enabled).
+// Missing row or enabled!==true means OFF. The public portal endpoint
+// (h38-customer-portal) checks this row server-side and refuses every action
+// while it is OFF — the owner's intent is enforced even when the portal page
+// is opened on another device. Default OFF: nothing customer-facing goes
+// live until the owner flips this switch.
+const CUSTOMER_PORTAL_KEY='customer_portal';
+
+function customerPortalSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===CUSTOMER_PORTAL_KEY)||null;
+}
+
+function isCustomerPortalEnabled(){
+  const row=customerPortalSettingRow();
+  return row!==null?row.enabled===true:false;
+}
+
+async function setCustomerPortal(enabled){
+  if(!canManageModules()) throw new Error('Only a business owner or administrator can change module settings.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const sess=await api.auth.getSession();
+  const user=sess&&sess.data&&sess.data.session&&sess.data.session.user;
+  if(!user) throw new Error('Sign in again before changing this setting.');
+  const nowTs=new Date().toISOString();
+  const row={business_id:bid,module_key:CUSTOMER_PORTAL_KEY,enabled:!!enabled,
+    config:{updatedBy:user.id,updatedAt:nowTs},updated_at:nowTs};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res.error) throw res.error;
+  if(window.state&&window.state.snapshot){
+    if(!Array.isArray(window.state.snapshot.moduleSettings)) window.state.snapshot.moduleSettings=[];
+    const list=window.state.snapshot.moduleSettings;
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===CUSTOMER_PORTAL_KEY);
+    const snapRow={module_key:CUSTOMER_PORTAL_KEY,enabled:!!enabled,config:row.config};
+    if(i>=0) list[i]=Object.assign({},list[i],snapRow); else list.push(snapRow);
+  }
+  return !!enabled;
+}
+
+function renderCustomerPortalCard(){
+  const enabled=isCustomerPortalEnabled();
+  const can=canManageModules();
+  return `
+    <section class="card span12" id="customerPortalCard">
+      <h2>Customer Self-Service Portal</h2>
+      <p class="muted small">Customers sign in with a one-time secure link (no passwords) to review and approve quotes, see invoices, request payments, and book service. <strong>Stays off until you turn it on</strong> — the public portal page refuses every request while this is off.</p>
+      <div class="row">
+        <div class="row-top">
+          <strong>Customer portal ${enabled?'is ON':'is OFF'}</strong>
+          <label class="switch">
+            <input type="checkbox" data-customer-portal ${enabled?'checked':''} ${can?'':'disabled'}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <small>${can?'Flip the switch to let customers use the self-service portal.':'Only an owner or administrator can change this.'}</small>
+        ${enabled?'<small>Send customers their sign-in link from the customer record, or let them request one on the portal page. Quote approvals notify you to convert the quote to a job — nothing schedules itself.</small>':'<small>While off, portal links and sign-in requests are rejected. Quote approval and online payment stay owner-only in the Office.</small>'}
+      </div>
+    </section>
+  `;
+}
+
+function bindCustomerPortal(){
+  const checkbox=document.querySelector('[data-customer-portal]');
+  if(!checkbox||checkbox.dataset.h38Bound) return;
+  checkbox.dataset.h38Bound='1';
+  checkbox.onchange=async()=>{
+    const want=checkbox.checked;
+    if(want){
+      const ok=window.confirm('Turn ON the customer self-service portal? Customers will be able to sign in with a secure one-time link, review and approve quotes, see invoices, and request service online. Quote approvals and payment requests come to you for review — nothing schedules or charges itself.');
+      if(!ok){checkbox.checked=false;return;}
+    }
+    checkbox.disabled=true;
+    try{
+      const enabled=await setCustomerPortal(want);
+      const card=document.getElementById('customerPortalCard');
+      if(card){
+        const tmp=document.createElement('div');
+        tmp.innerHTML=renderCustomerPortalCard();
+        const fresh=tmp.firstElementChild;
+        if(fresh){card.replaceWith(fresh);bindCustomerPortal();}
+      }
+      if(typeof toast==='function') toast('Customer portal '+(enabled?'turned ON.':'turned OFF.'));
+    }catch(e){
+      checkbox.checked=!want;
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }finally{
+      checkbox.disabled=false;
+    }
+  };
+}
+
 function renderOwnerControls(){
   const toggles=getToggles();
   const visibility=getModuleVisibility();
@@ -271,9 +370,9 @@ function renderOwnerControls(){
       <p class="muted small">Turn off modules you don't use. Hidden modules won't appear in navigation.</p>
       <div class="list">
         ${MODULES.map(m=>`
-          <div class="row">
+          <div class="row owner-controls-module-row">
             <div class="row-top">
-              <strong>${m.icon} ${esc(m.title)}</strong>
+              <strong>${m.icon?m.icon+' ':''}${esc(m.title)}</strong>
               <label class="switch">
                 <input type="checkbox" data-module="${m.id}" ${visibility[m.id]!==false?'checked':''}>
                 <span class="slider"></span>
@@ -292,6 +391,7 @@ function renderOwnerControls(){
         <p class="muted">Turn features on/off and control which modules appear in your Office. Changes apply immediately.</p>
       </section>
       ${renderMachineShopCard()}
+      ${renderCustomerPortalCard()}
       ${toggleSections}
       ${moduleSection}
     </div>
@@ -300,6 +400,7 @@ function renderOwnerControls(){
 
 function bindOwnerControls(){
   bindMachineShop();
+  bindCustomerPortal();
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
     checkbox.onchange=async()=>{
       const id=checkbox.dataset.toggle;
@@ -351,6 +452,8 @@ window.H38OwnerControls={
   isModuleVisible:isModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,
+  isCustomerPortalEnabled:isCustomerPortalEnabled,
+  setCustomerPortal:setCustomerPortal,
   applyVisibility:()=>applyModuleVisibility(getModuleVisibility()),
   FEATURES:FEATURE_TOGGLES,
   MODULES:MODULES,
