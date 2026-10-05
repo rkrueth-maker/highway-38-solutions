@@ -6,7 +6,10 @@
 // road distances via the PUBLIC OSRM test server (rate-limited, test/dev only —
 // NOT for production). Automatic fallback to offline on any fetch failure.
 // Bounded to MAX_STOPS stops so route math never blocks the UI.
-const BUILD='20261004-route-1';
+const BUILD='20261005-route-2';
+// v2 adds: Nominatim geocoding for address-only stops, per-tech filtering,
+// time-window-aware sequencing (ETA simulation + greedy repair), manual
+// reorder after optimization, Google Maps link, and driver-list copy.
 const MAX_STOPS=50;
 const AVG_MPH=35;
 const EARTH_MILES=3958.8;
@@ -19,7 +22,7 @@ function registerToggle(){
     const f=window.H38OwnerControls&&window.H38OwnerControls.FEATURES;
     if(!Array.isArray(f))return;
     if(!f.some(x=>x&&x.id==='route_optimization')){
-      f.push({id:'route_optimization',title:'Route optimization',desc:'Optimize daily stop order for drive time. Uses OSRM test server or offline calculation — no API key needed.',icon:'🗺️',default:false,category:'Schedule'});
+      f.push({id:'route_optimization',title:'Route optimization',desc:'Optimize daily stop order for drive time. Free geocoding + offline math; OSRM test server when reachable — no API key needed.',icon:'',default:false,category:'Schedule'});
     }
   }catch(e){}
 }
@@ -172,6 +175,112 @@ async function optimizeWithProvider(stops,provider){
 }
 
 // ---------------------------------------------------------------------------
+// Free geocoding — OpenStreetMap Nominatim (no API key). 1 request/second per
+// the Nominatim usage policy. Fills customer Lat/Lng from real addresses.
+// ---------------------------------------------------------------------------
+async function geocodeAddress(query){
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(query);
+  const res=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!res.ok)throw new Error('Geocode service HTTP '+res.status);
+  const j=await res.json();
+  if(!j||!j.length)throw new Error('No address match for: '+query);
+  const lat=Number(j[0].lat),lng=Number(j[0].lon);
+  if(!validCoords(lat,lng))throw new Error('Bad coordinates returned.');
+  return{lat,lng};
+}
+async function geocodeMissingStops(plan,onProgress){
+  let done=0,failed=0;
+  for(const s of plan.stops){
+    if(!s.needsCoords||!s.customerId)continue;
+    const q=String(s.address||'').trim();
+    if(!q){failed++;continue;}
+    try{
+      const g=await geocodeAddress(q);
+      await setCustomerCoords(s.customerId,g.lat,g.lng,false);
+      s.lat=g.lat;s.lng=g.lng;s.needsCoords=false;done++;
+    }catch(e){failed++;}
+    if(typeof onProgress==='function')try{onProgress(done,failed);}catch(e2){}
+    await new Promise(r=>setTimeout(r,1100)); // Nominatim policy: max 1 req/sec
+  }
+  return{done,failed};
+}
+
+// ---------------------------------------------------------------------------
+// Time-window layer — pure math. Each stop keeps its scheduled window
+// [windowStart, windowEnd]. simulateETAs drives the order with the distance
+// matrix; enforceTimeWindows greedily moves late stops earlier (bounded).
+// ---------------------------------------------------------------------------
+function stopWindow(stop){
+  const s=stop.startTime?new Date(stop.startTime).getTime():NaN;
+  const e=stop.endTime?new Date(stop.endTime).getTime():NaN;
+  return{
+    start:Number.isFinite(s)?s:NaN,
+    end:Number.isFinite(e)?e:(Number.isFinite(s)?s+60*60000:NaN)
+  };
+}
+function serviceMinutes(stop){
+  const w=stopWindow(stop);
+  if(Number.isFinite(w.start)&&Number.isFinite(w.end))
+    return Math.max(15,Math.min(480,(w.end-w.start)/60000));
+  return 60;
+}
+// orderedStops: array of stop objects; matrix: haversine-mile matrix over the
+// same order; departMs: epoch ms when the driver leaves. If a stop has a
+// scheduled start, the driver may wait for it — arriving early is fine,
+// arriving after windowEnd is a violation.
+function simulateETAs(orderedStops,matrix,departMs){
+  const rows=[];let t=Number.isFinite(departMs)?departMs:Date.now();
+  for(let i=0;i<orderedStops.length;i++){
+    const legMin=i===0?0:minutesFor(matrix[i-1][i]);
+    const arrival=t+legMin*60000;
+    const w=stopWindow(orderedStops[i]);
+    const svc=serviceMinutes(orderedStops[i])*60000;
+    const depart=Math.max(arrival,Number.isFinite(w.start)?w.start:arrival)+svc;
+    const lateMin=Number.isFinite(w.end)?Math.max(0,(arrival-w.end)/60000):0;
+    rows.push({stop:orderedStops[i],arrival,depart,legMin,late:lateMin>0,lateMin});
+    t=depart;
+  }
+  return rows;
+}
+function countLate(rows){return rows.filter(r=>r.late).length;}
+function subMatrixFor(order,m){
+  const n=order.length,r=new Array(n);
+  for(let i=0;i<n;i++){r[i]=new Array(n);
+    for(let j=0;j<n;j++)r[i][j]=m[order[i]][order[j]];}
+  return r;
+}
+// Greedy repair: move the first late stop earlier until violations stop
+// shrinking. Bounded to 25 iterations; remaining violations are flagged for
+// the owner to reschedule (never silently dropped).
+function enforceTimeWindows(stops,m,order,departMs){
+  let cur=order.slice(),guard=0;
+  const rowsFor=ord=>simulateETAs(ord.map(i=>stops[i]),subMatrixFor(ord,m),departMs);
+  let best=rowsFor(cur);
+  while(countLate(best)>0&&guard<25){
+    guard++;
+    const lateIdx=best.findIndex(r=>r.late);
+    if(lateIdx<0)break;
+    let improved=false;
+    const baseMiles=tourMiles(cur,subMatrixFor(cur,m));
+    for(let pos=0;pos<lateIdx;pos++){
+      const trial=cur.slice();
+      const mv=trial.splice(lateIdx,1)[0];
+      trial.splice(pos,0,mv);
+      const rows=rowsFor(trial);
+      const lateNow=countLate(rows),lateBefore=countLate(best);
+      if(lateNow<lateBefore||(lateNow===lateBefore&&tourMiles(trial,subMatrixFor(trial,m))<baseMiles-1e-9)){
+        cur=trial;best=rows;improved=true;break;
+      }
+    }
+    if(!improved)break;
+  }
+  return{order:cur,rows:best,late:countLate(best)};
+}
+function fmtClock(ms){
+  try{return new Date(ms).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});}catch(e){return'';}
+}
+
+// ---------------------------------------------------------------------------
 // App data layer: planForDate / setCustomerCoords / applyPlan
 // ---------------------------------------------------------------------------
 // Test seams: injected stubs override app globals in node tests.
@@ -184,9 +293,17 @@ function gNewId(p){if(R_newId)return R_newId(p);return newId(p);}
 function gNow(){if(R_now)return R_now();return now();}
 function findRow(rows,idKey,id){const sid=String(id);return rows.find(r=>String(gV(r,idKey))===sid);}
 function dayOf(iso){return String(iso||'').slice(0,10);}
-function planForDate(dateStr){
+function techName(uid){
+  if(!uid)return'';
+  const u=findRow(gRec('users'),'User ID',uid);
+  return u?gV(u,'Display Name','Email'):'';
+}
+// planForDate(dateStr, techId?) — techId filters stops to one assigned user
+// so each tech's route can be optimized separately.
+function planForDate(dateStr,techId){
   const events=gRec('scheduleEvents').filter(e=>{
     if(String(gV(e,'Status')).toUpperCase()==='CANCELLED')return false;
+    if(techId&&String(gV(e,'Assigned User ID'))!==String(techId))return false;
     return dayOf(gV(e,'Start Time'))===dateStr;
   }).sort((a,b)=>String(gV(a,'Start Time')).localeCompare(String(gV(b,'Start Time'))));
   const jobs=gRec('jobs'),customers=gRec('customers');
@@ -197,11 +314,19 @@ function planForDate(dateStr){
     const custId=cust?String(gV(cust,'Customer ID')):'';
     const lat=Number(cust?gV(cust,'Lat','Latitude'):''),lng=Number(cust?gV(cust,'Lng','Longitude'): '');
     const has=validCoords(lat,lng);
-    return{id:eventId,eventId,label:gV(e,'Title')||'(untitled)',startTime:gV(e,'Start Time'),
+    const assignedUserId=gV(e,'Assigned User ID');
+    return{id:eventId,eventId,label:gV(e,'Title')||'(untitled)',startTime:gV(e,'Start Time'),endTime:gV(e,'End Time'),
       customerId:custId,customerName:cust?gV(cust,'Customer Name'):'',
+      address:gV(e,'Location')||(cust?gV(cust,'Service Address','Address','Street Address'):''),
+      assignedUserId,assignedName:techName(assignedUserId),
       lat:has?lat:null,lng:has?lng:null,needsCoords:!has,simulated:false,row:e};
   });
-  return{date:dateStr,stops};
+  return{date:dateStr,techId:techId||'',stops};
+}
+function techOptions(){
+  const users=gRec('users')||[];
+  return users.map(u=>({id:String(gV(u,'User ID')),name:gV(u,'Display Name','Email')||String(gV(u,'User ID'))}))
+    .filter(x=>x.id&&x.name);
 }
 async function setCustomerCoords(customerId,lat,lng,simulated){
   const row=findRow(gRec('customers'),'Customer ID',customerId);
@@ -256,64 +381,118 @@ function renderRouteSection(){
   const host=document.getElementById('routePlannerMount');
   if(!host)return;
   const s=uiState,plan=s&&s.plan,result=s&&s.result;
+  const techs=techOptions();
+  const selTech=(plan&&plan.techId)||'',leaveAt=(s&&s.leaveAt)||'08:00';
+  const techOpts='<option value="">Everyone</option>'+techs.map(t=>`<option value="${escht(t.id)}"${t.id===selTech?' selected':''}>${escht(t.name)}</option>`).join('');
   let body='';
   if(!plan){
-    body=`<p class="muted">Pick a day, then build the stop list from scheduled jobs.</p>`;
+    body=`<p class="muted">Pick a day (and optionally one tech), then build the stop list from scheduled jobs.</p>`;
   }else if(!plan.stops.length){
-    body=`<div class="notice">No scheduled jobs on ${escht(plan.date)}. Nothing to optimize.</div>`;
+    body=`<div class="notice">No scheduled jobs on ${escht(plan.date)}${selTech?' for this tech':''}. Nothing to optimize.</div>`;
   }else{
     const stopRows=plan.stops.map(st=>{
-      const badge=st.needsCoords?'<span class="pill bad">needs coordinates</span>':(st.simulated?'<span class="pill warn">simulated coords</span>':'<span class="pill">coords ✓</span>');
-      return`<div class="row"><div class="row-top"><strong>${escht(st.label)}</strong>${badge}</div><small>${escht(st.customerName||'No linked customer')}${st.lat!=null?` · ${st.lat.toFixed(4)}, ${st.lng.toFixed(4)}`:''}</small>${st.needsCoords&&st.customerId?`<div class="h38-route-coords"><input inputmode="decimal" data-rc-lat="${escht(st.customerId)}" placeholder="Lat"><input inputmode="decimal" data-rc-lng="${escht(st.customerId)}" placeholder="Lng"><button type="button" class="secondary" data-rc-save="${escht(st.customerId)}">Save coords</button></div>`:''}</div>`;
+      const badge=st.needsCoords?'<span class="pill bad">needs coordinates</span>':(st.simulated?'<span class="pill warn">simulated coords</span>':'<span class="pill">coords set</span>');
+      return`<div class="row"><div class="row-top"><strong>${escht(st.label)}</strong>${badge}</div><small>${escht(st.customerName||'No linked customer')}${st.assignedName?` · ${escht(st.assignedName)}`:''}${st.lat!=null?` · ${st.lat.toFixed(4)}, ${st.lng.toFixed(4)}`:''}${st.address?`<br>${escht(st.address)}`:''}</small>${st.needsCoords&&st.customerId?`<div class="h38-route-coords"><input inputmode="decimal" data-rc-lat="${escht(st.customerId)}" placeholder="Lat"><input inputmode="decimal" data-rc-lng="${escht(st.customerId)}" placeholder="Lng"><button type="button" class="secondary" data-rc-save="${escht(st.customerId)}">Save coords</button></div>`:''}</div>`;
     }).join('');
     body=`<h3>Stops (${plan.stops.length})</h3><div class="list">${stopRows}</div>`;
+    const missing=plan.stops.filter(x=>x.needsCoords);
     if(result){
-      const prov=result.provider==='osrm'?'OSRM road':'Offline calc';
+      const prov=result.provider==='osrm'?'OSRM road':(result.provider==='offline-manual'?'Offline (manual reorder)':'Offline calc');
+      const etaById={};(result.etas||[]).forEach(r=>{etaById[r.stop.id]=r;});
       const orderRows=result.order.map((id,i)=>{
         const st=plan.stops.find(x=>x.id===id);
         const leg=result.legs[i-1];
-        return`<div class="row"><div class="row-top"><strong>${i+1}. ${escht(st?st.label:id)}</strong></div><small>${leg?`${leg.miles.toFixed(1)} mi · ${Math.round(leg.minutes)} min from prior`:escht(st?st.startTime:'')}</small></div>`;
+        const eta=etaById[id];
+        const lateTag=eta&&eta.late?`<span class="pill bad">arrives ${Math.round(eta.lateMin)} min late</span>`:'';
+        const etaTag=eta?`<span class="pill">ETA ${escht(fmtClock(eta.arrival))}</span>`:'';
+        return`<div class="row"><div class="row-top"><strong>${i+1}. ${escht(st?st.label:id)}</strong><span class="h38-route-mv"><button type="button" class="secondary" data-h38-route-up="${escht(id)}" title="Move earlier">↑</button><button type="button" class="secondary" data-h38-route-down="${escht(id)}" title="Move later">↓</button></span></div><small>${etaTag}${lateTag}${leg?` ${leg.miles.toFixed(1)} mi · ${Math.round(leg.minutes)} min from prior`:''}${st&&st.address?`<br>${escht(st.address)}`:''}</small></div>`;
       }).join('');
-      body+=`<h3>Optimized order <span class="pill">${prov}</span></h3><div class="list">${orderRows}</div><p><strong>Totals:</strong> ${result.totalMiles.toFixed(1)} miles · about ${Math.round(result.totalMinutes)} minutes driving</p><div class="actions"><button type="button" class="primary" id="h38RouteApply">Apply to schedule</button></div>`;
+      const lateN=result.etas?result.etas.filter(r=>r.late).length:0;
+      body+=`<h3>Optimized order <span class="pill">${prov}</span></h3>`;
+      if(lateN>0)body+=`<div class="notice bad">${lateN} stop${lateN===1?'':'s'} may miss ${lateN===1?'its':'their'} scheduled time window. Consider rescheduling or reordering above.</div>`;
+      body+=`<div class="list">${orderRows}</div><p><strong>Totals:</strong> ${result.totalMiles.toFixed(1)} miles · about ${Math.round(result.totalMinutes)} minutes driving</p><div class="actions"><button type="button" class="primary" id="h38RouteApply">Apply to schedule</button><button type="button" class="secondary" id="h38RouteDriver">Copy driver list</button><a class="secondary" id="h38RouteMaps" href="${escht(googleMapsUrl(plan,result.order))}" target="_blank" rel="noopener" style="text-decoration:none">Open in Google Maps</a></div><p class="muted small">Tip: use ↑ ↓ to fine-tune the order by hand after optimizing.</p>`;
     }else{
-      body+=`<div class="actions"><button type="button" class="primary" id="h38RouteOptimize">Optimize</button>${plan.stops.some(x=>x.needsCoords&&x.customerId)?'<button type="button" class="secondary" id="h38RouteSim">Use simulated coordinates (test)</button>':''}</div>`;
+      body+=`<div class="actions"><button type="button" class="primary" id="h38RouteOptimize">Optimize</button>${missing.some(x=>x.customerId&&x.address)?'<button type="button" class="secondary" id="h38RouteGeo">Geocode addresses (free)</button>':''}${missing.some(x=>x.needsCoords&&x.customerId)?'<button type="button" class="secondary" id="h38RouteSim">Use simulated coordinates (test)</button>':''}</div><p class="muted small">Free geocoding looks up customer addresses via OpenStreetMap and saves the coordinates on the customer record (about 1 second per stop).</p>`;
     }
   }
   host.innerHTML=`
-    <h2>🗺️ Route planner</h2>
-    <p class="muted">Order the day's stops to cut drive time. Offline calculation by default; OSRM test server when reachable (test-only, rate-limited).</p>
+    <h2>Route planner</h2>
+    <p class="muted">Order the day's stops to cut drive time. Free geocoding + offline math by default; OSRM test server when reachable (test-only, rate-limited).</p>
     <div class="h38-route-controls">
       <label>Date <input type="date" id="h38RouteDate" value="${escht((plan&&plan.date)||tomorrowStr())}"></label>
+      <label>Tech <select id="h38RouteTech">${techOpts}</select></label>
+      <label>Leave at <input type="time" id="h38RouteLeave" value="${escht(leaveAt)}"></label>
       <div class="actions"><button type="button" id="h38RouteBuild">Build route</button></div>
     </div>${body}`;
   const on=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn;};
-  on('h38RouteBuild',()=>{
-    const d=document.getElementById('h38RouteDate').value||tomorrowStr();
-    uiState={plan:planForDate(d),result:null};
-    renderRouteSection();
-    toast(`Route plan built: ${uiState.plan.stops.length} stop(s) on ${d}.`);
+  const readControls=()=>({
+    date:document.getElementById('h38RouteDate').value||tomorrowStr(),
+    tech:document.getElementById('h38RouteTech').value||'',
+    leave:document.getElementById('h38RouteLeave').value||'08:00'
   });
+  on('h38RouteBuild',()=>{
+    const c=readControls();
+    uiState={plan:planForDate(c.date,c.tech),result:null,leaveAt:c.leave};
+    renderRouteSection();
+    toast(`Route plan built: ${uiState.plan.stops.length} stop(s) on ${c.date}${c.tech?' for '+techName(c.tech):''}.`);
+  });
+  // Rebuild a result object from an id-order using the local haversine matrix.
+  const rebuild=(orderIds,label)=>{
+    const ready=uiState.plan.stops.filter(x=>!x.needsCoords&&x.lat!=null);
+    const byId={};ready.forEach(x=>{byId[x.id]=x;});
+    const orderedIds=orderIds.filter(id=>byId[id]);
+    const ordered=orderedIds.map(id=>byId[id]);
+    const m=distMatrix(ordered);
+    const idx=orderedIds.map((_,i)=>i);
+    const total=tourMiles(idx,m);
+    const legs=[];
+    for(let i=0;i+1<orderedIds.length;i++)legs.push({from:orderedIds[i],to:orderedIds[i+1],miles:m[i][i+1],minutes:minutesFor(m[i][i+1])});
+    const departMs=new Date(uiState.plan.date+'T'+uiState.leaveAt).getTime();
+    const rows=simulateETAs(ordered,m,departMs);
+    return{order:orderedIds,totalMiles:total,totalMinutes:minutesFor(total),legs,etas:rows,provider:label||'offline-manual'};
+  };
   on('h38RouteOptimize',async()=>{
     if(!uiState||!uiState.plan)return;
     const btn=document.getElementById('h38RouteOptimize');
     if(btn){btn.disabled=true;btn.textContent='Optimizing…';}
     try{
       const ready=uiState.plan.stops.filter(x=>!x.needsCoords&&x.lat!=null);
-      if(!ready.length){toast('No stops have coordinates yet. Add coordinates first.',true);renderRouteSection();return;}
+      if(!ready.length){toast('No stops have coordinates yet. Geocode addresses or add coordinates first.',true);renderRouteSection();return;}
       const stops=ready.map(x=>({id:x.id,lat:x.lat,lng:x.lng,label:x.label}));
       const res=await optimizeWithProvider(stops);
+      // Time-window sequencing: simulate ETAs, repair violations greedily.
+      const byId={};ready.forEach(x=>{byId[x.id]=x;});
+      const nnOrder=res.order.map(id=>ready.findIndex(x=>x.id===id)).filter(i=>i>=0);
+      const m=distMatrix(ready);
+      const departMs=new Date(uiState.plan.date+'T'+uiState.leaveAt).getTime();
+      const fixed=enforceTimeWindows(ready,m,nnOrder,departMs);
+      const orderedIds=fixed.order.map(i=>ready[i].id);
+      const legs=[];const om=subMatrixFor(fixed.order,m);
+      for(let i=0;i+1<orderedIds.length;i++)legs.push({from:orderedIds[i],to:orderedIds[i+1],miles:om[i][i+1],minutes:minutesFor(om[i][i+1])});
+      const total=tourMiles(fixed.order,subMatrixFor(fixed.order,m));
       // Keep stops without coordinates at the end, flagged (never silently dropped).
       const missing=uiState.plan.stops.filter(x=>x.needsCoords).map(x=>x.id);
-      uiState.result=Object.assign({},res,{order:res.order.concat(missing)});
+      uiState.result={order:orderedIds.concat(missing),totalMiles:total,totalMinutes:minutesFor(total),legs,etas:fixed.rows,provider:res.provider};
       renderRouteSection();
-      toast(`Optimized ${res.order.length} stop(s) via ${res.provider==='osrm'?'OSRM road data':'offline calculation'}.`);
+      const lateN=fixed.late;
+      toast(`Optimized ${orderedIds.length} stop(s) via ${res.provider==='osrm'?'OSRM road data':'offline calculation'}${lateN?` — ${lateN} may miss a time window`:''}.`);
     }catch(e){toast('Optimization failed: '+(e&&e.message||e),true);renderRouteSection();}
+  });
+  on('h38RouteGeo',async()=>{
+    if(!uiState||!uiState.plan)return;
+    const btn=document.getElementById('h38RouteGeo');
+    if(btn){btn.disabled=true;btn.textContent='Geocoding…';}
+    try{
+      const out=await geocodeMissingStops(uiState.plan,(d,f)=>{if(btn)btn.textContent=`Geocoding… ${d} ok / ${f} missed`;});
+      uiState={plan:planForDate(uiState.plan.date,uiState.plan.techId),result:null,leaveAt:uiState.leaveAt};renderRouteSection();
+      toast(out.done?`Geocoded ${out.done} address${out.done===1?'':'es'}${out.failed?`, ${out.failed} missed`:''}.`:'No addresses could be geocoded. Add coordinates manually.');
+    }catch(e){toast('Geocoding failed: '+(e&&e.message||e),true);renderRouteSection();}
   });
   on('h38RouteSim',async()=>{
     if(!uiState||!uiState.plan)return;
     try{
       const n=await fillSimulatedCoords(uiState.plan);
-      uiState.result=null;renderRouteSection();
+      uiState={plan:planForDate(uiState.plan.date,uiState.plan.techId),result:null,leaveAt:uiState.leaveAt};renderRouteSection();
       toast(n?`Filled ${n} SIMULATED coordinate set(s) — test data only.`:'No stops needed simulated coordinates.');
     }catch(e){toast('Could not fill simulated coordinates: '+(e&&e.message||e),true);}
   });
@@ -325,6 +504,35 @@ function renderRouteSection(){
       if(typeof renderSchedule==='function')renderSchedule();
     }catch(e){toast('Apply failed: '+(e&&e.message||e),true);}
   });
+  on('h38RouteDriver',()=>{
+    if(!uiState||!uiState.plan||!uiState.result)return;
+    const etaById={};(uiState.result.etas||[]).forEach(r=>{etaById[r.stop.id]=r;});
+    const lines=uiState.result.order.map((id,i)=>{
+      const st=uiState.plan.stops.find(x=>x.id===id)||{};
+      const eta=etaById[id];
+      return`${i+1}. ${st.label||id}${eta?` (ETA ${fmtClock(eta.arrival)})`:''}${st.customerName?` — ${st.customerName}`:''}${st.address?`\n   ${st.address}`:''}`;
+    });
+    const txt=`Route for ${uiState.plan.date}${uiState.plan.techId&&techName(uiState.plan.techId)?' — '+techName(uiState.plan.techId):''} (${uiState.result.totalMiles.toFixed(1)} mi, ~${Math.round(uiState.result.totalMinutes)} min driving):\n`+lines.join('\n');
+    const done=()=>toast('Driver list copied — paste it into a text message.');
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,()=>toast('Copy failed.',true));}
+    else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){toast('Copy failed.',true);}ta.remove();}
+  });
+  host.querySelectorAll('[data-h38-route-up]').forEach(btn=>{
+    btn.onclick=()=>{moveStop(btn.getAttribute('data-h38-route-up'),-1);};
+  });
+  host.querySelectorAll('[data-h38-route-down]').forEach(btn=>{
+    btn.onclick=()=>{moveStop(btn.getAttribute('data-h38-route-down'),1);};
+  });
+  function moveStop(id,dir){
+    if(!uiState||!uiState.result)return;
+    const o=uiState.result.order.slice();
+    const i=o.indexOf(id);const j=i+dir;
+    if(i<0||j<0||j>=o.length)return;
+    o[i]=o[j];o[j]=id;
+    uiState.result=rebuild(o);
+    renderRouteSection();
+    toast('Order updated by hand — totals recalculated.');
+  }
   host.querySelectorAll('[data-rc-save]').forEach(btn=>{
     btn.onclick=async()=>{
       const cid=btn.getAttribute('data-rc-save');
@@ -332,12 +540,18 @@ function renderRouteSection(){
       const lat=Number(latEl&&latEl.value),lng=Number(lngEl&&lngEl.value);
       try{
         await setCustomerCoords(cid,lat,lng,false);
-        uiState={plan:planForDate(uiState.plan.date),result:null};renderRouteSection();
+        uiState={plan:planForDate(uiState.plan.date,uiState.plan.techId),result:null,leaveAt:uiState.leaveAt};renderRouteSection();
         toast('Coordinates saved.');
       }catch(e){toast(e.message,true);}
     };
   });
 }
+function googleMapsUrl(plan,orderIds){
+  const pts=orderIds.map(id=>plan.stops.find(x=>x.id===id)).filter(x=>x&&x.lat!=null);
+  if(!pts.length)return'https://www.google.com/maps';
+  return'https://www.google.com/maps/dir/'+pts.map(x=>x.lat.toFixed(6)+','+x.lng.toFixed(6)).join('/');
+}
+
 function mountRoutePlanner(){
   if(!toggleOn())return;
   let host=document.getElementById('routePlannerMount');
@@ -351,7 +565,7 @@ function mountRoutePlanner(){
     const st=document.getElementById('h38RouteStyles');
     if(!st){
       const style=document.createElement('style');style.id='h38RouteStyles';
-      style.textContent='.h38-route-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:10px}.h38-route-controls label{display:flex;flex-direction:column;gap:4px}.h38-route-controls input{min-height:42px}.h38-route-coords{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.h38-route-coords input{width:110px;min-height:40px}#routePlannerMount .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}#routePlannerMount button{min-height:44px}@media(max-width:720px){.h38-route-controls{flex-direction:column;align-items:stretch}.h38-route-controls .actions{width:100%}.h38-route-controls .actions button{flex:1}}';
+      style.textContent='.h38-route-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:10px}.h38-route-controls label{display:flex;flex-direction:column;gap:4px}.h38-route-controls input,.h38-route-controls select{min-height:42px}.h38-route-coords{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.h38-route-coords input{width:110px;min-height:40px}#routePlannerMount .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}#routePlannerMount button{min-height:44px}.h38-route-mv{display:inline-flex;gap:4px;margin-left:8px}.h38-route-mv button{min-height:36px!important;min-width:40px;padding:2px 8px}#routePlannerMount .notice.bad{border-color:#b3261e;background:#fdeceb}@media(max-width:720px){.h38-route-controls{flex-direction:column;align-items:stretch}.h38-route-controls .actions{width:100%}.h38-route-controls .actions button{flex:1}}';
       document.head.appendChild(style);
     }
   }
@@ -382,7 +596,7 @@ if(typeof window!=='undefined'){
 
 // Node test export (browser-safe: guarded by typeof module).
 if(typeof module!=='undefined'&&module.exports){
-  module.exports={optimize,osrmAdapter,haversineMiles,nearestNeighbor,twoOpt,validCoords,osrmTableUrl,osrmRouteUrl,planForDate,applyPlan,setCustomerCoords,fillSimulatedCoords,optimizeWithProvider,MAX_STOPS,BUILD,
+  module.exports={optimize,osrmAdapter,haversineMiles,nearestNeighbor,twoOpt,validCoords,osrmTableUrl,osrmRouteUrl,planForDate,applyPlan,setCustomerCoords,fillSimulatedCoords,optimizeWithProvider,stopWindow,serviceMinutes,simulateETAs,enforceTimeWindows,geocodeAddress,geocodeMissingStops,googleMapsUrl,MAX_STOPS,BUILD,
     __setGlobals(deps){ // test seam: inject stubs for records/queueOperation/newId/now/v/window
       if(deps.records)R_records=deps.records; if(deps.queueOperation)R_queueOperation=deps.queueOperation;
       if(deps.newId)R_newId=deps.newId; if(deps.now)R_now=deps.now;
