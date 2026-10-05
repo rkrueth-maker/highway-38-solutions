@@ -160,8 +160,8 @@ function normalizeSharedToolLabels(){
   }
   const aiDialog=document.getElementById('globalAiDialog');if(aiDialog&&aiDialog.getAttribute('aria-label')!=='Assistant')aiDialog.setAttribute('aria-label','Assistant');
   const voice=document.getElementById('voiceButton');if(voice&&voice.getAttribute('aria-label')!=='Talk to Assistant')voice.setAttribute('aria-label','Talk to Assistant');
-  if(Array.isArray(window.PAGE_DEFS?.ai)&&window.PAGE_DEFS.ai[1]!=='AI')window.PAGE_DEFS.ai[1]='AI';
-  document.querySelectorAll('#mainNav [data-page="ai"] span:last-child').forEach(label=>{if(text(label.textContent)!=='AI')label.textContent='AI';});
+  if(Array.isArray(window.PAGE_DEFS?.ai)&&window.PAGE_DEFS.ai[1]!=='AI')window.PAGE_DEFS.ai=['','AI'];
+  document.querySelectorAll('#mainNav [data-page="ai"],#mainNav [data-h38-primary="ai"]').forEach(b=>{const spans=b.querySelectorAll(':scope > span');if(spans.length>1)spans[0].remove();const label=b.querySelector('span:last-child');if(label&&text(label.textContent)!=='AI')label.textContent='AI';});
   const install=document.getElementById('h38InstallOfficeButton');
   if(install){
     if(text(install.textContent)!=='Install Office')install.textContent='Install Office';

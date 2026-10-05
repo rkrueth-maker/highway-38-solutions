@@ -630,10 +630,9 @@
     try { eval(`${name}=wrapped`); } catch (ignore) {}
   }
 
-  if (window.PAGE_DEFS) {
-    window.PAGE_DEFS.work[1]='Work & Tasks';
-    window.PAGE_DEFS.field[1]='Field & Logs';
-  }
+  // NOTE: work/field nav labels are owned by owner-customer-workflow-polish.js
+  // (Jobs / Site Visit). Do not append [1] here — it renders as a stale
+  // icon + label overlap (see #1258).
   wrapRenderer('renderToday',enhanceToday);
   wrapRenderer('renderWork',enhanceWork);
   wrapRenderer('renderField',enhanceField);
