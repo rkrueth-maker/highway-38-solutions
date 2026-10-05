@@ -1,0 +1,79 @@
+# H38 Office MCP Server
+
+> Machine-readable capability doc for AI assistants connecting to the H38
+> Business Office via MCP.
+
+## Endpoint
+
+`https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-mcp-server`
+
+## Protocol
+
+MCP streamable HTTP = JSON-RPC 2.0 over HTTPS POST.
+
+- `POST` the JSON-RPC body to the endpoint above.
+- Header: `Authorization: Bearer <H38_MCP_API_KEY>`, `Content-Type: application/json`.
+- Handshake: `initialize` → `notifications/initialized` → `tools/list` → `tools/call`.
+- `GET` returns server info (no auth needed).
+
+## Auth
+
+One API key per business. The key is SHA-256 hashed server-side and matched
+against `business_records` (collection `mcp_api_keys`); the matching row's
+`business_id` scopes every query. Invalid/missing key → JSON-RPC error -32001.
+
+## Data model
+
+The Office is local-first. Server-side canonical store is `business_records`
+with collections. Payload fields use Title Case With Spaces.
+
+- **customers**: `Customer ID` (key), `Customer Name`, `Email`, `Phone`, `Status`
+- **jobs**: `Job ID` (key), `Job Number`, `Project Title`, `Status`, `Customer ID`, `Due Date`, `Scheduled Date`
+- **quotes**: `Quote ID` (key), `Quote Number`, `Project Title`, `Customer ID`, `Customer Name`, `Status` (Draft/Presented/Accepted), `Total`, `lines[]`
+- **invoices**: `Invoice ID` (key), `Invoice Number`, `Customer ID`, `Job ID`, `Status` (Draft/Paid/...), `Total`, `Balance`, `Due Date`
+- **timeEntries**: `Time Entry ID` (key), `Job ID`, `Hours`, `Notes`, `Start Time`, `Status`
+
+## Tools
+
+### list_customers {search?, status?, limit?}
+Search customers by name. Status values like `Active`.
+
+### get_customer {customer_id!}
+Returns customer plus their jobs, quotes, invoices.
+
+### list_jobs {status?, limit?}
+Status values like `Scheduled`, `In Progress`, `Complete`.
+
+### get_job {job_id!}
+Returns job plus related quotes and time entries.
+
+### create_quote {customer_id!, project_title!, items[]!, confirmed=false}
+items[]: {description!, quantity=1, unit="each", unit_price!}.
+Two-phase: without `confirmed:true` returns a preview with computed total.
+With `confirmed:true` creates a Draft quote (owner review required before presenting).
+
+### list_quotes {status?, limit?}
+Status: `Draft`, `Presented`, `Accepted`.
+
+### get_schedule {date=YYYY-MM-DD(today), days=1}
+Jobs whose Due/Scheduled Date falls in [date, date+days).
+
+### create_invoice {customer_id!, job_id?, amount?, title?, due_days=30, confirmed=false}
+Two-phase like create_quote. If job_id given and amount omitted, uses the
+job's accepted quote total. Creates Draft invoice.
+
+### list_invoices {status="all"|"Paid"|"Draft"|"unpaid"|"overdue", limit?}
+`overdue`/`unpaid` computed from Balance > 0 and Due Date < today.
+
+### log_time {job_id!, hours!, notes?, date=today, confirmed=false}
+Two-phase like create_quote. Records a time entry on the job.
+
+## Conventions
+
+- IDs shown to users are the record keys (`Customer ID`, `Job ID`, ...),
+  e.g. `H38-CUST-NORTHERN-LAKES`, `QUOTE-...`, `INV-...`.
+- Money: numbers, 2-decimal dollars.
+- Dates: `YYYY-MM-DD`; datetimes: ISO-8601 UTC.
+- Errors come back as a normal `tools/call` result with `isError: true`
+  and human-readable text — surface the message, don't retry blindly.
+- Never invent IDs. Always `list_*`/`get_*` first to resolve the real one.

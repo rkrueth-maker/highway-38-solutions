@@ -19,6 +19,7 @@
 
   const COVERED_ACTIONS = new Set([
     'SAVE_PARITY_ENTITY',
+    'APPROVE_TIME_ENTRY',
     'POST_INVENTORY',
     'RECORD_INSPECTION',
     'SCHEDULE_MAINTENANCE',
@@ -133,13 +134,69 @@
     return text(operation.recordId || operation.operationId || operation.id || `${prefix}-${Date.now()}`);
   }
 
+  // Time entries: direct writes are RLS-blocked for every role. All writes go
+  // through the audited RPCs (public.business_office_record_manual_time for
+  // new entries, public.business_office_approve_time_entry for payroll
+  // approval), which validate membership and write audit rows.
+  async function rpcCall(name, args) {
+    const { data, error } = await client().rpc(name, args || {});
+    if (error) throw error;
+    return data;
+  }
+
+  function toIsoOrNull(value) {
+    const s = text(value).trim();
+    if (!s) return null;
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  async function approveTimeEntry(operation) {
+    const p = operation.payload || {};
+    const record = await rpcCall('business_office_approve_time_entry', {
+      p_business_id: text(operation.businessId),
+      p_time_entry_id: text(p.timeEntryId || operation.recordId || ''),
+      p_approved: p.approved !== false,
+      p_note: text(p.note || '')
+    });
+    return { collection: 'timeEntries', recordKey: text(p.timeEntryId || operation.recordId || ''), record: record || {} };
+  }
+
+  async function recordTimeEntryParity(operation) {
+    const p = operation.payload || {};
+    const r = p.record || {};
+    const record = await rpcCall('business_office_record_manual_time', {
+      p_business_id: text(operation.businessId),
+      p_time_entry_id: text(r['Time Entry ID'] || p.timeEntryId || operation.recordId || ''),
+      p_job_id: text(r['Job ID'] || p.jobId || ''),
+      p_start_time: toIsoOrNull(r['Start Time'] || p.startTime),
+      p_end_time: toIsoOrNull(r['End Time'] || p.endTime),
+      p_break_minutes: number(r['Break Minutes'] != null ? r['Break Minutes'] : p.breakMinutes),
+      p_hours: (r['Hours'] != null ? number(r['Hours']) : (p.hours != null ? number(p.hours) : null)),
+      p_notes: text(r['Notes'] || p.notes || ''),
+      p_source: text(p.timeSource || r['Source'] || 'field_ops'),
+      p_user_id: null
+    });
+    return { collection: 'timeEntries', recordKey: text((record || {})['Time Entry ID'] || ''), record: record || {} };
+  }
+
   async function process(operation) {
     const p=operation.payload || {};
     const businessId=text(operation.businessId);
     const recordId=id(operation,'RECORD');
 
+    if (operation.action === 'APPROVE_TIME_ENTRY') {
+      return approveTimeEntry(operation);
+    }
+
     if (operation.action === 'SAVE_PARITY_ENTITY') {
       const collection=text(p.entityKey || operation.recordType || 'parityRecords');
+      // Defensive: any direct timeEntries parity write (e.g. ops queued before
+      // the audited RPCs shipped) goes through the audited record RPC instead
+      // of the RLS-blocked direct write.
+      if (collection === 'timeEntries') {
+        return recordTimeEntryParity(operation);
+      }
       const record=clean(p.record || {});
       return saveRecord(businessId,collection,recordId,record);
     }

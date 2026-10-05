@@ -147,7 +147,7 @@ function ensureMoreTools(main,tools){
   let {ai,cad}=ensureBaseQuoteAiTools();
   let more=document.getElementById('h38QuoteMoreTools');
   if(!quoteHasLines()){
-    if(ai){ai.textContent='✨ Build with H38 AI';ai.classList.remove('h38-rebuild-tool');if(ai.parentElement!==tools)tools.prepend(ai);}
+    if(ai){ai.textContent='Build with H38 AI';ai.classList.remove('h38-rebuild-tool');if(ai.parentElement!==tools)tools.prepend(ai);}
     if(cad&&cad.closest('#h38QuoteMoreTools'))tools.appendChild(cad);
     more?.remove();
     return;

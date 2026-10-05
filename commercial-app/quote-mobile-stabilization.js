@@ -4,7 +4,7 @@ const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 if(!cfg.enabled||!window.supabase||typeof window.renderQuotes!=='function')return;
 const BUCKET='business-office-files',MAX=10*1024*1024,EDITABLE=new Set(['','DRAFT','OWNER REVIEW REQUIRED','OWNER_REVIEW_REQUIRED']),REVISABLE=new Set(['PRESENTED']);
 const picked=new Map();let seq=0,db=null;
-const baseRenderQuotes=window.renderQuotes,baseRenderMeasure=window.renderMeasure,baseOpenQuote=window.openQuote,baseAi=window.h38BuildAiQuoteDraft;
+const baseRenderQuotes=window.renderQuotes,baseRenderMeasure=window.renderMeasure,baseOpenQuote=window.openQuote,baseAi=window.h38BuildAiQuoteDraft,baseSaveQuote=window.saveQuote;
 const txt=v=>String(v==null?'':v);
 const safe=(v,f)=>txt(v).trim().replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,100)||f;
 function client(){return db||(db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':'h38-quote-mobile-stabilization'}}}));}
@@ -76,7 +76,7 @@ function controls(){
  drawPicked();
 }
 function measureControls(){const c=document.getElementById('measurePhotoButton');if(!c)return;c.textContent='📷 Take Picture';c.onclick=()=>pick('camera');document.getElementById('measurePhotoInput')?.remove();if(!document.getElementById('h38MeasureChoosePhotos')){const g=document.createElement('button');g.id='h38MeasureChoosePhotos';g.type='button';g.className='secondary';g.textContent='🖼️ Choose Photos';g.onclick=()=>pick('gallery');c.after(g);}}
-window.saveQuote=()=>saveDraft(true,true);
+window.saveQuote=()=>{const tierMode=!!(state.quote&&state.quote.tierMode);const pending=(tierMode&&typeof baseSaveQuote==='function')?baseSaveQuote():saveDraft(true,true);Promise.resolve(pending).catch(error=>{toast(error?.message||String(error),true);});};
 window.openQuote=function(id){if(pending()&&!confirm('Discard the selected photos and open this saved quote?'))return false;resetPicked();const ok=baseOpenQuote(id);if(!ok)return false;requestAnimationFrame(()=>requestAnimationFrame(()=>{card()?.scrollIntoView({behavior:'smooth',block:'start'});const s=status(id);if(canEdit(s,id)){document.getElementById('quoteTitle')?.focus({preventScroll:true});toast('Draft opened for editing.');}else if(canRevise(s))toast('Quote opened. Tap Edit / Revise Quote to change it.');else toast('Quote opened read-only.');}));return true;};
 window.renderQuoteLines=editLines;window.h38BuildAiQuoteDraft=build;window.renderQuotes=function(){baseRenderQuotes();controls();};window.renderMeasure=function(){baseRenderMeasure();measureControls();};
 window.H38_QUOTE_MOBILE_STABILIZATION={enabled:true,build:'20260807-1845',storage:'direct-supabase-file',maxPhotoBytes:MAX,manualRevisionUnlock:true,revisableStatuses:['Presented'],safeguards:{fullPhotoBase64:false,canvasResize:false,persistentPickerPermission:true,automaticApproval:false,automaticSend:false}};

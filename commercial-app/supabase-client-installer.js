@@ -132,7 +132,7 @@
       <details id="clientTenantCreatePanel" style="margin-top:14px">
         <summary><strong>Provision or refresh a client tenant</strong></summary>
         <form id="clientTenantForm">
-          <div class="two"><div><label>Business key</label><input name="businessKey" required pattern="[a-z0-9][a-z0-9-]{1,62}" value="northern-lakes"></div><div><label>Package ID</label><input name="packageId" required value="northern-lakes-closed-beta"></div></div>
+          <div class="two"><div><label>Business key</label><input name="businessKey" required pattern="[a-z0-9][a-z0-9\\-]{1,62}" value="northern-lakes"></div><div><label>Package ID</label><input name="packageId" required value="northern-lakes-closed-beta"></div></div>
           <label>Legal name</label><input name="legalName" required value="Northern Lakes Property Maintenance LLC">
           <label>Display name</label><input name="displayName" required value="Northern Lakes Property Maintenance LLC">
           <div class="two"><div><label>Owner email</label><input name="ownerEmail" type="email" required value="northernlakesproperty@gmail.com"></div><div><label>Timezone</label><input name="timezone" required value="America/Chicago"></div></div>
