@@ -40,14 +40,43 @@ function findCachedRecord(op){try{if(!op||!op.collection||typeof records!=='func
 
 // ---------- conflict detail (field-level what-changed, when comparable data exists) ----------
 const HIDDEN_PAYLOAD_KEYS=new Set(['base64Data','baseVersion','Base Version','password','token','Payload','payload']);
+// Free-text fields where a merge keeps both sides instead of picking a winner.
+const TEXT_MERGE_KEYS=/note|notes|description|summary|comment|detail|memo|narrat|transcript|observation/i;
+const MERGE_SEPARATOR=when=>`\n\n--- Merged offline note (${when}) ---\n`;
+const MERGE_MAX_LEN=4000;
 function payloadSource(payload){if(payload&&typeof payload==='object'&&payload.record&&typeof payload.record==='object')return payload.record;return payload||{};}
 function payloadFields(payload,max){const out=[],source=payloadSource(payload);if(!source||typeof source!=='object')return out;for(const key of Object.keys(source)){if(out.length>=max)break;if(HIDDEN_PAYLOAD_KEYS.has(key))continue;const value=source[key];if(value==null||typeof value==='object')continue;const str=String(value);if(!str||str.length>140)continue;out.push({key,value:str});}return out;}
 function fieldDiffs(op,cached,max){const diffs=[];if(!cached)return diffs;for(const f of payloadFields(op.payload,24)){if(diffs.length>=max)break;if(!(f.key in cached))continue;const cur=cached[f.key];if(cur==null||String(cur)===f.value)continue;diffs.push({key:f.key,mine:f.value,server:String(cur).slice(0,80)});}return diffs;}
-function describeConflict(op){const cached=findCachedRecord(op);const diffs=fieldDiffs(op,cached,6);return{opId:String(op.operationId||op.id),recordType:text(op.recordType)||'Record',recordId:String(op.recordId||''),action:text(op.action).replaceAll('_',' '),queuedAt:op.localTimestamp||'',baseVersion:num(op.baseVersion),serverVersion:num(op.serverVersion),conflictId:text(op.conflictId),fields:payloadFields(op.payload,8),diffs,cached:!!cached};}
+function describeConflict(op){const cached=findCachedRecord(op);const diffs=fieldDiffs(op,cached,6);
+  // Mergeable: free-text fields where BOTH sides wrote something different.
+  const mergeable=diffs.filter(d=>TEXT_MERGE_KEYS.test(d.key)&&text(d.mine)&&text(d.server));
+  return{opId:String(op.operationId||op.id),recordType:text(op.recordType)||'Record',recordId:String(op.recordId||''),action:text(op.action).replaceAll('_',' '),queuedAt:op.localTimestamp||'',baseVersion:num(op.baseVersion),serverVersion:num(op.serverVersion),conflictId:text(op.conflictId),fields:payloadFields(op.payload,8),diffs,cached:!!cached,mergeable};}
 
 // ---------- conflict resolution ----------
 async function keepServer(opId){const op=await findOp(opId);if(!op||op.syncStatus!=='CONFLICT')return false;await store().remove('operations',op.id);callGlobal('updatePending');callGlobal('toast','Kept the server version. Your queued change was discarded.');await renderPanel();return true;}
 async function reapplyMine(opId){const op=await findOp(opId);if(!op||op.syncStatus!=='CONFLICT')return false;op.baseVersion=Math.max(num(op.serverVersion),num(op.baseVersion));op.syncStatus='PENDING';op.retryCount=0;op.lastError='';op.conflictId='';op.serverVersion=0;await store().put('operations',op);callGlobal('updatePending');callGlobal('toast','Your change was re-queued on top of the server version.');await renderPanel();const st=office();if(isOnline()&&st.bridgeReady)callGlobal('sync',false);return true;}
+
+// Merge a free-text field: keep the server text, append the offline text, re-queue on top.
+async function mergeText(opId,fieldKey){
+  const op=await findOp(opId);if(!op||op.syncStatus!=='CONFLICT')return false;
+  const described=describeConflict(op);
+  const entry=(described.mergeable||[]).find(m=>m.key===fieldKey);
+  if(!entry){callGlobal('toast','That field is no longer mergeable.',true);return false;}
+  const when=fmtTime(op.localTimestamp)||new Date().toLocaleString();
+  let merged=String(entry.server).trim()+MERGE_SEPARATOR(when)+String(entry.mine).trim();
+  if(merged.length>MERGE_MAX_LEN)merged=merged.slice(0,MERGE_MAX_LEN)+'…';
+  const source=payloadSource(op.payload);
+  if(source&&typeof source==='object')source[fieldKey]=merged;else{callGlobal('toast','Could not update the queued change.',true);return false;}
+  op.baseVersion=Math.max(num(op.serverVersion),num(op.baseVersion));
+  op.syncStatus='PENDING';op.retryCount=0;op.lastError='';op.conflictId='';op.serverVersion=0;
+  await store().put('operations',op);
+  callGlobal('updatePending');
+  callGlobal('toast',`Merged "${fieldKey}" — both versions kept. Syncing.`);
+  await renderPanel();
+  const st=office();
+  if(isOnline()&&st.bridgeReady)callGlobal('sync',false);
+  return true;
+}
 
 // ---------- business pack refresh ----------
 const PACK_SESSION_KEY='h38-offline-pack-refreshed';
@@ -102,6 +131,7 @@ function conflictHtml(d){
   return `<div class="row"><div class="row-top"><strong>${esc(d.recordType)} · ${esc(d.recordId)}</strong><span class="pill pending">Needs review</span></div>`
     +`<small>${esc(d.action)} · queued ${esc(fmtTime(d.queuedAt))} · based on version ${d.baseVersion}, server is at version ${d.serverVersion}.</small>`
     +diffRows+fieldRows
+    +(d.mergeable.length?`<div class="h38-conflict-merge">${d.mergeable.map(m=>`<button type="button" class="secondary" data-offline-merge-op="${esc(d.opId)}" data-offline-merge-key="${esc(m.key)}">Merge notes: ${esc(m.key)}</button>`).join('')}<small class="muted">Merge keeps the server text and appends your offline text, so neither side is lost.</small></div>`:'')
     +`<div class="row-actions"><button data-offline-keep="${esc(d.opId)}">Keep server version</button><button class="secondary" data-offline-reapply="${esc(d.opId)}">Re-apply my changes</button></div></div>`;
 }
 async function renderPanel(){
@@ -128,6 +158,7 @@ async function renderPanel(){
   const packBtn=$('offlineRefreshPack');if(packBtn)packBtn.onclick=()=>{refreshPack().catch(err=>callGlobal('toast',err&&err.message||String(err),true));};
   mount.querySelectorAll('[data-offline-keep]').forEach(b=>{b.onclick=()=>{if(confirm('Discard your queued change and keep the server version?'))keepServer(b.dataset.offlineKeep).catch(err=>callGlobal('toast',err&&err.message||String(err),true));};});
   mount.querySelectorAll('[data-offline-reapply]').forEach(b=>{b.onclick=()=>{reapplyMine(b.dataset.offlineReapply).catch(err=>callGlobal('toast',err&&err.message||String(err),true));};});
+  mount.querySelectorAll('[data-offline-merge-op]').forEach(b=>{b.onclick=()=>{if(confirm('Merge: keep the server text and append your offline text to this field?'))mergeText(b.dataset.offlineMergeOp,b.dataset.offlineMergeKey).catch(err=>callGlobal('toast',err&&err.message||String(err),true));};});
   autoRefreshPack().catch(()=>{});
 }
 function refreshPanel(){if($('offlineReadinessPanel'))renderPanel();}
@@ -147,7 +178,7 @@ window.H38OfflineMode=Object.freeze({
   refreshPack,autoRefreshPack,
   handleOnline,onSyncPassComplete,
   businessOps,cachedCollections,findCachedRecord,describeConflict,payloadFields,
-  keepServer,reapplyMine,
+  keepServer,reapplyMine,mergeText,
   debug:()=>({retryAttempt,hasRetryTimer:!!retryTimer,backoffMs:BACKOFF_MS.slice()})
 });
 })();
