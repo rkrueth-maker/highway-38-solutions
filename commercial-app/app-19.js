@@ -3,7 +3,7 @@
 Object.assign(PAGE_DEFS,{
   people:['👷','People'],
   accounting:['📚','Accounting'],
-  payroll:['🧮','Payroll Prep'],
+  payroll:['🧮','Payroll'],
   tax:['🗂️','Tax Prep'],
   controls:['🛡️','Controls'],
   reports:['📊','Reports']
