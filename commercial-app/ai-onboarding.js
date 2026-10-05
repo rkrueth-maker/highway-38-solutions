@@ -75,8 +75,12 @@ function renderProfile(){
 
 function renderServices(){
   const d=onboardingData;
+  const tradeId = (window.H38TradePackages && typeof window.H38TradePackages.suggestFor==='function')
+    ? window.H38TradePackages.suggestFor(d.businessType) : null;
+  const tradePkg = tradeId ? window.H38TradePackages.packages[tradeId] : null;
   return `<div class="card"><h2>Services</h2>
     <p class="muted">What services do you offer? ${d.useAI?'AI can suggest common services for your business type.':''}</p>
+    ${tradePkg?`<div class="notice" style="margin-bottom:12px"><strong>${esc(tradePkg.name)} starter package available.</strong><br><span class="muted small">${tradePkg.priceBook.length} common services with typical pricing, plus checklists and quote language — ready to load.</span><div class="actions" style="margin-top:8px"><button type="button" data-onboard-load-trade="${esc(tradeId)}">Load ${esc(tradePkg.name)} starter package</button></div></div>`:''}
     ${d.useAI?'<div class="actions" style="margin-bottom:12px"><button type="button" class="secondary" data-onboard-ai-services>✨ Suggest services with AI</button></div><div id="h38AiServices"></div>':''}
     <div id="h38ServiceList">${d.services.map((s,i)=>serviceRow(s,i)).join('')}</div>
     <div class="actions" style="margin-top:8px"><button type="button" class="secondary" data-onboard-add-service>+ Add service</button></div>
@@ -231,6 +235,29 @@ function bind(){
   document.querySelector('[data-onboard-ai-services]')?.addEventListener('click',suggestServices);
   document.querySelector('[data-onboard-ai-customers]')?.addEventListener('click',organizeCustomers);
   document.querySelector('[data-onboard-finish]')?.addEventListener('click',finish);
+  document.querySelector('[data-onboard-load-trade]')?.addEventListener('click',(e)=>{
+    collectCurrentStep();
+    const tradeId=e.currentTarget.dataset.onboardLoadTrade;
+    const pkg=window.H38TradePackages&&window.H38TradePackages.packages[tradeId];
+    if(!pkg){toast('Trade package not found.',true);return;}
+    /* Add price book items as services (skip duplicates by name) */
+    const existing=new Set(onboardingData.services.map(s=>(s.name||'').toLowerCase().trim()));
+    let added=0;
+    for(const item of pkg.priceBook){
+      const name=item.description||'';
+      if(!name||existing.has(name.toLowerCase().trim()))continue;
+      const price=item.priceLow===item.priceHigh
+        ? '$'+item.priceLow
+        : '$'+item.priceLow+'–$'+item.priceHigh;
+      onboardingData.services.push({name:name,price:price+' / '+(item.unit||'each')});
+      existing.add(name.toLowerCase().trim());
+      added++;
+    }
+    /* Stash the full package for post-onboarding load (price book, checklists, etc.) */
+    onboardingData.tradePackageId=tradeId;
+    render();
+    toast(added+' '+pkg.name+' services loaded. Review and edit as needed.');
+  });
 }
 
 async function suggestServices(){
@@ -306,6 +333,17 @@ async function finish(){
       }
     }
     toast('✓ Your Office is ready!');
+    /* Load full trade package (price book, checklists, job types, quote notes)
+       if one was selected during onboarding. */
+    try{
+      if(onboardingData.tradePackageId && window.H38TradePackages &&
+         typeof window.H38TradePackages.load==='function'){
+        const result=await window.H38TradePackages.load(onboardingData.tradePackageId).catch(e=>({error:e.message}));
+        if(result&&!result.error){
+          toast('Trade package loaded: '+result.added+' price book items added'+(result.skipped?' ('+result.skipped+' already present)':'')+'.');
+        }
+      }
+    }catch(e){/* package load is best-effort; services were already saved above */}
     // Machine-shop opt-in: only when the owner explicitly checked the box on the
     // review step. The machine_shop module setting defaults OFF everywhere else.
     try{
