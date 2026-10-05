@@ -269,7 +269,7 @@ function renderOwnerControls(){
     <section class="card span12">
       <h2>Module Visibility</h2>
       <p class="muted small">Turn off modules you don't use. Hidden modules won't appear in navigation.</p>
-      <div class="grid">
+      <div class="list">
         ${MODULES.map(m=>`
           <div class="row">
             <div class="row-top">
@@ -289,7 +289,6 @@ function renderOwnerControls(){
   return `
     <div class="grid">
       <section class="card span12">
-        <h2>Owner Controls</h2>
         <p class="muted">Turn features on/off and control which modules appear in your Office. Changes apply immediately.</p>
       </section>
       ${renderMachineShopCard()}

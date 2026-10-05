@@ -91,7 +91,7 @@ async function sync(page){
   throw Error(`Office sync did not settle cleanly before training continued. Pending=${last.pending}; failed=${last.failed.join(', ')||'none'}; badge=${last.badge}`);
 }
 async function recordLifecycle(page,kind,result){
-  const mobile=kind==='mobile',customerName=`Pine Ridge Workshop — TEST ${stamp}-${mobile?'M':'D'}`;
+  const mobile=kind!=='desktop',customerName=`Pine Ridge Workshop — TEST ${stamp}-${mobile?'M':'D'}`;
   const projectTitle=`Detached Garage Workflow — TEST ${stamp}-${mobile?'MOBILE':'DESKTOP'}`;
   const amount=mobile?385:625;
   result.testCustomer=customerName;result.projectTitle=projectTitle;result.invoiceTotal=amount;
@@ -276,7 +276,7 @@ async function recordLifecycle(page,kind,result){
   fs.mkdirSync(out,{recursive:true});const raw=path.join(out,'raw'),mp4=path.join(out,'mp4'),shots=path.join(out,'screenshots');for(const p of [raw,mp4,shots])fs.mkdirSync(p,{recursive:true});
   const browser=await chromium.launch({headless:true}),auth=await storageState(browser),runs=[];
   try{
-    for(const spec of [{id:'H38-FULL-LIFECYCLE-DESKTOP',viewport:{width:1440,height:900},kind:'desktop'},{id:'H38-FULL-LIFECYCLE-PHONE',viewport:{width:390,height:844},kind:'mobile'}]){
+    for(const spec of [{id:'H38-FULL-LIFECYCLE-DESKTOP',viewport:{width:1440,height:900},kind:'desktop'},{id:'H38-FULL-LIFECYCLE-TABLET-LANDSCAPE',viewport:{width:1024,height:768},kind:'tablet-landscape'},{id:'H38-FULL-LIFECYCLE-TABLET-PORTRAIT',viewport:{width:768,height:1024},kind:'tablet-portrait'},{id:'H38-FULL-LIFECYCLE-PHONE',viewport:{width:390,height:844},kind:'mobile'}]){
       const ctx=await browser.newContext({storageState:auth,viewport:spec.viewport,recordVideo:{dir:raw,size:spec.viewport}}),page=await ctx.newPage(),video=page.video();
       const result={id:spec.id,title:`Customer to paid invoice — ${spec.kind}`,viewport:`${spec.viewport.width}x${spec.viewport.height}`,testDataOnly:true,status:'HOLD',steps:[]};
       try{await ready(page);await recordLifecycle(page,spec.kind,result);result.status='PASS';await page.waitForTimeout(1400);await page.screenshot({path:path.join(shots,`${spec.id}-paid.png`),fullPage:false})}catch(error){result.detail=error.stack||error.message;try{await page.screenshot({path:path.join(shots,`${spec.id}-hold.png`),fullPage:false})}catch(_){}}
