@@ -24,3 +24,39 @@ label:has(+ input[required])::after,label:has(+ select[required])::after,label:h
 .skeleton-row{display:grid;gap:8px;padding:12px}
 .skeleton-row .skeleton{height:16px}
 .skeleton-row .skeleton:first-child{width:60%;height:20px}
+
+/* === V2.0 VISUAL POLISH SWEEP (2026-10-05) === */
+/* Fixes from audit: ~/workspace/goals/training-video-remake/hidden_files/visual-polish-issues.md */
+
+/* Fix 14: Snap a receipt - button aligns with dropdown, not centered on label */
+.h38-life-receipt-capture button{align-self:end}
+
+/* Fix 15: Stat card consistency - ensure .h38-field3-metric matches .stat visual pattern */
+/* Both now use number-on-top via DOM order (no CSS order hack needed for new code) */
+
+/* Fix 16: Online badge - add padding so it doesn't jam against card edge */
+.h38-field3-card > div:first-child{padding-right:8px}
+
+/* Fix 23: Module Visibility - prevent label/toggle overlap */
+.owner-controls-module-row .row-top strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.owner-controls-module-row .row-top{gap:12px;align-items:center}
+
+/* Fix 18: Advanced upload button - style native button to match design system */
+.h38-advanced-upload-btn,.h38-upload-advanced button[type="button"]{min-height:44px;padding:10px 18px;border:1px solid var(--line-strong);border-radius:999px;background:var(--navy);color:#fff;font-size:.85rem;font-weight:700;cursor:pointer}
+.h38-advanced-upload-btn:hover,.h38-upload-advanced button[type="button"]:hover{background:#1a3a52}
+
+/* Fix 21: File input buttons - style to match design system */
+.h38-styled-file-input{position:relative;display:inline-block;min-height:44px}
+.h38-styled-file-input input[type="file"]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer}
+.h38-styled-file-input .file-input-label{display:inline-flex;align-items:center;min-height:44px;padding:10px 18px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;color:var(--navy);font-size:.85rem;font-weight:600;cursor:pointer}
+/* Fallback: style native file input button where supported */
+input[type="file"]::file-selector-button{min-height:36px;padding:8px 14px;border:1px solid var(--line-strong);border-radius:8px;background:#f2f6f9;color:var(--navy);font-size:.82rem;font-weight:600;cursor:pointer;margin-right:10px}
+input[type="file"]::file-selector-button:hover{background:#e8eef3}
+
+/* Fix 17, 19: Card width consistency - ensure grid spans don't cause ragged edges */
+.customer-360-details-card{grid-column:span 12}
+.h38-release-center-card{grid-column:span 12}
+
+/* General: Prevent flex item overflow in row-top layouts */
+.row-top > strong{flex:1;min-width:0}
+.row-top .switch{flex-shrink:0;margin-left:auto}

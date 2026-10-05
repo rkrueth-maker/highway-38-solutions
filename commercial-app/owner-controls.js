@@ -62,18 +62,18 @@ async function setRepairGuideEnabled(enabled){
 
 // Module visibility - show/hide entire sections
 const MODULES=[
-  {id:'today',title:'Today',icon:'📊',desc:'Daily dashboard and overview'},
-  {id:'customers',title:'Customers',icon:'👥',desc:'Customer list and details'},
-  {id:'quotes',title:'Quotes',icon:'📝',desc:'Quote builder and management'},
-  {id:'jobs',title:'Jobs',icon:'🔧',desc:'Job tracking and management'},
-  {id:'schedule',title:'Schedule',icon:'📅',desc:'Calendar and appointments'},
-  {id:'money',title:'Money',icon:'💰',desc:'Invoices, payments, expenses'},
-  {id:'fleet',title:'Fleet',icon:'🚛',desc:'Vehicle tracking and management'},
-  {id:'inventory',title:'Inventory',icon:'📦',desc:'Parts and materials inventory'},
-  {id:'documents',title:'Documents',icon:'📄',desc:'File storage and documents'},
-  {id:'reports',title:'Reports',icon:'📈',desc:'Business reports and analytics'},
-  {id:'team',title:'Team',icon:'👷',desc:'Staff management'},
-  {id:'messages',title:'Messages',icon:'💬',desc:'Customer communications'},
+  {id:'today',title:'Today',icon:'',desc:'Daily dashboard and overview'},
+  {id:'customers',title:'Customers',icon:'',desc:'Customer list and details'},
+  {id:'quotes',title:'Quotes',icon:'',desc:'Quote builder and management'},
+  {id:'jobs',title:'Jobs',icon:'',desc:'Job tracking and management'},
+  {id:'schedule',title:'Schedule',icon:'',desc:'Calendar and appointments'},
+  {id:'money',title:'Money',icon:'',desc:'Invoices, payments, expenses'},
+  {id:'fleet',title:'Fleet',icon:'',desc:'Vehicle tracking and management'},
+  {id:'inventory',title:'Inventory',icon:'',desc:'Parts and materials inventory'},
+  {id:'documents',title:'Documents',icon:'',desc:'File storage and documents'},
+  {id:'reports',title:'Reports',icon:'',desc:'Business reports and analytics'},
+  {id:'team',title:'Team',icon:'',desc:'Staff management'},
+  {id:'messages',title:'Messages',icon:'',desc:'Customer communications'},
 ];
 
 function getToggles(){
@@ -273,9 +273,9 @@ function renderOwnerControls(){
       <p class="muted small">Turn off modules you don't use. Hidden modules won't appear in navigation.</p>
       <div class="list">
         ${MODULES.map(m=>`
-          <div class="row">
+          <div class="row owner-controls-module-row">
             <div class="row-top">
-              <strong>${m.icon} ${esc(m.title)}</strong>
+              <strong>${m.icon?m.icon+' ':''}${esc(m.title)}</strong>
               <label class="switch">
                 <input type="checkbox" data-module="${m.id}" ${visibility[m.id]!==false?'checked':''}>
                 <span class="slider"></span>
