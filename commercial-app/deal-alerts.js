@@ -400,7 +400,7 @@ function alertsCard() {
   const rules = records('alertRules').slice(0, 20);
   // Throttled background check so fresh conditions surface as alerts on Today.
   try { autoCheckDealAlerts(); } catch (e) {}
-  return '<section class="card span7"><h2>🎯 Deal alerts</h2>'
+  return '<section class="card span5"><h2>🎯 Deal alerts</h2>'
     + '<div class="actions"><button class="secondary" onclick="H38DealAlerts.checkNow()">Check now</button></div>'
     + '<div class="list">' + (open.length ? open.map(dealAlertRow).join('') : empty('No open deal alerts. Add a watch rule below or tap Check now.')) + '</div>'
     + '<h3>Watch rules</h3>'
