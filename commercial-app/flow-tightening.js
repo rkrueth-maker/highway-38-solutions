@@ -14,7 +14,7 @@ const recordId=(row,...keys)=>text(value(row,...keys));
 const html=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const rows=name=>typeof window.records==='function'?window.records(name):(window.state?.snapshot?.[name]||[]);
 const allowed=()=>{try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}};
-const pageLabel=key=>{try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}};
+const pageLabel=key=>{try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?(PAGE_DEFS[key].length>1?PAGE_DEFS[key][1]:PAGE_DEFS[key][0]):key;}catch(_){return key;}};
 const pageIcon=key=>{try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][0]:'•';}catch(_){return'•';}};
 function officeState(){try{return typeof state!=='undefined'?state:window.state;}catch(_){return window.state;}}
 function activeBusiness(){const s=officeState();return text(s?.businessId);}

@@ -42,7 +42,7 @@
 
   function firstFrameText(value) { return String(value == null ? '' : value).trim(); }
   function firstFrameAllowed() { try { return typeof window.allowedPages === 'function' ? window.allowedPages() : []; } catch (_) { return []; } }
-  function firstFramePageLabel(key) { try { return typeof PAGE_DEFS !== 'undefined' && PAGE_DEFS[key] ? PAGE_DEFS[key][1] : key; } catch (_) { return key; } }
+  function firstFramePageLabel(key) { try { return typeof PAGE_DEFS !== 'undefined' && PAGE_DEFS[key] ? (PAGE_DEFS[key].length>1?PAGE_DEFS[key][1]:PAGE_DEFS[key][0]) : key; } catch (_) { return key; } }
   function firstFramePageIcon(key) { try { return typeof PAGE_DEFS !== 'undefined' && PAGE_DEFS[key] ? PAGE_DEFS[key][0] : '•'; } catch (_) { return '•'; } }
   function firstFrameHtml(value) { return typeof window.esc === 'function' ? window.esc(value) : firstFrameText(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function ensureMobilePrimaryFirstFrame() {

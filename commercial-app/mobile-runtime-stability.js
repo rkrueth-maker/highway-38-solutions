@@ -35,7 +35,7 @@ function roleName(){const u=currentUser()||{};return text(u.roleId||u.roleName||
 function fieldRole(){const u=currentUser();if(!u||u.owner===true||u.permissions?.all===true)return false;const role=roleName();return role==='staff'||role==='field staff'||role==='field'||role==='foreman'||role==='site-manager'||role==='site manager'||/foreman|crew lead|field/.test(text(u.jobTitle||u.title).toLowerCase());}
 function primaryNavigation(){return fieldRole()?FIELD_PRIMARY:OWNER_PRIMARY;}
 function moreGroups(){return fieldRole()?FIELD_MORE_GROUPS:OWNER_MORE_GROUPS;}
-function pageLabel(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][1]:key;}catch(_){return key;}}
+function pageLabel(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?(PAGE_DEFS[key].length>1?PAGE_DEFS[key][1]:PAGE_DEFS[key][0]):key;}catch(_){return key;}}
 function pageIcon(key){try{return typeof PAGE_DEFS!=='undefined'&&PAGE_DEFS[key]?PAGE_DEFS[key][0]:'•';}catch(_){return'•';}}
 function fieldActuallyOpen(){
   if(window.H38_FIELD_VISIT_CORE?.state?.open!==true)return false;
