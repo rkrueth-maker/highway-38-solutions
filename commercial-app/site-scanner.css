@@ -41,7 +41,7 @@
 .scanner-step-number{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:999px;background:#1c6e91;color:#fff;font-size:1.15rem;font-weight:950}
 .scanner-three-directions{display:grid;gap:.55rem;margin:1rem 0;padding-left:1.35rem;color:#17354c;line-height:1.4}
 .scanner-guide-action{display:grid;margin-top:.7rem}
-.scanner-guide-action .scanner-primary-measure{min-height:60px;border:0;border-radius:13px;background:#0b3955;color:#fff;font-size:1.08rem;font-weight:950;box-shadow:0 8px 18px rgba(11,57,85,.22)}
+.scanner-guide-action .scanner-primary-measure{min-height:60px;border:0;border-radius:var(--radius);background:#0b3955;color:#fff;font-size:1.08rem;font-weight:950;box-shadow:var(--shadow)}
 .scanner-guide-note{margin:.7rem 0 0;color:#587181;font-size:.82rem;line-height:1.4}
 .scanner-history-details,.scanner-measurement-options{margin-top:.9rem;border:1px solid #d6e0e8;border-radius:10px;background:#f8fafc;padding:.2rem .7rem .7rem}
 .scanner-history-details summary,.scanner-measurement-options summary{padding:.65rem 0;color:#17354c;font-weight:900;cursor:pointer}

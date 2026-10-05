@@ -11,13 +11,13 @@ body.h38-auth-locked main{padding:clamp(20px,4vw,52px) 18px 72px}
 .h38-access-intro>p:not(.h38-access-kicker):not(.h38-access-boundary){max-width:680px;margin:0 0 1.25rem;color:var(--muted);font-size:1rem;line-height:1.6}
 .h38-access-kicker{margin:0;color:var(--orange);font-size:.74rem;font-weight:950;letter-spacing:.13em;text-transform:uppercase}
 .h38-access-options{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.h38-access-option{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;min-height:78px;padding:12px;border:1px solid var(--line-strong);border-radius:13px;background:#fff;color:var(--text);text-align:left;text-decoration:none;box-shadow:var(--shadow-soft)}
+.h38-access-option{display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center;min-height:78px;padding:12px;border:1px solid var(--line-strong);border-radius:var(--radius);background:#fff;color:var(--text);text-align:left;text-decoration:none;box-shadow:var(--shadow-soft)}
 .h38-access-option:hover{border-color:#9fb5c4;background:#fbfdfe;transform:translateY(-1px)}
 .h38-access-option.is-active{border-color:var(--blue);background:#eef5fa;box-shadow:0 0 0 2px rgba(23,74,112,.1)}
 .h38-access-option strong,.h38-access-option small{display:block}
 .h38-access-option strong{color:var(--navy);font-size:.88rem;line-height:1.25}
 .h38-access-option small{margin-top:3px;color:var(--muted);font-size:.74rem;line-height:1.35}
-.h38-access-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#e8f0f6;color:var(--blue);font-size:1.12rem;font-weight:950}
+.h38-access-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:var(--radius-sm);background:#e8f0f6;color:var(--blue);font-size:1.12rem;font-weight:950}
 .h38-customer-access{grid-template-columns:38px minmax(0,1fr) auto;border-color:#e4b795;background:#fff8f3}
 .h38-customer-access .h38-access-icon{background:#fae4d6;color:#9b4718}
 .h38-access-boundary{margin:13px 0 0;padding:11px 13px;border-left:3px solid var(--blue);background:#edf4f8;color:#29465e;font-size:.8rem;line-height:1.45}
