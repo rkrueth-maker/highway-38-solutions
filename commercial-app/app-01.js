@@ -15,7 +15,9 @@ const num=value=>Number(value||0),now=()=>new Date().toISOString();
 const money=value=>num(value).toLocaleString(undefined,{style:'currency',currency:v(state.snapshot?.business,'currency','Currency')||'USD'});
 const dateTime=value=>value?new Date(value).toLocaleString():'Not set';
 const dateOnly=value=>value?new Date(`${String(value).slice(0,10)}T12:00:00`).toLocaleDateString():'Not set';
-const empty=text=>`<div class="empty">${esc(text)}</div>`;
+const empty=(text,cta)=>`<div class="empty">${esc(text)}${cta?`<div style="margin-top:10px"><button class="secondary" data-open-page="${esc(cta.page)}">${esc(cta.label)}</button></div>`:''}</div>`;
+// Global delegation for empty-state CTA buttons (and any data-open-page buttons)
+document.addEventListener('click',e=>{const b=e.target.closest('[data-open-page]');if(b&&typeof window.openPage==='function'){e.preventDefault();window.openPage(b.dataset.openPage);}});
 const pill=(text,kind='')=>`<span class="pill ${kind}">${esc(text||'Unknown')}</span>`;
 const rowId=(row,...keys)=>String(v(row,...keys));
 const industryPacks=business=>{const raw=business?.industryPacks??business?.industryPack??[];if(Array.isArray(raw))return raw.filter(Boolean);if(typeof raw==='string'){try{const parsed=JSON.parse(raw);if(Array.isArray(parsed))return parsed.filter(Boolean);}catch(error){}return raw.split(',').map(x=>x.trim()).filter(Boolean);}return[];};
