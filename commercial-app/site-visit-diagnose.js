@@ -315,6 +315,32 @@ function partsLaborCard(d){
   <div class="dx-row"><button type="button" id="dxAddLabor" class="field-secondary">Add labor</button></div>
   <div class="dx-total"><span>Quote lines total</span><strong>${money(total)}</strong></div></div>`;
 }
+// ---- recalls/bulletins + bigger-job warnings (Repair Guide toggle) ----
+function dxBulletinsCard(d){
+  try{
+    if(window.H38RepairBulletins&&typeof window.H38RepairBulletins.bulletinsCard==='function')
+      return window.H38RepairBulletins.bulletinsCard(d);
+  }catch(e){}
+  return '';
+}
+function dxWarningsCard(d){
+  try{
+    const FC=window.H38FailureChains;
+    if(!FC||typeof FC.match!=='function')return '';
+    // Warnings are symptom-driven: fire on the diagnose path (tech-entered)
+    // and the known-issue path (customer-requested). Maintenance checklists
+    // have no symptom text, so there is nothing to match.
+    if(d.mode!=='diagnose'&&d.mode!=='known')return '';
+    const hay=[d.symptoms,d.diagnosis,d.recommendedFix,d.knownIssue].map(text).join(' ');
+    const hits=FC.match({equipType:d.equipType,text:hay});
+    const body=hits.length
+      ?`<span class="dx-hint">Heads up — these patterns often turn into bigger work. Quote it or watch for it.</span><div id="dxWarningsResult">`+
+        hits.map(h=>`<div class="dx-warn-card sev-${esc(h.severity)}"><div class="dx-warn-head"><span class="dx-warn-badge">${esc(FC.severityLabel(h.severity))}</span></div><p>${esc(h.warning)}</p></div>`).join('')+`</div>`
+      :`<p class="dx-hint" id="dxWarningsResult">No known bigger-job patterns match what is entered so far. Add symptoms${d.mode==='known'?' or the known issue':''}, then refresh.</p>`;
+    return `<div class="field-card"><strong>Bigger-job warnings</strong>${body}`+
+      `<div class="dx-row"><button type="button" id="dxRefreshWarnings" class="field-secondary">Refresh warnings</button></div></div>`;
+  }catch(e){return '';}
+}
 function outcomeCard(d){
   const status=d.status==='quoted'
     ?`<div class="dx-status">Added ${n(d.quotedLines)||0} line(s) to the draft quote. Present and accept it in Quotes to create the job.</div>`
@@ -337,6 +363,8 @@ function panel(){
   <p>Run the Repair Guide diagnosis inside this visit — or skip straight to the quote when you already know the issue. Maintenance visits work here too.</p></div></div>
   <div class="field-card"><strong>What kind of visit is this?</strong>${modeButtons(d)}</div>
   ${equipmentCard(d)}
+  ${dxBulletinsCard(d)}
+  ${dxWarningsCard(d)}
   ${diagnoseSection(d)}${maintenanceSection(d)}${knownSection(d)}
   ${d.mode?partsLaborCard(d)+outcomeCard(d):'<div class="field-card"><p class="dx-hint">Pick a visit type above to continue.</p></div>'}
   <button type="button" class="field-next" data-go="review">Next: Review →</button></section>`;
@@ -391,6 +419,35 @@ function bind(){
   const on=(id,fn)=>{const el=document.getElementById(id);if(el&&!el.dataset.dxBound){el.dataset.dxBound='1';el.addEventListener('click',fn);}};
   on('dxSaveEquip',async()=>{try{syncInputs();await saveEquipment();render();}catch(e){C.toast(e.message||String(e),true);}});
   on('dxAiBtn',()=>{syncInputs();requestAi().catch(e=>C.toast(e.message||String(e),true));});
+  on('dxCheckBulletins',async()=>{
+    const B=window.H38RepairBulletins;if(!B)return;
+    syncInputs();const d=dg();if(!d)return;
+    const box=document.getElementById('dxBulletinsResult');
+    const btn=document.getElementById('dxCheckBulletins');
+    if(btn)btn.disabled=true;
+    try{
+      if(box)box.innerHTML='<p class="dx-hint">Checking NHTSA…</p>';
+      const res=await B.checkVehicleBulletins({year:d.year,make:d.make,model:d.model});
+      if(box)box.innerHTML=B.resultHtml(res,text(d.symptoms)+' '+text(d.knownIssue));
+    }catch(e){
+      const sym=text(d.symptoms)+' '+text(d.knownIssue);
+      const tsb=B.tsbButtonsHtml({year:d.year,make:d.make,model:d.model},sym);
+      if(box)box.innerHTML=(e&&e.offline
+        ?'<p class="dx-hint">You are offline. Connect to the internet to check recalls and bulletins — the bigger-job warnings still work offline.</p>'
+        :`<p class="dx-hint">Bulletin check failed: ${esc(text(e&&e.message||e))}. The web TSB search still works.</p>`)+tsb;
+    }finally{if(btn)btn.disabled=false;}
+  });
+  on('dxDecodeVin',async()=>{
+    const B=window.H38RepairBulletins;if(!B)return;
+    syncInputs();const d=dg();if(!d)return;
+    try{
+      const r=await B.decodeVin(d.identifier);
+      if(text(r.year))d.year=r.year;if(text(r.make))d.make=r.make;if(text(r.model))d.model=r.model;
+      await persist();render();
+      C.toast('VIN decoded — year, make, and model filled in.');
+    }catch(e){C.toast((e&&e.offline)?'You are offline. Connect to decode the VIN.':text(e&&e.message||e),true);}
+  });
+  on('dxRefreshWarnings',()=>{syncInputs();render();});
   on('dxAddPart',()=>{syncInputs();const d=dg();d.parts.push({name:'',source:'shop',partType:'aftermarket',qty:1,cost:0});persist().then(render);});
   on('dxAddLabor',()=>{syncInputs();const d=dg();d.labor.push({desc:'',hours:1,rate:0});persist().then(render);});
   on('dxMaintAdd',()=>{

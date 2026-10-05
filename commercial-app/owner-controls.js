@@ -282,6 +282,13 @@ async function setCustomerPortal(enabled){
   return !!enabled;
 }
 
+function renderRepairWarningsCard(){
+  try{
+    if(window.H38FailureChains&&typeof window.H38FailureChains.ownerCard==='function')
+      return window.H38FailureChains.ownerCard();
+  }catch(e){}
+  return '';
+}
 function renderCustomerPortalCard(){
   const enabled=isCustomerPortalEnabled();
   const can=canManageModules();
@@ -392,6 +399,7 @@ function renderOwnerControls(){
       </section>
       ${renderMachineShopCard()}
       ${renderCustomerPortalCard()}
+      ${renderRepairWarningsCard()}
       ${toggleSections}
       ${moduleSection}
     </div>
@@ -401,6 +409,7 @@ function renderOwnerControls(){
 function bindOwnerControls(){
   bindMachineShop();
   bindCustomerPortal();
+  try{if(window.H38FailureChains&&typeof window.H38FailureChains.bindOwnerCard==='function')window.H38FailureChains.bindOwnerCard();}catch(e){}
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
     checkbox.onchange=async()=>{
       const id=checkbox.dataset.toggle;
