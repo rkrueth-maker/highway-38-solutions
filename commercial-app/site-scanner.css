@@ -30,7 +30,8 @@
 .scanner-geometry-summary span{font-size:.75rem;color:#587181}
 .scanner-geometry-summary .bad{background:#fff0ed;color:#8a2c1c}
 .scanner-svg-preview{overflow:auto;border:1px solid #d2dde3;border-radius:.65rem;background:#fff;margin-top:.75rem}
-.scanner-svg-preview svg{display:block;width:100%;min-width:620px;height:auto}
+.scanner-svg-preview{overflow-x:auto}
+.scanner-svg-preview svg{display:block;width:100%;min-width:0;max-width:100%;height:auto}
 .scanner-main .four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem}
 .scanner-main .hidden{display:none!important}
 .scanner-simple-guide{border:2px solid #1c6e91;background:linear-gradient(145deg,#f8fcff,#e8f3f8);box-shadow:0 14px 34px rgba(16,43,63,.12)}
