@@ -37,3 +37,4 @@ body.h38-auth-authorized #mainContent table{font-variant-numeric:tabular-nums}
  body.h38-auth-authorized #mainContent .page-tools>:is(button,a){flex:1 1 46%;min-width:0}
  body.h38-auth-authorized #mainContent .actions>:is(button,a){flex:1 1 46%;min-width:0}
 }
+@media(max-width:760px){.h38-ready-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
