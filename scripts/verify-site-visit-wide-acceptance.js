@@ -47,7 +47,7 @@ assert.strictEqual(api.actionPictureInfo(quoteId,{}).sourceId,'ATTACH-AF0EA095-F
 
 const runtime=read('commercial-app/quote-runtime-authority.js');
 new vm.Script(runtime,{filename:'quote-runtime-authority.js'});
-for(const marker of ['20260822-quote-runtime-authority-2-machine','QUOTE_RESPONSE_BUDGET_MS=60000','QUOTE_PROVIDER_BUDGET_MS=55000','OPTIONS_RESPONSE_BUDGET_MS=80000','function ownerReviewFallback(prepared,reason)','function boundedBuild(promise,prepared)','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','allQuoteBuildsUseMachine:true','ownerActionStartsMachine:true','if(action===\'aiBuildQuoteDraft\')return buildQuote','void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)'])assert(runtime.includes(marker),`runtime missing ${marker}`);
+for(const marker of ['20261004-quote-runtime-authority-3-kit-build','QUOTE_RESPONSE_BUDGET_MS=60000','QUOTE_PROVIDER_BUDGET_MS=55000','OPTIONS_RESPONSE_BUDGET_MS=80000','function ownerReviewFallback(prepared,reason)','function boundedBuild(promise,prepared)','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','allQuoteBuildsUseMachine:true','ownerActionStartsMachine:true','if(action===\'aiBuildQuoteDraft\')return buildQuote','void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)'])assert(runtime.includes(marker),`runtime missing ${marker}`);
 assert(!runtime.includes("Amanda's flower garden border"));
 
 const identity=read('commercial-app/site-visit-work-dedupe-final.js');

@@ -1,1 +1,197 @@
-ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpST09UID0gUGF0aChfX2ZpbGVfXykucmVzb2x2ZSgpLnBhcmVudHNbMV0KQVBQID0gUk9PVCAvICJjb21tZXJjaWFsLWFwcCIKQVVUSCA9IChBUFAgLyAic3VwYWJhc2UtcXVvdGUtYWktYXV0aC1maXguanMiKS5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKUlVOVElNRSA9IChBUFAgLyAicXVvdGUtcnVudGltZS1hdXRob3JpdHkuanMiKS5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKSEFORE9GRiA9IChBUFAgLyAic2l0ZS12aXNpdC1xdW90ZS1oYW5kb2ZmLWZpbmFsLmpzIikucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCklERU5USVRZID0gKEFQUCAvICJzaXRlLXZpc2l0LXdvcmstZGVkdXBlLWZpbmFsLmpzIikucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCkdVSURFRCA9IChBUFAgLyAiZmllbGQtdmlzaXQtZ3VpZGVkLWNvbnRyb2xsZXIuanMiKS5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKV0lERSA9IChBUFAgLyAic2l0ZS12aXNpdC13aWRlLWFjY2VwdGFuY2UtZmluYWwuanMiKS5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKR1VBUkQgPSAoQVBQIC8gInF1b3RlLW1lYXN1cmVtZW50LWFjdGlvbi1waG90by1ndWFyZC5qcyIpLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpSRU5ERVIgPSAoQVBQIC8gInF1b3RlLXJlbmRlci1hcHByb3ZhbC5qcyIpLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpNQU5VQUwgPSAoQVBQIC8gInF1b3RlLW1hbnVhbC1pbWFnZS1jb250cm9scy5qcyIpLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpMT0FERVIgPSAoQVBQIC8gInNpdGUtdmlzaXQtcXVvdGUtd2lkZS1wYXNzLWxvYWRlci5qcyIpLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpIQU1NRVIgPSAoQVBQIC8gInF1b3RlLXdvcmtpbmctaGFtbWVyLmpzIikucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpClJFVklTSU9OID0gKEFQUCAvICJxdW90ZS1yZXZpc2lvbi1hdXRob3JpdHkuanMiKS5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKU1cgPSAoQVBQIC8gInNlcnZpY2Utd29ya2VyLmpzIikucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpClFVT1RFX0FJID0gKFJPT1QgLyAic3VwYWJhc2UvZnVuY3Rpb25zL2gzOC1xdW90ZS1haS9pbmRleC50cyIpLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpPUFRJT05TID0gKFJPT1QgLyAic3VwYWJhc2UvZnVuY3Rpb25zL2gzOC1xdW90ZS1vcHRpb25zL2luZGV4LnRzIikucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCgoKZGVmIHRlc3RfcmVjb3JkZWRfZmxvd2VyX2dhcmRlbl9xdW90ZV9jYW5ub3RfaGl0X29sZF9mYWlsX2Nsb3NlZF9wcmljaW5nX2dhdGUoKToKICAgIGFzc2VydCAiMjAyNjA4MjEtcXVvdGUtYWktcGhvbmUtZmFsbGJhY2stMiIgaW4gQVVUSAogICAgYXNzZXJ0ICJsZWdhY3lGYWlsQ2xvc2VkUHJpY2luZ1JldGlyZWQ6dHJ1ZSIgaW4gQVVUSAogICAgYXNzZXJ0ICJ6ZXJvUmF0ZURyYWZ0QmxvY2tlZDpmYWxzZSIgaW4gQVVUSAogICAgYXNzZXJ0ICJtYW51YWxSZXF1aXJlZExpbmVzUmVtYWluRWRpdGFibGU6dHJ1ZSIgaW4gQVVUSAogICAgYXNzZXJ0ICJwb2xpY3lDYW5ub3RDcmVhdGVQcm9qZWN0U2NvcGU6dHJ1ZSIgaW4gQVVUSAogICAgYXNzZXJ0ICJzeXN0ZW1RdW90ZVBvbGljeTpzeXN0ZW1Qb2xpY3koKSIgaW4gQVVUSAogICAgYXNzZXJ0ICJkZWxldGUgcHJlcGFyZWQubm90ZXMiIGluIEFVVEgKICAgIGFzc2VydCAic2NvcGVSZXF1aXJlc1RhcmdldCIgbm90IGluIEFVVEgKICAgIGFzc2VydCAiemVyby9ub24tcG9zaXRpdmUgcmF0ZToiIG5vdCBpbiBBVVRICiAgICBhc3NlcnQgIk5vIHplcm8tcXVhbnRpdHksIHplcm8tcmF0ZSwgb3IgYmxlbmRlZCBpbnN1bGF0aW9uL2RyeXdhbGwgZHJhZnQgd2FzIGxvYWRlZC4iIG5vdCBpbiBBVVRICiAgICBhc3NlcnQgIlBvbGljeSBleGFtcGxlcyBhcmUgbmV2ZXIgcHJvamVjdCBzY29wZSIgaW4gQVVUSAoKCmRlZiB0ZXN0X3F1b3RlX3Jlb3Blbl9hbmRfaGFuZG9mZl91c2VfY2Fub25pY2FsX3NhdmVkX3F1b3RlX2FuZF9vcmlnaW5hbF9ldmlkZW5jZSgpOgogICAgYXNzZXJ0ICIyMDI2MDgyMi1zaXRlLXZpc2l0LXF1b3RlLWhhbmRvZmYtZmluYWwtNS1tYWNoaW5lIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImZ1bmN0aW9uIGNhbm9uaWNhbExpbmtlZFNlc3Npb24oIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImZ1bmN0aW9uIGNhbm9uaWNhbFF1b3RlQ2FuZGlkYXRlKCkiIGluIEhBTkRPRkYKICAgIGFzc2VydCAiYXN5bmMgZnVuY3Rpb24gZW5zdXJlQ2Fub25pY2FsUXVvdGVPcGVuKCIgaW4gSEFORE9GRgogICAgYXNzZXJ0ICJhc3luYyBmdW5jdGlvbiBjYW5vbmljYWxIYW5kb2ZmKCkiIGluIEhBTkRPRkYKICAgIGFzc2VydCAiaGFuZG9mZjpjYW5vbmljYWxIYW5kb2ZmIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImZ1bmN0aW9uIGNhbm9uaWNhbEV2aWRlbmNlKCIgaW4gSEFORE9GRgogICAgYXNzZXJ0ICJmdW5jdGlvbiBoeWRyYXRlQ2Fub25pY2FsT3BlblZpc2l0KCIgaW4gSEFORE9GRgogICAgYXNzZXJ0ICJhc3luYyBmdW5jdGlvbiByZW9wZW5MaW5rZWRWaXNpdCgpIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImNhcHR1cmVTZXNzaW9uSWQ6c2lkIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgInNlc3Npb25JZDpzaWQiIGluIEhBTkRPRkYKICAgIGFzc2VydCAic2l0ZVZpc2l0SWQ6dmlzaXRJZCIgaW4gSEFORE9GRgogICAgYXNzZXJ0ICJzb3VyY2VUeXBlPT09J3NpdGUgdmlzaXQnIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImNhbm9uaWNhbFJlb3BlbklkZW50aXR5OnRydWUiIGluIEhBTkRPRkYKICAgIGFzc2VydCAicmVvcGVuSHlkcmF0ZXNFdmlkZW5jZTp0cnVlIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImNhbm9uaWNhbFF1b3RlSGFuZG9mZjp0cnVlIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImxvY2FsUXVvdGVBbGlhc0RvbVN1cHByZXNzaW9uOnRydWUiIGluIEhBTkRPRkYKCgpkZWYgdGVzdF9yZWNvcmRlZF9qb2JzX3BvaXNvbmVkX2xvY2FsX2FsaWFzX2Nhbm5vdF9iZWF0X2xpbmtlZF9jYW5vbmljYWxfY2FyZCgpOgogICAgYXNzZXJ0ICIyMDI2MDgyNi1zaXRlLXZpc2l0LXdvcmstZGVkdXBlLWZpbmFsLTktc3RhYmxlLWpvYnMiIGluIElERU5USVRZCiAgICBhc3NlcnQgImZ1bmN0aW9uIGxvY2FsQWxpYXNJZGVudGl0eShpZGVudGl0eSkiIGluIElERU5USVRZCiAgICBhc3NlcnQgImNhbm9uaWNhbFRpdGxlcz1uZXcgU2V0KCIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAiZnVuY3Rpb24gcmVtb3ZlU2FtZVRpdGxlTG9jYWxBbGlhc2VzKCIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAiaWYoaXRlbS5jbHVlLmxvY2FsKXJlc3VsdC09MTAwMCIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAicG9pc29uZWRMb2NhbERhdGFzZXRDYW5ub3RCZWF0VmlzaWJsZUxvY2FsU3RhdHVzOnRydWUiIGluIElERU5USVRZCiAgICBhc3NlcnQgInNhbWVUaXRsZVBoeXNpY2FsTG9jYWxBbGlhc1JlbW92ZWQ6dHJ1ZSIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAibG9jYWxTbmFwc2hvdEFsaWFzU3VwcHJlc3NlZDp0cnVlIiBpbiBJREVOVElUWQogICAgYXNzZXJ0ICJsaW5rZWRDYW5vbmljYWxUaXRsZVdpbnM6dHJ1ZSIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAicGVyc2lzdGVudEpvYnNPYnNlcnZlcjpmYWxzZSIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAibGF0ZUpvYnNEb21NdXRhdGlvbjpmYWxzZSIgaW4gSURFTlRJVFkKICAgIGFzc2VydCAibWF4Sm9ic1JlY29uY2lsZURlbGF5TXM6NzAwIiBpbiBJREVOVElUWQogICAgYXNzZXJ0ICJuZXcgTXV0YXRpb25PYnNlcnZlciIgbm90IGluIElERU5USVRZCiAgICBhc3NlcnQgIi5mcm9tKCdidXNpbmVzc19yZWNvcmRzJykuZGVsZXRlIiBub3QgaW4gSURFTlRJVFkKCgpkZWYgdGVzdF9maWVsZF9tZWFzdXJlbWVudF9zdXBlcnNlZGVzX3NhdmVkX2NhbWVyYV9lc3RpbWF0ZV9pbl93YWxrdGhyb3VnaF9yZXZpZXcoKToKICAgIGFzc2VydCAiMjAyNjA4MjEtZ3VpZGVkLWZpZWxkLWF1dGhvcml0eS0yIiBpbiBHVUlERUQKICAgIGFzc2VydCAiZnVuY3Rpb24gdmVyaWZpZWRNZWFzdXJlbWVudEZvckxhYmVsKGxhYmVsKSIgaW4gR1VJREVECiAgICBhc3NlcnQgImZ1bmN0aW9uIHN1cGVyc2VkZWRDYW1lcmFSb3dzKCkiIGluIEdVSURFRAogICAgYXNzZXJ0ICJpZih2ZXJpZmllZE1lYXN1cmVtZW50Rm9yTGFiZWwobGFiZWwpKWNvbnRpbnVlIiBpbiBHVUlERUQKICAgIGFzc2VydCAiRmllbGQgbWVhc3VyZW1lbnRzIGFsd2F5cyB3aW4uIiBpbiBHVUlERUQKICAgIGFzc2VydCAiZmllbGRNZWFzdXJlbWVudFN1cGVyc2VkZXNDYW1lcmFFc3RpbWF0ZTp0cnVlIiBpbiBHVUlERUQKICAgIGFzc2VydCAic3RhbGVSZXZpZXdUYXJnZXRzU3VwcHJlc3NlZDp0cnVlIiBpbiBHVUlERUQKICAgIGFzc2VydCAibmV3IE11dGF0aW9uT2JzZXJ2ZXIiIG5vdCBpbiBHVUlERUQKCgpkZWYgdGVzdF9jYXB0dXJlX21lYXN1cmVtZW50X2NvdW50ZXJfaHlkcmF0ZXNfZnJvbV9hdXRob3JpdGF0aXZlX3NuYXBzaG90KCk6CiAgICBhc3NlcnQgIjIwMjYwODI2LXNpdGUtdmlzaXQtd2lkZS1hY2NlcHRhbmNlLWZpbmFsLTQtc3RhYmxlLWpvYnMiIGluIFdJREUKICAgIGFzc2VydCAiZnVuY3Rpb24gc3luY0ZpZWxkTWVhc3VyZW1lbnRTdGF0ZSgpIiBpbiBXSURFCiAgICBhc3NlcnQgIkMuc3RhdGUubWVhc3VyZW1lbnRzPWNhbm9uaWNhbCIgaW4gV0lERQogICAgYXNzZXJ0ICJmaWVsZE1lYXN1cmVtZW50U3RhdGVIeWRyYXRpb246dHJ1ZSIgaW4gV0lERQogICAgYXNzZXJ0ICJndWlkZWRDYW1lcmFFc3RpbWF0ZVN1cGVyc2Vzc2lvbjp0cnVlIiBpbiBXSURFCiAgICBhc3NlcnQgImRldmljZUNhcHR1cmVkUmVxdWlyZXNPcGVyYXRvclZlcmlmaWNhdGlvbjp0cnVlIiBpbiBXSURFCiAgICBhc3NlcnQgIidWRVJJRklFRCcsJ0RFVklDRV9DQVBUVVJFRCciIG5vdCBpbiBXSURFCiAgICBhc3NlcnQgIm5ldyBNdXRhdGlvbk9ic2VydmVyIiBub3QgaW4gV0lERQoKCmRlZiB0ZXN0X2dlbmVyYXRlX3JlbmRlcl9jYXB0dXJlX2J5cGFzc2VzX2xlZ2FjeV9tYW51YWxfYWN0aW9uX3Bob3RvX2dhdGUoKToKICAgIGFzc2VydCAiQ2hvb3NlIGFuIEFjdGlvbiBQaG90byBiZWZvcmUgcmVuZGVyaW5nLiIgaW4gTUFOVUFMCiAgICBhc3NlcnQgIjIwMjYwODIxLXJlbmRlci1zYXZlZC1hY3Rpb24tcGljdHVyZS0yLXBob25lIiBpbiBSRU5ERVIKICAgIGFzc2VydCAiZnVuY3Rpb24gaW5zdGFsbEZpbmFsR2VuZXJhdGVDYXB0dXJlKCkiIGluIFJFTkRFUgogICAgYXNzZXJ0ICJjbG9zZXN0KCdbZGF0YS1yZW5kZXItZ2VuZXJhdGVdJykiIGluIFJFTkRFUgogICAgYXNzZXJ0ICJldmVudC5zdG9wSW1tZWRpYXRlUHJvcGFnYXRpb24oKSIgaW4gUkVOREVSCiAgICBhc3NlcnQgImZ1bmN0aW9uIGZpbmFsUmVuZGVyUnVudGltZSgpIiBpbiBSRU5ERVIKICAgIGFzc2VydCAid2FpdEZvckZpbmFsUmVuZGVyUnVudGltZSIgaW4gUkVOREVSCiAgICBhc3NlcnQgIndpZGU/LnJlbmRlclF1b3RlIiBpbiBSRU5ERVIKICAgIGFzc2VydCAicnVudGltZT8ucmVuZGVyUXVvdGUiIGluIFJFTkRFUgogICAgYXNzZXJ0ICJ3aW5kb3cuc3RhdGU/LmJyaWRnZT8ucmVxdWVzdCIgbm90IGluIFJFTkRFUgogICAgYXNzZXJ0ICJzYXZlZCBpbnRlcm5hbCBTaXRlIFZpc2l0IEFjdGlvbiBQaWN0dXJlIiBpbiBSRU5ERVIKICAgIGFzc2VydCAiY3VzdG9tZXItcGhvdG8gc2VsZWN0aW9uIGlzIHNlcGFyYXRlIiBpbiBSRU5ERVIKICAgIGFzc2VydCAibGVnYWN5TWFudWFsUmVuZGVyR2F0ZUJ5cGFzc2VkOnRydWUiIGluIFJFTkRFUgogICAgYXNzZXJ0ICJicmlkZ2VSZW5kZXJGYWxsYmFjazpmYWxzZSIgaW4gUkVOREVSCiAgICBhc3NlcnQgImZpbmFsUnVudGltZVJlcXVpcmVkOnRydWUiIGluIFJFTkRFUgogICAgYXNzZXJ0ICIyMDI2MDgyMS1xdW90ZS1tZWFzdXJlbWVudC1hY3Rpb24tcGhvdG8tZ3VhcmQtNS1waG9uZSIgaW4gR1VBUkQKICAgIGFzc2VydCAic2F2ZWRRdW90ZUFjdGlvblBpY3R1cmVBdXRob3JpdHk6dHJ1ZSIgaW4gR1VBUkQKCgpkZWYgdGVzdF9ldmVyeV9xdW90ZV91c2VzX29uZV9ib3VuZGVkX2F1dG9tYXRpY19yZXBhaXJfbWFjaGluZSgpOgogICAgYXNzZXJ0ICIyMDI2MDgyMi1xdW90ZS1ydW50aW1lLWF1dGhvcml0eS0yLW1hY2hpbmUiIGluIFJVTlRJTUUKICAgIGFzc2VydCAiY29uc3QgUVVPVEVfUkVTUE9OU0VfQlVER0VUX01TPTYwMDAwOyIgaW4gUlVOVElNRQogICAgYXNzZXJ0ICJjb25zdCBRVU9URV9QUk9WSURFUl9CVURHRVRfTVM9NTUwMDA7IiBpbiBSVU5USU1FCiAgICBhc3NlcnQgImZ1bmN0aW9uIG93bmVyUmV2aWV3RmFsbGJhY2socHJlcGFyZWQscmVhc29uKSIgaW4gUlVOVElNRQogICAgYXNzZXJ0ICJmdW5jdGlvbiBub3JtYWxpemVEcmFmdChyZXN1bHQscHJlcGFyZWQpIiBpbiBSVU5USU1FCiAgICBhc3NlcnQgImZ1bmN0aW9uIGJvdW5kZWRCdWlsZChwcm9taXNlLHByZXBhcmVkKSIgaW4gUlVOVElNRQogICAgYXNzZXJ0ICJhdXRvbWF0aWNEcmFmdFJlcGFpcjp0cnVlIiBpbiBSVU5USU1FCiAgICBhc3NlcnQgImF1dG9tYXRpY0ZhaWx1cmVSZWNvdmVyeTp0cnVlIiBpbiBSVU5USU1FCiAgICBhc3NlcnQgImF1dG9tYXRpY01lYXN1cmVtZW50SHlkcmF0aW9uOnRydWUiIGluIFJVTlRJTUUKICAgIGFzc2VydCAiYXV0b21hdGljRGlyZWN0aW9uc0FmdGVyQmFzZURyYWZ0OnRydWUiIGluIFJVTlRJTUUKICAgIGFzc2VydCAiZGlyZWN0aW9uc0RvTm90QmxvY2tCYXNlUXVvdGU6dHJ1ZSIgaW4gUlVOVElNRQogICAgYXNzZXJ0ICJhbGxRdW90ZUJ1aWxkc1VzZU1hY2hpbmU6dHJ1ZSIgaW4gUlVOVElNRQogICAgYXNzZXJ0ICJ2b2lkIGxvYWREaXJlY3Rpb25zKHByZXBhcmVkLGJhc2UsT1BUSU9OU19SRVNQT05TRV9CVURHRVRfTVMpIiBpbiBSVU5USU1FCiAgICBhc3NlcnQgImlmKGFjdGlvbj09PSdhaUJ1aWxkUXVvdGVEcmFmdCcpcmV0dXJuIGJ1aWxkUXVvdGUiIGluIFJVTlRJTUUKICAgIGFzc2VydCAicXVvdGVNYWNoaW5lRGVsZWdhdGVkOnRydWUiIGluIEhBTkRPRkYKICAgIGFzc2VydCAiYWxsUXVvdGVzU2hhcmVSZXBhaXJNYWNoaW5lOnRydWUiIGluIEhBTkRPRkYKICAgIGFzc2VydCAiY29uc3QgcnVudGltZT13aW5kb3cuSDM4X1FVT1RFX1JVTlRJTUVfQVVUSE9SSVRZIiBpbiBIQU5ET0ZGCiAgICBhc3NlcnQgImZ1bmN0aW9uIG93bmVyUmV2aWV3RmFsbGJhY2soYXJncyxyZWFzb24pIiBub3QgaW4gSEFORE9GRgogICAgYXNzZXJ0ICJvZmZpY2UucXVvdGUucXVvdGVJZD1xdW90ZUlkT2YocXVvdGUpIiBpbiBIQU5ET0ZGCgoKZGVmIHRlc3RfcXVvdGVfYWlfaXNfb25lX2JvdW5kZWRfbW9kZWxfcGFzc19hbmRfcHJvb2ZfaWRzX2FyZV91dWlkX3NhZmUoKToKICAgIGFzc2VydCAnMjAyNjA4MjItb3duZXItYm91bmRlZC1kcmFmdC0yMScgaW4gUVVPVEVfQUkKICAgIGFzc2VydCAnY29uc3QgUVVPVEVfTU9ERUxfVElNRU9VVF9NUyA9IDEyMDAwMDsnIGluIFFVT1RFX0FJCiAgICBhc3NlcnQgJ2RldGFpbDogImxvdyInIGluIFFVT1RFX0FJCiAgICBhc3NlcnQgUVVPVEVfQUkuY291bnQoJ2RyYWZ0ID0gYXdhaXQgY2FsbFF1b3RlTW9kZWxXaXRoUmV0cnkoY29udGV4dCwgcGhvdG9zKScpID09IDEKICAgIGFzc2VydCAncHJldmlvdXNEcmFmdCcgbm90IGluIFFVT1RFX0FJCiAgICBhc3NlcnQgJ1NFUlZFUiBSRVBBSVIgUkVRVUVTVCcgbm90IGluIFFVT1RFX0FJCiAgICBhc3NlcnQgJ3NlcnZlckJyZWFrb3V0U2Vjb25kUGFzczogZmFsc2UnIGluIFFVT1RFX0FJCiAgICBhc3NlcnQgJ3NpbmdsZU1vZGVsUGFzczogdHJ1ZScgaW4gUVVPVEVfQUkKICAgIGFzc2VydCAnZW50aXR5X2lkOiBxdW90ZUlkJyBub3QgaW4gUVVPVEVfQUkKICAgIGFzc2VydCBRVU9URV9BSS5jb3VudCgnZW50aXR5X2lkOiBudWxsJykgPj0gMgoKCmRlZiB0ZXN0X3F1b3RlX29wdGlvbnNfYXJlX2JvdW5kZWRfYW5kX25vbl91dWlkX3F1b3RlX2lkX3N0YXlzX2luX2RldGFpbHNfb25seSgpOgogICAgYXNzZXJ0ICcyMDI2MDgyMi1xdW90ZS1vcHRpb25zLWRpcmVjdGlvbnMtMicgaW4gT1BUSU9OUwogICAgYXNzZXJ0ICdBYm9ydFNpZ25hbC50aW1lb3V0KDgwMDAwKScgaW4gT1BUSU9OUwogICAgYXNzZXJ0ICdlbnRpdHlfaWQ6bnVsbCcgaW4gT1BUSU9OUwogICAgYXNzZXJ0ICdlbnRpdHlfaWQ6cXVvdGVJZCcgbm90IGluIE9QVElPTlMKICAgIGFzc2VydCAnZGV0YWlsczp7cXVvdGVJZCcgaW4gT1BUSU9OUwoKCmRlZiB0ZXN0X3Bob25lX3JlcGFpcl9idWlsZHNfYXJlX2xpdmVfZmlyc3QoKToKICAgIGFzc2VydCAic2l0ZS12aXNpdC1xdW90ZS13aWRlLXBhc3MtbG9hZGVyLTE2LXJldmlzaW9uIiBpbiBIQU1NRVIKICAgIGFzc2VydCAicXVvdGUtd29ya2luZy11aS1vbmx5LTE4LXJldmlzaW9uIiBpbiBIQU1NRVIKICAgIGFzc2VydCAicXVvdGUtcnVudGltZS1hdXRob3JpdHktMi1tYWNoaW5lIiBpbiBMT0FERVIKICAgIGFzc2VydCAic2l0ZS12aXNpdC1xdW90ZS1oYW5kb2ZmLWZpbmFsLTUtbWFjaGluZSIgaW4gTE9BREVSCiAgICBhc3NlcnQgIjIwMjYwODI2LXNpdGUtdmlzaXQtd29yay1kZWR1cGUtZmluYWwtOS1zdGFibGUtam9icyIgaW4gTE9BREVSCiAgICBhc3NlcnQgIjIwMjYwODI2LXNpdGUtdmlzaXQtd2lkZS1hY2NlcHRhbmNlLWZpbmFsLTQtc3RhYmxlLWpvYnMiIGluIExPQURFUgogICAgYXNzZXJ0ICJBU1NFVF9CVUlMRD0nMjAyNjA4MjMtcXVvdGUtcmV2aXNpb24tcG9saXNoLTEnIiBpbiBMT0FERVIKICAgIGFzc2VydCAicXVvdGUtcmVwcm9kdWN0aW9uLWF1dGhvcml0eS0xIiBpbiBMT0FERVIKICAgIGFzc2VydCAicXVvdGUtcmV2aXNpb24tYXV0aG9yaXR5LTEiIGluIExPQURFUgogICAgYXNzZXJ0ICJzcG9rZW4tbWVhc3VyZW1lbnQtYXV0aG9yaXR5LWZpbmFsLTEiIGluIExPQURFUgogICAgYXNzZXJ0ICJzaXRlLXZpc2l0LWRlZXAtcG9saXNoLTEiIGluIExPQURFUgogICAgYXNzZXJ0ICJxdW90ZS1yZWdyZXNzaW9uLXJ1bm5lci0xIiBpbiBMT0FERVIKICAgIGFzc2VydCAic2hhcmVkUXVvdGVSZXBhaXJNYWNoaW5lOnRydWUiIGluIExPQURFUgogICAgYXNzZXJ0ICJhbGxRdW90ZXNTaGFyZVJlcGFpck1hY2hpbmU6dHJ1ZSIgaW4gTE9BREVSCiAgICBhc3NlcnQgImhpc3RvcmljYWxRdW90ZXNTaGFyZVJlcGFpck1hY2hpbmU6dHJ1ZSIgaW4gTE9BREVSCiAgICBhc3NlcnQgImNvbnRlbnRDaGFuZ2VPbmx5UXVvdGVSZXZpc2lvbnM6dHJ1ZSIgaW4gTE9BREVSCiAgICBhc3NlcnQgImltbXV0YWJsZVF1b3RlUmV2aXNpb25TbmFwc2hvdHM6dHJ1ZSIgaW4gTE9BREVSCiAgICBhc3NlcnQgImNhbm9uaWNhbFF1b3RlSGFuZG9mZjp0cnVlIiBpbiBMT0FERVIKICAgIGFzc2VydCAicG9pc29uZWRMb2NhbERhdGFzZXRTdXBwcmVzc2lvbjp0cnVlIiBpbiBMT0FERVIKICAgIGFzc2VydCAiYm91bmRlZFF1b3RlRHJhZnRSZXNwb25zZTp0cnVlIiBpbiBMT0FERVIKICAgIGFzc2VydCAibGVnYWN5TWFudWFsUmVuZGVyR2F0ZUJ5cGFzc2VkOnRydWUiIGluIExPQURFUgogICAgYXNzZXJ0ICJjb250ZW50Q2hhbmdlT25seVJldmlzaW9uczp0cnVlIiBpbiBSRVZJU0lPTgogICAgYXNzZXJ0ICJpbnRlcm5hbFByZWJ1aWxkRG9lc05vdEJ1bXBSZXZpc2lvbjp0cnVlIiBpbiBSRVZJU0lPTgogICAgbGl2ZV9maXJzdCA9IFNXLnNwbGl0KCJjb25zdCBMSVZFX0ZJUlNUPW5ldyBTZXQoWyIsIDEpWzFdLnNwbGl0KCJdKTsiLCAxKVswXQogICAgZm9yIGZpbGVuYW1lIGluICgKICAgICAgICAic3VwYWJhc2UtcXVvdGUtYWktYXV0aC1maXguanMiLAogICAgICAgICJxdW90ZS1tZWFzdXJlbWVudC1hY3Rpb24tcGhvdG8tZ3VhcmQuanMiLAogICAgICAgICJxdW90ZS1yZW5kZXItYXBwcm92YWwuanMiLAogICAgICAgICJxdW90ZS1ydW50aW1lLWF1dGhvcml0eS5qcyIsCiAgICAgICAgImZpZWxkLXZpc2l0LWd1aWRlZC1jb250cm9sbGVyLmpzIiwKICAgICAgICAic2l0ZS12aXNpdC1xdW90ZS1oYW5kb2ZmLWZpbmFsLmpzIiwKICAgICAgICAic2l0ZS12aXNpdC13b3JrLWRlZHVwZS1maW5hbC5qcyIsCiAgICAgICAgInNpdGUtdmlzaXQtcXVvdGUtd2lkZS1wYXNzLWxvYWRlci5qcyIsCiAgICAgICAgInNpdGUtdmlzaXQtd2lkZS1hY2NlcHRhbmNlLWZpbmFsLmpzIiwKICAgICAgICAicXVvdGUtcmVwcm9kdWN0aW9uLWF1dGhvcml0eS5qcyIsCiAgICAgICAgInF1b3RlLXJldmlzaW9uLWF1dGhvcml0eS5qcyIsCiAgICAgICAgIm1vYmlsZS1zY3JvbGwtbmF0aXZlLWF1dGhvcml0eS5qcyIsCiAgICApOgogICAgICAgIGFzc2VydCBmaWxlbmFtZSBpbiBsaXZlX2ZpcnN0Cg==
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+APP = ROOT / "commercial-app"
+AUTH = (APP / "supabase-quote-ai-auth-fix.js").read_text(encoding="utf-8")
+RUNTIME = (APP / "quote-runtime-authority.js").read_text(encoding="utf-8")
+HANDOFF = (APP / "site-visit-quote-handoff-final.js").read_text(encoding="utf-8")
+IDENTITY = (APP / "site-visit-work-dedupe-final.js").read_text(encoding="utf-8")
+GUIDED = (APP / "field-visit-guided-controller.js").read_text(encoding="utf-8")
+WIDE = (APP / "site-visit-wide-acceptance-final.js").read_text(encoding="utf-8")
+GUARD = (APP / "quote-measurement-action-photo-guard.js").read_text(encoding="utf-8")
+RENDER = (APP / "quote-render-approval.js").read_text(encoding="utf-8")
+MANUAL = (APP / "quote-manual-image-controls.js").read_text(encoding="utf-8")
+LOADER = (APP / "site-visit-quote-wide-pass-loader.js").read_text(encoding="utf-8")
+HAMMER = (APP / "quote-working-hammer.js").read_text(encoding="utf-8")
+REVISION = (APP / "quote-revision-authority.js").read_text(encoding="utf-8")
+SW = (APP / "service-worker.js").read_text(encoding="utf-8")
+QUOTE_AI = (ROOT / "supabase/functions/h38-quote-ai/index.ts").read_text(encoding="utf-8")
+OPTIONS = (ROOT / "supabase/functions/h38-quote-options/index.ts").read_text(encoding="utf-8")
+
+
+def test_recorded_flower_garden_quote_cannot_hit_old_fail_closed_pricing_gate():
+    assert "20260821-quote-ai-phone-fallback-2" in AUTH
+    assert "legacyFailClosedPricingRetired:true" in AUTH
+    assert "zeroRateDraftBlocked:false" in AUTH
+    assert "manualRequiredLinesRemainEditable:true" in AUTH
+    assert "policyCannotCreateProjectScope:true" in AUTH
+    assert "systemQuotePolicy:systemPolicy()" in AUTH
+    assert "delete prepared.notes" in AUTH
+    assert "scopeRequiresTarget" not in AUTH
+    assert "zero/non-positive rate:" not in AUTH
+    assert "No zero-quantity, zero-rate, or blended insulation/drywall draft was loaded." not in AUTH
+    assert "Policy examples are never project scope" in AUTH
+
+
+def test_quote_reopen_and_handoff_use_canonical_saved_quote_and_original_evidence():
+    assert "20260822-site-visit-quote-handoff-final-5-machine" in HANDOFF
+    assert "function canonicalLinkedSession(" in HANDOFF
+    assert "function canonicalQuoteCandidate()" in HANDOFF
+    assert "async function ensureCanonicalQuoteOpen(" in HANDOFF
+    assert "async function canonicalHandoff()" in HANDOFF
+    assert "handoff:canonicalHandoff" in HANDOFF
+    assert "function canonicalEvidence(" in HANDOFF
+    assert "function hydrateCanonicalOpenVisit(" in HANDOFF
+    assert "async function reopenLinkedVisit()" in HANDOFF
+    assert "captureSessionId:sid" in HANDOFF
+    assert "sessionId:sid" in HANDOFF
+    assert "siteVisitId:visitId" in HANDOFF
+    assert "sourceType==='site visit'" in HANDOFF
+    assert "canonicalReopenIdentity:true" in HANDOFF
+    assert "reopenHydratesEvidence:true" in HANDOFF
+    assert "canonicalQuoteHandoff:true" in HANDOFF
+    assert "localQuoteAliasDomSuppression:true" in HANDOFF
+
+
+def test_recorded_jobs_poisoned_local_alias_cannot_beat_linked_canonical_card():
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in IDENTITY
+    assert "function localAliasIdentity(identity)" in IDENTITY
+    assert "canonicalTitles=new Set(" in IDENTITY
+    assert "function removeSameTitleLocalAliases(" in IDENTITY
+    assert "if(item.clue.local)result-=1000" in IDENTITY
+    assert "poisonedLocalDatasetCannotBeatVisibleLocalStatus:true" in IDENTITY
+    assert "sameTitlePhysicalLocalAliasRemoved:true" in IDENTITY
+    assert "localSnapshotAliasSuppressed:true" in IDENTITY
+    assert "linkedCanonicalTitleWins:true" in IDENTITY
+    assert "persistentJobsObserver:false" in IDENTITY
+    assert "lateJobsDomMutation:false" in IDENTITY
+    assert "maxJobsReconcileDelayMs:700" in IDENTITY
+    assert "new MutationObserver" not in IDENTITY
+    assert ".from('business_records').delete" not in IDENTITY
+
+
+def test_field_measurement_supersedes_saved_camera_estimate_in_walkthrough_review():
+    assert "20260821-guided-field-authority-2" in GUIDED
+    assert "function verifiedMeasurementForLabel(label)" in GUIDED
+    assert "function supersededCameraRows()" in GUIDED
+    assert "if(verifiedMeasurementForLabel(label))continue" in GUIDED
+    assert "Field measurements always win." in GUIDED
+    assert "fieldMeasurementSupersedesCameraEstimate:true" in GUIDED
+    assert "staleReviewTargetsSuppressed:true" in GUIDED
+    assert "new MutationObserver" not in GUIDED
+
+
+def test_capture_measurement_counter_hydrates_from_authoritative_snapshot():
+    assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in WIDE
+    assert "function syncFieldMeasurementState()" in WIDE
+    assert "C.state.measurements=canonical" in WIDE
+    assert "fieldMeasurementStateHydration:true" in WIDE
+    assert "guidedCameraEstimateSupersession:true" in WIDE
+    assert "deviceCapturedRequiresOperatorVerification:true" in WIDE
+    assert "'VERIFIED','DEVICE_CAPTURED'" not in WIDE
+    assert "new MutationObserver" not in WIDE
+
+
+def test_generate_render_capture_bypasses_legacy_manual_action_photo_gate():
+    assert "Choose an Action Photo before rendering." in MANUAL
+    assert "20260821-render-saved-action-picture-2-phone" in RENDER
+    assert "function installFinalGenerateCapture()" in RENDER
+    assert "closest('[data-render-generate]')" in RENDER
+    assert "event.stopImmediatePropagation()" in RENDER
+    assert "function finalRenderRuntime()" in RENDER
+    assert "waitForFinalRenderRuntime" in RENDER
+    assert "wide?.renderQuote" in RENDER
+    assert "runtime?.renderQuote" in RENDER
+    assert "window.state?.bridge?.request" not in RENDER
+    assert "saved internal Site Visit Action Picture" in RENDER
+    assert "customer-photo selection is separate" in RENDER
+    assert "legacyManualRenderGateBypassed:true" in RENDER
+    assert "bridgeRenderFallback:false" in RENDER
+    assert "finalRuntimeRequired:true" in RENDER
+    assert "20260821-quote-measurement-action-photo-guard-5-phone" in GUARD
+    assert "savedQuoteActionPictureAuthority:true" in GUARD
+
+
+def test_every_quote_uses_one_bounded_automatic_repair_machine():
+    assert "20261004-quote-runtime-authority-3-kit-build" in RUNTIME
+    assert "const QUOTE_RESPONSE_BUDGET_MS=60000;" in RUNTIME
+    assert "const QUOTE_PROVIDER_BUDGET_MS=55000;" in RUNTIME
+    assert "function ownerReviewFallback(prepared,reason)" in RUNTIME
+    assert "function normalizeDraft(result,prepared)" in RUNTIME
+    assert "function boundedBuild(promise,prepared)" in RUNTIME
+    assert "automaticDraftRepair:true" in RUNTIME
+    assert "automaticFailureRecovery:true" in RUNTIME
+    assert "automaticMeasurementHydration:true" in RUNTIME
+    assert "automaticDirectionsAfterBaseDraft:true" in RUNTIME
+    assert "directionsDoNotBlockBaseQuote:true" in RUNTIME
+    assert "allQuoteBuildsUseMachine:true" in RUNTIME
+    assert "void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)" in RUNTIME
+    assert "if(action==='aiBuildQuoteDraft')return buildQuote" in RUNTIME
+    assert "quoteMachineDelegated:true" in HANDOFF
+    assert "allQuotesShareRepairMachine:true" in HANDOFF
+    assert "const runtime=window.H38_QUOTE_RUNTIME_AUTHORITY" in HANDOFF
+    assert "function ownerReviewFallback(args,reason)" not in HANDOFF
+    assert "office.quote.quoteId=quoteIdOf(quote)" in HANDOFF
+
+
+def test_quote_ai_is_one_bounded_model_pass_and_proof_ids_are_uuid_safe():
+    assert '20260822-owner-bounded-draft-21' in QUOTE_AI
+    assert 'const QUOTE_MODEL_TIMEOUT_MS = 120000;' in QUOTE_AI
+    assert 'detail: "low"' in QUOTE_AI
+    assert QUOTE_AI.count('draft = await callQuoteModelWithRetry(context, photos)') == 1
+    assert 'previousDraft' not in QUOTE_AI
+    assert 'SERVER REPAIR REQUEST' not in QUOTE_AI
+    assert 'serverBreakoutSecondPass: false' in QUOTE_AI
+    assert 'singleModelPass: true' in QUOTE_AI
+    assert 'entity_id: quoteId' not in QUOTE_AI
+    assert QUOTE_AI.count('entity_id: null') >= 2
+
+
+def test_quote_options_are_bounded_and_non_uuid_quote_id_stays_in_details_only():
+    assert '20260822-quote-options-directions-2' in OPTIONS
+    assert 'AbortSignal.timeout(80000)' in OPTIONS
+    assert 'entity_id:null' in OPTIONS
+    assert 'entity_id:quoteId' not in OPTIONS
+    assert 'details:{quoteId' in OPTIONS
+
+
+def test_phone_repair_builds_are_live_first():
+    assert "site-visit-quote-wide-pass-loader-16-revision" in HAMMER
+    assert "quote-working-ui-only-18-revision" in HAMMER
+    assert "quote-runtime-authority-2-machine" in LOADER
+    assert "site-visit-quote-handoff-final-5-machine" in LOADER
+    assert "20260826-site-visit-work-dedupe-final-9-stable-jobs" in LOADER
+    assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in LOADER
+    assert "ASSET_BUILD='20260823-quote-revision-polish-1'" in LOADER
+    assert "quote-reproduction-authority-1" in LOADER
+    assert "quote-revision-authority-1" in LOADER
+    assert "spoken-measurement-authority-final-1" in LOADER
+    assert "site-visit-deep-polish-1" in LOADER
+    assert "quote-regression-runner-1" in LOADER
+    assert "sharedQuoteRepairMachine:true" in LOADER
+    assert "allQuotesShareRepairMachine:true" in LOADER
+    assert "historicalQuotesShareRepairMachine:true" in LOADER
+    assert "contentChangeOnlyQuoteRevisions:true" in LOADER
+    assert "immutableQuoteRevisionSnapshots:true" in LOADER
+    assert "canonicalQuoteHandoff:true" in LOADER
+    assert "poisonedLocalDatasetSuppression:true" in LOADER
+    assert "boundedQuoteDraftResponse:true" in LOADER
+    assert "legacyManualRenderGateBypassed:true" in LOADER
+    assert "contentChangeOnlyRevisions:true" in REVISION
+    assert "internalPrebuildDoesNotBumpRevision:true" in REVISION
+    live_first = SW.split("const LIVE_FIRST=new Set([", 1)[1].split("]);", 1)[0]
+    for filename in (
+        "supabase-quote-ai-auth-fix.js",
+        "quote-measurement-action-photo-guard.js",
+        "quote-render-approval.js",
+        "quote-runtime-authority.js",
+        "field-visit-guided-controller.js",
+        "site-visit-quote-handoff-final.js",
+        "site-visit-work-dedupe-final.js",
+        "site-visit-quote-wide-pass-loader.js",
+        "site-visit-wide-acceptance-final.js",
+        "quote-reproduction-authority.js",
+        "quote-revision-authority.js",
+        "mobile-scroll-native-authority.js",
+    ):
+        assert filename in live_first
