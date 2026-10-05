@@ -127,7 +127,9 @@
 
   function buildDigest(){
     const user=state.snapshot&&state.snapshot.user?state.snapshot.user:{};
-    const name=v(user,'Display Name')||v(user,'Email')||'there';
+    const displayName=v(user,'Display Name');
+    const emailPrefix=v(user,'Email').split('@')[0].replace(/[._-]+/g,' ').trim();
+    const name=displayName||(emailPrefix?emailPrefix.replace(/\b\w/g,c=>c.toUpperCase()):'');
     const bizName=v(state.snapshot&&state.snapshot.business,'Business Name','businessName')||'your business';
 
     const today=todaysEvents(),tomorrow=tomorrowsEvents();
@@ -220,7 +222,7 @@
     const firstJob=d.today.length?d.today[0]:null;
 
     const digestHtml=
-      `<section class="card span12" id="digestCard"><h2>${esc(greeting())}, ${esc(d.name)}</h2>`+
+      `<section class="card span12" id="digestCard"><h2>${esc(greeting())}${d.name?', '+esc(d.name):''}</h2>`+
       `<p class="muted">Here is ${esc(d.bizName)} today, ${esc(new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}))}.</p>`+
       `<div class="stats">`+
       `<div class="stat"><strong>${d.today.length}</strong><span>Jobs today</span></div>`+

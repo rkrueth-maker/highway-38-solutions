@@ -72,11 +72,8 @@ function getConfig(){
 }
 function saveConfig(cfg){
   try{localStorage.setItem(configKey(),JSON.stringify(cfg));}catch(e){}
-  if(businessId()&&typeof queueOperation==='function'){
-    queueOperation('SAVE_PAYMENT_CONFIG','PaymentConfig',businessId(),
-      {provider:cfg.provider,stripePublishableConfigured:!!cfg.stripePublishableKey,updatedAt:nowIso()}
-    ).catch(function(){});
-  }
+  // Local-only: the sync layer has no SAVE_PAYMENT_CONFIG handler, so queueing
+  // it would leave a perpetually-pending op. Config is per-device by design.
 }
 
 // ---------- payment methods (token vault) ----------
@@ -129,6 +126,7 @@ async function addMethod(customerId,info){
     'Created Time':nowIso(),'Updated Time':nowIso(),'Record Version':1
   };
   await queueOperation('SAVE_ENTITY','PaymentMethod',id,
+    {entity:'paymentMethods',record:record},
     {collection:'paymentMethods',record:record,idKeys:['Payment Method ID']});
   return record;
 }
@@ -140,7 +138,8 @@ async function removeMethod(paymentMethodId){
     'Record Version':num(val(row,'Record Version','recordVersion'))+1});
   delete updated.__localPending;
   await queueOperation('SAVE_ENTITY','PaymentMethod',text(paymentMethodId),
-    {collection:'paymentMethods',record:updated,idKeys:['Payment Method ID']},true);
+    {entity:'paymentMethods',record:updated},
+    {collection:'paymentMethods',record:updated,idKeys:['Payment Method ID']});
 }
 async function setDefaultMethod(paymentMethodId){
   var row=rows('paymentMethods').find(function(r){return text(val(r,'Payment Method ID','paymentMethodId'))===text(paymentMethodId);});
@@ -152,7 +151,8 @@ async function setDefaultMethod(paymentMethodId){
       'Record Version':num(val(m,'Record Version','recordVersion'))+1});
     delete upd.__localPending;
     return queueOperation('SAVE_ENTITY','PaymentMethod',text(val(m,'Payment Method ID','paymentMethodId')),
-      {collection:'paymentMethods',record:upd,idKeys:['Payment Method ID']},true);
+      {entity:'paymentMethods',record:upd},
+      {collection:'paymentMethods',record:upd,idKeys:['Payment Method ID']});
   });
   await Promise.all(jobs);
 }
@@ -163,7 +163,8 @@ async function setAutoCharge(customerId,enabled){
     'Record Version':num(val(m,'Record Version','recordVersion'))+1});
   delete updated.__localPending;
   await queueOperation('SAVE_ENTITY','PaymentMethod',text(val(m,'Payment Method ID','paymentMethodId')),
-    {collection:'paymentMethods',record:updated,idKeys:['Payment Method ID']},true);
+    {entity:'paymentMethods',record:updated},
+    {collection:'paymentMethods',record:updated,idKeys:['Payment Method ID']});
   return updated;
 }
 
@@ -233,6 +234,7 @@ async function executeCharge(opts){
     'Created Time':nowIso(),'Updated Time':nowIso(),'Record Version':1
   };
   await queueOperation('SAVE_ENTITY','Payment',paymentId,
+    {entity:'payments',record:paymentRecord},
     {collection:'payments',record:paymentRecord,idKeys:['Payment ID']});
   var nextBalance=Math.max(0,balance-amount);
   var updated=Object.assign({},invoice,{
@@ -243,7 +245,8 @@ async function executeCharge(opts){
   });
   delete updated.__localPending;
   await queueOperation('SAVE_ENTITY','Invoice',text(val(invoice,'Invoice ID','invoiceId')),
-    {collection:'invoices',record:updated,idKeys:['Invoice ID']},false);
+    {entity:'invoices',record:updated},
+    {collection:'invoices',record:updated,idKeys:['Invoice ID']});
   return {payment:paymentRecord,invoice:updated,method:method,transactionId:txn.transactionId,
     provider:provider,amount:amount,isTest:provider==='local'};
 }
@@ -309,7 +312,7 @@ async function chargeInvoice(invoiceId){
 }
 function customerName(cid){
   var c=rows('customers').find(function(r){return text(val(r,'Customer ID','customerId'))===text(cid);});
-  return text(c?val(c,'Customer Name','name'):'Customer');
+  return text(c?val(c,'Customer Name','name'):'No customer');
 }
 
 // ---------- auto-charge: queue for approval, NEVER silent ----------
@@ -336,6 +339,7 @@ function openAutoChargeApprovals(invoice){
     'Created Time':nowIso(),'Updated Time':nowIso(),'Record Version':1
   };
   return queueOperation('SAVE_ENTITY','Approval',id,
+    {entity:'approvals',record:record},
     {collection:'approvals',record:record,idKeys:['Approval ID']}).then(function(){return record;});
 }
 function dueTodayOrPast(dueDate){
@@ -374,7 +378,8 @@ async function approveAutoCharge(approvalId){
       'Updated Time':nowIso(),'Record Version':num(val(row,'Record Version','recordVersion'))+1});
     delete closed.__localPending;
     await queueOperation('SAVE_ENTITY','Approval',text(approvalId),
-      {collection:'approvals',record:closed,idKeys:['Approval ID']},false);
+      {entity:'approvals',record:closed},
+      {collection:'approvals',record:closed,idKeys:['Approval ID']});
     showReceipt(result);
     toastOk('Auto-charge approved and processed.');
     if(typeof renderMoney==='function')renderMoney();
@@ -393,7 +398,8 @@ async function rejectAutoCharge(approvalId){
     'Updated Time':nowIso(),'Record Version':num(val(row,'Record Version','recordVersion'))+1});
   delete closed.__localPending;
   await queueOperation('SAVE_ENTITY','Approval',text(approvalId),
-    {collection:'approvals',record:closed,idKeys:['Approval ID']},false);
+    {entity:'approvals',record:closed},
+    {collection:'approvals',record:closed,idKeys:['Approval ID']});
   toastOk('Auto-charge request rejected. No charge was made.');
   if(typeof renderMoney==='function')renderMoney();
 }
@@ -543,38 +549,45 @@ function showReceipt(result){
 }
 
 // ---------- UI: Money page integration (render hook) ----------
+// Per-invoice-row buttons, rendered by the canonical invoice list template
+// (office-scale-workflow.js invoiceRow) and handled here via one delegated
+// listener so list re-renders (search, pagination) can never wipe them.
+function invoiceActionsHtml(invId,cid){
+  if(!vaultEnabled())return '';
+  var inv=rows('invoices').find(function(r){return text(val(r,'Invoice ID','invoiceId'))===text(invId);});
+  if(!inv)return '';
+  if(!(num(val(inv,'Balance','Balance Due','Amount Due','Open Balance'))>0))return '';
+  var cfg=getConfig(),m=defaultMethod(cid);
+  if(m){
+    return '<button type="button" class="secondary" data-h38-charge-card="'+esc(invId)+'"'
+      +' title="One-tap charge with owner confirmation'+(cfg.provider==='local'?' (TEST \u2014 no money moves)':'')+'">'
+      +'Charge '+esc(methodLabel(m))+'</button>';
+  }
+  return '<button type="button" class="secondary" data-h38-addcard="'+esc(cid)+'"'
+    +' title="Save a card for '+esc(customerName(cid))+'">Add card on file</button>';
+}
+var vaultClicksBound=false;
+function bindVaultClicks(){
+  if(vaultClicksBound)return;vaultClicksBound=true;
+  document.addEventListener('click',function(event){
+    var t=event.target&&event.target.closest?event.target.closest('[data-h38-charge-card],[data-h38-addcard]'):null;
+    if(!t||!vaultEnabled())return;
+    var charge=t.getAttribute('data-h38-charge-card'),add=t.getAttribute('data-h38-addcard');
+    if(charge){event.preventDefault();chargeInvoice(charge).catch(function(e){toastErr(e&&e.message?e.message:String(e));});}
+    else if(add){event.preventDefault();openAddCardModal(add);}
+  });
+}
+
 function enhanceMoneyPage(){
   if(!vaultEnabled())return;
   if(!window.state||window.state.page!=='money')return;
   var cfg=getConfig();
-  // 1) Per-invoice-row buttons.
-  var delBtns=document.querySelectorAll('[data-delete-invoice]');
-  for(var i=0;i<delBtns.length;i++){
-    (function(btn){
-      var invId=btn.getAttribute('data-delete-invoice');
-      var inv=rows('invoices').find(function(r){return text(val(r,'Invoice ID','invoiceId'))===text(invId);});
-      if(!inv)return;
-      if(!(num(val(inv,'Balance','Balance Due','Amount Due','Open Balance'))>0))return;
-      var actions=btn.closest('.actions')||btn.parentNode;
-      if(!actions||actions.querySelector('[data-h38-charge-card],[data-h38-addcard]'))return;
-      var cid=text(val(inv,'Customer ID','customerId'));
-      var m=defaultMethod(cid);
-      var b=document.createElement('button');
-      b.type='button';b.className='secondary';
-      if(m){
-        b.setAttribute('data-h38-charge-card',invId);
-        b.textContent='Charge '+methodLabel(m);
-        b.title='One-tap charge with owner confirmation'+(cfg.provider==='local'?' (TEST \u2014 no money moves)':'');
-        b.onclick=function(){chargeInvoice(invId);};
-      }else{
-        b.setAttribute('data-h38-addcard',cid);
-        b.textContent='Add card on file';
-        b.title='Save a card for '+customerName(cid);
-        b.onclick=function(){openAddCardModal(cid);};
-      }
-      actions.insertBefore(b,actions.firstChild);
-    })(delBtns[i]);
-  }
+  var cfg=getConfig();
+  // 1) Per-invoice-row buttons are rendered by the canonical invoice list
+  // template (office-scale-workflow.js invoiceRow) via invoiceActionsHtml(),
+  // and handled by one delegated listener so list re-renders (search,
+  // pagination) can never wipe them.
+  bindVaultClicks();
   // 2) Cards-on-file management card.
   var grid=document.querySelector('#mainContent .grid');
   if(grid&&!document.getElementById('h38-cv-manage')){
@@ -751,6 +764,7 @@ window.H38CardVault={
   autoChargeEnabled:autoChargeEnabled,setAutoCharge:setAutoCharge,
   chargeInvoice:chargeInvoice,addCardModal:openAddCardModal,
   checkAutoCharges:checkAutoCharges,approveAutoCharge:approveAutoCharge,rejectAutoCharge:rejectAutoCharge,
+  invoiceActionsHtml:invoiceActionsHtml,
   enabled:vaultEnabled
 };
 

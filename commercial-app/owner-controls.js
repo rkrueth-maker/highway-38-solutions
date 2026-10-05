@@ -154,7 +154,8 @@ function isMachineShopEnabled(){
 }
 
 function canManageModules(){
-  const role=text(window.state&&window.state.user&&(window.state.user.roleName||window.state.user.role)).toLowerCase();
+  const user=window.state&&(window.state.snapshot&&window.state.snapshot.user||window.state.user);
+  const role=text(user&&(user.roleName||user.role)).toLowerCase();
   return role==='owner'||role==='administrator';
 }
 
