@@ -11,7 +11,7 @@
 .h38-life-progress span.current{outline:2px solid currentColor;background:rgba(45,105,160,.16)}
 .h38-life-stage{font-size:.78rem;font-weight:700;white-space:nowrap}
 .h38-life-job-row{width:100%;text-align:left;border:0;cursor:pointer}
-.h38-life-next{padding:12px;border-radius:12px;background:rgba(75,96,115,.08)}
+.h38-life-next{padding:12px;border-radius:var(--radius-sm);background:rgba(75,96,115,.08)}
 .h38-life-next ul{margin:.55rem 0 0 1.1rem;padding:0}
 .h38-life-cost-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .h38-life-cost-grid>div{padding:10px;border-radius:10px;background:rgba(75,96,115,.08)}
@@ -37,8 +37,7 @@
 .h38-search-results strong,.h38-search-results small{display:block}
 .h38-search-results small{opacity:.7;margin-top:3px}
 .h38-life-portal .stats{margin-bottom:8px}
-.h38-life-receipt-capture{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.55fr) auto;gap:10px;align-items:center;margin:14px 0;padding:10px 12px;border:1px solid rgba(100,115,130,.2);border-radius:12px;background:rgba(75,96,115,.06)}
-.h38-life-receipt-capture h3,.h38-life-receipt-capture p{margin:0}.h38-life-receipt-capture label{margin:0}
+.h38-life-receipt-capture{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.55fr) auto;gap:10px;align-items:end;margin:14px 0;padding:10px 12px;border:1px solid rgba(100,115,130,.2);border-radius:var(--radius-sm);background:rgba(75,96,115,.06)}.h38-life-receipt-capture h3,.h38-life-receipt-capture p{margin:0}.h38-life-receipt-capture label{margin:0}
 .h38-life-money input[type=file]{max-width:100%}
 @media(max-width:820px){
  .h38-life-columns{grid-template-columns:1fr}
