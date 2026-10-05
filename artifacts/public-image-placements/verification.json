@@ -1,0 +1,942 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-05T04:34:33.632Z",
+  "policyVersion": "2026-07-24-direct-raster-visual-gate-v3",
+  "approvedLogoLocked": true,
+  "contentImageSourcesLocked": true,
+  "runtimeImageSourceChangesAllowed": false,
+  "directProjectImagesRequired": true,
+  "passed": 232,
+  "failed": 0,
+  "passes": [
+    {
+      "name": "placement manifest schema",
+      "detail": "2026-07-24-direct-raster-visual-gate-v3"
+    },
+    {
+      "name": "approved logo path matches asset manifest",
+      "detail": ""
+    },
+    {
+      "name": "index.html exists",
+      "detail": ""
+    },
+    {
+      "name": "index.html hero exact source",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "index.html hero exact alt",
+      "detail": "Completed Northwoods cabin project concept"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-exterior-render.png exists",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "index.html plans-card exact source",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "index.html plans-card exact alt",
+      "detail": "Three-bedroom cabin plan sheet"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "index.html quote-card exact source",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "index.html quote-card exact alt",
+      "detail": "Completed kitchen remodel example"
+    },
+    {
+      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "index.html instructions-card exact source",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "index.html instructions-card exact alt",
+      "detail": "Project planning documents"
+    },
+    {
+      "name": "assets/approved-website-images/10-project-planning-documents.jpg exists",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "index.html business-office-card exact source",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "index.html business-office-card exact alt",
+      "detail": "Connected Business Office workflow"
+    },
+    {
+      "name": "assets/approved-website-images/business-workflow-office.webp exists",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "index.html preserves assets/demo-workthroughs/cabin-exterior-render.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "index.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "index.html preserves assets/demo-workthroughs/kitchen-remodel-concept.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "index.html preserves assets/approved-website-images/10-project-planning-documents.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "index.html preserves assets/approved-website-images/business-workflow-office.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "index.html images have alt text",
+      "detail": "5 images"
+    },
+    {
+      "name": "solutions.html exists",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html hero exact source",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "solutions.html hero exact cache key",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg?v=e311000d"
+    },
+    {
+      "name": "solutions.html hero exact alt",
+      "detail": "Automation and manufacturing systems"
+    },
+    {
+      "name": "assets/approved-website-images/manufacturing-automation.jpg exists",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "solutions.html automation-card exact source",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "solutions.html automation-card exact cache key",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg?v=e311000d"
+    },
+    {
+      "name": "solutions.html automation-card exact alt",
+      "detail": "Industrial automation and robotics planning"
+    },
+    {
+      "name": "assets/approved-website-images/manufacturing-automation.jpg exists",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "solutions.html cnc-card exact source",
+      "detail": "assets/approved-website-images/12-cnc-machining-closeup.jpg"
+    },
+    {
+      "name": "solutions.html cnc-card exact alt",
+      "detail": "CNC machining and process planning"
+    },
+    {
+      "name": "assets/approved-website-images/12-cnc-machining-closeup.jpg exists",
+      "detail": "assets/approved-website-images/12-cnc-machining-closeup.jpg"
+    },
+    {
+      "name": "solutions.html fixturing-card exact source",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "solutions.html fixturing-card exact alt",
+      "detail": "CNC fixture and workholding concept planning"
+    },
+    {
+      "name": "assets/approved-website-images/10-project-planning-documents.jpg exists",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "solutions.html quote-builder-card exact source",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "solutions.html quote-builder-card exact alt",
+      "detail": "AI-assisted Quote Builder workflow"
+    },
+    {
+      "name": "assets/approved-website-images/business-workflow-office.webp exists",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "solutions.html business-office-card exact source",
+      "detail": "assets/approved-website-images/13-digital-organization-file-system.jpg"
+    },
+    {
+      "name": "solutions.html business-office-card exact alt",
+      "detail": "Connected Business Office records and workflow"
+    },
+    {
+      "name": "assets/approved-website-images/13-digital-organization-file-system.jpg exists",
+      "detail": "assets/approved-website-images/13-digital-organization-file-system.jpg"
+    },
+    {
+      "name": "solutions.html preserves assets/approved-website-images/manufacturing-automation.jpg occurrence count",
+      "detail": "2/2"
+    },
+    {
+      "name": "solutions.html preserves assets/approved-website-images/12-cnc-machining-closeup.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "solutions.html preserves assets/approved-website-images/10-project-planning-documents.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "solutions.html preserves assets/approved-website-images/business-workflow-office.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "solutions.html preserves assets/approved-website-images/13-digital-organization-file-system.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "solutions.html images have alt text",
+      "detail": "6 images"
+    },
+    {
+      "name": "pricing.html exists",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html hero exact source",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "pricing.html hero exact alt",
+      "detail": "Detailed project planning and quote example"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "pricing.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "pricing.html images have alt text",
+      "detail": "1 images"
+    },
+    {
+      "name": "about.html exists",
+      "detail": ""
+    },
+    {
+      "name": "about.html hero exact source",
+      "detail": "assets/approved-website-images/12-cnc-machining-closeup.jpg"
+    },
+    {
+      "name": "about.html hero exact alt",
+      "detail": "CNC machining experience"
+    },
+    {
+      "name": "assets/approved-website-images/12-cnc-machining-closeup.jpg exists",
+      "detail": "assets/approved-website-images/12-cnc-machining-closeup.jpg"
+    },
+    {
+      "name": "about.html experience exact source",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "about.html experience exact cache key",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg?v=e311000d"
+    },
+    {
+      "name": "about.html experience exact alt",
+      "detail": "Automation and manufacturing experience"
+    },
+    {
+      "name": "assets/approved-website-images/manufacturing-automation.jpg exists",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "about.html preserves assets/approved-website-images/12-cnc-machining-closeup.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "about.html preserves assets/approved-website-images/manufacturing-automation.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "about.html images have alt text",
+      "detail": "2 images"
+    },
+    {
+      "name": "contact.html exists",
+      "detail": ""
+    },
+    {
+      "name": "contact.html hero exact source",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "contact.html hero exact alt",
+      "detail": "Project planning documents and measurements"
+    },
+    {
+      "name": "assets/approved-website-images/10-project-planning-documents.jpg exists",
+      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+    },
+    {
+      "name": "contact.html request-process exact source",
+      "detail": "assets/approved-website-images/08-request-process-checklist.jpg"
+    },
+    {
+      "name": "contact.html request-process exact alt",
+      "detail": "Project request checklist"
+    },
+    {
+      "name": "assets/approved-website-images/08-request-process-checklist.jpg exists",
+      "detail": "assets/approved-website-images/08-request-process-checklist.jpg"
+    },
+    {
+      "name": "contact.html preserves assets/approved-website-images/10-project-planning-documents.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "contact.html preserves assets/approved-website-images/08-request-process-checklist.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "contact.html images have alt text",
+      "detail": "2 images"
+    },
+    {
+      "name": "sample-library-now.html exists",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html hero exact source",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "sample-library-now.html hero exact alt",
+      "detail": "Completed Northwoods cabin example"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-exterior-render.png exists",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "sample-library-now.html example-01-before exact source",
+      "detail": "assets/contractor-demo/flower-before.png"
+    },
+    {
+      "name": "sample-library-now.html example-01-before exact alt",
+      "detail": "Flower garden before"
+    },
+    {
+      "name": "assets/contractor-demo/flower-before.png exists",
+      "detail": "assets/contractor-demo/flower-before.png"
+    },
+    {
+      "name": "sample-library-now.html example-01-after exact source",
+      "detail": "assets/contractor-demo/flower-after-same-house.webp"
+    },
+    {
+      "name": "sample-library-now.html example-01-after exact alt",
+      "detail": "Flower garden after at the same house"
+    },
+    {
+      "name": "assets/contractor-demo/flower-after-same-house.webp exists",
+      "detail": "assets/contractor-demo/flower-after-same-house.webp"
+    },
+    {
+      "name": "sample-library-now.html example-02-before exact source",
+      "detail": "assets/contractor-demo/driveway-before.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-02-before exact alt",
+      "detail": "Driveway before"
+    },
+    {
+      "name": "assets/contractor-demo/driveway-before.jpg exists",
+      "detail": "assets/contractor-demo/driveway-before.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-02-after exact source",
+      "detail": "assets/contractor-demo/driveway-after.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-02-after exact alt",
+      "detail": "Driveway after"
+    },
+    {
+      "name": "assets/contractor-demo/driveway-after.jpg exists",
+      "detail": "assets/contractor-demo/driveway-after.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-03-before exact source",
+      "detail": "assets/contractor-demo/pond-before.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-03-before exact alt",
+      "detail": "Pond before"
+    },
+    {
+      "name": "assets/contractor-demo/pond-before.jpg exists",
+      "detail": "assets/contractor-demo/pond-before.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-03-after exact source",
+      "detail": "assets/contractor-demo/pond-after.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-03-after exact alt",
+      "detail": "Pond after"
+    },
+    {
+      "name": "assets/contractor-demo/pond-after.jpg exists",
+      "detail": "assets/contractor-demo/pond-after.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-04-before exact source",
+      "detail": "assets/contractor-demo/lot-before.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-04-before exact alt",
+      "detail": "Lot before"
+    },
+    {
+      "name": "assets/contractor-demo/lot-before.jpg exists",
+      "detail": "assets/contractor-demo/lot-before.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-04-after exact source",
+      "detail": "assets/contractor-demo/lot-after.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-04-after exact alt",
+      "detail": "Lot after"
+    },
+    {
+      "name": "assets/contractor-demo/lot-after.jpg exists",
+      "detail": "assets/contractor-demo/lot-after.jpg"
+    },
+    {
+      "name": "sample-library-now.html example-05-before exact source",
+      "detail": "assets/demo-workthroughs/deck-existing-condition.webp"
+    },
+    {
+      "name": "sample-library-now.html example-05-before exact alt",
+      "detail": "Existing rear entry before deck construction"
+    },
+    {
+      "name": "assets/demo-workthroughs/deck-existing-condition.webp exists",
+      "detail": "assets/demo-workthroughs/deck-existing-condition.webp"
+    },
+    {
+      "name": "sample-library-now.html example-05-after exact source",
+      "detail": "assets/demo-workthroughs/deck-finished-concept.webp"
+    },
+    {
+      "name": "sample-library-now.html example-05-after exact alt",
+      "detail": "Finished 8 by 12 pressure-treated deck concept"
+    },
+    {
+      "name": "assets/demo-workthroughs/deck-finished-concept.webp exists",
+      "detail": "assets/demo-workthroughs/deck-finished-concept.webp"
+    },
+    {
+      "name": "sample-library-now.html example-06-before exact source",
+      "detail": "assets/demo-workthroughs/irrigation-before-clean.webp"
+    },
+    {
+      "name": "sample-library-now.html example-06-before exact alt",
+      "detail": "Irrigation before"
+    },
+    {
+      "name": "assets/demo-workthroughs/irrigation-before-clean.webp exists",
+      "detail": "assets/demo-workthroughs/irrigation-before-clean.webp"
+    },
+    {
+      "name": "sample-library-now.html example-06-after exact source",
+      "detail": "assets/demo-workthroughs/irrigation-after-clean.webp"
+    },
+    {
+      "name": "sample-library-now.html example-06-after exact alt",
+      "detail": "Irrigation after"
+    },
+    {
+      "name": "assets/demo-workthroughs/irrigation-after-clean.webp exists",
+      "detail": "assets/demo-workthroughs/irrigation-after-clean.webp"
+    },
+    {
+      "name": "sample-library-now.html example-07-before exact source",
+      "detail": "assets/demo-workthroughs/kitchen-existing-condition.webp"
+    },
+    {
+      "name": "sample-library-now.html example-07-before exact alt",
+      "detail": "Existing dated kitchen before renovation"
+    },
+    {
+      "name": "assets/demo-workthroughs/kitchen-existing-condition.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-existing-condition.webp"
+    },
+    {
+      "name": "sample-library-now.html example-07-after exact source",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "sample-library-now.html example-07-after exact alt",
+      "detail": "Mid-range kitchen remodel concept"
+    },
+    {
+      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "sample-library-now.html example-08-plan exact source",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "sample-library-now.html example-08-plan exact alt",
+      "detail": "Three-bedroom two-bath cabin plan sheet"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "sample-library-now.html example-08-finished exact source",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "sample-library-now.html example-08-finished exact alt",
+      "detail": "Completed Northwoods cabin concept"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-exterior-render.png exists",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/cabin-exterior-render.png occurrence count",
+      "detail": "2/2"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/flower-before.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/flower-after-same-house.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/driveway-before.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/driveway-after.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/pond-before.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/pond-after.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/lot-before.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/contractor-demo/lot-after.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/deck-existing-condition.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/deck-finished-concept.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/irrigation-before-clean.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/irrigation-after-clean.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/kitchen-existing-condition.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/kitchen-remodel-concept.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html images have alt text",
+      "detail": "18 images"
+    },
+    {
+      "name": "cabin-project-complete.html exists",
+      "detail": ""
+    },
+    {
+      "name": "cabin-project-complete.html plan exact source",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "cabin-project-complete.html plan exact alt",
+      "detail": "Conceptual floor plan for three bedroom two bath cabin"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "cabin-project-complete.html exterior exact source",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "cabin-project-complete.html exterior exact alt",
+      "detail": "Conceptual front elevation for northern Minnesota cabin"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-exterior-render.png exists",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "cabin-project-complete.html interior exact source",
+      "detail": "assets/demo-workthroughs/cabin-interior-render.png"
+    },
+    {
+      "name": "cabin-project-complete.html interior exact alt",
+      "detail": "Photorealistic open kitchen dining and living concept for the cabin"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-interior-render.png exists",
+      "detail": "assets/demo-workthroughs/cabin-interior-render.png"
+    },
+    {
+      "name": "cabin-project-complete.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "cabin-project-complete.html preserves assets/demo-workthroughs/cabin-exterior-render.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "cabin-project-complete.html preserves assets/demo-workthroughs/cabin-interior-render.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "cabin-project-complete.html images have alt text",
+      "detail": "4 images"
+    },
+    {
+      "name": "robotics-automation.html exists",
+      "detail": ""
+    },
+    {
+      "name": "robotics-automation.html hero exact source",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "robotics-automation.html hero exact cache key",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg?v=e311000d"
+    },
+    {
+      "name": "robotics-automation.html hero exact alt",
+      "detail": "Industrial robot automation cell"
+    },
+    {
+      "name": "assets/approved-website-images/manufacturing-automation.jpg exists",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "robotics-automation.html automation-planning exact source",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "robotics-automation.html automation-planning exact cache key",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg?v=e311000d"
+    },
+    {
+      "name": "robotics-automation.html automation-planning exact alt",
+      "detail": "Automation planning and robot cell"
+    },
+    {
+      "name": "assets/approved-website-images/manufacturing-automation.jpg exists",
+      "detail": "assets/approved-website-images/manufacturing-automation.jpg"
+    },
+    {
+      "name": "robotics-automation.html preserves assets/approved-website-images/manufacturing-automation.jpg occurrence count",
+      "detail": "2/2"
+    },
+    {
+      "name": "robotics-automation.html images have alt text",
+      "detail": "4 images"
+    },
+    {
+      "name": "business-in-a-box.html exists",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html hero exact source",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "business-in-a-box.html hero exact alt",
+      "detail": "Contractor project visualized and managed in the Highway 38 Business Office"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-exterior-render.png exists",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "business-in-a-box.html preserves assets/demo-workthroughs/cabin-exterior-render.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "business-in-a-box.html images have alt text",
+      "detail": "1 images"
+    },
+    {
+      "name": "business-in-a-box-pricing.html exists",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box-pricing.html hero exact source",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "business-in-a-box-pricing.html hero exact alt",
+      "detail": "Detailed project planning and quote example"
+    },
+    {
+      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
+      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+    },
+    {
+      "name": "business-in-a-box-pricing.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "business-in-a-box-pricing.html images have alt text",
+      "detail": "1 images"
+    },
+    {
+      "name": "contractor-quote-complete.html contractorDemo source constant",
+      "detail": "assets/contractor-demo/"
+    },
+    {
+      "name": "contractor-quote-complete.html workthroughs source constant",
+      "detail": "assets/demo-workthroughs/"
+    },
+    {
+      "name": "contractor-quote-complete.html flower uses flower-before.png",
+      "detail": "flower-before.png"
+    },
+    {
+      "name": "assets/contractor-demo/flower-before.png exists",
+      "detail": "assets/contractor-demo/flower-before.png"
+    },
+    {
+      "name": "contractor-quote-complete.html flower uses flower-after-same-house.webp",
+      "detail": "flower-after-same-house.webp"
+    },
+    {
+      "name": "assets/contractor-demo/flower-after-same-house.webp exists",
+      "detail": "assets/contractor-demo/flower-after-same-house.webp"
+    },
+    {
+      "name": "contractor-quote-complete.html drive uses driveway-before.jpg",
+      "detail": "driveway-before.jpg"
+    },
+    {
+      "name": "assets/contractor-demo/driveway-before.jpg exists",
+      "detail": "assets/contractor-demo/driveway-before.jpg"
+    },
+    {
+      "name": "contractor-quote-complete.html drive uses driveway-after.jpg",
+      "detail": "driveway-after.jpg"
+    },
+    {
+      "name": "assets/contractor-demo/driveway-after.jpg exists",
+      "detail": "assets/contractor-demo/driveway-after.jpg"
+    },
+    {
+      "name": "contractor-quote-complete.html pond uses pond-before.jpg",
+      "detail": "pond-before.jpg"
+    },
+    {
+      "name": "assets/contractor-demo/pond-before.jpg exists",
+      "detail": "assets/contractor-demo/pond-before.jpg"
+    },
+    {
+      "name": "contractor-quote-complete.html pond uses pond-after.jpg",
+      "detail": "pond-after.jpg"
+    },
+    {
+      "name": "assets/contractor-demo/pond-after.jpg exists",
+      "detail": "assets/contractor-demo/pond-after.jpg"
+    },
+    {
+      "name": "contractor-quote-complete.html clear uses lot-before.jpg",
+      "detail": "lot-before.jpg"
+    },
+    {
+      "name": "assets/contractor-demo/lot-before.jpg exists",
+      "detail": "assets/contractor-demo/lot-before.jpg"
+    },
+    {
+      "name": "contractor-quote-complete.html clear uses lot-after.jpg",
+      "detail": "lot-after.jpg"
+    },
+    {
+      "name": "assets/contractor-demo/lot-after.jpg exists",
+      "detail": "assets/contractor-demo/lot-after.jpg"
+    },
+    {
+      "name": "contractor-quote-complete.html deck uses deck-existing-condition.webp",
+      "detail": "deck-existing-condition.webp"
+    },
+    {
+      "name": "assets/demo-workthroughs/deck-existing-condition.webp exists",
+      "detail": "assets/demo-workthroughs/deck-existing-condition.webp"
+    },
+    {
+      "name": "contractor-quote-complete.html deck uses deck-finished-concept.webp",
+      "detail": "deck-finished-concept.webp"
+    },
+    {
+      "name": "assets/demo-workthroughs/deck-finished-concept.webp exists",
+      "detail": "assets/demo-workthroughs/deck-finished-concept.webp"
+    },
+    {
+      "name": "contractor-quote-complete.html irrigation uses irrigation-before-clean.webp",
+      "detail": "irrigation-before-clean.webp"
+    },
+    {
+      "name": "assets/demo-workthroughs/irrigation-before-clean.webp exists",
+      "detail": "assets/demo-workthroughs/irrigation-before-clean.webp"
+    },
+    {
+      "name": "contractor-quote-complete.html irrigation uses irrigation-after-clean.webp",
+      "detail": "irrigation-after-clean.webp"
+    },
+    {
+      "name": "assets/demo-workthroughs/irrigation-after-clean.webp exists",
+      "detail": "assets/demo-workthroughs/irrigation-after-clean.webp"
+    },
+    {
+      "name": "contractor-quote-complete.html kitchen uses kitchen-existing-condition.webp",
+      "detail": "kitchen-existing-condition.webp"
+    },
+    {
+      "name": "assets/demo-workthroughs/kitchen-existing-condition.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-existing-condition.webp"
+    },
+    {
+      "name": "contractor-quote-complete.html kitchen uses kitchen-remodel-concept.webp",
+      "detail": "kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "canonical shell declares source lock",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell does not assign content image sources",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell never inserts representative images",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell has no fallback source mutation",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell optimizes loading without source changes",
+      "detail": ""
+    },
+    {
+      "name": "project compatibility loader contains no image logic",
+      "detail": ""
+    },
+    {
+      "name": "brand compatibility loader contains no image placement",
+      "detail": ""
+    },
+    {
+      "name": "approved project card and quote images exist",
+      "detail": "deck-existing-condition.webp, deck-finished-concept.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-condition.webp, kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "sample cards reference all six approved card files",
+      "detail": "deck-existing-condition.webp, deck-finished-concept.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-condition.webp, kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "contractor example data references all six approved quote files",
+      "detail": "deck-existing-condition.webp, deck-finished-concept.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-condition.webp, kitchen-remodel-concept.webp"
+    },
+    {
+      "name": "same-house flower concept is the approved sample image",
+      "detail": ""
+    },
+    {
+      "name": "project photographs use direct raster files",
+      "detail": ""
+    },
+    {
+      "name": "matched flower quote is linked from the sample card",
+      "detail": ""
+    },
+    {
+      "name": "project CSS does not use remote backgrounds",
+      "detail": ""
+    },
+    {
+      "name": "project CSS does not use the retired strip or sprite",
+      "detail": ""
+    },
+    {
+      "name": "project CSS does not hide approved images",
+      "detail": ""
+    },
+    {
+      "name": "project CSS explicitly restores direct images",
+      "detail": ""
+    },
+    {
+      "name": "public pages do not reference retired strip or sprite",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}
