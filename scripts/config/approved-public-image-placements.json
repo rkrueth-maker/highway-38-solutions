@@ -64,6 +64,15 @@
       "newPlacement": "Direct WebP files with the same-house flower scene and label-free irrigation photographs",
       "reason": "Owner-directed repair after live Chrome review showed a cartoon flower concept and blank irrigation panels despite technical PASS",
       "binaryPolicy": "Raster derivatives were generated from repository source images. The flower preserves the existing-house upper scene; irrigation removes only the embedded label edge. Original sources remain for rollback."
+    },
+    {
+      "date": "2026-10-05",
+      "page": "business-in-a-box.html, business-in-a-box-pricing.html",
+      "section": "hero imagery for new Business in a Box product pages",
+      "oldPlacement": "n/a \u2014 new pages",
+      "newPlacement": "business-in-a-box.html hero: assets/demo-workthroughs/cabin-exterior-render.png; business-in-a-box-pricing.html hero: assets/demo-workthroughs/cabin-plan-sheet.png",
+      "reason": "Owner-directed build of Business in a Box landing + pricing pages for the v2.0 Office release; reuses existing approved image binaries only",
+      "binaryPolicy": "Only existing approved image binaries were reused; no image file or logo was changed"
     }
   ],
   "pages": {
@@ -276,6 +285,20 @@
         "src": "assets/approved-website-images/manufacturing-automation.jpg",
         "cacheKey": "e311000d",
         "alt": "Automation planning and robot cell"
+      }
+    ],
+    "business-in-a-box.html": [
+      {
+        "role": "hero",
+        "src": "assets/demo-workthroughs/cabin-exterior-render.png",
+        "alt": "Contractor project visualized and managed in the Highway 38 Business Office"
+      }
+    ],
+    "business-in-a-box-pricing.html": [
+      {
+        "role": "hero",
+        "src": "assets/demo-workthroughs/cabin-plan-sheet.png",
+        "alt": "Detailed project planning and quote example"
       }
     ]
   },
