@@ -264,7 +264,7 @@ handleBridgeError=function(stage,message){
   state.bridgeReady=false;
   if(!navigator.onLine){hydrateLocalStartup().catch(()=>renderWelcome('unavailable',text));return;}
   if(['authorization','refresh','request'].includes(stage)&&state.snapshot){
-    $('businessStatus').textContent='Office open · secure refresh needs retry.';
+    $('businessStatus').textContent='Office open · showing saved records — refresh failed.';
     toast(text,true);
     return;
   }
