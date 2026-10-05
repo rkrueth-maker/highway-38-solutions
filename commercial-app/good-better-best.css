@@ -1,0 +1,66 @@
+/* Good / Better / Best tiered estimates — v2.0
+   Editor + customer presentation view. Tiers stack on phone, sit
+   side-by-side on desktop. Print-friendly presentation. */
+
+/* ---- Tier mode toggle (segmented control) ---- */
+.h38-tier-toggle{display:flex;gap:0;margin:14px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f4f7f5}
+.h38-tier-toggle button{flex:1;min-height:44px;border:0;background:transparent;font-weight:800;color:var(--muted);cursor:pointer;padding:10px 8px;font-size:.95rem}
+.h38-tier-toggle button[aria-pressed="true"]{background:var(--navy);color:#fff}
+
+/* ---- Tier editor grid ---- */
+.h38-tier-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:12px}
+.h38-tier-card{border:1px solid var(--line);border-radius:14px;background:#fff;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.h38-tier-card-head{padding:12px 14px;background:#f4f7f5;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.h38-tier-card-head input.h38-tier-name{font-weight:900;font-size:1.05rem;border:1px solid transparent;border-radius:8px;background:transparent;padding:6px 8px;min-width:0;flex:1;min-height:44px}
+.h38-tier-card-head input.h38-tier-name:focus{border-color:var(--navy);background:#fff;outline:none}
+.h38-tier-popular{display:inline-block;background:var(--navy);color:#fff;font-size:.72rem;font-weight:900;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:6px 12px;white-space:nowrap}
+.h38-tier-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.h38-tier-body textarea{min-height:64px;resize:vertical}
+.h38-tier-lines{display:grid;gap:8px}
+.h38-tier-line{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbfdfc}
+.h38-tier-line .row-top{align-items:flex-start}
+.h38-tier-line small{color:var(--muted)}
+.h38-tier-add{border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:8px}
+.h38-tier-add .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.h38-tier-add button{min-height:44px}
+.h38-tier-foot{padding:12px 14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:#fbfdfc}
+.h38-tier-foot strong:last-child{font-size:1.15rem}
+
+/* ---- Customer presentation view ---- */
+.h38-tier-presentation{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}
+.h38-tier-present{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.h38-tier-present.is-popular{border:2px solid var(--navy);box-shadow:var(--shadow)}
+.h38-tier-present-head{padding:16px 18px;background:#f4f7f5;border-bottom:1px solid var(--line);text-align:center}
+.h38-tier-present.is-popular .h38-tier-present-head{background:var(--navy);color:#fff}
+.h38-tier-present-head h3{margin:0 0 6px;font-size:1.25rem}
+.h38-tier-present.is-popular .h38-tier-present-head h3{color:#fff}
+.h38-tier-present-head p{margin:0;font-size:.92rem;line-height:1.5;color:var(--muted)}
+.h38-tier-present.is-popular .h38-tier-present-head p{color:#dceaf4}
+.h38-tier-present-price{padding:16px 18px 8px;text-align:center}
+.h38-tier-present-price strong{display:block;font-size:2rem;color:var(--navy)}
+.h38-tier-present-price small{color:var(--muted)}
+.h38-tier-present-items{padding:8px 18px 16px;flex:1}
+.h38-tier-present-items ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.h38-tier-present-items li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.92rem}
+.h38-tier-present-items li:last-child{border-bottom:0}
+.h38-tier-present-items li span:first-child{color:#33475b}
+.h38-tier-present-items li strong{white-space:nowrap}
+.h38-tier-present-cta{padding:14px 18px;border-top:1px solid var(--line);text-align:center;background:#fbfdfc}
+.h38-tier-compare-note{margin-top:16px}
+
+/* ---- Responsive: stack on phone ---- */
+@media(max-width:900px){
+  .h38-tier-grid{grid-template-columns:1fr}
+  .h38-tier-presentation{grid-template-columns:1fr}
+  .h38-tier-present.is-popular{order:-1}
+}
+
+/* ---- Print: presentation only ---- */
+@media print{
+  .h38-tier-toggle,.h38-tier-add,.page-tools{display:none!important}
+  .h38-tier-presentation{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .h38-tier-present{break-inside:avoid;page-break-inside:avoid}
+  .h38-tier-present-head{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .h38-tier-present.is-popular .h38-tier-present-head{background:#0b2438!important;color:#fff!important}
+  .h38-tier-popular{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

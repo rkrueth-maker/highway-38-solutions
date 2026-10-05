@@ -71,10 +71,56 @@ function h38AddMissingCostReviewPanel(){
     if(action==='na'){h38SetMissingCostDecision(item,'NOT_APPLICABLE');toast(`${item.description||'Cost'} marked not applicable.`);renderQuotes();}
   }));
 }
+function h38TierPresentationSection(tier,index){
+  const total=(tier.items||[]).reduce((sum,l)=>sum+num(l.quantity)*num(l.unitPrice),0);
+  const popular=index===1;
+  return '<div class="h38-tier-present'+(popular?' is-popular':'')+'">'+
+    '<div class="h38-tier-present-head"><h3>'+esc(tier.name)+'</h3>'+
+    (popular?'<span class="h38-tier-popular">Most Popular</span>':'')+
+    (tier.description?'<p>'+esc(tier.description)+'</p>':'')+'</div>'+
+    '<div class="h38-tier-present-price"><strong>'+money(total)+'</strong><small>fixed price</small></div>'+
+    '<div class="h38-tier-present-items"><ul>'+(tier.items||[]).map(l=>
+      '<li><span>'+esc(l.description)+'<br><small class="muted">'+esc(l.quantity)+' '+esc(l.unit||'each')+'</small></span><strong>'+money(num(l.quantity)*num(l.unitPrice))+'</strong></li>'
+    ).join('')+'</ul></div>'+
+    '<div class="h38-tier-present-cta"><small class="muted">Option '+(index+1)+' of 3</small></div>'+
+  '</div>';
+}
+function renderTierQuotePreview(){
+  const row=h38CurrentQuoteRecord();
+  const quoteId=String(state.quote&&state.quote.quoteId||rowId(row,'Quote ID','quoteId'));
+  const tiers=state.quote.tiers;
+  const customer=customerName(v(row,'Customer ID','customerId')||state.quote.customerId);
+  const quoteNumber=v(row,'Quote Number','quoteNumber')||state.quote.quoteNumber||quoteId;
+  const title=v(row,'Project Title','projectTitle')||state.quote.projectTitle||'Quote';
+  const scope=v(row,'Scope','scope')||state.quote.scope||'';
+  const measurements=v(row,'Measurement Notes','measurementNotes')||state.quote.measurementNotes||'';
+  const revision=v(row,'Revision','revision')||state.quote.revision||1;
+  const status=v(row,'Status','status')||'Draft';
+  const demo=h38QuoteIsDemo(row);
+  $('mainContent').innerHTML=pageHead('Customer Quote Preview','Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.','<button id="backToQuoteFromPreview" class="secondary">Back to Quote</button><button id="printQuoteButton">Print / Save PDF</button>')+'<article id="quotePreviewDocument" class="quote-document" data-quote-id="'+esc(quoteId)+'" data-demo-record="'+(demo?'true':'false')+'">'+
+    '<header class="quote-document-header">'+
+      '<div class="quote-brand"><img class="quote-logo" src="'+H38_APPROVED_LOGO+'" alt="Highway 38 Solutions"><div><strong>HIGHWAY 38 SOLUTIONS</strong><span>Professional Quote</span></div></div>'+
+      '<div class="quote-document-number"><span>Quote</span><strong>'+esc(quoteNumber)+'</strong><small>Revision '+esc(revision)+'</small></div>'+
+    '</header>'+
+    (demo?'<div class="demo-banner">DEMO RECORD — NO FUNDS MOVED — FICTIONAL WEBSITE EXAMPLE</div>':'')+
+    '<section class="quote-document-body">'+
+      '<div class="quote-document-title"><div><small>Prepared for</small><strong>'+esc(customer)+'</strong><h1>'+esc(title)+'</h1></div><div class="quote-status"><span>Status</span><strong>'+esc(status)+'</strong></div></div>'+
+      '<section class="quote-copy"><h2>Scope of work</h2><p>'+esc(scope).replace(/\n/g,'<br>')+'</p></section>'+
+      (measurements?'<section class="quote-copy"><h2>Measurements and site notes</h2><p>'+esc(measurements).replace(/\n/g,'<br>')+'</p></section>':'')+
+      '<section class="quote-copy"><h2>Choose the option that fits</h2><p>Three clear options for this project. The <strong>Most Popular</strong> option is the one we recommend for most customers. Ask us if you would like to mix items between options.</p></section>'+
+      '<div class="h38-tier-presentation">'+tiers.map(h38TierPresentationSection).join('')+'</div>'+
+      '<section class="quote-boundary"><strong>Owner review required.</strong> Verify measurements, quantities, taxes, pricing, permits, utilities, specifications, access, selections and customer terms before approval or delivery. Nothing is automatically approved or sent.</section>'+
+    '</section>'+
+    '<footer class="quote-document-footer"><strong>Highway 38 Solutions</strong><span>'+H38_PUBLIC_EMAIL+'</span></footer>'+
+  '</article>';
+  $('backToQuoteFromPreview').onclick=renderQuotes;
+  $('printQuoteButton').onclick=()=>window.print();
+}
 function renderQuotePreview(){
   const row=h38CurrentQuoteRecord();
   const quoteId=String(state.quote&&state.quote.quoteId||rowId(row,'Quote ID','quoteId'));
   if(!quoteId){toast('Save the quote before opening the printable customer preview.',true);return;}
+  if(state.quote&&state.quote.tierMode&&Array.isArray(state.quote.tiers)&&state.quote.tiers.length===3){renderTierQuotePreview();return;}
   const lines=state.quote&&Array.isArray(state.quote.lines)?state.quote.lines:[];
   const subtotal=lines.reduce((sum,line)=>sum+num(v(line,'Quantity','quantity'))*num(v(line,'Unit Price','unitPrice')),0);
   const tax=num(v(row,'Tax','tax'));
@@ -178,7 +224,7 @@ renderQuotes=function(){
   h38AddQuoteAiTools();
   h38AddMissingCostReviewPanel();
   const tools=document.querySelector('.page-tools');
-  if(tools&&state.quote&&state.quote.quoteId&&Array.isArray(state.quote.lines)&&state.quote.lines.length){
+  const h38HasTiers=state.quote&&state.quote.tierMode&&Array.isArray(state.quote.tiers)&&state.quote.tiers.some(t=>Array.isArray(t.items)&&t.items.length);if(tools&&state.quote&&state.quote.quoteId&&((Array.isArray(state.quote.lines)&&state.quote.lines.length)||h38HasTiers)){
     const button=document.createElement('button');
     button.id='previewQuoteButton';button.type='button';button.className='secondary';button.textContent='Preview / Print PDF';button.onclick=renderQuotePreview;tools.appendChild(button);
   }
