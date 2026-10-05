@@ -131,6 +131,24 @@ function polishAssistantLauncher(){
     }
   }
   syncAssistantBadge();
+  bindFabCollapse();
+}
+function bindFabCollapse(){
+  // Shrink the assistant pill to an icon button once the user scrolls into
+  // page content, so it never sits on top of right-edge content. Expands
+  // again near the top. Bound once; rAF-throttled passive listener.
+  const launcher=document.getElementById('globalAiButton');
+  if(!launcher||launcher.dataset.h38FabCollapse==='1')return;
+  launcher.dataset.h38FabCollapse='1';
+  let ticking=false;
+  const update=()=>{
+    ticking=false;
+    const y=window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0;
+    launcher.classList.toggle('h38-fab-collapsed',y>140);
+  };
+  const onScroll=()=>{if(ticking)return;ticking=true;if(typeof requestAnimationFrame==='function')requestAnimationFrame(update);else update();};
+  window.addEventListener('scroll',onScroll,{passive:true});
+  update();
 }
 function commandButton(label,command){
   const button=document.createElement('button');

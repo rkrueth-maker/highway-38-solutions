@@ -102,7 +102,7 @@ async function handleFullSnapshot(snapshot,businessId){
 }
 function handleBridgeError(stage,message){
   const text=message||'Secure connection failed.';
-  if(['refresh','request'].includes(stage)&&state.snapshot){$('businessStatus').textContent='Office open · secure refresh needs retry.';toast(text,true);return;}
+  if(['refresh','request'].includes(stage)&&state.snapshot){$('businessStatus').textContent='Office open · showing saved records — refresh failed.';toast(text,true);return;}
   if(stage==='authorization'&&state.snapshot){state.bridgeReady=false;$('businessStatus').textContent='Office open offline · sign in to reconnect.';toast(text,true);return;}
   state.bridgeReady=false;$('businessStatus').textContent='Business Office connection failed.';toast(text,true);if(!state.snapshot)renderWelcome('error',text);
 }
