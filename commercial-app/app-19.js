@@ -34,7 +34,7 @@ function h38LoadTeamAccessCompanion(){
 }
 
 allowedPages=function(){return SHELL_PAGES[state.shell].filter(page=>!H38_PARITY_REQUIREMENTS[page]||H38_PARITY_REQUIREMENTS[page].some(can));};
-renderNav=function(){const pages=allowedPages();$('mainNav').innerHTML=pages.map(key=>`<button type="button" data-page="${key}" class="${key===state.page?'active':''}"><span class="nav-icon">${PAGE_DEFS[key][0]}</span><span>${PAGE_DEFS[key][1]}</span></button>`).join('');$('mainNav').querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));};
+renderNav=function(){const pages=allowedPages();$('mainNav').innerHTML=pages.map(key=>{const d=PAGE_DEFS[key]||[''];const icon=d.length>1?d[0]:'';const label=d.length>1?d[1]:d[0];return `<button type="button" data-page="${key}" class="${key===state.page?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`;}).join('');$('mainNav').querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));};
 const h38ParityBaseRenderPage=renderPage;
 renderPage=function(){if(!state.snapshot){renderWelcome();return;}const parity={people:renderPeople,accounting:renderAccounting,payroll:renderPayrollPrep,tax:renderTaxPrep,controls:renderControls,reports:renderReports,memberships:renderMemberships};if(parity[state.page])parity[state.page]();else h38ParityBaseRenderPage();};
 
