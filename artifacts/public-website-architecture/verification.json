@@ -1,0 +1,765 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-05T23:56:34.115Z",
+  "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
+  "governance": "website-and-web-app-governance-v1",
+  "logoLocked": true,
+  "imagePlacementsLocked": true,
+  "pricingProducts": 3,
+  "whatWeDoCapabilities": [
+    "Automation & Robotics",
+    "CNC Machining & Process Planning",
+    "CNC Fixturing & Workholding",
+    "AI-Assisted Quote Builder",
+    "Highway 38 Business Office"
+  ],
+  "canonicalShell": "assets/js/h38-site-v2.js",
+  "standardOffice": "supabase-only",
+  "legacyOfficeRoute": false,
+  "passed": 185,
+  "failed": 0,
+  "warnings": [],
+  "passes": [
+    {
+      "name": "route registry schema",
+      "detail": "2026-09-15-competitive-readiness-custom-digital-services"
+    },
+    {
+      "name": "assets/js/h38-site-v2.js exists",
+      "detail": ""
+    },
+    {
+      "name": "assets/css/h38-site-v2.css exists",
+      "detail": ""
+    },
+    {
+      "name": "assets/css/project-intelligence.css exists",
+      "detail": ""
+    },
+    {
+      "name": "pricing-data.js exists",
+      "detail": ""
+    },
+    {
+      "name": "assets/js/h38-request-options.js exists",
+      "detail": ""
+    },
+    {
+      "name": "request-flow.js exists",
+      "detail": ""
+    },
+    {
+      "name": "assets/js/uqb-public-examples.js exists",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell has one navigation registry",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell has one footer registry",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell owns header and footer rendering",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell has no page-wide observer",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell preserves approved image policy",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell handles mobile menu accessibly",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell JavaScript budget",
+      "detail": "8447 bytes"
+    },
+    {
+      "name": "canonical shell CSS budget",
+      "detail": "7292 bytes"
+    },
+    {
+      "name": "canonical stylesheet includes mobile behavior",
+      "detail": ""
+    },
+    {
+      "name": "index.html exists",
+      "detail": ""
+    },
+    {
+      "name": "index.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "index.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "index.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "index.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "index.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "index.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "index.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "index.html canonical URL",
+      "detail": "https://highway38solutions.com/"
+    },
+    {
+      "name": "index.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "sample-library-now.html exists",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js, assets/js/uqb-public-examples.js"
+    },
+    {
+      "name": "sample-library-now.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "sample-library-now.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js, assets/js/uqb-public-examples.js"
+    },
+    {
+      "name": "sample-library-now.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html"
+    },
+    {
+      "name": "sample library public script budget",
+      "detail": "assets/js/h38-site-v2.js, assets/js/uqb-public-examples.js"
+    },
+    {
+      "name": "solutions.html exists",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "solutions.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "solutions.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "solutions.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "software.html exists",
+      "detail": ""
+    },
+    {
+      "name": "software.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "software.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "software.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "software.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "software.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "software.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "software.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "software.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/software.html"
+    },
+    {
+      "name": "software.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "project-services.html exists",
+      "detail": ""
+    },
+    {
+      "name": "project-services.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "project-services.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "project-services.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "project-services.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "project-services.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "project-services.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "project-services.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "project-services.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/project-services.html"
+    },
+    {
+      "name": "project-services.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "pricing.html exists",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "pricing.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "pricing.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "pricing.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/pricing.html"
+    },
+    {
+      "name": "pricing.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "quote-builder-demo.html exists",
+      "detail": ""
+    },
+    {
+      "name": "quote-builder-demo.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "quote-builder-demo.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "quote-builder-demo.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "quote-builder-demo.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "quote-builder-demo.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "quote-builder-demo.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "quote-builder-demo.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "quote-builder-demo.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/quote-builder-demo.html"
+    },
+    {
+      "name": "quote-builder-demo.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "implementation.html exists",
+      "detail": ""
+    },
+    {
+      "name": "implementation.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "implementation.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "implementation.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "implementation.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "implementation.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "implementation.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "implementation.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "implementation.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/implementation.html"
+    },
+    {
+      "name": "implementation.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "security-reliability.html exists",
+      "detail": ""
+    },
+    {
+      "name": "security-reliability.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "security-reliability.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "security-reliability.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "security-reliability.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "security-reliability.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "security-reliability.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "security-reliability.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "security-reliability.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/security-reliability.html"
+    },
+    {
+      "name": "security-reliability.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "about.html exists",
+      "detail": ""
+    },
+    {
+      "name": "about.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "about.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "about.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "about.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "about.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "about.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "about.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "about.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "contact.html exists",
+      "detail": ""
+    },
+    {
+      "name": "contact.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "contact.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "contact.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "contact.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "contact.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "contact.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "contact.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "contact.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "start-request.html exists",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html loads canonical shell once",
+      "detail": "pricing-data.js, platform-states.js, assets/js/h38-site-v2.js, assets/js/h38-request-options.js, request-flow.js"
+    },
+    {
+      "name": "start-request.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "start-request.html excludes legacy global runtimes",
+      "detail": "pricing-data.js, platform-states.js, assets/js/h38-site-v2.js, assets/js/h38-request-options.js, request-flow.js"
+    },
+    {
+      "name": "start-request.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/start-request.html"
+    },
+    {
+      "name": "request page uses focused startup scripts",
+      "detail": "pricing-data.js, platform-states.js, assets/js/h38-site-v2.js, assets/js/h38-request-options.js, request-flow.js"
+    },
+    {
+      "name": "request page keeps secure intake endpoint",
+      "detail": ""
+    },
+    {
+      "name": "request page keeps no-charge language",
+      "detail": ""
+    },
+    {
+      "name": "What We Do names all five core capabilities",
+      "detail": ""
+    },
+    {
+      "name": "What We Do links dedicated capability pages",
+      "detail": ""
+    },
+    {
+      "name": "What We Do has one five-card capability grid",
+      "detail": ""
+    },
+    {
+      "name": "What We Do capability identities are complete",
+      "detail": ""
+    },
+    {
+      "name": "What We Do has no retired fixed-price catalog",
+      "detail": ""
+    },
+    {
+      "name": "What We Do has no fixed-price cards",
+      "detail": ""
+    },
+    {
+      "name": "capability desktop layout is controlled",
+      "detail": ""
+    },
+    {
+      "name": "capability phone layout is one column",
+      "detail": ""
+    },
+    {
+      "name": "final pricing source exposes three software offers",
+      "detail": ""
+    },
+    {
+      "name": "final pricing source exposes one diagnostic",
+      "detail": ""
+    },
+    {
+      "name": "request controller has no submit handler",
+      "detail": ""
+    },
+    {
+      "name": "request controller owns final offer rendering",
+      "detail": ""
+    },
+    {
+      "name": "request controller prepares email fallback",
+      "detail": ""
+    },
+    {
+      "name": "request controller JavaScript budget",
+      "detail": "5798 bytes"
+    },
+    {
+      "name": "secure request flow owns one submit handler",
+      "detail": ""
+    },
+    {
+      "name": "secure request flow preserves idempotency",
+      "detail": ""
+    },
+    {
+      "name": "secure request flow preserves draft storage",
+      "detail": ""
+    },
+    {
+      "name": "secure request flow JavaScript budget",
+      "detail": "10259 bytes"
+    },
+    {
+      "name": "catalog.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "catalog.html redirects to pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "products.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "products.html redirects to pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "product.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "product.html redirects to pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "packages.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "packages.html redirects to pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "tools.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "tools.html redirects to sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "free-tools.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html redirects to sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "tool-center.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "tool-center.html redirects to sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "proof.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "proof.html redirects to sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "forgeiq.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "forgeiq.html redirects to solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "services.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "services.html redirects to solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "specials.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "specials.html redirects to pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "business-in-a-box-pricing.html retired route exists",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box-pricing.html redirects to pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "owner gateway is registered",
+      "detail": ""
+    },
+    {
+      "name": "owner gateway exists",
+      "detail": "portal.html"
+    },
+    {
+      "name": "owner gateway remains noindex",
+      "detail": ""
+    },
+    {
+      "name": "owner gateway routes to standard Office",
+      "detail": ""
+    },
+    {
+      "name": "standard launcher opens Supabase only",
+      "detail": ""
+    },
+    {
+      "name": "legacy Office route is removed",
+      "detail": ""
+    },
+    {
+      "name": "launcher forwards businessKey",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

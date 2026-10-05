@@ -10,25 +10,25 @@
     version:VERSION,
     logo:LOGO,
     navigation:[
-      {href:'software.html',label:'Software'},
-      {href:'project-services.html',label:'Project Services'},
-      {href:'quote-builder.html#examples',label:'Project Examples'},
-      {href:OFFICE_DEMO,label:'Office Demo'},
+      {href:'business-in-a-box.html',label:'Business in a Box'},
       {href:'pricing.html',label:'Pricing'},
+      {href:OFFICE_DEMO,label:'Office Demo'},
+      {href:'quote-builder.html#examples',label:'Project Examples'},
       {href:'about.html',label:'About'},
       {href:'portal.html',label:'Owner Access'},
       {href:'start-request.html',label:'Start a Project',cta:true}
     ],
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
-      {heading:'Explore',links:[['Business Software','software.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Services','project-services.html'],['What We Do','solutions.html'],['Project Examples','quote-builder.html#examples']]},
+      {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
       {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
     redirects:{
       'catalog.html':'pricing.html','products.html':'pricing.html','product.html':'pricing.html','packages.html':'pricing.html',
       'tools.html':'quote-builder.html#examples','free-tools.html':'quote-builder.html#examples','tool-center.html':'quote-builder.html#examples','proof.html':'quote-builder.html#examples',
-      'forgeiq.html':'solutions.html','services.html':'solutions.html','specials.html':'pricing.html'
+      'forgeiq.html':'solutions.html','services.html':'solutions.html','specials.html':'pricing.html',
+      'business-in-a-box-pricing.html':'pricing.html'
     },
     helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsInput:false,privateDataAccess:false,externalActions:false},
     imagePolicy:{changeSource:false,insertImages:false,fallbackImages:false,optimizeAttributes:true}
