@@ -6,7 +6,7 @@
 .h38-c360-directory-rail .h38-customer-directory-head{margin:0}
 .h38-c360-directory-rail .h38-customer-directory-head h2{font-size:22px}
 .h38-c360-directory-rail .h38-customer-card-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:2px}
-.h38-c360-directory-rail .h38-customer-card{grid-template-columns:minmax(0,1fr);gap:4px;width:100%;min-height:0;padding:10px;border-radius:11px}
+.h38-c360-directory-rail .h38-customer-card{grid-template-columns:minmax(0,1fr);gap:4px;width:100%;min-height:0;padding:10px;border-radius:var(--radius-sm)}
 .h38-c360-directory-rail .h38-customer-card strong{display:flex;align-items:center;gap:6px;font-size:14px}
 .h38-c360-directory-rail .h38-customer-card strong em{padding:2px 5px;border-radius:999px;background:#fff3c4;color:#6b4b00;font-size:9px;font-style:normal;letter-spacing:.08em}
 .h38-c360-directory-rail .h38-customer-card small{font-size:11px}
