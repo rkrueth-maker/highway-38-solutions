@@ -8,7 +8,8 @@ const DB=window.H38DB;
 const text=value=>String(value==null?'':value);
 const now=()=>new Date().toISOString();
 const esc=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let decorating=false,busyQuote=false;
+let decorating=false,busyQuote=false,busyQuoteAt=0;
+const BUSY_QUOTE_TIMEOUT_MS=60000;
 function officeState(){try{return typeof state!=='undefined'?state:(window.state||null)}catch(_){return window.state||null}}
 function C(){return window.H38_FIELD_VISIT_CORE;}
 function rows(name){return Array.isArray(officeState()?.snapshot?.[name])?officeState().snapshot[name]:[];}
@@ -22,21 +23,27 @@ function customerName(id){const row=rows('customers').find(x=>rid(x,'Customer ID
 async function auth(){const api=shared?.ensure?.();if(!api)throw Error('The secure Business Office connection is not ready.');const result=await api.auth.getSession();if(result.error)throw result.error;if(!result.data?.session?.user)throw Error('Sign in again before deleting.');return{api,user:result.data.session.user};}
 async function removePending(tokens){if(!DB)return;const wanted=(tokens||[]).map(text).filter(Boolean);if(!wanted.length)return;for(const row of await DB.all('operations')){let hay='';try{hay=JSON.stringify(row)}catch(_){}if(wanted.some(token=>hay.includes(token)))await DB.remove('operations',row.id);}}
 async function deleteQuoteById(quoteId){
-  if(busyQuote)return;quoteId=text(quoteId);if(!quoteId)return;
+  // Guard against a stuck busy flag (e.g. a hung auth call): auto-reset after timeout.
+  // Previously both early returns were silent, making deletes appear to do nothing.
+  if(busyQuote&&Date.now()-busyQuoteAt<BUSY_QUOTE_TIMEOUT_MS){toastMessage('A quote delete is already in progress. Please wait a moment and try again.',true);return;}
+  busyQuote=false;
+  quoteId=text(quoteId);
+  if(!quoteId){toastMessage('No quote is open to delete. Open the quote first, then use Delete Quote.',true);return;}
   const s=officeState(),row=rows('quotes').find(item=>rid(item,'Quote ID','quoteId')===quoteId)||{},title=text(val(row,'Project Title','projectTitle')||'this quote');
   if(!confirm(`Delete “${title}”?\n\nThis deletes the quote only. The customer and Site Visit are kept.`))return;
   if(!navigator.onLine){toastMessage('Connect to the internet to permanently delete this saved quote.',true);return;}
-  busyQuote=true;
+  busyQuote=true;busyQuoteAt=Date.now();
   try{
-    const{api,user}=await auth(),bid=businessId(),changed=await api.from('business_records').update({record_status:'deleted',updated_by:user.id,updated_at:now()}).eq('business_id',bid).eq('collection','quotes').eq('record_key',quoteId);
+    const{api,user}=await auth(),bid=businessId(),changed=await api.from('business_records').update({record_status:'deleted',updated_by:user.id,updated_at:now()}).eq('business_id',bid).eq('collection','quotes').eq('record_key',quoteId).select('record_key');
     if(changed.error)throw changed.error;
+    const matched=Array.isArray(changed.data)?changed.data.length:0;
     await removePending([quoteId]);
     if(Array.isArray(s?.snapshot?.quotes))s.snapshot.quotes=s.snapshot.quotes.filter(item=>rid(item,'Quote ID','quoteId')!==quoteId);
-    try{await api.from('business_proof_log').insert({business_id:bid,actor_user_id:user.id,action_type:'DELETE_QUOTE',entity_type:'Quote',entity_id:null,result:'PASS',details:{quoteId,customerDeleted:false,siteVisitDeleted:false,ownerInitiated:true,automaticApproval:false,automaticCustomerSending:false},external_action_occurred:false})}catch(_){}
+    try{await api.from('business_proof_log').insert({business_id:bid,actor_user_id:user.id,action_type:'DELETE_QUOTE',entity_type:'Quote',entity_id:null,result:matched?'PASS':'PASS_LOCAL_ONLY',details:{quoteId,serverMatched:matched,customerDeleted:false,siteVisitDeleted:false,ownerInitiated:true,automaticApproval:false,automaticCustomerSending:false},external_action_occurred:false})}catch(_){}
     if(text(s?.quote?.quoteId)===quoteId)s.quote={quoteId:'',lines:[],hydrationComplete:true};
-    toastMessage('Quote deleted. Customer and Site Visit kept.');
+    toastMessage(matched?'Quote deleted. Customer and Site Visit kept.':'Quote removed from this device. It had not synced to the server yet, so there was nothing to delete there.');
     try{if(s?.page==='quotes'&&typeof renderQuotes==='function')renderQuotes();else window.renderQuotes?.()}catch(_){}
-  }catch(error){toastMessage(error?.message||String(error),true)}finally{busyQuote=false}
+  }catch(error){toastMessage(error?.message||String(error),true)}finally{busyQuote=false;busyQuoteAt=0}
 }
 function quoteDeletes(){
   const s=officeState();
@@ -53,7 +60,22 @@ function quoteDeletes(){
 function visitIdentity(row){return{businessId:text(row?.businessId||row?.['Business ID']||businessId()),visitId:text(row?.visitId||row?.siteVisitId||row?.['Site Visit ID']),sessionId:text(row?.sessionId||row?.captureSessionId||row?.['Capture Session ID']),quoteId:text(row?.quoteId||row?.['Quote ID']),customerId:text(row?.customerId||row?.['Customer ID'])};}
 function visitKey(row){const i=visitIdentity(row);return i.sessionId||i.visitId||`${i.quoteId}:${text(row?.projectTitle||row?.['Project Title'])}`;}
 function isLocalVisit(row){const kind=text(row?.kind).toUpperCase(),id=text(row?.id).toUpperCase();return kind==='H38_FIELD_VISIT'||id.startsWith('FIELD-VISIT:')||!!row?.visitId||!!row?.sessionId;}
-async function localVisits(){if(!DB)return[];const bid=businessId(),all=await DB.all('drafts');return all.filter(row=>isLocalVisit(row)&&text(visitIdentity(row).businessId)===bid&&text(row?.status).toUpperCase()!=='CLOSED'&&!/DELETE_TOMBSTONE/.test(text(row?.kind).toUpperCase()));}
+async function localVisits(){
+  if(!DB)return[];
+  const bid=businessId(),all=await DB.all('drafts');
+  // Keys the server snapshot already has — a CLOSED local visit is only hidden
+  // once the server confirms it. Previously CLOSED visits vanished from the
+  // list the moment they completed, until the next sync brought them back.
+  const serverKeys=new Set();
+  for(const row of rows('siteCaptureSessions')){const key=visitKey(row);if(key)serverKeys.add(key);}
+  return all.filter(row=>{
+    if(!isLocalVisit(row))return false;
+    if(text(visitIdentity(row).businessId)!==bid)return false;
+    if(/DELETE_TOMBSTONE/.test(text(row?.kind).toUpperCase()))return false;
+    if(text(row?.status).toUpperCase()==='CLOSED'&&serverKeys.has(visitKey(row)))return false;
+    return true;
+  });
+}
 async function allSiteVisits(){
   const map=new Map();
   for(const row of rows('siteCaptureSessions')){const key=visitKey(row);if(key)map.set(key,row)}
