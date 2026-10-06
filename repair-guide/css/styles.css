@@ -85,3 +85,13 @@ header{position:relative}
 .session-card{background:#1a3a24;border-radius:8px;padding:12px;margin-bottom:8px}
 select{width:100%;padding:12px;border-radius:8px;border:1px solid #2e7d32;background:#1a3a24;color:#fff;font-size:1rem}
 .small{font-size:.85rem}
+
+/* Photo scan */
+.chip-row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:10px 14px;background:#1a3a24;color:#fff;border:1px solid #2e7d32;border-radius:999px;font-size:.95rem;cursor:pointer;min-height:44px}
+.chip.active{background:#2e7d32;border-color:#81c784;font-weight:600}
+#scanPhotoPreview{margin-top:8px}
+#scanPhotoPreview img{max-width:100%;border-radius:8px;margin-top:8px}
+#identifiedItem{background:#1a3a24;border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid #29b6f6}
+#identifiedItem .id-name{font-weight:700;font-size:1.05rem}
+#identifiedItem .id-conf{font-size:.8rem;color:#81d4fa;font-weight:600;margin:4px 0}
