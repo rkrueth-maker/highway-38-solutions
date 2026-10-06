@@ -392,7 +392,7 @@ async function h38PrintPayrollChecks(periodId){
     const id=newId('PAYCHECK');
     const record={'Payroll Check ID':id,'Business ID':state.businessId,'Payroll Period ID':periodId,
       'Payroll Line ID':rowId(line,'Payroll Line ID'),'Employee ID':v(line,'Employee ID'),
-      'Check Number':n,'Check Date':dateOnly(v(period,'Pay Date')),'Payee Name':v(emp,'Display Name')||'',
+      'Check Number':n,'Check Date':String(v(period,'Pay Date')||'').slice(0,10),'Payee Name':v(emp,'Display Name')||'',
       'Amount':num(v(line,'Net Pay')),'Memo':`Payroll ${dateOnly(v(period,'Period Start'))} – ${dateOnly(v(period,'Period End'))}`,
       'Status':'Printed','Print Count':1,'Printed By':userId,'Printed Time':stamp,'Last Printed Time':stamp,
       'Voided By':'','Voided Time':'','Void Reason':'','Replaces Check ID':'','Replaced By Check ID':'',
@@ -472,7 +472,7 @@ async function h38ReissuePayrollCheck(checkId){
   const stamp=now(), id=newId('PAYCHECK');
   const record={'Payroll Check ID':id,'Business ID':state.businessId,'Payroll Period ID':v(old,'Payroll Period ID'),
     'Payroll Line ID':v(old,'Payroll Line ID'),'Employee ID':v(old,'Employee ID'),
-    'Check Number':next,'Check Date':dateOnly(v(period,'Pay Date')||v(old,'Check Date')),'Payee Name':v(old,'Payee Name'),
+    'Check Number':next,'Check Date':String(v(period,'Pay Date')||v(old,'Check Date')||'').slice(0,10),'Payee Name':v(old,'Payee Name'),
     'Amount':num(v(old,'Amount')),'Memo':v(old,'Memo'),'Status':'Printed','Print Count':1,
     'Printed By':state.snapshot.user.userId,'Printed Time':stamp,'Last Printed Time':stamp,
     'Voided By':'','Voided Time':'','Void Reason':'','Replaces Check ID':checkId,'Replaced By Check ID':'',

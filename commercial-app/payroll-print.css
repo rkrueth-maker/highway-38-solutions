@@ -12,7 +12,7 @@
 
 /* Paycheck sheets (bank-supplied check-on-top stock) — print only. */
 #h38PayrollCheckPrintRoot{display:none}
-.paycheck-sheet{width:7.9in;color:#111;font-family:Arial,Helvetica,sans-serif}
+.paycheck-sheet{width:7.5in;color:#111;font-family:Arial,Helvetica,sans-serif}
 .paycheck-face{position:relative;height:3.4in}
 .paycheck-cal{position:absolute;inset:0}
 .paycheck-flabel{font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;color:#555}
@@ -28,7 +28,7 @@
 @media print{
   body.h38-printing-checks>*:not(#h38PayrollCheckPrintRoot){display:none!important}
   body.h38-printing-checks #h38PayrollCheckPrintRoot{display:block!important;position:static!important;background:#fff!important;color:#111!important}
-  .paycheck-sheet{page-break-after:always;break-after:page;margin:0 auto}
+  .paycheck-sheet{page-break-after:always;break-after:page;margin:0}
   .paycheck-sheet:last-child{page-break-after:auto;break-after:auto}
 }
 
