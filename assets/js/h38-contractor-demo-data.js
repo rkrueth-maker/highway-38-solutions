@@ -5,7 +5,7 @@ window.H38ContractorDemo = Object.freeze({
   notice: "Hypothetical contractor demonstration — not a real customer, accepted contract, or completed project. Regional benchmark pricing requires field and supplier verification.",
   imageUrl(id) {
     const images = {
-      "1QqR5oj3Nw8sjykCnu7Vp5hh6VDIJ6GS9": "assets/contractor-demo/flower-before.png?v=20260722-exact",
+      "1QqR5oj3Nw8sjykCnu7Vp5hh6VDIJ6GS9": "assets/contractor-demo/flower-before-v2.png?v=20261005-v2",
       "1BIXaFXIVK9FUEyWRSzQgM7CiH_tgk405": "assets/contractor-demo/flower-after.png?v=20260722-exact",
       "1MkSHG4k734T7dmhOmy5JsKFUJyoXW8Dz": "assets/contractor-demo/driveway-before.jpg?v=20260722-exact",
       "11fGOY_PJxwvgQm_uMwISvF98XrSXfJK0": "assets/contractor-demo/driveway-after.jpg?v=20260722-exact",
