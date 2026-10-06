@@ -192,7 +192,7 @@ $('vinDecodeBtn').addEventListener('click', async () => {
     const recalls = await checkRecalls(info.make, info.model, info.year);
     if (recalls.length) {
       recallEl.innerHTML = `<div class="notice warn"><strong>⚠ ${recalls.length} open recall${recalls.length === 1 ? '' : 's'} found</strong>` +
-        recalls.map(r => `<div class="small" style="margin-top:6px"><strong>${esc(r.component)}</strong><br>${esc(r.summary.slice(0, 200))}</div>`).join('') +
+        recalls.map(r => `<div class="small" style="margin-top:6px"><strong>${escapeHtml(r.component)}</strong><br>${escapeHtml(r.summary.slice(0, 200))}</div>`).join('') +
         `<div class="small muted" style="margin-top:6px">Check with a dealer — recall repairs are free.</div></div>`;
     } else {
       recallEl.innerHTML = '<p class="small muted">✓ No open recalls found for this vehicle.</p>';
