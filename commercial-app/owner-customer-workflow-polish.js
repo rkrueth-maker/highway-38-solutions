@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261006-quote-decision-controls-1';
+const BUILD='20261006-quote-decision-dialog-2';
 const CONTEXT_KEY='h38:owner-customer-context';
 const NO_CONTEXT_PAGES=new Set(['customers','field','money','accounting','reports','payroll','tax','settings']);
 const FINANCE_COLLECTIONS=new Set(['expenses','purchases','purchaseOrders','vendorBills','payroll','payrollRuns','tax','taxRecords','contractorCostChecklists','contractorPricingPolicy','priceBookCostHistory','internalCosting']);
@@ -62,10 +62,33 @@ async function createJobFromAcceptedQuote(){
   const id=newid('JOB'),cid=recordId(quote,'Customer ID','customerId'),qid=recordId(quote,'Quote ID','quoteId'),record={'Job ID':id,'Business ID':window.state?.businessId||'','Customer ID':cid,'Quote ID':qid,'Source Quote ID':qid,'Job Number':`LOCAL-${Date.now()}`,'Project Title':text(val(quote,'Project Title','projectTitle'))||'Approved work','Status':'Approved','Created Time':now(),'Updated Time':now(),'Record Version':1};
   await window.queueOperation?.('SAVE_JOB','Job',id,{jobId:id,customerId:cid,quoteId:qid,projectTitle:record['Project Title'],status:'Approved'},{collection:'jobs',record,idKeys:['Job ID']});setContext(cid,{jobId:id,source:'accepted-quote'});window.toast?.('Approved quote linked to a new internal job. Nothing was scheduled or sent.');window.openPage?.('work');
 }
+function h38ConfirmDialog(message){
+  return new Promise(resolve=>{
+    let dialog=document.getElementById('h38OwnerConfirmDialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');
+      dialog.id='h38OwnerConfirmDialog';
+      dialog.innerHTML='<form method="dialog"><h2>Confirm</h2><p id="h38OwnerConfirmMessage"></p><div class="actions"><button value="cancel" class="secondary">Cancel</button><button id="h38OwnerConfirmOk" value="ok" class="primary">Confirm</button></div></form>';
+      document.body.appendChild(dialog);
+    }
+    dialog.querySelector('#h38OwnerConfirmMessage').textContent=message;
+    const ok=dialog.querySelector('#h38OwnerConfirmOk');
+    const cleanup=()=>{
+      dialog.removeEventListener('close',onClose);
+      ok.removeEventListener('click',onOk);
+    };
+    const onClose=()=>{cleanup();resolve(dialog.returnValue==='ok');};
+    const onOk=()=>{/* dialog closes via form method=dialog, close event resolves */};
+    dialog.addEventListener('close',onClose);
+    ok.addEventListener('click',onOk);
+    dialog.showModal();
+  });
+}
 async function recordQuoteDecision(decision){
   const quote=currentQuoteRecord();if(!quote){window.toast?.('Save the quote first.',true);return;}
   const qid=recordId(quote,'Quote ID','quoteId'),approved=decision==='accepted',verb=approved?'accepted':'declined';
-  if(!window.confirm(`Record that the customer ${verb} this quote?\n\nThis records the decision only. Nothing is sent and no job is created automatically.`))return;
+  const confirmed=await h38ConfirmDialog(`Record that the customer ${verb} this quote? This records the decision only. Nothing is sent and no job is created automatically.`);
+  if(!confirmed)return;
   try{
     const user=text(window.state?.user?.email||window.state?.user?.id||'owner');
     const updated={...quote,'Status':approved?'Customer Accepted — Owner Recorded':'Customer Declined — Owner Recorded','Customer Decision':approved?'Accepted':'Declined','Customer Decision Recorded By':user,'Customer Decision Time':now(),'Updated Time':now(),'Record Version':Math.max(1,Number(val(quote,'Record Version','recordVersion')||0)+1)};
