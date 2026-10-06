@@ -6,16 +6,18 @@ document.querySelectorAll('[data-on-my-way]').forEach(b=>b.onclick=()=>{if(windo
 bindForm('taskForm',async(data,form)=>{const id=newId('TASK'),record={'Task ID':id,'Business ID':state.businessId,'Job ID':data.jobId,'Task Title':requireValue(data.taskTitle,'Task title is required.'),'Assigned User ID':data.assignedUserId,'Status':'Open','Due Time':data.dueTime,'Created Time':now(),'Updated Time':now(),'Record Version':1};await queueOperation('SAVE_TASK','Task',id,{taskId:id,...data},{collection:'tasks',record,idKeys:['Task ID']});form.reset();toast('Task queued.');renderWork();});
 document.querySelectorAll('[data-delete-task]').forEach(b=>b.onclick=()=>deleteTask(b.dataset.deleteTask).catch(e=>toast(e.message||String(e),true)));}
 
-function h38ConfirmDialog(message){
+function h38ConfirmDialog(message,title='Confirm',okLabel='Confirm'){
   return new Promise(resolve=>{
     let dialog=document.getElementById('h38TaskDeleteConfirmDialog');
     if(!dialog){
       dialog=document.createElement('dialog');
       dialog.id='h38TaskDeleteConfirmDialog';
-      dialog.innerHTML='<form method="dialog"><h2>Confirm delete</h2><p id="h38TaskDeleteConfirmMessage"></p><div class="actions"><button value="cancel" class="secondary">Cancel</button><button value="ok" class="primary">Delete</button></div></form>';
+      dialog.innerHTML='<form method="dialog"><h2 id="h38ConfirmTitle">Confirm</h2><p id="h38TaskDeleteConfirmMessage"></p><div class="actions"><button value="cancel" class="secondary">Cancel</button><button value="ok" class="primary" id="h38ConfirmOk">Confirm</button></div></form>';
       document.body.appendChild(dialog);
     }
+    dialog.querySelector('#h38ConfirmTitle').textContent=title;
     dialog.querySelector('#h38TaskDeleteConfirmMessage').textContent=message;
+    dialog.querySelector('#h38ConfirmOk').textContent=okLabel;
     const onClose=()=>{dialog.removeEventListener('close',onClose);resolve(dialog.returnValue==='ok');};
     dialog.addEventListener('close',onClose);
     dialog.showModal();
