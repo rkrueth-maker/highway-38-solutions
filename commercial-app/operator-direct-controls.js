@@ -2,7 +2,7 @@
 'use strict';
 if(window.__H38_OPERATOR_DIRECT_CONTROLS_INSTALLED)return;
 window.__H38_OPERATOR_DIRECT_CONTROLS_INSTALLED=true;
-const BUILD='20260810-recovery-rebuild-0236';
+const BUILD='20261006-delete-delegation-1';
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 const DB=window.H38DB;
 const text=value=>String(value==null?'':value);
@@ -139,6 +139,23 @@ function appleWalkthrough(event){
 }
 async function decorate(){if(decorating)return;decorating=true;try{quoteDeletes();activeVisitDelete();await siteVisitManager()}finally{decorating=false}}
 document.addEventListener('click',event=>{appleWalkthrough(event)},true);
+// Delegated delete handler: catches delete-button clicks even if the button was
+// re-created by a page re-render after quoteDeletes() ran. This is the fallback
+// authority — individual onclick handlers are still set by quoteDeletes().
+// Capture phase + stopPropagation ensures only one handler fires per click.
+document.addEventListener('click',event=>{
+  const rowButton=event.target?.closest?.('[data-delete-quote-row]');
+  if(rowButton){
+    event.preventDefault();event.stopPropagation();
+    void deleteQuoteById(rowButton.dataset.deleteQuoteRow).catch(error=>toastMessage(error?.message||String(error),true));
+    return;
+  }
+  const builderButton=event.target?.closest?.('#deleteQuoteButton');
+  if(builderButton){
+    event.preventDefault();event.stopPropagation();
+    void deleteQuoteById(text(officeState()?.quote?.quoteId)).catch(error=>toastMessage(error?.message||String(error),true));
+  }
+},true);
 const style=document.createElement('style');style.textContent=`.h38-direct-delete,.field-delete-site-visit{border-color:#a32828!important;color:#8f1f1f!important;font-weight:900!important}.h38-site-visit-manager{margin:0 0 14px}.h38-manager-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.h38-manager-head h2{margin:0}.h38-manager-head p{margin:.25rem 0 0;color:#52616d}.h38-site-visit-row .row-actions{display:flex;gap:8px;flex-wrap:wrap}.field-delete-site-visit{background:#fff!important;border:1px solid #a32828!important;border-radius:10px!important;min-height:42px!important;padding:6px 8px!important;font-size:.72rem!important;line-height:1.05!important;max-width:86px}@media(max-width:620px){.h38-manager-head{display:grid}.h38-manager-head .primary{width:100%}.h38-site-visit-row .row-actions button{flex:1;min-height:44px}}`;document.head.appendChild(style);
 const observer=new MutationObserver(()=>void decorate());observer.observe(document.documentElement,{childList:true,subtree:true});setInterval(()=>void decorate(),900);setTimeout(()=>void decorate(),0);setTimeout(()=>void decorate(),700);
 window.H38_OPERATOR_DIRECT_CONTROLS={build:BUILD,deleteQuoteById,deleteSiteVisit,openSiteVisit,directQuoteDelete:true,directSiteVisitDelete:true,rowDeleteBesideOpenEdit:true,androidWalkthroughAuthority:'android-native-walkthrough-guard',iphoneWalkthroughAuthority:'native-video-input',webViewRecorderAuthority:false,sharedSiteVisitState:true,automaticApproval:false,automaticCustomerSending:false};
