@@ -41,8 +41,8 @@ function rows(name){
 }
 function val(row){for(var i=1;i<arguments.length;i++){var k=arguments[i];if(row&&row[k]!=null&&String(row[k])!=='')return row[k];}return '';}
 function rowId(row){return text(row&& (row['Customer ID']||row['Invoice ID']||row['Payment Method ID']||row['Approval ID']||row.customerId||row.invoiceId||row.id));}
-function money(v){return (typeof moneyFmt==='function')?moneyFmt(v):('$'+num(v).toFixed(2));}
-function moneyFmt(v){try{if(typeof window.money==='function')return window.money(v);}catch(e){}return '$'+num(v).toFixed(2);}
+function money(v){return (typeof moneyFmt==='function')?moneyFmt(v):new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(v));}
+function moneyFmt(v){try{if(typeof window.money==='function')return window.money(v);}catch(e){}return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(v));}
 function nowIso(){try{if(typeof now==='function')return now();}catch(e){}return new Date().toISOString();}
 function newRecId(prefix){try{if(typeof newId==='function')return newId(prefix);}catch(e){}return (prefix||'CV')+'-'+Date.now()+'-'+Math.floor(Math.random()*1e6);}
 function toastOk(msg){try{if(typeof toast==='function')toast(msg);else alert(msg);}catch(e){alert(msg);}}

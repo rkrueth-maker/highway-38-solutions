@@ -12,7 +12,11 @@ function decorate(){
     if(row.querySelector('[data-h38-print-delete]'))return;
     const printButton=row.querySelector('[data-h38-record-pdf="invoice"]');
     const sourceDelete=row.querySelector('[data-delete-invoice]');
+    // If there's already a delete button but no print button, don't add a duplicate.
+    // The runtime only needs to add its button when coordinating print+delete.
     if(!printButton||!sourceDelete)return;
+    // Hide the original to avoid duplicate "Delete" buttons side by side
+    sourceDelete.style.display='none';
     const button=document.createElement('button');
     button.type='button';
     button.className='secondary h38-print-delete';
