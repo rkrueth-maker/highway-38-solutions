@@ -43,6 +43,11 @@
           <span class="cat-label">Diagnose a Problem</span>
           <small>Car, ATV, small engine, appliance</small>
         </button>
+        <button class="category-card" id="goPhotoScan">
+          <span class="cat-icon">📷</span>
+          <span class="cat-label">Scan a Photo</span>
+          <small>Point at it — find out what it is</small>
+        </button>
         <button class="category-card" id="goParts">
           <span class="cat-icon">🔍</span>
           <span class="cat-label">Find Parts</span>
@@ -278,6 +283,34 @@
       </div>
     </section>
 
+    <!-- Photo scan: point at it, find out what it is -->
+    <section id="photoScanScreen" class="screen">
+      <button class="back-btn" id="backToHomeFromPhotoScan">← Home</button>
+      <h2>📷 Scan a Photo</h2>
+      <p class="muted">Take or upload a photo of the vehicle, part, or equipment. Kit will identify what it likely is and what to check.</p>
+      <div class="photo-section">
+        <button id="scanPhotoBtn" class="secondary-btn">📷 Take / Upload Photo</button>
+        <input type="file" id="scanPhotoInput" accept="image/*" capture="environment" hidden>
+        <div id="scanPhotoPreview"></div>
+      </div>
+      <div class="input-group">
+        <label>What kind of thing is it? <small>(optional — helps if the photo is unclear)</small></label>
+        <div class="chip-row" id="scanCategoryChips">
+          <button type="button" class="chip active" data-cat="">Not sure</button>
+          <button type="button" class="chip" data-cat="car">🚗 Car / Truck</button>
+          <button type="button" class="chip" data-cat="atv">🏍️ ATV / UTV</button>
+          <button type="button" class="chip" data-cat="small-engine">⚙️ Small Engine</button>
+          <button type="button" class="chip" data-cat="appliance">🧺 Appliance</button>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>Anything to add? <small>(optional)</small></label>
+        <textarea id="scanNote" rows="3" placeholder="e.g. Makes a grinding noise when it runs"></textarea>
+      </div>
+      <p id="scanError" class="error" hidden></p>
+      <button id="scanDiagnoseBtn" class="primary-btn">What Is This? →</button>
+    </section>
+
     <!-- Symptom input -->
     <section id="symptomScreen" class="screen">
       <button class="back-btn" id="backToCategory">← Back</button>
@@ -307,6 +340,10 @@
         <p>Analyzing...</p>
       </div>
       <div id="diagnosisResult" hidden>
+        <div id="identifiedBox" hidden>
+          <h2>What This Looks Like</h2>
+          <div id="identifiedItem"></div>
+        </div>
         <h2>Likely Issues</h2>
         <div id="issuesList"></div>
         <h2>What to Check</h2>

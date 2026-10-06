@@ -1,4 +1,4 @@
-const CACHE='repair-guide-v4';
+const CACHE='repair-guide-v5';
 const ASSETS=['./','./index.html','./css/styles.css','./js/app.js','./js/heartbeat.js','./js/office-bridge.js','./js/repair-videos.js','./js/obd2.js','./manifest.json'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
