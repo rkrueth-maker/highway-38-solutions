@@ -53,7 +53,7 @@ check('Project Examples places Universal Quote Builder beneath the house',houseI
 check('Project Examples removes separate Universal result board',!samples.includes('class="universal-card"')&&!samples.includes('See What It Produced'));
 check('Project Examples removes fixed example-count wording',!/Eight complete|Explore the Eight|current eight-project/i.test(samples));
 check('Project Examples preserves representative disclosure',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
-const exactExampleImages=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const exactExampleImages=['deck-existing-v2.webp','deck-finished-v2.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-v2.webp','kitchen-remodel-v2.webp'];
 check('deck irrigation and kitchen use six direct approved files',exactExampleImages.every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com')&&!samples.includes('background-image'));
 check('cabin example includes plan and finished concept',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
 const universalRedirect=read('universal-quote-builder.html');

@@ -44,7 +44,7 @@ check('Project Examples contains the Universal Quote Builder beneath the house e
 check('Project Examples removes the separate top Universal result board',!samples.includes('class="universal-card"')&&!samples.includes('See What It Produced'));
 check('Project Examples has no fixed example-count language',!/Eight complete|Explore the Eight|current eight-project/i.test(samples));
 check('Project Examples preserves hypothetical disclosure',samples.includes('Representative demonstrations.')&&samples.includes('data-image-classification="hypothetical-demonstration"'));
-check('Project Examples uses six exact controlled replacement images',['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
+check('Project Examples uses six exact controlled replacement images',['deck-existing-v2.webp','deck-finished-v2.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-v2.webp','kitchen-remodel-v2.webp'].every(name=>samples.includes(`assets/demo-workthroughs/${name}`))&&!samples.includes('at.adobe.com'));
 check('Project Examples includes complete cabin package',samples.includes('cabin-plan-sheet.png')&&samples.includes('cabin-exterior-render.png')&&samples.includes('cabin-project-complete.html'));
 const universalRedirect=read('universal-quote-builder.html');
 const publicViewer=read('universal-quote-builder-example.html');

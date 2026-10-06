@@ -51,8 +51,8 @@ const legacyBrand=read('brand-global.js');
 const contractorCss=read('contractor-demo.css');
 const samplePage=read('sample-library-now.html');
 const contractorPage=read('contractor-quote-complete.html');
-const cardDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
-const contractorDirectFiles=['deck-existing-condition.webp','deck-finished-concept.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-condition.webp','kitchen-remodel-concept.webp'];
+const cardDirectFiles=['deck-existing-v2.webp','deck-finished-v2.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-v2.webp','kitchen-remodel-v2.webp'];
+const contractorDirectFiles=['deck-existing-v2.webp','deck-finished-v2.webp','irrigation-before-clean.webp','irrigation-after-clean.webp','kitchen-existing-v2.webp','kitchen-remodel-v2.webp'];
 const allDirectFiles=[...new Set([...cardDirectFiles,...contractorDirectFiles])];
 
 check('canonical shell declares source lock',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(canonical));
@@ -65,8 +65,8 @@ check('brand compatibility loader contains no image placement',!/representativeF
 check('approved project card and quote images exist',allDirectFiles.every(file=>fs.existsSync(path.join(root,'assets/demo-workthroughs',file))),allDirectFiles.join(', '));
 check('sample cards reference all six approved card files',cardDirectFiles.every(file=>samplePage.includes(`assets/demo-workthroughs/${file}`)),cardDirectFiles.join(', '));
 check('contractor example data references all six approved quote files',contractorDirectFiles.every(file=>contractorPage.includes(file)),contractorDirectFiles.join(', '));
-check('same-house flower concept is the approved sample image',samplePage.includes('assets/contractor-demo/flower-after-same-house.webp')&&samplePage.includes('alt="Flower garden after at the same house"'));
-check('project photographs use direct raster files',!/(flower-after-same-house|irrigation-before-clean|irrigation-after-clean)\.svg/.test(samplePage+contractorPage)&&/(flower-after-same-house|irrigation-before-clean|irrigation-after-clean)\.webp/.test(samplePage+contractorPage));
+check('same-house flower concept is the approved sample image',samplePage.includes('assets/contractor-demo/flower-after-v2.webp')&&samplePage.includes('alt="Rendered flower garden concept at the same house"'));
+check('project photographs use direct raster files',!/(flower-after-v2|irrigation-before-clean|irrigation-after-clean)\.svg/.test(samplePage+contractorPage)&&/(flower-after-v2|irrigation-before-clean|irrigation-after-clean)\.webp/.test(samplePage+contractorPage));
 check('matched flower quote is linked from the sample card',samplePage.includes('href="flower-garden-quote-complete.html"')&&samplePage.includes('$3,950'));
 check('project CSS does not use remote backgrounds',!/background-image\s*:\s*url\(['"]?https?:\/\//i.test(contractorCss));
 check('project CSS does not use the retired strip or sprite',!/project-pairs-(?:strip|sprite)/.test(contractorCss));
