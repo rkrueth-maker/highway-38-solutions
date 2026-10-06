@@ -224,9 +224,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const noteEvent = async (note: string) => {
-      if (!eventId) return;
+      // Audit trail is best-effort: a missing tenant resolution or a
+      // failed insert must never fail the webhook itself.
+      if (!eventId || !resolvedBusiness) return;
       await sb.from("business_records").insert({
-        business_id: resolvedBusiness || "unknown",
+        business_id: resolvedBusiness,
         collection: EVENT_COLLECTION,
         record_key: eventId,
         record_status: "active",
