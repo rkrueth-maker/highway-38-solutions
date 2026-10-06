@@ -112,7 +112,7 @@
    },
    {
     "role": "demo-proof-2",
-    "src": "assets/demo-workthroughs/kitchen-remodel-concept.webp",
+    "src": "assets/demo-workthroughs/kitchen-remodel-v2.webp",
     "alt": "Completed kitchen remodel example"
    },
    {
@@ -195,13 +195,13 @@
    },
    {
     "role": "example-01-before",
-    "src": "assets/contractor-demo/flower-before.png",
+    "src": "assets/contractor-demo/flower-before-v2.png",
     "alt": "Flower garden before"
    },
    {
     "role": "example-01-after",
-    "src": "assets/contractor-demo/flower-after-same-house.webp",
-    "alt": "Flower garden after at the same house"
+    "src": "assets/contractor-demo/flower-after-v2.webp",
+    "alt": "Rendered flower garden concept at the same house"
    },
    {
     "role": "example-02-before",
@@ -235,13 +235,13 @@
    },
    {
     "role": "example-05-before",
-    "src": "assets/demo-workthroughs/deck-existing-condition.webp",
+    "src": "assets/demo-workthroughs/deck-existing-v2.webp",
     "alt": "Existing rear entry before deck construction"
    },
    {
     "role": "example-05-after",
-    "src": "assets/demo-workthroughs/deck-finished-concept.webp",
-    "alt": "Finished 8 by 12 pressure-treated deck concept"
+    "src": "assets/demo-workthroughs/deck-finished-v2.webp",
+    "alt": "Finished 8 by 12 pressure-treated deck"
    },
    {
     "role": "example-06-before",
@@ -255,21 +255,31 @@
    },
    {
     "role": "example-07-before",
-    "src": "assets/demo-workthroughs/kitchen-existing-condition.webp",
+    "src": "assets/demo-workthroughs/kitchen-existing-v2.webp",
     "alt": "Existing dated kitchen before renovation"
    },
    {
     "role": "example-07-after",
-    "src": "assets/demo-workthroughs/kitchen-remodel-concept.webp",
-    "alt": "Mid-range kitchen remodel concept"
+    "src": "assets/demo-workthroughs/kitchen-remodel-v2.webp",
+    "alt": "Mid-range kitchen remodel in the same kitchen"
    },
    {
-    "role": "example-08-plan",
+    "role": "example-08-before",
+    "src": "assets/demo-workthroughs/bathroom-existing-v2.webp",
+    "alt": "Existing dated bathroom before renovation"
+   },
+   {
+    "role": "example-08-after",
+    "src": "assets/demo-workthroughs/bathroom-finished-v2.webp",
+    "alt": "Mid-range bathroom remodel in the same bathroom"
+   },
+   {
+    "role": "example-09-plan",
     "src": "assets/demo-workthroughs/cabin-plan-sheet.png",
     "alt": "Three-bedroom two-bath cabin plan sheet"
    },
    {
-    "role": "example-08-finished",
+    "role": "example-09-finished",
     "src": "assets/demo-workthroughs/cabin-exterior-render.png",
     "alt": "Completed Northwoods cabin concept"
    }
@@ -321,8 +331,8 @@
    },
    "examples": {
     "flower": [
-     "flower-before.png",
-     "flower-after-same-house.webp"
+     "flower-before-v2.png",
+     "flower-after-v2.webp"
     ],
     "drive": [
      "driveway-before.jpg",
@@ -337,16 +347,16 @@
      "lot-after.jpg"
     ],
     "deck": [
-     "deck-existing-condition.webp",
-     "deck-finished-concept.webp"
+     "deck-existing-v2.webp",
+     "deck-finished-v2.webp"
     ],
     "irrigation": [
      "irrigation-before-clean.webp",
      "irrigation-after-clean.webp"
     ],
     "kitchen": [
-     "kitchen-existing-condition.webp",
-     "kitchen-remodel-concept.webp"
+     "kitchen-existing-v2.webp",
+     "kitchen-remodel-v2.webp"
     ]
    }
   }

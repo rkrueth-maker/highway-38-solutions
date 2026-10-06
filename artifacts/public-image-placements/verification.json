@@ -1,12 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-06T02:33:23.497Z",
+  "generatedAt": "2026-10-06T03:04:29.247Z",
   "policyVersion": "2026-07-24-direct-raster-visual-gate-v3",
   "approvedLogoLocked": true,
   "contentImageSourcesLocked": true,
   "runtimeImageSourceChangesAllowed": false,
   "directProjectImagesRequired": true,
-  "passed": 226,
+  "passed": 234,
   "failed": 0,
   "passes": [
     {
@@ -59,15 +59,15 @@
     },
     {
       "name": "index.html demo-proof-2 exact source",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
     },
     {
       "name": "index.html demo-proof-2 exact alt",
       "detail": "Completed kitchen remodel example"
     },
     {
-      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+      "name": "assets/demo-workthroughs/kitchen-remodel-v2.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
     },
     {
       "name": "index.html demo-proof-3 exact source",
@@ -94,7 +94,7 @@
       "detail": "1/1"
     },
     {
-      "name": "index.html preserves assets/demo-workthroughs/kitchen-remodel-concept.webp occurrence count",
+      "name": "index.html preserves assets/demo-workthroughs/kitchen-remodel-v2.webp occurrence count",
       "detail": "1/1"
     },
     {
@@ -339,27 +339,27 @@
     },
     {
       "name": "sample-library-now.html example-01-before exact source",
-      "detail": "assets/contractor-demo/flower-before.png"
+      "detail": "assets/contractor-demo/flower-before-v2.png"
     },
     {
       "name": "sample-library-now.html example-01-before exact alt",
       "detail": "Flower garden before"
     },
     {
-      "name": "assets/contractor-demo/flower-before.png exists",
-      "detail": "assets/contractor-demo/flower-before.png"
+      "name": "assets/contractor-demo/flower-before-v2.png exists",
+      "detail": "assets/contractor-demo/flower-before-v2.png"
     },
     {
       "name": "sample-library-now.html example-01-after exact source",
-      "detail": "assets/contractor-demo/flower-after-same-house.webp"
+      "detail": "assets/contractor-demo/flower-after-v2.webp"
     },
     {
       "name": "sample-library-now.html example-01-after exact alt",
-      "detail": "Flower garden after at the same house"
+      "detail": "Rendered flower garden concept at the same house"
     },
     {
-      "name": "assets/contractor-demo/flower-after-same-house.webp exists",
-      "detail": "assets/contractor-demo/flower-after-same-house.webp"
+      "name": "assets/contractor-demo/flower-after-v2.webp exists",
+      "detail": "assets/contractor-demo/flower-after-v2.webp"
     },
     {
       "name": "sample-library-now.html example-02-before exact source",
@@ -435,27 +435,27 @@
     },
     {
       "name": "sample-library-now.html example-05-before exact source",
-      "detail": "assets/demo-workthroughs/deck-existing-condition.webp"
+      "detail": "assets/demo-workthroughs/deck-existing-v2.webp"
     },
     {
       "name": "sample-library-now.html example-05-before exact alt",
       "detail": "Existing rear entry before deck construction"
     },
     {
-      "name": "assets/demo-workthroughs/deck-existing-condition.webp exists",
-      "detail": "assets/demo-workthroughs/deck-existing-condition.webp"
+      "name": "assets/demo-workthroughs/deck-existing-v2.webp exists",
+      "detail": "assets/demo-workthroughs/deck-existing-v2.webp"
     },
     {
       "name": "sample-library-now.html example-05-after exact source",
-      "detail": "assets/demo-workthroughs/deck-finished-concept.webp"
+      "detail": "assets/demo-workthroughs/deck-finished-v2.webp"
     },
     {
       "name": "sample-library-now.html example-05-after exact alt",
-      "detail": "Finished 8 by 12 pressure-treated deck concept"
+      "detail": "Finished 8 by 12 pressure-treated deck"
     },
     {
-      "name": "assets/demo-workthroughs/deck-finished-concept.webp exists",
-      "detail": "assets/demo-workthroughs/deck-finished-concept.webp"
+      "name": "assets/demo-workthroughs/deck-finished-v2.webp exists",
+      "detail": "assets/demo-workthroughs/deck-finished-v2.webp"
     },
     {
       "name": "sample-library-now.html example-06-before exact source",
@@ -483,34 +483,58 @@
     },
     {
       "name": "sample-library-now.html example-07-before exact source",
-      "detail": "assets/demo-workthroughs/kitchen-existing-condition.webp"
+      "detail": "assets/demo-workthroughs/kitchen-existing-v2.webp"
     },
     {
       "name": "sample-library-now.html example-07-before exact alt",
       "detail": "Existing dated kitchen before renovation"
     },
     {
-      "name": "assets/demo-workthroughs/kitchen-existing-condition.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-existing-condition.webp"
+      "name": "assets/demo-workthroughs/kitchen-existing-v2.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-existing-v2.webp"
     },
     {
       "name": "sample-library-now.html example-07-after exact source",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
     },
     {
       "name": "sample-library-now.html example-07-after exact alt",
-      "detail": "Mid-range kitchen remodel concept"
+      "detail": "Mid-range kitchen remodel in the same kitchen"
     },
     {
-      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+      "name": "assets/demo-workthroughs/kitchen-remodel-v2.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
     },
     {
-      "name": "sample-library-now.html example-08-plan exact source",
+      "name": "sample-library-now.html example-08-before exact source",
+      "detail": "assets/demo-workthroughs/bathroom-existing-v2.webp"
+    },
+    {
+      "name": "sample-library-now.html example-08-before exact alt",
+      "detail": "Existing dated bathroom before renovation"
+    },
+    {
+      "name": "assets/demo-workthroughs/bathroom-existing-v2.webp exists",
+      "detail": "assets/demo-workthroughs/bathroom-existing-v2.webp"
+    },
+    {
+      "name": "sample-library-now.html example-08-after exact source",
+      "detail": "assets/demo-workthroughs/bathroom-finished-v2.webp"
+    },
+    {
+      "name": "sample-library-now.html example-08-after exact alt",
+      "detail": "Mid-range bathroom remodel in the same bathroom"
+    },
+    {
+      "name": "assets/demo-workthroughs/bathroom-finished-v2.webp exists",
+      "detail": "assets/demo-workthroughs/bathroom-finished-v2.webp"
+    },
+    {
+      "name": "sample-library-now.html example-09-plan exact source",
       "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
     },
     {
-      "name": "sample-library-now.html example-08-plan exact alt",
+      "name": "sample-library-now.html example-09-plan exact alt",
       "detail": "Three-bedroom two-bath cabin plan sheet"
     },
     {
@@ -518,11 +542,11 @@
       "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
     },
     {
-      "name": "sample-library-now.html example-08-finished exact source",
+      "name": "sample-library-now.html example-09-finished exact source",
       "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
     },
     {
-      "name": "sample-library-now.html example-08-finished exact alt",
+      "name": "sample-library-now.html example-09-finished exact alt",
       "detail": "Completed Northwoods cabin concept"
     },
     {
@@ -534,11 +558,11 @@
       "detail": "2/2"
     },
     {
-      "name": "sample-library-now.html preserves assets/contractor-demo/flower-before.png occurrence count",
+      "name": "sample-library-now.html preserves assets/contractor-demo/flower-before-v2.png occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "sample-library-now.html preserves assets/contractor-demo/flower-after-same-house.webp occurrence count",
+      "name": "sample-library-now.html preserves assets/contractor-demo/flower-after-v2.webp occurrence count",
       "detail": "1/1"
     },
     {
@@ -566,11 +590,11 @@
       "detail": "1/1"
     },
     {
-      "name": "sample-library-now.html preserves assets/demo-workthroughs/deck-existing-condition.webp occurrence count",
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/deck-existing-v2.webp occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "sample-library-now.html preserves assets/demo-workthroughs/deck-finished-concept.webp occurrence count",
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/deck-finished-v2.webp occurrence count",
       "detail": "1/1"
     },
     {
@@ -582,11 +606,19 @@
       "detail": "1/1"
     },
     {
-      "name": "sample-library-now.html preserves assets/demo-workthroughs/kitchen-existing-condition.webp occurrence count",
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/kitchen-existing-v2.webp occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "sample-library-now.html preserves assets/demo-workthroughs/kitchen-remodel-concept.webp occurrence count",
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/kitchen-remodel-v2.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/bathroom-existing-v2.webp occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "sample-library-now.html preserves assets/demo-workthroughs/bathroom-finished-v2.webp occurrence count",
       "detail": "1/1"
     },
     {
@@ -595,7 +627,7 @@
     },
     {
       "name": "sample-library-now.html images have alt text",
-      "detail": "18 images"
+      "detail": "20 images"
     },
     {
       "name": "cabin-project-complete.html exists",
@@ -730,20 +762,20 @@
       "detail": "assets/demo-workthroughs/"
     },
     {
-      "name": "contractor-quote-complete.html flower uses flower-before.png",
-      "detail": "flower-before.png"
+      "name": "contractor-quote-complete.html flower uses flower-before-v2.png",
+      "detail": "flower-before-v2.png"
     },
     {
-      "name": "assets/contractor-demo/flower-before.png exists",
-      "detail": "assets/contractor-demo/flower-before.png"
+      "name": "assets/contractor-demo/flower-before-v2.png exists",
+      "detail": "assets/contractor-demo/flower-before-v2.png"
     },
     {
-      "name": "contractor-quote-complete.html flower uses flower-after-same-house.webp",
-      "detail": "flower-after-same-house.webp"
+      "name": "contractor-quote-complete.html flower uses flower-after-v2.webp",
+      "detail": "flower-after-v2.webp"
     },
     {
-      "name": "assets/contractor-demo/flower-after-same-house.webp exists",
-      "detail": "assets/contractor-demo/flower-after-same-house.webp"
+      "name": "assets/contractor-demo/flower-after-v2.webp exists",
+      "detail": "assets/contractor-demo/flower-after-v2.webp"
     },
     {
       "name": "contractor-quote-complete.html drive uses driveway-before.jpg",
@@ -794,20 +826,20 @@
       "detail": "assets/contractor-demo/lot-after.jpg"
     },
     {
-      "name": "contractor-quote-complete.html deck uses deck-existing-condition.webp",
-      "detail": "deck-existing-condition.webp"
+      "name": "contractor-quote-complete.html deck uses deck-existing-v2.webp",
+      "detail": "deck-existing-v2.webp"
     },
     {
-      "name": "assets/demo-workthroughs/deck-existing-condition.webp exists",
-      "detail": "assets/demo-workthroughs/deck-existing-condition.webp"
+      "name": "assets/demo-workthroughs/deck-existing-v2.webp exists",
+      "detail": "assets/demo-workthroughs/deck-existing-v2.webp"
     },
     {
-      "name": "contractor-quote-complete.html deck uses deck-finished-concept.webp",
-      "detail": "deck-finished-concept.webp"
+      "name": "contractor-quote-complete.html deck uses deck-finished-v2.webp",
+      "detail": "deck-finished-v2.webp"
     },
     {
-      "name": "assets/demo-workthroughs/deck-finished-concept.webp exists",
-      "detail": "assets/demo-workthroughs/deck-finished-concept.webp"
+      "name": "assets/demo-workthroughs/deck-finished-v2.webp exists",
+      "detail": "assets/demo-workthroughs/deck-finished-v2.webp"
     },
     {
       "name": "contractor-quote-complete.html irrigation uses irrigation-before-clean.webp",
@@ -826,20 +858,20 @@
       "detail": "assets/demo-workthroughs/irrigation-after-clean.webp"
     },
     {
-      "name": "contractor-quote-complete.html kitchen uses kitchen-existing-condition.webp",
-      "detail": "kitchen-existing-condition.webp"
+      "name": "contractor-quote-complete.html kitchen uses kitchen-existing-v2.webp",
+      "detail": "kitchen-existing-v2.webp"
     },
     {
-      "name": "assets/demo-workthroughs/kitchen-existing-condition.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-existing-condition.webp"
+      "name": "assets/demo-workthroughs/kitchen-existing-v2.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-existing-v2.webp"
     },
     {
-      "name": "contractor-quote-complete.html kitchen uses kitchen-remodel-concept.webp",
-      "detail": "kitchen-remodel-concept.webp"
+      "name": "contractor-quote-complete.html kitchen uses kitchen-remodel-v2.webp",
+      "detail": "kitchen-remodel-v2.webp"
     },
     {
-      "name": "assets/demo-workthroughs/kitchen-remodel-concept.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-concept.webp"
+      "name": "assets/demo-workthroughs/kitchen-remodel-v2.webp exists",
+      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
     },
     {
       "name": "canonical shell declares source lock",
@@ -871,15 +903,15 @@
     },
     {
       "name": "approved project card and quote images exist",
-      "detail": "deck-existing-condition.webp, deck-finished-concept.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-condition.webp, kitchen-remodel-concept.webp"
+      "detail": "deck-existing-v2.webp, deck-finished-v2.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-v2.webp, kitchen-remodel-v2.webp"
     },
     {
       "name": "sample cards reference all six approved card files",
-      "detail": "deck-existing-condition.webp, deck-finished-concept.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-condition.webp, kitchen-remodel-concept.webp"
+      "detail": "deck-existing-v2.webp, deck-finished-v2.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-v2.webp, kitchen-remodel-v2.webp"
     },
     {
       "name": "contractor example data references all six approved quote files",
-      "detail": "deck-existing-condition.webp, deck-finished-concept.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-condition.webp, kitchen-remodel-concept.webp"
+      "detail": "deck-existing-v2.webp, deck-finished-v2.webp, irrigation-before-clean.webp, irrigation-after-clean.webp, kitchen-existing-v2.webp, kitchen-remodel-v2.webp"
     },
     {
       "name": "same-house flower concept is the approved sample image",
