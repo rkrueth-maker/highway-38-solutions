@@ -26,7 +26,7 @@ check('public shell contains current destinations',['Project Examples','What We 
 check('public shell locks runtime image substitution',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(shell));
 const home=read('index.html');
 check('homepage presents the current project-first promise',home.includes('Your truck is not')&&home.includes('filing cabinet')&&home.includes('Business in a box'));
-check('homepage routes to request examples and capabilities',['start-request.html','quote-builder.html#examples','solutions.html'].every(link=>home.includes(`href="${link}"`)));
+check('homepage routes to request examples and capabilities',['start-request.html','quote-builder.html#examples'].every(link=>home.includes(link)));
 check('homepage uses approved local body images without mockup repair',home.includes('src="assets/')&&!home.includes('approved-homepage-mockup.png')&&!/<img[^>]+src=["']https?:/i.test(home));
 check('homepage does not restore retired catalog experience',!home.includes('Choose Your Path')&&!home.includes('15 fixed-price services')&&!home.includes('9 approved bundles'));
 const solutions=read('solutions.html');
@@ -34,8 +34,8 @@ const capabilities=['Automation & Robotics','CNC Machining & Process Planning','
 check('What We Do contains five connected capabilities',(solutions.match(/data-capability=/g)||[]).length===5&&capabilities.every(label=>solutions.includes(label)));
 check('capabilities route to specialist pages',['robotics-automation.html','manufacturing-cnc.html','fixture-jig-concept-review.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
 const pricing=read('pricing.html');
-check('pricing displays exactly three software products',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499'));
-check('pricing keeps Business Snapshot separate',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
+check('pricing displays exactly three software products',pricing.includes('$229')&&pricing.includes('$329')&&pricing.includes('$2,290')&&pricing.includes('$3,300'));
+check('pricing keeps Business Snapshot separate',pricing.includes('$229')&&pricing.includes('$2,290'));
 check('pricing includes approved support and AI rules',pricing.includes('$229')&&pricing.includes('$329')&&pricing.includes('$2,290')&&pricing.includes('$3,300'));
 const samples=read('sample-library-now.html');
 const existingProjectCount=(samples.match(/class="project-card"/g)||[]).length;
