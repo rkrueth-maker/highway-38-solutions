@@ -195,7 +195,7 @@ function loadSession(token){
   fetch(FN_URL+'?action=session&token='+encodeURIComponent(token))
     .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
     .then(function(r){
-      if(r.ok&&r.o&&r.o.customer){bundle=r.o;renderPortal();}
+      if(r.ok&&r.o&&r.o.customer){bundle=r.o;window.__h38OnlinePayments=!!(r.o.payments&&r.o.payments.onlineEnabled);renderPortal();}
       else{sessionStorage.removeItem('h38-portal-session');sessionToken='';showRedeemError((r.o&&r.o.error)||'Your session expired. Please sign in again.');}
     })
     .catch(function(){showRedeemError('Could not reach the portal. Please try again.');});
@@ -283,7 +283,7 @@ function renderPortal(){
     var bal=Number(i.balance)||0;
     return '<div class="item"><div class="top"><strong>Invoice '+esc(i.number||'')+'</strong>'+statusPill(i.status)+'</div>'+
       '<div class="muted small">Total '+money(i.total)+' · Balance '+money(bal)+(i.dueDate?' · Due '+esc(i.dueDate):'')+'</div>'+
-      (bal>0?'<button class="block" style="margin-top:10px" data-pay="'+esc(i.id)+'" data-amount="'+bal+'">Pay '+money(bal)+'</button>':'')+'</div>';
+      (bal>0?'<button class="block" style="margin-top:10px" data-pay="'+esc(i.id)+'" data-amount="'+bal+'">'+(window.__h38OnlinePayments?'Pay '+money(bal)+' online':'Pay '+money(bal))+'</button>':'')+'</div>';
   }).join(''):'<p class="muted">No invoices yet.</p>';
 
   // History
@@ -322,6 +322,15 @@ function declineQuote(quoteId){
   });
 }
 function payInvoice(invoiceId,amount){
+  if(window.__h38OnlinePayments){
+    // Online payments are ON for this business: pay now on its own secure
+    // checkout page. Funds go straight to the business — never to H38.
+    api('pay-invoice-checkout',{session_token:sessionToken,invoice_id:invoiceId}).then(function(r){
+      if(r.ok&&r.o&&r.o.url){location.href=r.o.url;return;}
+      alert((r.o&&(r.o.message||r.o.error))||'Online payment could not be started. Please contact the office.');
+    });
+    return;
+  }
   if(!confirm('Request payment of '+money(Number(amount))+'? We will process it and send your receipt.'))return;
   api('pay-invoice',{session_token:sessionToken,invoice_id:invoiceId,amount:Number(amount)}).then(function(r){
     alert((r.o&&(r.o.message||r.o.error))||'Done.');

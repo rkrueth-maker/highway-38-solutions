@@ -17,8 +17,13 @@
 // - Quote approval only touches quotes in PRESENTED/SENT status that belong to
 //   the session's customer. Approval marks the quote APPROVED and records the
 //   event; the owner still converts it to a job in the Office.
-// - Payments record an intent (portal_payment_intents) for the office to
-//   complete — the portal never moves money.
+// - Payments: while a business only records them manually, the portal
+//   records a payment intent (portal_payment_intents) for the office to
+//   complete — the portal never moves money. When the business has ALSO
+//   enabled online payments (module_key = "online_payments") and finished
+//   Stripe Connect onboarding, pay-invoice-checkout sends the customer to
+//   hosted Stripe Checkout on the business's OWN connected account; funds
+//   settle to that business's bank, never to H38.
 // - Client-facing errors are generic; internals are logged server-side only.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -38,6 +43,8 @@ const ALLOWED_ORIGINS = new Set([
 
 const MODULE_KEY = "customer_portal";
 const BOOKING_MODULE_KEY = "online_booking";
+const ONLINE_PAYMENTS_MODULE_KEY = "online_payments";
+const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") || "";
 const TOKEN_COLLECTION = "portal_tokens";
 const INVITE_COLLECTION = "portal_invite_requests";
 const APPROVAL_COLLECTION = "quote_approvals";
@@ -199,6 +206,45 @@ async function moduleEnabled(service: ReturnType<typeof serviceClient>, business
     .maybeSingle();
   if (error) throw error;
   return data?.enabled === true;
+}
+
+// Online payments (Stripe Connect) state for a tenant. Ready only when the
+// owner turned the module on AND Stripe reports charges enabled on the
+// business's own connected account.
+async function onlinePaymentsState(
+  service: ReturnType<typeof serviceClient>,
+  businessId: string,
+): Promise<{ enabled: boolean; ready: boolean; accountId: string }> {
+  const { data, error } = await service
+    .from("business_module_settings")
+    .select("enabled, config")
+    .eq("business_id", businessId)
+    .eq("module_key", ONLINE_PAYMENTS_MODULE_KEY)
+    .maybeSingle();
+  if (error) throw error;
+  const config = ((data?.config || {}) as JsonObject);
+  const enabled = data?.enabled === true;
+  const accountId = clean(config.stripeAccountId, 80);
+  return { enabled, ready: enabled && !!accountId && config.chargesEnabled === true, accountId };
+}
+
+async function stripeCreateCheckout(
+  accountId: string,
+  params: URLSearchParams,
+): Promise<JsonObject> {
+  const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Account": accountId,
+    },
+    body: params.toString(),
+    signal: AbortSignal.timeout(30000),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error("Stripe checkout could not be created.");
+  return data as JsonObject;
 }
 
 async function attributionUserId(service: ReturnType<typeof serviceClient>, businessId: string): Promise<string> {
@@ -482,8 +528,11 @@ async function buildSessionBundle(
       };
     });
 
+  const paymentsState = await onlinePaymentsState(service, businessId);
+
   return {
     business: { id: businessId, name: business?.display_name || "Highway 38" },
+    payments: { onlineEnabled: paymentsState.ready },
     customer: {
       name: clean(pick(customer, "Customer Name", "name"), 120),
       email: clean(pick(customer, "Email", "email"), 120),
@@ -880,6 +929,80 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
         message: "Payment request received. We will process it and send your receipt.",
         amount: charge,
       });
+    }
+
+    // ---- pay-invoice-checkout: hosted Stripe Checkout on the business's
+    // own connected account. Only when the tenant enabled online payments
+    // AND Stripe reports charges enabled; otherwise the customer keeps the
+    // manual (intent) path above. ----
+    if (postAction === "pay-invoice-checkout") {
+      const invoiceId = clean(body.invoice_id || body.invoiceId, 120);
+      if (!invoiceId) return reply(req, 400, { error: "Invalid request." });
+      const payState = await onlinePaymentsState(sb, session.businessId);
+      if (!payState.ready || !STRIPE_SECRET_KEY) {
+        return reply(req, 409, { error: "Online payment isn't available right now. Please contact the office." });
+      }
+      const { data: row, error } = await sb
+        .from("business_records")
+        .select("id,record_key,payload")
+        .eq("business_id", session.businessId)
+        .eq("collection", "invoices")
+        .eq("record_key", invoiceId)
+        .eq("record_status", "active")
+        .maybeSingle();
+      if (error) throw error;
+      if (!row) return reply(req, 404, { error: "Invoice not found." });
+      const inv = (row.payload || {}) as JsonObject;
+      if (clean(pick(inv, "Customer ID", "customerId"), 120) !== session.customerKey) {
+        return reply(req, 403, { error: "Invoice not found." });
+      }
+      const balance = numberValue(pick(inv, "Balance", "balance"));
+      if (balance <= 0) return reply(req, 409, { error: "This invoice has no balance due." });
+      const origin = requestOrigin(req) || "https://highway38solutions.com";
+      const portalBase = origin.includes("github.io")
+        ? `${origin}/highway-38-solutions/commercial-app/customer-portal.html`
+        : `${origin}/commercial-app/customer-portal.html`;
+      const params = new URLSearchParams();
+      params.set("mode", "payment");
+      params.append("payment_method_types[]", "card");
+      params.append("payment_method_types[]", "us_bank_account");
+      params.set("line_items[0][quantity]", "1");
+      params.set("line_items[0][price_data][currency]", "usd");
+      params.set("line_items[0][price_data][unit_amount]", String(Math.round(balance * 100)));
+      params.set(
+        "line_items[0][price_data][product_data][name]",
+        `Invoice ${clean(pick(inv, "Invoice Number", "invoiceNumber"), 60) || invoiceId}`,
+      );
+      params.set("metadata[business_id]", session.businessId);
+      params.set("metadata[invoice_id]", invoiceId);
+      params.set("payment_intent_data[metadata][business_id]", session.businessId);
+      params.set("payment_intent_data[metadata][invoice_id]", invoiceId);
+      const customer = await customerById(sb, session.businessId, session.customerKey).catch(() => null);
+      const custEmail = clean(pick((customer?.payload || {}) as JsonObject, "Email", "email"), 120);
+      if (custEmail) params.set("payment_intent_data[receipt_email]", custEmail);
+      params.set("success_url", `${portalBase}?business=${encodeURIComponent(session.businessId)}&paid=1`);
+      params.set("cancel_url", `${portalBase}?business=${encodeURIComponent(session.businessId)}&paid=0`);
+      const checkout = await stripeCreateCheckout(payState.accountId, params);
+      const checkoutUrl = String(checkout.url || "");
+      if (!checkoutUrl) return reply(req, 502, { error: "Online payment could not be started. Please contact the office." });
+      await sb
+        .from("business_records")
+        .update({
+          payload: {
+            ...inv,
+            "Online Payment Status": "Link Open",
+            "Stripe Checkout Session": String(checkout.id || ""),
+            "Online Payment Link": checkoutUrl,
+            "Online Payment Updated": new Date().toISOString(),
+            "Updated Time": new Date().toISOString(),
+            "Record Version": Math.max(1, numberValue(inv["Record Version"]) || 1) + 1,
+          },
+        })
+        .eq("business_id", session.businessId)
+        .eq("collection", "invoices")
+        .eq("record_key", invoiceId);
+      await writeProof(sb, session.businessId, "PORTAL_CHECKOUT_LINK", "Invoice", invoiceId, "OK", { amount: balance });
+      return reply(req, 200, { ok: true, url: checkoutUrl });
     }
 
     // ---- request-service (session or portal-gated public) ----
