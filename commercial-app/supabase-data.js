@@ -575,13 +575,14 @@
     const jobs = window.state.snapshot.jobs || [];
     const taskBoard = document.createElement('section');
     taskBoard.id='supabaseTaskBoard';taskBoard.className='card';
-    taskBoard.innerHTML=`<h2>Task board and punch list</h2><div class="list">${tasks.length?tasks.slice(0,100).map(row=>{const id=legacyId(row,idKeysFor('tasks'));return`<div class="row"><div class="row-top"><strong>${window.esc(row['Task Title'])}</strong>${window.pill(row['Status'] || 'Open')}</div><small>${window.esc(window.jobName(row['Job ID']))} · ${window.esc(window.userName(row['Assigned User ID']))} · ${window.dateTime(row['Due Time'])}</small><div class="row-actions"><button data-task-state="Started" data-task-id="${window.esc(id)}">Start</button><button data-task-state="Blocked" data-task-id="${window.esc(id)}">Block</button><button data-task-state="Complete" data-task-id="${window.esc(id)}">Complete</button></div></div>`;}).join(''):window.empty('No tasks yet. Use Assign task above.')}</div>`;
+    taskBoard.innerHTML=`<h2>Task board and punch list</h2><div class="list">${tasks.length?tasks.slice(0,100).map(row=>{const id=legacyId(row,idKeysFor('tasks'));return`<div class="row"><div class="row-top"><strong>${window.esc(row['Task Title'])}</strong>${window.pill(row['Status'] || 'Open')}</div><small>${window.esc(window.jobName(row['Job ID']))} · ${window.esc(window.userName(row['Assigned User ID']))} · ${window.dateTime(row['Due Time'])}</small><div class="row-actions"><button data-task-state="Started" data-task-id="${window.esc(id)}">Start</button><button data-task-state="Blocked" data-task-id="${window.esc(id)}">Block</button><button data-task-state="Complete" data-task-id="${window.esc(id)}">Complete</button><button type="button" class="secondary" data-task-delete="${window.esc(id)}">Delete</button></div></div>`;}).join(''):window.empty('No tasks yet. Use Assign task above.')}</div>`;
     grid.appendChild(taskBoard);
     taskBoard.querySelectorAll('[data-task-state]').forEach(button=>button.onclick=async()=>{
       const row=tasks.find(item=>legacyId(item,idKeysFor('tasks'))===button.dataset.taskId);if(!row)return;
       const updated=Object.assign({},row,{'Status':button.dataset.taskState,'Updated Time':isoNow()});
       await queueRecord('tasks',updated,'Task');window.toast('Task status queued.');window.renderWork();
     });
+    taskBoard.querySelectorAll('[data-task-delete]').forEach(button=>button.onclick=()=>{if(typeof window.deleteTask==='function')window.deleteTask(button.dataset.taskDelete).catch(e=>window.toast(e.message||String(e),true));else window.toast('Task delete is unavailable.',true);});
 
     const checklist = document.createElement('section');
     checklist.id='supabaseChecklist';checklist.className='card span6';
