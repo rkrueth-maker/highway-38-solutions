@@ -39,7 +39,7 @@
     <div class="pi-hero-copy">
       <span class="pi-eyebrow">Free quote builder demo — pick your trade</span>
       <h1>Start with a finished quote.<br><strong>Change it into your own.</strong></h1>
-      <p>Choose a trade below to load a complete sample quote — landscape, drainage, cleanup, bathroom, kitchen, deck, gutters, HVAC, plumbing, or electrical. Each covers scope, line items, internal markup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
+      <p>Choose a trade below to load a complete sample quote — landscape, drainage, cleanup, bathroom, kitchen, deck, gutters, HVAC, plumbing, electrical, appliance repair, or auto mechanic. Each covers scope, line items, internal markup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
       <div class="pi-actions"><a class="pi-btn primary" href="#demo">Edit the Featured Quote</a><a class="pi-btn secondary" href="quote-builder.html#examples">View Complete Quote and CAD Packages</a></div>
     </div>
     <div class="pi-callout"><h3>Nothing leaves this page</h3><p>This demonstration uses browser memory only. It does not create an account, save a customer, upload files, call H38 AI, send a quote, charge a card, or submit information to Highway 38.</p></div>
@@ -70,6 +70,8 @@
           <button type="button" class="preset-btn" data-preset="hvac" aria-pressed="false">HVAC replacement<span>Furnace, AC, ductwork, thermostat, testing</span></button>
           <button type="button" class="preset-btn" data-preset="plumbing" aria-pressed="false">Plumbing<span>Water heater, fixtures, repiping, testing</span></button>
           <button type="button" class="preset-btn" data-preset="electrical" aria-pressed="false">Electrical<span>Panel upgrade, circuits, lighting, devices</span></button>
+          <button type="button" class="preset-btn" data-preset="appliance" aria-pressed="false">Appliance repair<span>Diagnosis, parts, refrigerator, washer, range</span></button>
+          <button type="button" class="preset-btn" data-preset="mechanic" aria-pressed="false">Auto mechanic<span>Brakes, suspension, diagnostics, maintenance</span></button>
         </div>
 
         <form id="demoForm">
@@ -137,7 +139,7 @@
       <article class="pi-card"><div class="pi-card-body"><h3>Trade-ready structure</h3><p>Design, removal, materials, labor, equipment, and closeout can be quoted together — whatever the trade.</p></div></article>
       <article class="pi-card"><div class="pi-card-body"><h3>Private markup</h3><p>Markup stays in the editor. Customer unit prices already include it, so the preview and printed quote remain clean.</p></div></article>
       <article class="pi-card"><div class="pi-card-body"><h3>Site boundaries</h3><p>Utilities, weather, soil, substitutions, access, exclusions, and written-change controls reduce misunderstanding.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Ten trades, one structure</h3><p>Switch between landscape, drainage, cleanup, bathroom, kitchen, deck, gutters, HVAC, plumbing, and electrical examples using the same quote structure.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Twelve trades, one structure</h3><p>Switch between landscape, drainage, cleanup, bathroom, kitchen, deck, gutters, HVAC, plumbing, electrical, appliance, and auto examples using the same quote structure.</p></div></article>
     </div>
     <div class="pi-callout pi-compact" style="margin-top:24px"><h3>What the paid Quote Builder adds</h3><p>Connected customers, saved versions, reusable templates, price-book items, photos, documents, approvals, acceptance records, branded PDFs, controlled H38 AI, and quote-to-job workflow.</p></div>
     <div class="pi-actions" style="justify-content:center;margin-top:24px"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="pricing.html">Compare Products</a></div>
@@ -331,6 +333,42 @@
         {category:'Equipment',description:'Delivery, lift, and disposal allowance',qty:1,unit:'allowance',rate:280},
         {category:'Closeout',description:'Testing, labeling, inspection, photos, and walkthrough',qty:1,unit:'project',rate:200}
       ]
+    },
+    appliance:{
+      business:'Northwoods Appliance Service — fictional',quoteNumber:'A-8890',customer:'Oak Drive Residence — fictional',project:'Refrigerator and washer repair',location:'Grand Rapids area — sample location',duration:'1–2 service visits',schedule:'Next available service window after approval',markup:20,tax:7.375,deposit:25,validDays:'14 days',
+      scope:'Diagnose refrigerator cooling issue and washer drain fault; replace listed parts; test all cycles; verify temperatures and drainage; clean work area and complete customer walkthrough.',
+      assumptions:'Appliances are accessible with clear work space. Electrical outlet and water connections are functional. Listed parts are available without backorder.',
+      exclusions:'Refrigerant system sealed repairs beyond listed parts, cosmetic damage, water-line replacement beyond appliance connection, and haul-away unless listed.',
+      terms:'Quote valid for 14 days. A 25% deposit is due after written acceptance and before parts ordering. Parts carry manufacturer warranty. Balance is due after testing and walkthrough.',
+      items:[
+        {category:'Design',description:'Diagnostic visit, fault testing, and estimate',qty:1,unit:'visit',rate:95},
+        {category:'Materials',description:'Refrigerator defrost thermostat and fan motor',qty:1,unit:'kit',rate:185},
+        {category:'Materials',description:'Washer drain pump assembly',qty:1,unit:'each',rate:120},
+        {category:'Materials',description:'Hoses, clamps, and miscellaneous parts',qty:1,unit:'allowance',rate:65},
+        {category:'Labor',description:'Refrigerator diagnosis and part replacement',qty:2.5,unit:'labor hr',rate:88},
+        {category:'Labor',description:'Washer diagnosis, pump replacement, and testing',qty:2,unit:'labor hr',rate:88},
+        {category:'Labor',description:'Full cycle testing and temperature verification',qty:1,unit:'labor hr',rate:88},
+        {category:'Equipment',description:'Parts pickup, delivery, and disposal allowance',qty:1,unit:'allowance',rate:85},
+        {category:'Closeout',description:'Final testing, cleanup, photos, and walkthrough',qty:1,unit:'project',rate:75}
+      ]
+    },
+    mechanic:{
+      business:'Northwoods Auto Care — fictional',quoteNumber:'M-9920',customer:'Fleet / Personal Vehicle — fictional',project:'Brake service and suspension check',location:'Grand Rapids area — sample location',duration:'1–2 working days',schedule:'Next available bay after approval',markup:20,tax:7.375,deposit:25,validDays:'14 days',
+      scope:'Inspect brake system and suspension; replace front brake pads and rotors; replace rear brake pads; inspect and replace listed suspension components; road test; complete multi-point inspection report.',
+      assumptions:'Vehicle is in serviceable condition beyond listed repairs. No seized or broken fasteners requiring extraction. Customer approves any additional findings before work proceeds.',
+      exclusions:'Tires, alignment beyond listed check, engine or transmission work, body or frame repair, and diagnostic of unrelated warning lights unless listed.',
+      terms:'Quote valid for 14 days. A 25% deposit is due after written acceptance and before parts ordering. Parts carry manufacturer warranty. Balance is due at vehicle pickup.',
+      items:[
+        {category:'Design',description:'Multi-point inspection, measurements, and estimate',qty:1,unit:'vehicle',rate:85},
+        {category:'Materials',description:'Front brake pads and rotors (pair)',qty:1,unit:'set',rate:240},
+        {category:'Materials',description:'Rear brake pads (set)',qty:1,unit:'set',rate:95},
+        {category:'Materials',description:'Sway-bar links and bushings',qty:1,unit:'kit',rate:130},
+        {category:'Materials',description:'Brake fluid, cleaner, and shop supplies',qty:1,unit:'allowance',rate:55},
+        {category:'Labor',description:'Front brake pad and rotor replacement',qty:2.5,unit:'labor hr',rate:105},
+        {category:'Labor',description:'Rear brake pad replacement and adjustment',qty:1.5,unit:'labor hr',rate:105},
+        {category:'Labor',description:'Suspension component replacement and road test',qty:2,unit:'labor hr',rate:105},
+        {category:'Closeout',description:'Final inspection, torque check, report, and walkthrough',qty:1,unit:'project',rate:65}
+      ]
     }
   };
 
@@ -353,7 +391,7 @@
     ['markup','tax','deposit'].forEach(id=>fill(id,preset[id]));
     body.innerHTML='';preset.items.forEach(row);
     document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preset===name)));
-    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch',bathroom:'Bathroom remodel',kitchen:'Kitchen refresh',deck:'Deck build',gutters:'Gutter replacement',hvac:'HVAC replacement',plumbing:'Plumbing updates',electrical:'Electrical upgrade'};
+    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch',bathroom:'Bathroom remodel',kitchen:'Kitchen refresh',deck:'Deck build',gutters:'Gutter replacement',hvac:'HVAC replacement',plumbing:'Plumbing updates',electrical:'Electrical upgrade',appliance:'Appliance repair',mechanic:'Auto brake and suspension'};
     const summaries={
       landscape:{title:'Featured example: Front-entry landscape renovation',desc:'A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.',items:'10 line items',duration:'3–4 working days'},
       drainage:{title:'Featured example: Drainage and lawn repair',desc:'A complete sample with downspout extensions, grading, soil prep, seed, erosion control, and site restoration.',items:'8 line items',duration:'2–3 working days'},
@@ -364,7 +402,9 @@
       gutters:{title:'Featured example: Seamless gutter replacement',desc:'A complete sample with removal, seamless gutters, downspouts, leaf guards, flow testing, and closeout.',items:'8 line items',duration:'1–2 working days'},
       hvac:{title:'Featured example: Furnace and AC replacement',desc:'A complete sample with equipment sizing, removal, installation, startup, testing, and orientation.',items:'10 line items',duration:'2–3 working days'},
       plumbing:{title:'Featured example: Water heater and fixture updates',desc:'A complete sample with water heater replacement, fixture updates, supply lines, testing, and closeout.',items:'9 line items',duration:'2–3 working days'},
-      electrical:{title:'Featured example: Panel upgrade and lighting',desc:'A complete sample with 200-amp panel, dedicated circuits, LED fixtures, testing, and inspection.',items:'9 line items',duration:'2–4 working days'}
+      electrical:{title:'Featured example: Panel upgrade and lighting',desc:'A complete sample with 200-amp panel, dedicated circuits, LED fixtures, testing, and inspection.',items:'9 line items',duration:'2–4 working days'},
+      appliance:{title:'Featured example: Refrigerator and washer repair',desc:'A complete sample with diagnostics, parts replacement, cycle testing, and walkthrough.',items:'9 line items',duration:'1–2 service visits'},
+      mechanic:{title:'Featured example: Brake service and suspension check',desc:'A complete sample with inspection, brake replacement, suspension work, road test, and report.',items:'9 line items',duration:'1–2 working days'}
     };
     const summary=summaries[name]||summaries.landscape;
     $('summaryTitle').textContent=summary.title;
