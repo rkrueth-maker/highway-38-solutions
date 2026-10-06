@@ -297,6 +297,114 @@ function renderRepairWarningsCard(){
   }catch(e){}
   return '';
 }
+
+// ---- Electronic payments (Dwolla, sandbox): server-backed tenant setting ----
+// Stored in business_module_settings (module_key='electronic_payments',
+// enabled, config={perSendCap, dailyCap}). Missing row or enabled!==true
+// means OFF — Pay buttons do not render and the h38-outbound-payments edge
+// function refuses every send. Sandbox only until Dwolla production approval
+// (needs a formed business + EIN). Fees are disclosed here BEFORE anything
+// connects: Dwolla pay-as-you-go is 0.5% per transfer, $0.05 minimum, $5
+// maximum, passed through at cost — no markup, no hidden fees.
+const ELECTRONIC_PAYMENTS_KEY='electronic_payments';
+
+function electronicPaymentsSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===ELECTRONIC_PAYMENTS_KEY)||null;
+}
+
+function isElectronicPaymentsEnabled(){
+  const row=electronicPaymentsSettingRow();
+  return row!==null?row.enabled===true:false;
+}
+
+function electronicPaymentsConfig(){
+  const row=electronicPaymentsSettingRow();
+  const cfg=(row&&row.config)||{};
+  return {
+    perSendCap:Number(cfg.perSendCap)>0?Number(cfg.perSendCap):10000,
+    dailyCap:Number(cfg.dailyCap)>0?Number(cfg.dailyCap):25000
+  };
+}
+
+async function setElectronicPayments(enabled){
+  if(!canManageModules()) throw new Error('Only a business owner or administrator can change module settings.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const sess=await api.auth.getSession();
+  const user=sess&&sess.data&&sess.data.session&&sess.data.session.user;
+  if(!user) throw new Error('Sign in again before changing this setting.');
+  const nowTs=new Date().toISOString();
+  const cfg=Object.assign({},electronicPaymentsConfig(),{updatedBy:user.id,updatedAt:nowTs});
+  const row={business_id:bid,module_key:ELECTRONIC_PAYMENTS_KEY,enabled:!!enabled,
+    config:cfg,updated_at:nowTs};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res.error) throw res.error;
+  if(window.state&&window.state.snapshot){
+    if(!Array.isArray(window.state.snapshot.moduleSettings)) window.state.snapshot.moduleSettings=[];
+    const list=window.state.snapshot.moduleSettings;
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===ELECTRONIC_PAYMENTS_KEY);
+    const snapRow={module_key:ELECTRONIC_PAYMENTS_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=Object.assign({},list[i],snapRow); else list.push(snapRow);
+  }
+  return !!enabled;
+}
+
+function renderElectronicPaymentsCard(){
+  const enabled=isElectronicPaymentsEnabled();
+  const can=canManageModules();
+  const caps=electronicPaymentsConfig();
+  return `
+    <section class="card span12" id="electronicPaymentsCard">
+      <h2>💸 Electronic Payments (Bill Pay)</h2>
+      <p class="muted small">Pay vendor bills bank-to-bank from inside the Office through Dwolla. <strong>Stays off until you turn it on.</strong> Today this runs on the Dwolla <strong>sandbox</strong> (test money only) — production waits on business registration. Every payment needs your tap on a confirm screen; nothing ever sends itself.</p>
+      <div class="row">
+        <div class="row-top">
+          <strong>Electronic payments ${enabled?'are ON (sandbox)':'are OFF'}</strong>
+          <label class="switch">
+            <input type="checkbox" data-electronic-payments ${enabled?'checked':''} ${can?'':'disabled'}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <small>${can?'Flip the switch to show Pay buttons on approved vendor bills.':'Only an owner or administrator can change this.'}</small>
+        <small><strong>Cost, up front:</strong> Dwolla charges 0.5% per transfer (minimum $0.05, maximum $5), passed through at cost — no markup, no hidden fees. The exact fee shows on every confirm screen before you tap. If a payment bounces, the bank's return fee is charged to your business, never to employees.</small>
+        <small>Caps: $${caps.perSendCap.toFixed(2)} per payment · $${caps.dailyCap.toFixed(2)} per day. Turning this off is the kill switch — all sends stop immediately.</small>
+      </div>
+    </section>
+  `;
+}
+
+function bindElectronicPayments(){
+  const checkbox=document.querySelector('[data-electronic-payments]');
+  if(!checkbox||checkbox.dataset.h38Bound) return;
+  checkbox.dataset.h38Bound='1';
+  checkbox.onchange=async()=>{
+    const want=checkbox.checked;
+    if(want){
+      const ok=window.confirm('Turn ON electronic bill pay (Dwolla sandbox)? Pay buttons will appear on approved vendor bills. The cost is 0.5% per transfer ($0.05 minimum, $5 maximum), passed through at cost — no markup. Sandbox moves test money only; production is not connected. Every payment still needs your tap on a confirm screen. Nothing sends automatically.');
+      if(!ok){checkbox.checked=false;return;}
+    }
+    checkbox.disabled=true;
+    try{
+      const enabled=await setElectronicPayments(want);
+      const card=document.getElementById('electronicPaymentsCard');
+      if(card){
+        const tmp=document.createElement('div');
+        tmp.innerHTML=renderElectronicPaymentsCard();
+        const fresh=tmp.firstElementChild;
+        if(fresh){card.replaceWith(fresh);bindElectronicPayments();}
+      }
+      if(typeof toast==='function') toast('Electronic payments '+(enabled?'turned ON (sandbox).':'turned OFF.'));
+    }catch(e){
+      checkbox.checked=!want;
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }finally{
+      checkbox.disabled=false;
+    }
+  };
+}
 function renderCustomerPortalCard(){
   const enabled=isCustomerPortalEnabled();
   const can=canManageModules();
@@ -407,6 +515,7 @@ function renderOwnerControls(){
       </section>
       ${renderMachineShopCard()}
       ${renderCustomerPortalCard()}
+      ${renderElectronicPaymentsCard()}
       ${renderRepairWarningsCard()}
       ${toggleSections}
       ${moduleSection}
@@ -417,6 +526,7 @@ function renderOwnerControls(){
 function bindOwnerControls(){
   bindMachineShop();
   bindCustomerPortal();
+  bindElectronicPayments();
   try{if(window.H38FailureChains&&typeof window.H38FailureChains.bindOwnerCard==='function')window.H38FailureChains.bindOwnerCard();}catch(e){}
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
     checkbox.onchange=async()=>{
@@ -471,6 +581,9 @@ window.H38OwnerControls={
   setMachineShop:setMachineShop,
   isCustomerPortalEnabled:isCustomerPortalEnabled,
   setCustomerPortal:setCustomerPortal,
+  isElectronicPaymentsEnabled:isElectronicPaymentsEnabled,
+  setElectronicPayments:setElectronicPayments,
+  electronicPaymentsConfig:electronicPaymentsConfig,
   applyVisibility:()=>applyModuleVisibility(getModuleVisibility()),
   FEATURES:FEATURE_TOGGLES,
   MODULES:MODULES,
