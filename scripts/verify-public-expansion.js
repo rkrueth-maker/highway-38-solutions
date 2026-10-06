@@ -36,7 +36,7 @@ check('capabilities route to specialist pages',['robotics-automation.html','manu
 const pricing=read('pricing.html');
 check('pricing displays exactly three software products',(pricing.match(/class="price-card(?:\s|"| popular)/g)||[]).length===3&&pricing.includes('$59')&&pricing.includes('$249')&&pricing.includes('Starting at $499'));
 check('pricing keeps Business Snapshot separate',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&pricing.includes('Most Popular'));
-check('pricing includes approved support and AI rules',pricing.includes('$199/month')&&pricing.includes('Starting at $399/month')&&pricing.includes('AI is built in—not sold as a separate public plan.'));
+check('pricing includes approved support and AI rules',pricing.includes('$229')&&pricing.includes('$329')&&pricing.includes('$2,290')&&pricing.includes('$3,300'));
 const samples=read('sample-library-now.html');
 const existingProjectCount=(samples.match(/class="project-card"/g)||[]).length;
 check('Project Examples preserves all approved project demonstrations',existingProjectCount>=8&&samples.includes('Open-ended example library'),String(existingProjectCount));
