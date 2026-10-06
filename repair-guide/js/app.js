@@ -524,12 +524,13 @@ $('diagnoseBtn').addEventListener('click', async () => {
       unitInfo: $('unitInfo').value.trim(),
       photo: state.photo,
     });
+    const diagTop = result && (result.diagnosis || result);
     saveRepair({
       category: state.category,
       symptoms,
       unitInfo: $('unitInfo').value.trim(),
-      topIssue: result && result.issues && result.issues[0]
-        ? (result.issues[0].title || result.issues[0].name || '')
+      topIssue: diagTop && diagTop.likelyIssues && diagTop.likelyIssues[0]
+        ? (diagTop.likelyIssues[0].issue || '')
         : '',
     });
     // Stash for the optional Office bridge (dormant without ?office_business=).
