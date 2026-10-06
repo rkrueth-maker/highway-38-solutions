@@ -193,7 +193,8 @@ async function h38ConfirmPayrollRun(){
   toast('Pay run saved for owner review. No funds moved.');renderPayrollPrep();
 }
 async function h38FinalizePayRun(periodId){
-  if(!confirm('Finalize this pay run? This marks it approved and unlocks export. No funds are moved by the Office.'))return;
+  const confirmed=typeof h38ConfirmDialog==='function'?await h38ConfirmDialog('Finalize this pay run? This marks it approved and unlocks export. No funds are moved by the Office.','Finalize pay run','Finalize'):confirm('Finalize this pay run? This marks it approved and unlocks export. No funds are moved by the Office.');
+  if(!confirmed)return;
   const row=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===periodId);
   if(!row)return;
   const updated=Object.assign({},row,{'Approval Status':'Approved','Status':'Finalized','Export Allowed':'Yes',
