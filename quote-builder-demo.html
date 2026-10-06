@@ -20,7 +20,7 @@
     .preset-btn{border:1px solid #bfd0c6;border-radius:12px;background:#f6faf7;color:#173226;padding:13px;text-align:left;font:inherit;font-weight:850;cursor:pointer}.preset-btn span{display:block;margin-top:4px;color:#63746b;font-size:.78rem;font-weight:650}.preset-btn:hover,.preset-btn[aria-pressed="true"]{border-color:#1f6b47;background:#e8f1ec;color:#12472f}
     .demo-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.demo-field{display:flex;flex-direction:column;gap:6px}.demo-field.full{grid-column:1/-1}.demo-field label{font-weight:800;color:#0b1f34}.demo-field small{color:#65736c}.internal-field{border:1px dashed #aabbb1;border-radius:12px;background:#f6f8f7;padding:12px}
     .demo-field input,.demo-field textarea,.demo-field select{width:100%;box-sizing:border-box;border:1px solid #b9c7bf;border-radius:10px;padding:11px 12px;font:inherit;background:#fff;color:#102033}.demo-field textarea{min-height:102px;resize:vertical}
-    .line-wrap{overflow-x:auto;border:1px solid #e0e8e3;border-radius:12px;margin-top:12px}.line-table{width:100%;border-collapse:collapse;min-width:860px}.line-table th,.line-table td{padding:9px 7px;border-bottom:1px solid #e2e9e5;text-align:left;vertical-align:middle}.line-table th{background:#f4f7f5;color:#334b3f;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}.line-table input,.line-table select{width:100%;box-sizing:border-box;border:1px solid #bcc9c1;border-radius:8px;padding:9px;font:inherit;background:#fff}.line-table .category{width:128px}.line-table .num{width:78px}.line-table .unit{width:92px}.line-table .money{width:126px}.line-table .remove{width:44px;text-align:center}.icon-btn{border:1px solid #c5d0ca;background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900}
+    .line-wrap{overflow-x:auto;border:1px solid #e0e8e3;border-radius:12px;margin-top:12px}.line-table{width:100%;border-collapse:collapse;min-width:720px}.line-table th,.line-table td{padding:9px 7px;border-bottom:1px solid #e2e9e5;text-align:left;vertical-align:middle}.line-table th{background:#f4f7f5;color:#334b3f;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}.line-table input,.line-table select{width:100%;box-sizing:border-box;border:1px solid #bcc9c1;border-radius:8px;padding:9px;font:inherit;background:#fff}.line-table .category{width:118px}.line-table .num{width:70px}.line-table .unit{width:80px}.line-table .money{width:110px}.line-table .remove{width:40px;text-align:center}.icon-btn{border:1px solid #c5d0ca;background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900}
     .demo-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.demo-toolbar button{border:0;border-radius:10px;padding:11px 14px;font:inherit;font-weight:900;cursor:pointer}.demo-toolbar .primary{background:#1f6b47;color:#fff}.demo-toolbar .secondary{background:#e8efeb;color:#173226}.demo-toolbar .danger{background:#fff3ee;color:#8a2f13;border:1px solid #f0c7b8}
     .quote-preview{position:sticky;top:92px;padding:0;overflow:hidden}.quote-paper{padding:28px}.quote-ribbon{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;background:#0b1f34;color:#fff}.quote-ribbon strong{letter-spacing:.06em;text-transform:uppercase;font-size:.82rem}.sample-badge{border-radius:999px;background:#fff1e7;color:#8b3b0a;padding:5px 9px;font-size:.72rem;font-weight:900}.quote-head{display:flex;justify-content:space-between;gap:18px;padding-bottom:16px;border-bottom:2px solid #173226}.quote-head h2{margin:0}.quote-meta{text-align:right;color:#52636c}.quote-meta strong{color:#173226}
     .project-summary{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;padding:18px 0;border-bottom:1px solid #e0e8e3}.summary-box{border-left:3px solid #1f6b47;padding-left:12px}.summary-box span{display:block;color:#63746b;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}.summary-box strong{display:block;margin-top:4px;color:#173226}
@@ -49,9 +49,9 @@
   <div class="demo-notice" role="note"><strong>Demo boundary:</strong> Every business, customer, location, price, tax rate, schedule, plant, quantity, and project detail shown here is fictional. Verify all real measurements, site conditions, costs, taxes, utilities, plant suitability, specifications, licensing requirements, and customer terms.</div>
 
   <div class="example-strip" aria-label="Featured quote summary">
-    <div class="example-intro"><strong>Featured example: Front-entry landscape renovation</strong><span>A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.</span></div>
-    <div class="example-stat"><strong>10 line items</strong><span>Design + materials + labor</span></div>
-    <div class="example-stat"><strong>3–4 working days</strong><span>Fictional estimated duration</span></div>
+    <div class="example-intro"><strong id="summaryTitle">Featured example: Front-entry landscape renovation</strong><span id="summaryDesc">A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.</span></div>
+    <div class="example-stat"><strong id="summaryItems">10 line items</strong><span>Design + materials + labor</span></div>
+    <div class="example-stat"><strong id="summaryDuration">3–4 working days</strong><span>Fictional estimated duration</span></div>
     <div class="example-stat"><strong>Markup stays internal</strong><span>Not shown in preview or PDF</span></div>
   </div>
 
@@ -77,7 +77,7 @@
             <div class="demo-field"><label for="duration">Estimated duration</label><input id="duration" value="3–4 working days"></div>
             <div class="demo-field"><label for="schedule">Target schedule</label><input id="schedule" value="Within 3 weeks of written approval"></div>
             <div class="demo-field internal-field"><label for="markup">Internal markup percentage</label><input id="markup" type="number" min="0" step="0.1" value="15"><small>Used to calculate customer unit prices. Never shown in the customer preview or printed quote.</small></div>
-            <div class="demo-field"><label for="tax">Tax percentage</label><input id="tax" type="number" min="0" step="0.1" value="7.375"><small>Sample rate only. Taxability varies by item and location.</small></div>
+            <div class="demo-field"><label for="tax">Tax percentage</label><input id="tax" type="number" min="0" step="0.001" value="7.375"><small>Sample rate only. Taxability varies by item and location.</small></div>
             <div class="demo-field"><label for="deposit">Deposit percentage</label><input id="deposit" type="number" min="0" max="100" step="1" value="35"></div>
             <div class="demo-field"><label for="validDays">Quote valid for</label><input id="validDays" value="21 days"></div>
           </div>
@@ -203,9 +203,10 @@
 
   function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
   function optionMarkup(selected){return categories.map(category=>'<option'+(category===selected?' selected':'')+'>'+escapeHtml(category)+'</option>').join('');}
+  function cleanNum(value){const n=Number(value||0);return Number.isFinite(n)?Math.round(n*100)/100:0;}
   function row(item={category:'Other',description:'',qty:1,unit:'each',rate:0}){
     const tr=document.createElement('tr');
-    tr.innerHTML='<td class="category"><select class="cat" aria-label="Line item category">'+optionMarkup(item.category)+'</select></td><td><input class="desc" aria-label="Line item description" value="'+escapeHtml(item.description)+'"></td><td class="num"><input class="qty" aria-label="Quantity" type="number" min="0" step="0.01" value="'+Number(item.qty||0)+'"></td><td class="unit"><input class="unit-value" aria-label="Unit" value="'+escapeHtml(item.unit||'each')+'"></td><td class="money"><input class="rate" aria-label="Internal cost or rate" type="number" min="0" step="0.01" value="'+Number(item.rate||0)+'"></td><td class="remove"><button type="button" class="icon-btn" aria-label="Remove line item">×</button></td>';
+    tr.innerHTML='<td class="category"><select class="cat" aria-label="Line item category">'+optionMarkup(item.category)+'</select></td><td><input class="desc" aria-label="Line item description" value="'+escapeHtml(item.description)+'"></td><td class="num"><input class="qty" aria-label="Quantity" type="number" min="0" step="0.01" value="'+cleanNum(item.qty)+'"></td><td class="unit"><input class="unit-value" aria-label="Unit" value="'+escapeHtml(item.unit||'each')+'"></td><td class="money"><input class="rate" aria-label="Internal cost or rate" type="number" min="0" step="0.01" value="'+cleanNum(item.rate)+'"></td><td class="remove"><button type="button" class="icon-btn" aria-label="Remove line item">×</button></td>';
     tr.querySelectorAll('input,select').forEach(input=>input.addEventListener('input',render));
     tr.querySelector('button').addEventListener('click',()=>{tr.remove();render();});
     body.appendChild(tr);
@@ -220,6 +221,16 @@
     body.innerHTML='';preset.items.forEach(row);
     document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preset===name)));
     const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch'};
+    const summaries={
+      landscape:{title:'Featured example: Front-entry landscape renovation',desc:'A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.',items:'10 line items',duration:'3–4 working days'},
+      drainage:{title:'Featured example: Drainage and lawn repair',desc:'A complete sample with downspout extensions, grading, soil prep, seed, erosion control, and site restoration.',items:'8 line items',duration:'2–3 working days'},
+      seasonal:{title:'Featured example: Seasonal property cleanup',desc:'A complete sample with bed cleanup, pruning, mulch refresh, debris removal, and seasonal readiness.',items:'8 line items',duration:'1–2 working days'}
+    };
+    const summary=summaries[name]||summaries.landscape;
+    $('summaryTitle').textContent=summary.title;
+    $('summaryDesc').textContent=summary.desc;
+    $('summaryItems').textContent=summary.items;
+    $('summaryDuration').textContent=summary.duration;
     $('demoStatus').textContent=(names[name]||names.landscape)+' example loaded. Internal markup remains hidden from the customer quote.';
     render();
   }
@@ -255,6 +266,8 @@
   }
 
   ['business','quoteNumber','customer','project','location','duration','schedule','scope','markup','tax','deposit','validDays','assumptions','exclusions','terms'].forEach(id=>$(id).addEventListener('input',render));
+  function autoResizeTextarea(el){el.style.height='auto';el.style.height=Math.max(102,el.scrollHeight)+'px';}
+  ['scope','assumptions','exclusions','terms'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',()=>autoResizeTextarea(el));autoResizeTextarea(el);}});
   document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>loadPreset(button.dataset.preset)));
   $('addLine').addEventListener('click',()=>{row({category:'Other',description:'New line item',qty:1,unit:'each',rate:0});render();});
   $('resetPreset').addEventListener('click',()=>loadPreset('landscape'));
