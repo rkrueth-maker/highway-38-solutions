@@ -98,7 +98,7 @@ check('What We Do has no fixed-price cards',!/\$\d[\d,]*(?:\.\d{2})?/.test(solut
 check('capability desktop layout is controlled',/\.pi-capability-grid\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/.test(capabilityStyles));
 check('capability phone layout is one column',/@media\(max-width:620px\)[\s\S]*\.pi-capability-grid[\s\S]*grid-template-columns:1fr/.test(capabilityStyles));
 
-check('final pricing source exposes three software offers',count(pricingSource,/classification:'software'/g)===3);
+check('final pricing source exposes two software offers',count(pricingSource,/classification:'software'/g)===2&&pricingSource.includes("id:'byo-claude'")&&pricingSource.includes("id:'ai-backend'"));
 check('final pricing source exposes one diagnostic',count(pricingSource,/classification:'diagnostic'/g)===1&&pricingSource.includes("id:'business-snapshot'"));
 check('request controller has no submit handler',!/addEventListener\(['"]submit['"]/.test(requestController));
 check('request controller owns final offer rendering',/renderOffers/.test(requestController)&&/selectedOffer/.test(requestController)&&/offerById/.test(requestController));
@@ -136,7 +136,7 @@ const evidence={
   status:failures.length?'HOLD':'PASS',generatedAt:new Date().toISOString(),
   architecture:'project-first-public-site-v2.4-plus-supabase-only-office',
   governance:'website-and-web-app-governance-v1',logoLocked:true,imagePlacementsLocked:true,
-  pricingProducts:3,whatWeDoCapabilities:requiredCapabilities,canonicalShell:canonicalJs,
+  pricingProducts:2,whatWeDoCapabilities:requiredCapabilities,canonicalShell:canonicalJs,
   standardOffice:'supabase-only',legacyOfficeRoute:false,
   passed:passes.length,failed:failures.length,warnings,passes,failures
 };
