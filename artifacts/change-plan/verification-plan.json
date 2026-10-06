@@ -1,18 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-05T19:14:36.357Z",
-  "base": "origin/main",
-  "head": "fix/ci-main-red-20261005",
+  "generatedAt": "2026-10-06T06:28:23.299Z",
+  "base": "main",
+  "head": "fix/operation-test-fixes",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "business-in-a-box-pricing.html"
+    "commercial-app/app-04.js",
+    "commercial-app/app-05.js",
+    "commercial-app/customer-workspace-documents.js",
+    "commercial-app/operator-direct-controls.js",
+    "commercial-app/owner-customer-workflow-polish.js"
   ],
-  "fileCount": 4,
+  "fileCount": 5,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": false,
+    "publicWebsite": false,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -23,24 +24,24 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": false,
+    "publicRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+    "Public browser and image evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
