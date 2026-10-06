@@ -22,7 +22,7 @@ function registerToggle(){
     const f=window.H38OwnerControls&&window.H38OwnerControls.FEATURES;
     if(!Array.isArray(f))return;
     if(!f.some(x=>x&&x.id==='route_optimization')){
-      f.push({id:'route_optimization',title:'Route optimization',desc:'Optimize daily stop order for drive time. Free geocoding + offline math; OSRM test server when reachable — no API key needed.',icon:'',default:false,category:'Schedule'});
+      f.push({id:'route_optimization',title:'Route optimization',desc:'Optimize daily stop order for drive time. Free geocoding + offline math; online routing when reachable — no API key needed.',icon:'',default:false,category:'Schedule'});
     }
   }catch(e){}
 }

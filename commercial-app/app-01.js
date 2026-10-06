@@ -13,7 +13,7 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 const v=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const num=value=>Number(value||0),now=()=>new Date().toISOString();
 const money=value=>num(value).toLocaleString(undefined,{style:'currency',currency:v(state.snapshot?.business,'currency','Currency')||'USD'});
-const dateTime=value=>value?new Date(value).toLocaleString():'Not set';
+const dateTime=value=>value?new Date(value).toLocaleString([],{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):'Not set';
 const dateOnly=value=>value?new Date(`${String(value).slice(0,10)}T12:00:00`).toLocaleDateString():'Not set';
 const empty=(text,cta)=>`<div class="empty">${esc(text)}${cta?`<div style="margin-top:10px"><button class="secondary" data-open-page="${esc(cta.page)}">${esc(cta.label)}</button></div>`:''}</div>`;
 // Global delegation for empty-state CTA buttons (and any data-open-page buttons)
