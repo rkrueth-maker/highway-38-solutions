@@ -2,7 +2,7 @@
 'use strict';
 if(window.__H38_OPERATOR_DIRECT_CONTROLS_INSTALLED)return;
 window.__H38_OPERATOR_DIRECT_CONTROLS_INSTALLED=true;
-const BUILD='20261006-delete-delegation-1';
+const BUILD='20261006-delete-dialog-2';
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
 const DB=window.H38DB;
 const text=value=>String(value==null?'':value);
@@ -22,6 +22,22 @@ function businessId(){return text(officeState()?.businessId||C()?.business?.());
 function customerName(id){const row=rows('customers').find(x=>rid(x,'Customer ID','customerId')===text(id));return text(val(row,'Customer Name','customerName','name')||'No customer');}
 async function auth(){const api=shared?.ensure?.();if(!api)throw Error('The secure Business Office connection is not ready.');const result=await api.auth.getSession();if(result.error)throw result.error;if(!result.data?.session?.user)throw Error('Sign in again before deleting.');return{api,user:result.data.session.user};}
 async function removePending(tokens){if(!DB)return;const wanted=(tokens||[]).map(text).filter(Boolean);if(!wanted.length)return;for(const row of await DB.all('operations')){let hay='';try{hay=JSON.stringify(row)}catch(_){}if(wanted.some(token=>hay.includes(token)))await DB.remove('operations',row.id);}}
+function h38ConfirmDialog(message){
+  return new Promise(resolve=>{
+    let dialog=document.getElementById('h38DeleteConfirmDialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');
+      dialog.id='h38DeleteConfirmDialog';
+      dialog.innerHTML='<form method="dialog"><h2>Confirm delete</h2><p id="h38DeleteConfirmMessage"></p><div class="actions"><button value="cancel" class="secondary">Cancel</button><button id="h38DeleteConfirmOk" value="ok" class="primary">Delete</button></div></form>';
+      document.body.appendChild(dialog);
+    }
+    dialog.querySelector('#h38DeleteConfirmMessage').textContent=message;
+    const ok=dialog.querySelector('#h38DeleteConfirmOk');
+    const onClose=()=>{dialog.removeEventListener('close',onClose);resolve(dialog.returnValue==='ok');};
+    dialog.addEventListener('close',onClose);
+    dialog.showModal();
+  });
+}
 async function deleteQuoteById(quoteId){
   // Guard against a stuck busy flag (e.g. a hung auth call): auto-reset after timeout.
   // Previously both early returns were silent, making deletes appear to do nothing.
@@ -30,7 +46,8 @@ async function deleteQuoteById(quoteId){
   quoteId=text(quoteId);
   if(!quoteId){toastMessage('No quote is open to delete. Open the quote first, then use Delete Quote.',true);return;}
   const s=officeState(),row=rows('quotes').find(item=>rid(item,'Quote ID','quoteId')===quoteId)||{},title=text(val(row,'Project Title','projectTitle')||'this quote');
-  if(!confirm(`Delete “${title}”?\n\nThis deletes the quote only. The customer and Site Visit are kept.`))return;
+  const confirmed=await h38ConfirmDialog(`Delete "${title}"? This deletes the quote only. The customer and Site Visit are kept.`);
+  if(!confirmed)return;
   if(!navigator.onLine){toastMessage('Connect to the internet to permanently delete this saved quote.',true);return;}
   busyQuote=true;busyQuoteAt=Date.now();
   try{
