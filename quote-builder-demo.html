@@ -39,7 +39,7 @@
     <div class="pi-hero-copy">
       <span class="pi-eyebrow">Free quote builder demo — pick your trade</span>
       <h1>Start with a finished quote.<br><strong>Change it into your own.</strong></h1>
-      <p>Choose a trade below to load a complete sample quote — landscape renovation, drainage, seasonal cleanup, bathroom remodel, kitchen refresh, or deck build. Each covers scope, line items, internal markup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
+      <p>Choose a trade below to load a complete sample quote — landscape, drainage, cleanup, bathroom, kitchen, deck, gutters, HVAC, plumbing, or electrical. Each covers scope, line items, internal markup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
       <div class="pi-actions"><a class="pi-btn primary" href="#demo">Edit the Featured Quote</a><a class="pi-btn secondary" href="quote-builder.html#examples">View Complete Quote and CAD Packages</a></div>
     </div>
     <div class="pi-callout"><h3>Nothing leaves this page</h3><p>This demonstration uses browser memory only. It does not create an account, save a customer, upload files, call H38 AI, send a quote, charge a card, or submit information to Highway 38.</p></div>
@@ -66,6 +66,10 @@
           <button type="button" class="preset-btn" data-preset="bathroom" aria-pressed="false">Bathroom remodel<span>Demo, plumbing, tile, vanity, fixtures</span></button>
           <button type="button" class="preset-btn" data-preset="kitchen" aria-pressed="false">Kitchen refresh<span>Counters, backsplash, refacing, lighting</span></button>
           <button type="button" class="preset-btn" data-preset="deck" aria-pressed="false">Deck build<span>Footings, framing, decking, railing, stairs</span></button>
+          <button type="button" class="preset-btn" data-preset="gutters" aria-pressed="false">Gutters<span>Removal, seamless gutters, downspouts, guards</span></button>
+          <button type="button" class="preset-btn" data-preset="hvac" aria-pressed="false">HVAC replacement<span>Furnace, AC, ductwork, thermostat, testing</span></button>
+          <button type="button" class="preset-btn" data-preset="plumbing" aria-pressed="false">Plumbing<span>Water heater, fixtures, repiping, testing</span></button>
+          <button type="button" class="preset-btn" data-preset="electrical" aria-pressed="false">Electrical<span>Panel upgrade, circuits, lighting, devices</span></button>
         </div>
 
         <form id="demoForm">
@@ -133,7 +137,7 @@
       <article class="pi-card"><div class="pi-card-body"><h3>Trade-ready structure</h3><p>Design, removal, materials, labor, equipment, and closeout can be quoted together — whatever the trade.</p></div></article>
       <article class="pi-card"><div class="pi-card-body"><h3>Private markup</h3><p>Markup stays in the editor. Customer unit prices already include it, so the preview and printed quote remain clean.</p></div></article>
       <article class="pi-card"><div class="pi-card-body"><h3>Site boundaries</h3><p>Utilities, weather, soil, substitutions, access, exclusions, and written-change controls reduce misunderstanding.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Six trades, one structure</h3><p>Switch between landscape, drainage, cleanup, bathroom, kitchen, and deck examples using the same quote structure.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Ten trades, one structure</h3><p>Switch between landscape, drainage, cleanup, bathroom, kitchen, deck, gutters, HVAC, plumbing, and electrical examples using the same quote structure.</p></div></article>
     </div>
     <div class="pi-callout pi-compact" style="margin-top:24px"><h3>What the paid Quote Builder adds</h3><p>Connected customers, saved versions, reusable templates, price-book items, photos, documents, approvals, acceptance records, branded PDFs, controlled H38 AI, and quote-to-job workflow.</p></div>
     <div class="pi-actions" style="justify-content:center;margin-top:24px"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="pricing.html">Compare Products</a></div>
@@ -255,6 +259,78 @@
         {category:'Equipment',description:'Auger rental, delivery, and disposal allowance',qty:1,unit:'allowance',rate:390},
         {category:'Closeout',description:'Inspection coordination, final cleanup, photos, and walkthrough',qty:1,unit:'project',rate:190}
       ]
+    },
+    gutters:{
+      business:'Northwoods Exterior — fictional',quoteNumber:'G-4210',customer:'Maple Grove Residence — fictional',project:'Seamless gutter replacement',location:'Grand Rapids area — sample location',duration:'1–2 working days',schedule:'Within 2 weeks of written approval',markup:16,tax:7.375,deposit:30,validDays:'21 days',
+      scope:'Remove existing gutters and downspouts; install seamless aluminum gutters with hidden hangers; install new downspouts with extensions; install leaf guards on listed runs; seal, test flow, and complete final cleanup.',
+      assumptions:'Fascia is sound and can accept new hangers. Roof edge allows standard gutter profile. Customer confirms downspout locations before installation.',
+      exclusions:'Fascia or soffit repair, roof repair, underground drainage, painting, and ice-dam systems unless listed.',
+      terms:'Quote valid for 21 days. A 30% deposit is due after written acceptance and before material ordering. Balance is due after flow test and walkthrough.',
+      items:[
+        {category:'Design',description:'Site measure, layout, and work-area setup',qty:1,unit:'project',rate:165},
+        {category:'Removal',description:'Remove existing gutters, downspouts, and debris',qty:6,unit:'labor hr',rate:62},
+        {category:'Materials',description:'Seamless aluminum gutters with hidden hangers',qty:148,unit:'lin ft',rate:11},
+        {category:'Materials',description:'Downspouts, elbows, and extensions',qty:6,unit:'each',rate:85},
+        {category:'Materials',description:'Leaf guards for listed runs',qty:96,unit:'lin ft',rate:7},
+        {category:'Labor',description:'Gutter, downspout, and guard installation',qty:14,unit:'labor hr',rate:70},
+        {category:'Equipment',description:'Ladder, brake, delivery, and disposal allowance',qty:1,unit:'allowance',rate:240},
+        {category:'Closeout',description:'Flow test, final cleanup, photos, and walkthrough',qty:1,unit:'project',rate:130}
+      ]
+    },
+    hvac:{
+      business:'Northwoods Mechanical — fictional',quoteNumber:'H-5530',customer:'Cedar Lane Homeowner — fictional',project:'Furnace and AC replacement',location:'Itasca County — sample location',duration:'2–3 working days',schedule:'Within 3 weeks of written approval and equipment delivery',markup:18,tax:7.375,deposit:40,validDays:'21 days',
+      scope:'Remove existing furnace and condensing unit; install new high-efficiency furnace and air conditioner; modify supply and return connections as required; install new thermostat and condensate management; start up, test, and commission the system; complete customer orientation.',
+      assumptions:'Existing ductwork is serviceable and correctly sized. Electrical panel has capacity for listed equipment. Refrigerant lines can be reused or replaced as listed. Permits are obtained where required.',
+      exclusions:'Ductwork replacement beyond listed modifications, asbestos abatement, electrical panel upgrades, humidifiers or air cleaners unless listed, and drywall repair beyond equipment access.',
+      terms:'Quote valid for 21 days. A 40% deposit is due after written acceptance and before equipment ordering. Manufacturer warranties require registration. Balance is due after startup, testing, and orientation.',
+      items:[
+        {category:'Design',description:'Load review, equipment sizing, layout, and setup',qty:1,unit:'project',rate:320},
+        {category:'Removal',description:'Remove furnace, AC unit, and related components',qty:8,unit:'labor hr',rate:75},
+        {category:'Materials',description:'High-efficiency furnace allowance',qty:1,unit:'allowance',rate:2850},
+        {category:'Materials',description:'Air conditioner condensing unit allowance',qty:1,unit:'allowance',rate:2400},
+        {category:'Materials',description:'Thermostat, pad, disconnect, and misc parts',qty:1,unit:'allowance',rate:480},
+        {category:'Labor',description:'Furnace and AC installation, duct connections',qty:18,unit:'labor hr',rate:95},
+        {category:'Labor',description:'Refrigerant, electrical, condensate, and controls',qty:10,unit:'labor hr',rate:95},
+        {category:'Labor',description:'Startup, testing, commissioning, and orientation',qty:4,unit:'labor hr',rate:95},
+        {category:'Equipment',description:'Recovery, delivery, and disposal allowance',qty:1,unit:'allowance',rate:350},
+        {category:'Closeout',description:'Permits, documentation, photos, and walkthrough',qty:1,unit:'project',rate:180}
+      ]
+    },
+    plumbing:{
+      business:'Northwoods Plumbing — fictional',quoteNumber:'P-6640',customer:'Birch Street Residence — fictional',project:'Water heater and fixture updates',location:'Grand Rapids area — sample location',duration:'2–3 working days',schedule:'Within 2 weeks of written approval',markup:16,tax:7.375,deposit:35,validDays:'21 days',
+      scope:'Replace water heater with listed unit; replace two toilets, three faucets, and shower trim; replace accessible supply lines and shutoff valves; test all fixtures, check for leaks, and complete final cleanup.',
+      assumptions:'Existing drain and vent piping is serviceable. Water pressure is within normal range. Gas or electrical connections match the listed water heater type. Access panels are available where required.',
+      exclusions:'Repiping beyond listed accessible runs, sewer or main-line work, water treatment, fixture finishes beyond listed allowances, and drywall repair beyond access openings.',
+      terms:'Quote valid for 21 days. A 35% deposit is due after written acceptance and before material ordering. Balance is due after leak testing and walkthrough.',
+      items:[
+        {category:'Design',description:'Site review, fixture coordination, and setup',qty:1,unit:'project',rate:195},
+        {category:'Removal',description:'Remove water heater, toilets, faucets, and trim',qty:7,unit:'labor hr',rate:72},
+        {category:'Materials',description:'Water heater unit allowance',qty:1,unit:'allowance',rate:1150},
+        {category:'Materials',description:'Toilets, faucets, shower trim allowance',qty:1,unit:'allowance',rate:890},
+        {category:'Materials',description:'Supply lines, valves, and fittings',qty:1,unit:'allowance',rate:320},
+        {category:'Labor',description:'Water heater installation and connections',qty:6,unit:'labor hr',rate:92},
+        {category:'Labor',description:'Fixture installation and supply-line replacement',qty:12,unit:'labor hr',rate:88},
+        {category:'Equipment',description:'Delivery, haul-away, and disposal allowance',qty:1,unit:'allowance',rate:210},
+        {category:'Closeout',description:'Leak testing, final cleanup, photos, and walkthrough',qty:1,unit:'project',rate:140}
+      ]
+    },
+    electrical:{
+      business:'Northwoods Electric — fictional',quoteNumber:'E-7780',customer:'Summit Avenue Homeowner — fictional',project:'Panel upgrade and lighting',location:'Itasca County — sample location',duration:'2–4 working days',schedule:'Within 3 weeks of written approval and utility coordination',markup:18,tax:7.375,deposit:40,validDays:'21 days',
+      scope:'Coordinate utility disconnect; replace main panel with listed 200-amp panel; install listed dedicated circuits; replace listed switches, outlets, and fixtures with LED; label panel, test all circuits, and complete final cleanup.',
+      assumptions:'Utility coordination is completed on schedule. Existing wiring beyond the panel is serviceable. Attic and wall access is available where required. Customer confirms fixture selections before ordering.',
+      exclusions:'Service mast or meter-base relocation, trenching, generator installation, smart-home systems beyond listed devices, and drywall repair beyond device openings.',
+      terms:'Quote valid for 21 days. A 40% deposit is due after written acceptance and before material ordering. Inspection is coordinated by contractor. Balance is due after inspection approval and walkthrough.',
+      items:[
+        {category:'Design',description:'Load calculation, circuit plan, and setup',qty:1,unit:'project',rate:340},
+        {category:'Removal',description:'Remove existing panel, devices, and fixtures',qty:8,unit:'labor hr',rate:78},
+        {category:'Materials',description:'200-amp panel, breakers, and hardware allowance',qty:1,unit:'allowance',rate:1250},
+        {category:'Materials',description:'Wire, boxes, and rough-in materials',qty:1,unit:'allowance',rate:680},
+        {category:'Materials',description:'LED fixtures, switches, outlets, and covers',qty:1,unit:'allowance',rate:940},
+        {category:'Labor',description:'Panel replacement and circuit installation',qty:16,unit:'labor hr',rate:98},
+        {category:'Labor',description:'Device, fixture, and trim installation',qty:14,unit:'labor hr',rate:92},
+        {category:'Equipment',description:'Delivery, lift, and disposal allowance',qty:1,unit:'allowance',rate:280},
+        {category:'Closeout',description:'Testing, labeling, inspection, photos, and walkthrough',qty:1,unit:'project',rate:200}
+      ]
     }
   };
 
@@ -277,14 +353,18 @@
     ['markup','tax','deposit'].forEach(id=>fill(id,preset[id]));
     body.innerHTML='';preset.items.forEach(row);
     document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preset===name)));
-    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch',bathroom:'Bathroom remodel',kitchen:'Kitchen refresh',deck:'Deck build'};
+    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch',bathroom:'Bathroom remodel',kitchen:'Kitchen refresh',deck:'Deck build',gutters:'Gutter replacement',hvac:'HVAC replacement',plumbing:'Plumbing updates',electrical:'Electrical upgrade'};
     const summaries={
       landscape:{title:'Featured example: Front-entry landscape renovation',desc:'A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.',items:'10 line items',duration:'3–4 working days'},
       drainage:{title:'Featured example: Drainage and lawn repair',desc:'A complete sample with downspout extensions, grading, soil prep, seed, erosion control, and site restoration.',items:'8 line items',duration:'2–3 working days'},
       seasonal:{title:'Featured example: Seasonal property cleanup',desc:'A complete sample with bed cleanup, pruning, mulch refresh, debris removal, and seasonal readiness.',items:'8 line items',duration:'1–2 working days'},
       bathroom:{title:'Featured example: Hall bathroom remodel',desc:'A complete sample with demolition, plumbing rough-in, tile, vanity, fixtures, paint, and punch-list closeout.',items:'10 line items',duration:'2–3 weeks'},
       kitchen:{title:'Featured example: Mid-range kitchen refresh',desc:'A complete sample with countertop replacement, backsplash tile, cabinet refacing, lighting, and finish work.',items:'10 line items',duration:'3–4 weeks'},
-      deck:{title:'Featured example: 8 x 12 pressure-treated deck',desc:'A complete sample with footings, framing, decking, railing, stairs, inspection, and closeout.',items:'8 line items',duration:'4–6 working days'}
+      deck:{title:'Featured example: 8 x 12 pressure-treated deck',desc:'A complete sample with footings, framing, decking, railing, stairs, inspection, and closeout.',items:'8 line items',duration:'4–6 working days'},
+      gutters:{title:'Featured example: Seamless gutter replacement',desc:'A complete sample with removal, seamless gutters, downspouts, leaf guards, flow testing, and closeout.',items:'8 line items',duration:'1–2 working days'},
+      hvac:{title:'Featured example: Furnace and AC replacement',desc:'A complete sample with equipment sizing, removal, installation, startup, testing, and orientation.',items:'10 line items',duration:'2–3 working days'},
+      plumbing:{title:'Featured example: Water heater and fixture updates',desc:'A complete sample with water heater replacement, fixture updates, supply lines, testing, and closeout.',items:'9 line items',duration:'2–3 working days'},
+      electrical:{title:'Featured example: Panel upgrade and lighting',desc:'A complete sample with 200-amp panel, dedicated circuits, LED fixtures, testing, and inspection.',items:'9 line items',duration:'2–4 working days'}
     };
     const summary=summaries[name]||summaries.landscape;
     $('summaryTitle').textContent=summary.title;
