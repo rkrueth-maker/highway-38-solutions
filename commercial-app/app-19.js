@@ -277,6 +277,218 @@ function h38PrintStubs(periodId){
   setTimeout(()=>{window.print();},300);
 }
 
+/* ---------- Payroll check printing (bank-supplied check-on-top stock) ----------
+ * Toggle-gated by Owner Controls 'payroll_check_printing' (default OFF).
+ * The Office prints ONLY the variable fields (date, payee, amounts, memo,
+ * stub). The MICR line, bank, routing and account numbers live on the
+ * business's own bank stock and are never printed or stored here.
+ * Only finalized (owner-approved) pay runs can be printed; amounts and
+ * names always come from the finalized payroll lines, never re-typed.
+ * Every print / reprint / void / reissue is written to the payrollChecks
+ * register. No funds move. */
+function h38CheckPrintingOn(){
+  return !!(window.H38OwnerControls&&typeof H38OwnerControls.isEnabled==='function'&&H38OwnerControls.isEnabled('payroll_check_printing'));
+}
+function h38PayrollCheckSettingsRow(){
+  return records('payrollCheckSettings').find(r=>String(v(r,'Business ID')||'')===String(state.businessId||''))||null;
+}
+function h38PayrollChecksForPeriod(periodId){
+  return records('payrollChecks').filter(c=>v(c,'Payroll Period ID')===periodId);
+}
+function h38ActiveCheckForLine(periodId,lineId){
+  return h38PayrollChecksForPeriod(periodId).find(c=>v(c,'Payroll Line ID')===lineId&&String(v(c,'Status'))!=='Void')||null;
+}
+function h38SuggestedNextCheckNumber(){
+  const settings=h38PayrollCheckSettingsRow();
+  const saved=num(v(settings||{},'Next Check Number'));
+  if(saved>0)return saved;
+  const used=records('payrollChecks').map(c=>num(v(c,'Check Number'))).filter(n=>n>0);
+  return used.length?Math.max(...used)+1:0;
+}
+async function h38SaveCheckPrintSettings(nextNumber,offsetX,offsetY){
+  const existing=h38PayrollCheckSettingsRow();
+  const id=existing?rowId(existing,'Payroll Check Settings ID'):newId('PAYCHKSET');
+  const record=Object.assign({},existing||{},{
+    'Payroll Check Settings ID':id,'Business ID':state.businessId,
+    'Next Check Number':Math.max(0,Math.round(num(nextNumber))),
+    'Offset X Mm':Math.round(num(offsetX)*10)/10,'Offset Y Mm':Math.round(num(offsetY)*10)/10,
+    'Updated Time':now(),'Record Version':num(v(existing||{},'Record Version'))+1});
+  await saveParity('payrollCheckSettings','Payroll Check Settings',id,record,'payrollCheckSettings',['Payroll Check Settings ID']);
+}
+async function h38SavePayrollCheck(record){
+  await saveParity('payrollChecks','Payroll Check',v(record,'Payroll Check ID'),record,'payrollChecks',['Payroll Check ID']);
+}
+function h38PayrollFormDialog({title,okLabel,bodyHtml}){
+  return new Promise(resolve=>{
+    let dialog=document.getElementById('h38PayrollFormDialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');
+      dialog.id='h38PayrollFormDialog';
+      document.body.appendChild(dialog);
+    }
+    dialog.innerHTML=`<form method="dialog"><h2>${esc(title)}</h2>${bodyHtml}<div class="actions"><button value="cancel" class="secondary">Cancel</button><button value="ok" class="primary">${esc(okLabel||'Save')}</button></div></form>`;
+    const onClose=()=>{dialog.removeEventListener('close',onClose);
+      resolve(dialog.returnValue==='ok'?dialog.querySelector('form'):null);};
+    dialog.addEventListener('close',onClose);
+    dialog.showModal();
+  });
+}
+function h38EmployeeForLine(line){
+  return records('employees').find(e=>rowId(e,'Employee ID')===v(line,'Employee ID'))||{};
+}
+async function h38PrintPayrollChecks(periodId){
+  const period=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===periodId);
+  if(!period)return;
+  if(String(v(period,'Approval Status')).toUpperCase()!=='APPROVED'){toast('Only finalized pay runs can print checks.',true);return;}
+  if(!h38CheckPrintingOn()){toast('Payroll check printing is off. Turn it on in Settings → Owner Controls.',true);return;}
+  const lines=records('payrollLines').filter(l=>v(l,'Payroll Period ID')===periodId&&num(v(l,'Net Pay'))>0);
+  if(!lines.length){toast('No pay lines with net pay in this run.',true);return;}
+  const settings=h38PayrollCheckSettingsRow();
+  const startDefault=h38SuggestedNextCheckNumber();
+  const rows=lines.map(line=>{const emp=h38EmployeeForLine(line);const existing=h38ActiveCheckForLine(periodId,rowId(line,'Payroll Line ID'));
+    return `<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eef2f7">
+      <input type="checkbox" data-check-line="${esc(rowId(line,'Payroll Line ID'))}" checked style="width:auto;margin-top:3px">
+      <span style="flex:1"><strong>${esc(v(emp,'Display Name')||v(line,'Employee ID'))}</strong><br>
+      <small>Net ${money(v(line,'Net Pay'))} · gross ${money(v(line,'Gross Pay'))}${existing?` · <strong>check #${esc(v(existing,'Check Number'))} already printed</strong> (reprints on the same number)`:''}</small></span></label>`;}).join('');
+  const form=await h38PayrollFormDialog({title:'Print payroll checks',okLabel:'Print checks',bodyHtml:`
+    <p class="muted small">Checks print on <strong>your bank's check-on-top stock</strong> — payee, date, amounts and the pay stub only.<br>
+    The MICR line, bank name, routing and account numbers are already on your stock; the Office never prints them. Nothing is paid or sent anywhere.</p>
+    <div class="list" style="max-height:260px;overflow:auto">${rows}</div>
+    <div class="three" style="margin-top:10px">
+      <div><label>First check number</label><input id="pcStartNumber" type="number" min="1" step="1" value="${startDefault||''}" placeholder="From your check stock"></div>
+      <div><label>Nudge right (mm)</label><input id="pcOffsetX" type="number" step="0.5" min="-25" max="25" value="${num(v(settings||{},'Offset X Mm'))}"></div>
+      <div><label>Nudge down (mm)</label><input id="pcOffsetY" type="number" step="0.5" min="-25" max="25" value="${num(v(settings||{},'Offset Y Mm'))}"></div>
+    </div>
+    <p class="muted small">Numbers must match the numbers printed on your bank stock. Offsets calibrate alignment per business and are remembered.</p>`});
+  if(!form)return;
+  const picked=[...form.querySelectorAll('[data-check-line]:checked')].map(cb=>cb.dataset.checkLine);
+  if(!picked.length){toast('Pick at least one employee.',true);return;}
+  const offsetX=num(form.querySelector('#pcOffsetX').value), offsetY=num(form.querySelector('#pcOffsetY').value);
+  const selected=lines.filter(l=>picked.includes(rowId(l,'Payroll Line ID')));
+  const reprints=selected.filter(l=>h38ActiveCheckForLine(periodId,rowId(l,'Payroll Line ID')));
+  const fresh=selected.filter(l=>!h38ActiveCheckForLine(periodId,rowId(l,'Payroll Line ID')));
+  let start=parseInt(form.querySelector('#pcStartNumber').value,10);
+  if(fresh.length){
+    if(!start||start<1){toast('Enter the first check number from your stock.',true);return;}
+    // Duplicate-number conflict check against the whole register (voids included).
+    const taken=new Map(records('payrollChecks').map(c=>[num(v(c,'Check Number')),c]).filter(([n])=>n>0));
+    const conflicts=[];for(let i=0;i<fresh.length;i++){const n=start+i;if(taken.has(n))conflicts.push(n);}
+    if(conflicts.length){
+      let nextFree=start;while(taken.has(nextFree)||conflicts.includes(nextFree))nextFree++;
+      const c=taken.get(conflicts[0]);
+      const useNext=await h38ConfirmDialog(`Check number ${conflicts[0]} is already in the register (${esc(v(c,'Payee Name')||'employee')}, ${esc(dateOnly(v(c,'Check Date')))}, ${esc(v(c,'Status'))}). Print starting at ${nextFree} instead?`,'Check number conflict',`Use ${nextFree}`);
+      if(!useNext)return;
+      start=nextFree;
+    }
+  }
+  if(reprints.length){
+    const ok=await h38ConfirmDialog(`${reprints.length} selected check(s) were already printed. Reprinting keeps the same check number and marks the register. Continue?`,'Reprint checks','Reprint');
+    if(!ok)return;
+  }
+  const userId=state.snapshot.user.userId, stamp=now();
+  const sheets=[];let n=start;
+  for(const line of fresh){
+    const emp=h38EmployeeForLine(line);
+    const id=newId('PAYCHECK');
+    const record={'Payroll Check ID':id,'Business ID':state.businessId,'Payroll Period ID':periodId,
+      'Payroll Line ID':rowId(line,'Payroll Line ID'),'Employee ID':v(line,'Employee ID'),
+      'Check Number':n,'Check Date':dateOnly(v(period,'Pay Date')),'Payee Name':v(emp,'Display Name')||'',
+      'Amount':num(v(line,'Net Pay')),'Memo':`Payroll ${dateOnly(v(period,'Period Start'))} – ${dateOnly(v(period,'Period End'))}`,
+      'Status':'Printed','Print Count':1,'Printed By':userId,'Printed Time':stamp,'Last Printed Time':stamp,
+      'Voided By':'','Voided Time':'','Void Reason':'','Replaces Check ID':'','Replaced By Check ID':'',
+      'Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+    await h38SavePayrollCheck(record);
+    sheets.push({period,line,emp,check:record});
+    n++;
+  }
+  for(const line of reprints){
+    const existing=h38ActiveCheckForLine(periodId,rowId(line,'Payroll Line ID'));
+    const updated=Object.assign({},existing,{'Print Count':num(v(existing,'Print Count'))+1,
+      'Last Printed Time':stamp,'Updated Time':stamp,'Record Version':num(v(existing,'Record Version'))+1});
+    await h38SavePayrollCheck(updated);
+    sheets.push({period,line,emp:h38EmployeeForLine(line),check:updated});
+  }
+  await h38SaveCheckPrintSettings(fresh.length?n:h38SuggestedNextCheckNumber(),offsetX,offsetY);
+  try{await sync(false);}catch(e){}
+  toast(`${sheets.length} check(s) recorded in the register. Load your bank check stock, then print.`);
+  h38RenderPayrollCheckSheets(sheets,offsetX,offsetY);
+  renderPayrollPrep();
+}
+function h38RenderPayrollCheckSheets(sheets,offsetX,offsetY){
+  let root=document.getElementById('h38PayrollCheckPrintRoot');
+  if(!root){root=document.createElement('div');root.id='h38PayrollCheckPrintRoot';document.body.appendChild(root);}
+  const business=state.snapshot.business||{};
+  root.innerHTML=sheets.map(s=>h38PaycheckSheetHTML(business,s.emp,s.period,s.line,
+    Object.assign({},s.check,{'Offset X Mm':offsetX,'Offset Y Mm':offsetY}))).join('');
+  document.body.classList.add('h38-printing-checks');
+  const cleanup=()=>{document.body.classList.remove('h38-printing-checks');root.innerHTML='';};
+  window.addEventListener('afterprint',cleanup,{once:true});
+  setTimeout(()=>{try{window.print();}catch(e){cleanup();}},300);
+  setTimeout(()=>{if(document.body.classList.contains('h38-printing-checks'))cleanup();},60000);
+}
+async function h38ReprintRecordedCheck(checkId){
+  const check=records('payrollChecks').find(c=>rowId(c,'Payroll Check ID')===checkId);
+  if(!check)return;
+  if(!h38CheckPrintingOn()){toast('Payroll check printing is off. Turn it on in Settings → Owner Controls.',true);return;}
+  const ok=await h38ConfirmDialog(`Check #${v(check,'Check Number')} to ${v(check,'Payee Name')} for ${money(v(check,'Amount'))} was already printed ${num(v(check,'Print Count'))} time(s). Reprint it on the same number and mark the register?`,'Reprint check','Reprint');
+  if(!ok)return;
+  const period=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===v(check,'Payroll Period ID'))||{};
+  const line=records('payrollLines').find(l=>rowId(l,'Payroll Line ID')===v(check,'Payroll Line ID'))||{};
+  const stamp=now();
+  const updated=Object.assign({},check,{'Print Count':num(v(check,'Print Count'))+1,'Last Printed Time':stamp,
+    'Updated Time':stamp,'Record Version':num(v(check,'Record Version'))+1});
+  await h38SavePayrollCheck(updated);
+  const settings=h38PayrollCheckSettingsRow();
+  try{await sync(false);}catch(e){}
+  h38RenderPayrollCheckSheets([{period,line,emp:h38EmployeeForLine(line),check:updated}],
+    num(v(settings||{},'Offset X Mm')),num(v(settings||{},'Offset Y Mm')));
+  renderPayrollPrep();
+}
+async function h38VoidPayrollCheck(checkId){
+  const check=records('payrollChecks').find(c=>rowId(c,'Payroll Check ID')===checkId);
+  if(!check)return;
+  const form=await h38PayrollFormDialog({title:`Void check #${v(check,'Check Number')}`,okLabel:'Void check',bodyHtml:`
+    <p class="muted small">Voiding check #${v(check,'Check Number')} to ${esc(v(check,'Payee Name'))} for ${money(v(check,'Amount'))}. The check stays in the register as Void for your audit trail. No bank transaction happens.</p>
+    <label>Reason</label><input id="pcVoidReason" type="text" placeholder="e.g. printed on wrong stock, amount wrong">`});
+  if(!form)return;
+  const reason=form.querySelector('#pcVoidReason').value.trim();
+  const stamp=now();
+  const updated=Object.assign({},check,{'Status':'Void','Voided By':state.snapshot.user.userId,'Voided Time':stamp,
+    'Void Reason':reason,'Updated Time':stamp,'Record Version':num(v(check,'Record Version'))+1});
+  await h38SavePayrollCheck(updated);
+  try{await sync(false);}catch(e){}
+  toast(`Check #${v(check,'Check Number')} voided and recorded.`);
+  renderPayrollPrep();
+}
+async function h38ReissuePayrollCheck(checkId){
+  const old=records('payrollChecks').find(c=>rowId(c,'Payroll Check ID')===checkId);
+  if(!old)return;
+  if(!h38CheckPrintingOn()){toast('Payroll check printing is off. Turn it on in Settings → Owner Controls.',true);return;}
+  const next=h38SuggestedNextCheckNumber();
+  const ok=await h38ConfirmDialog(`Reissue voided check #${v(old,'Check Number')} (${esc(v(old,'Payee Name'))}, ${money(v(old,'Amount'))}) as new check #${next}? The void stays on record, linked to the replacement.`,'Reissue check',`Issue #${next}`);
+  if(!ok)return;
+  const period=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===v(old,'Payroll Period ID'))||{};
+  const line=records('payrollLines').find(l=>rowId(l,'Payroll Line ID')===v(old,'Payroll Line ID'))||{};
+  const stamp=now(), id=newId('PAYCHECK');
+  const record={'Payroll Check ID':id,'Business ID':state.businessId,'Payroll Period ID':v(old,'Payroll Period ID'),
+    'Payroll Line ID':v(old,'Payroll Line ID'),'Employee ID':v(old,'Employee ID'),
+    'Check Number':next,'Check Date':dateOnly(v(period,'Pay Date')||v(old,'Check Date')),'Payee Name':v(old,'Payee Name'),
+    'Amount':num(v(old,'Amount')),'Memo':v(old,'Memo'),'Status':'Printed','Print Count':1,
+    'Printed By':state.snapshot.user.userId,'Printed Time':stamp,'Last Printed Time':stamp,
+    'Voided By':'','Voided Time':'','Void Reason':'','Replaces Check ID':checkId,'Replaced By Check ID':'',
+    'Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+  await h38SavePayrollCheck(record);
+  await h38SavePayrollCheck(Object.assign({},old,{'Replaced By Check ID':id,'Updated Time':stamp,
+    'Record Version':num(v(old,'Record Version'))+1}));
+  const settings=h38PayrollCheckSettingsRow();
+  await h38SaveCheckPrintSettings(next+1,num(v(settings||{},'Offset X Mm')),num(v(settings||{},'Offset Y Mm')));
+  try{await sync(false);}catch(e){}
+  toast(`Check #${next} issued to replace #${v(old,'Check Number')}.`);
+  h38RenderPayrollCheckSheets([{period,line,emp:h38EmployeeForLine(line),check:record}],
+    num(v(settings||{},'Offset X Mm')),num(v(settings||{},'Offset Y Mm')));
+  renderPayrollPrep();
+}
+
 function renderPayrollPrep(){
   const employees=records('employees'),periods=records('payrollPeriods'),allLines=records('payrollLines'),time=records('timeEntries');
   const active=employees.filter(row=>String(v(row,'Status')).toUpperCase()!=='INACTIVE');
@@ -293,6 +505,8 @@ function renderPayrollPrep(){
     &&String(v(row,'Approval Status')).toUpperCase()==='APPROVED').length;
   const finalizedGross=periods.filter(p=>String(v(p,'Approval Status')).toUpperCase()==='APPROVED')
     .reduce((s,p)=>s+num(v(p,'Gross Pay')),0);
+  const checkPrintingOn=h38CheckPrintingOn();
+  const checkRegister=records('payrollChecks').slice().sort((a,b)=>num(v(b,'Check Number'))-num(v(a,'Check Number'))).slice(0,50);
 
   // Stub viewer
   let stubSection='';
@@ -372,10 +586,22 @@ function renderPayrollPrep(){
         ${!finalized?`<button type="button" data-payroll-finalize="${esc(pid)}">Approve & finalize</button>`:''}
         <button type="button" class="secondary" data-payroll-view="${esc(pid)}">View stubs</button>
         ${finalized?`<button type="button" class="secondary" data-payroll-csv="${esc(pid)}">CSV</button><button type="button" class="secondary" data-payroll-nacha="${esc(pid)}">NACHA</button>`:''}
-      </div></div>`;}).join(''):empty('No pay runs yet. Approve time, then prepare a run.')}
+        ${finalized?(checkPrintingOn?`<button type="button" data-payroll-checkprint="${esc(pid)}">Print checks</button>`:`<button type="button" disabled title="Turn on Payroll check printing in Settings → Owner Controls">Print checks</button>`):''}
+      </div>${finalized&&!checkPrintingOn?'<small class="muted">Check printing is off — enable <strong>Payroll check printing</strong> in Settings → Owner Controls to print on your bank check stock.</small>':''}</div>`;}).join(''):empty('No pay runs yet. Approve time, then prepare a run.')}
     </div></section>
 
   ${stubSection}
+
+  <section class="card"><h2>4 · Payroll check register</h2>
+    <p class="muted small">Every printed, reprinted, voided and reissued check is recorded here. Checks print only on <strong>your bank's check stock</strong> — the Office never prints a MICR line, routing or account number, and never moves money.</p>
+    ${!checkPrintingOn?'<p class="muted small">Check printing is <strong>off</strong>. Enable <strong>Payroll check printing</strong> in Settings → Owner Controls to print, reprint or reissue. Voiding stays available for your records.</p>':''}
+    <div class="list">${checkRegister.length?checkRegister.map(c=>{const cid=rowId(c,'Payroll Check ID');const st=String(v(c,'Status'));
+      return `<div class="row"><div class="row-top"><strong>Check #${esc(v(c,'Check Number'))} — ${esc(v(c,'Payee Name'))}</strong>${pill(st,st==='Void'?'bad':'')}</div>
+      <small>${esc(dateOnly(v(c,'Check Date')))} · ${money(v(c,'Amount'))}${v(c,'Replaces Check ID')?' · reissue':''}${v(c,'Replaced By Check ID')?' · replaced':''} · printed ${num(v(c,'Print Count'))}×${v(c,'Last Printed Time')?` (last ${esc(dateOnly(v(c,'Last Printed Time')))})`:''}${st==='Void'&&v(c,'Void Reason')?` · void: ${esc(v(c,'Void Reason'))}`:''}</small>
+      <div class="row-actions">
+        ${st!=='Void'?`<button type="button" class="secondary" data-payroll-checkreprint="${esc(cid)}" ${checkPrintingOn?'':'disabled'}>Reprint</button><button type="button" class="secondary" data-payroll-checkvoid="${esc(cid)}">Void</button>`:`<button type="button" class="secondary" data-payroll-checkreissue="${esc(cid)}" ${checkPrintingOn?'':'disabled'}>Reissue with new number</button>`}
+      </div></div>`;}).join(''):empty('No checks printed yet. Finalize a pay run, then choose Print checks.')}
+    </div></section>
 
   <section class="card"><h2>Employee tax setup</h2>
     <p class="muted small">W-4 details drive withholding estimates. Edit in <button type="button" class="secondary" data-open-page="people">People</button>, or quick-edit allowances here.</p>
@@ -398,6 +624,10 @@ function renderPayrollPrep(){
   bind('[data-payroll-view]',e=>{state.payrollViewRun=e.target.dataset.payrollView;state.payrollPrintRun=null;renderPayrollPrep();});
   bind('[data-payroll-closestubs]',()=>{state.payrollViewRun=null;state.payrollPrintRun=null;renderPayrollPrep();});
   bind('[data-payroll-print]',e=>h38PrintStubs(e.target.dataset.payrollPrint));
+  bind('[data-payroll-checkprint]',e=>h38PrintPayrollChecks(e.target.dataset.payrollCheckprint));
+  bind('[data-payroll-checkreprint]',e=>h38ReprintRecordedCheck(e.target.dataset.payrollCheckreprint));
+  bind('[data-payroll-checkvoid]',e=>h38VoidPayrollCheck(e.target.dataset.payrollCheckvoid));
+  bind('[data-payroll-checkreissue]',e=>h38ReissuePayrollCheck(e.target.dataset.payrollCheckreissue));
   bind('[data-payroll-csv]',e=>h38ExportPayrollCSV(e.target.dataset.payrollCsv));
   bind('[data-payroll-nacha]',e=>h38ExportPayrollNACHA(e.target.dataset.payrollNacha));
   bind('[data-open-page]',e=>{if(window.openPage)window.openPage(e.target.dataset.openPage);});

@@ -10,6 +10,28 @@
 .paystub-net{display:flex;justify-content:space-between;align-items:center;background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:1.1rem;margin-bottom:10px}
 .paystub-disc{margin:0}
 
+/* Paycheck sheets (bank-supplied check-on-top stock) — print only. */
+#h38PayrollCheckPrintRoot{display:none}
+.paycheck-sheet{width:7.9in;color:#111;font-family:Arial,Helvetica,sans-serif}
+.paycheck-face{position:relative;height:3.4in}
+.paycheck-cal{position:absolute;inset:0}
+.paycheck-flabel{font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;color:#555}
+.paycheck-date{position:absolute;top:.42in;right:.3in;font-size:.95rem}
+.paycheck-payee{position:absolute;top:1.0in;left:1.1in;font-size:1.05rem}
+.paycheck-amount{position:absolute;top:.97in;right:.3in;font-size:1.05rem}
+.paycheck-words{position:absolute;top:1.48in;left:.35in;right:.2in;font-size:.92rem;border-bottom:1px solid #999;padding-bottom:2px;white-space:nowrap;overflow:hidden}
+.paycheck-memo{position:absolute;top:2.68in;left:.4in;font-size:.85rem}
+.paycheck-sig{position:absolute;top:2.6in;right:.35in;width:2.3in;text-align:left}
+.paycheck-sigline{border-bottom:1.5px solid #111;height:22px;margin-bottom:2px}
+.paycheck-stubhead{display:flex;justify-content:space-between;gap:12px;border-top:1.5px dashed #94a3b8;padding-top:10px;margin-top:2px;font-size:.85rem;color:#334155}
+
+@media print{
+  body.h38-printing-checks>*:not(#h38PayrollCheckPrintRoot){display:none!important}
+  body.h38-printing-checks #h38PayrollCheckPrintRoot{display:block!important;position:static!important;background:#fff!important;color:#111!important}
+  .paycheck-sheet{page-break-after:always;break-after:page;margin:0 auto}
+  .paycheck-sheet:last-child{page-break-after:auto;break-after:auto}
+}
+
 @media print{
   body{background:#fff!important}
   .topbar,.business-bar,.main-nav,.page-head,.toast,dialog,.bridge-frame,

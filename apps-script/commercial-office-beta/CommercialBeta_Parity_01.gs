@@ -7,6 +7,8 @@ var CB_PARITY_HEADERS=Object.freeze({
   payrollPeriods:['Payroll Period ID','Business ID','Period Start','Period End','Pay Date','Provider','Status','Approval Status','Export Allowed','Gross Pay','Deductions','Prepared Net Amount','Employer Tax Estimate','Employer Cost Estimate','Created By','Created Time','Updated Time','Record Version'],
   payrollLines:['Payroll Line ID','Business ID','Payroll Period ID','Employee ID','Regular Hours','Overtime Hours','Regular Pay','Overtime Pay','Salary Pay','Reimbursements','Other Pay','Gross Pay','Deductions','Prepared Net Amount','Employer Tax Estimate','Employer Cost Estimate','Approval Status','Notes','Created Time','Updated Time','Record Version'],
   payrollDeductions:['Payroll Deduction ID','Business ID','Employee ID','Payroll Period ID','Description','Amount','Status','Created Time','Updated Time','Record Version'],
+  payrollChecks:['Payroll Check ID','Business ID','Payroll Period ID','Payroll Line ID','Employee ID','Check Number','Check Date','Payee Name','Amount','Memo','Status','Print Count','Printed By','Printed Time','Last Printed Time','Voided By','Voided Time','Void Reason','Replaces Check ID','Replaced By Check ID','Created Time','Updated Time','Record Version'],
+  payrollCheckSettings:['Payroll Check Settings ID','Business ID','Next Check Number','Offset X Mm','Offset Y Mm','Updated Time','Record Version'],
   taxPeriods:['Tax Period ID','Business ID','Tax Type','Jurisdiction','Period Start','Period End','Due Date','Status','Approval Status','Finalization Allowed','Taxable Sales','Exempt Sales','Tax Collected','Tax Adjustments','Estimated Liability','Payment Recorded','Missing Documents','Created By','Created Time','Updated Time','Record Version'],
   missingDocuments:['Missing Document ID','Business ID','Area','Period ID','Document Type','Description','Requested From','Due Date','Status','Notes','Created Time','Updated Time','Record Version'],
   approvals:['Approval ID','Business ID','Area','Record Type','Record ID','Approval Type','Request','Requested By','Requested Time','Decision','Decided By','Decided Time','Status','Notes','Created Time','Updated Time','Record Version'],
@@ -21,6 +23,8 @@ var CB_PARITY_ENTITY_REGISTRY=Object.freeze({
   payrollPeriods:{book:'core',sheet:'payrollPeriods',id:'Payroll Period ID',prefix:'PAYROLL',capability:'manageFinancial'},
   payrollLines:{book:'core',sheet:'payrollLines',id:'Payroll Line ID',prefix:'PAYLINE',capability:'manageFinancial'},
   payrollDeductions:{book:'core',sheet:'payrollDeductions',id:'Payroll Deduction ID',prefix:'DEDUCTION',capability:'manageFinancial'},
+  payrollChecks:{book:'core',sheet:'payrollChecks',id:'Payroll Check ID',prefix:'PAYCHECK',capability:'manageFinancial'},
+  payrollCheckSettings:{book:'core',sheet:'payrollCheckSettings',id:'Payroll Check Settings ID',prefix:'PAYCHKSET',capability:'manageFinancial'},
   taxPeriods:{book:'core',sheet:'taxPeriods',id:'Tax Period ID',prefix:'TAX',capability:'manageFinancial'},
   missingDocuments:{book:'core',sheet:'missingDocuments',id:'Missing Document ID',prefix:'MISSING',capability:'manageFinancial'},
   approvals:{book:'core',sheet:'approvals',id:'Approval ID',prefix:'APPROVAL',capability:'manageSettings'},
@@ -28,7 +32,7 @@ var CB_PARITY_ENTITY_REGISTRY=Object.freeze({
   reports:{book:'core',sheet:'reports',id:'Report ID',prefix:'REPORT',capability:'manageFinancial'}
 });
 function cbCompletionEnsureParitySchema_(context){
-  ['employees','accountingPeriods','payrollPeriods','payrollLines','payrollDeductions','taxPeriods','missingDocuments','approvals','backups','reports'].forEach(function(name){cbPlatformEnsureHeaders_(context.core,name,CB_PARITY_HEADERS[name]);});
+  ['employees','accountingPeriods','payrollPeriods','payrollLines','payrollDeductions','payrollChecks','payrollCheckSettings','taxPeriods','missingDocuments','approvals','backups','reports'].forEach(function(name){cbPlatformEnsureHeaders_(context.core,name,CB_PARITY_HEADERS[name]);});
   cbPlatformEnsureHeaders_(context.inventory,'vendors',CB_PARITY_HEADERS.vendors);
   cbPlatformEnsureHeaders_(context.inventory,'purchaseOrders',CB_PARITY_HEADERS.purchaseOrders);
 }
@@ -57,6 +61,8 @@ function cbCompletionParityData_(context){
     payrollPeriods:canFinancial?cbCompletionListRows_(context,'core','payrollPeriods',200):[],
     payrollLines:canFinancial?cbCompletionListRows_(context,'core','payrollLines',1000):[],
     payrollDeductions:canFinancial?cbCompletionListRows_(context,'core','payrollDeductions',500):[],
+    payrollChecks:canFinancial?cbCompletionListRows_(context,'core','payrollChecks',500):[],
+    payrollCheckSettings:canFinancial?cbCompletionListRows_(context,'core','payrollCheckSettings',10):[],
     taxPeriods:canFinancial?cbCompletionListRows_(context,'core','taxPeriods',300):[],
     missingDocuments:canFinancial?cbCompletionListRows_(context,'core','missingDocuments',500):[],
     approvals:canControl?cbCompletionListRows_(context,'core','approvals',500):[],
