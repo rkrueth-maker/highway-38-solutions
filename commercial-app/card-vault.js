@@ -296,7 +296,7 @@ async function chargeInvoice(invoiceId){
   var label=methodLabel(method);
   var confirmText='Charge '+moneyFmt(balance)+' to '+label+' for invoice '
     +text(val(invoice,'Invoice Number','invoiceNumber')||invoiceId)+'?'
-    +(provider==='local'?'\n\nTEST MODE \u2014 no real money moves.':'\n\nThis moves real money via Stripe.')
+    +(provider==='local'?'\n\nDemo Mode \u2014 no real payments processed.':'\n\nThis moves real money via Stripe.')
     +'\n\nNothing happens until you confirm.';
   if(!window.confirm(confirmText))return;
   toastOk('Charging '+label+'\u2026');
@@ -445,7 +445,7 @@ function openAddCardModal(customerId){
   addCardState={customerId:cid,provider:cfg.provider,pick:'visa4242',stripe:null,cardEl:null};
   var name=customerName(cid);
   var testBanner=cfg.provider==='local'
-    ?'<div class="notice"><strong>TEST MODE \u2014 no real money moves.</strong> Pick a test card below. No real card numbers are accepted here.</div>'
+    ?'<div class="notice"><strong>Demo Mode \u2014 no real payments processed.</strong> Pick a test card below. No real card numbers are accepted here.</div>'
     :'<div class="notice">Cards are tokenized securely by Stripe. The Office never sees the card number.</div>';
   openModal(
     '<h2>Add card on file</h2>'
@@ -621,7 +621,7 @@ function cardsManageHtml(cfg){
   }).join('');
   return '<h2>Cards on file</h2>'
     +'<p class="muted small">Processor tokens only \u2014 card numbers are never stored. '
-    +(cfg.provider==='local'?'<strong>TEST MODE: no real money moves.</strong>':'Live via '+esc(PROVIDERS[cfg.provider].name)+'.')
+    +(cfg.provider==='local'?'<strong>Demo Mode: no real payments processed.</strong>':'Live via '+esc(PROVIDERS[cfg.provider].name)+'.')
     +'</p>'
     +'<div class="list">'
     +(groups.length?groups.map(function(g){
