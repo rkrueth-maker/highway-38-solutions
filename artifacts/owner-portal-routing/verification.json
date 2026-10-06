@@ -1,0 +1,288 @@
+{
+  "status": "PASS",
+  "sourceCommit": "",
+  "inspected": {
+    "rootHtmlFiles": 94,
+    "ownerLinks": 0,
+    "rawFragments": [
+      "Portal_Experience_Styles",
+      "Portal_UX_Styles",
+      "Portal_Business_Styles",
+      "Portal_Business_Create_Styles",
+      "Portal_Application_UX_Styles",
+      "Portal_OneShot_UX_Styles",
+      "Portal_UserAccess_Styles",
+      "Portal_RolePreview_Styles",
+      "Portal_Product_Styles",
+      "Portal_Mobile_Field_Styles",
+      "Portal_TaskAssignment_Styles",
+      "Portal_Chromebook_Styles",
+      "Portal_DailyFirst_Styles",
+      "Portal_Experience_Client_Core",
+      "Portal_Experience_Client_Views",
+      "Portal_Experience_Client_Workspace",
+      "Portal_UX_Client_Shell",
+      "Portal_Business_Client",
+      "Portal_Business_Create_Client",
+      "Portal_UX_Client_Tasks",
+      "Portal_UX_Client_Workspace",
+      "Portal_UX_Client_Forms",
+      "Portal_TaskMessaging_Client",
+      "Portal_Application_Client_Views",
+      "Portal_UserAccess_Client",
+      "Portal_OneShot_Client",
+      "Portal_Application_Client_Business",
+      "Portal_Application_Client_SafeActions",
+      "Portal_Application_Client_Core",
+      "Portal_Field_Roles_Client",
+      "Portal_RolePreview_Client",
+      "Portal_QuoteBuilder_Addon_Client",
+      "Portal_QuoteBuilder_QuickCapture_Client",
+      "Portal_Equipment_Client",
+      "Portal_Product_Client",
+      "Portal_LinkedOffices_Client",
+      "Portal_Navigation_Performance_Client",
+      "Portal_Mobile_Field_Client",
+      "Portal_Chromebook_Client",
+      "Portal_DailyFirst_Client",
+      "Portal_Performance_Reliability_Client",
+      "Portal_Onboarding_AiBridge",
+      "Portal_LiveExternal_Client",
+      "Portal_UX_Client_Boot"
+    ],
+    "representativeBusinessRoutes": [
+      "bo:requests",
+      "bo:customers",
+      "bo:quotes",
+      "bo:workOrders",
+      "bo:jobs",
+      "bo:invoices",
+      "bo:payments",
+      "bo:expenses",
+      "bo:documents",
+      "bo:reports"
+    ],
+    "unifiedApp": true,
+    "nativeBusinessOffice": true,
+    "moduleContractVersion": "2026-07-24-v2",
+    "startupRpcBudget": 1,
+    "standardOffice": "supabase-only",
+    "legacyOfficeRoute": false,
+    "retiredDeploymentRemoved": true
+  },
+  "passes": [
+    {
+      "name": "website unified Business Office gateway exists",
+      "evidence": ""
+    },
+    {
+      "name": "public portal automatically routes to the secure launcher",
+      "evidence": ""
+    },
+    {
+      "name": "standard launcher opens the Supabase Business Office",
+      "evidence": ""
+    },
+    {
+      "name": "legacy Business Office public route is removed",
+      "evidence": ""
+    },
+    {
+      "name": "standard launcher declares Supabase as the only runtime",
+      "evidence": ""
+    },
+    {
+      "name": "retired deployment is absent from every Office doorway",
+      "evidence": ""
+    },
+    {
+      "name": "public portal contains no obsolete workspace chooser",
+      "evidence": ""
+    },
+    {
+      "name": "public portal contains one Business Office recovery action",
+      "evidence": ""
+    },
+    {
+      "name": "public portal contains no private application iframe",
+      "evidence": ""
+    },
+    {
+      "name": "public portal preserves upload and business-office deep links",
+      "evidence": ""
+    },
+    {
+      "name": "secure launcher forwards approved route parameters",
+      "evidence": ""
+    },
+    {
+      "name": "standard launcher preserves current Supabase session",
+      "evidence": ""
+    },
+    {
+      "name": "portal contains no spreadsheet destination",
+      "evidence": ""
+    },
+    {
+      "name": "portal and launcher expose no Google Office URL",
+      "evidence": ""
+    },
+    {
+      "name": "secure app contains no nested Business Office iframe",
+      "evidence": ""
+    },
+    {
+      "name": "secure app includes native Business Office styles and client",
+      "evidence": ""
+    },
+    {
+      "name": "every secure app raw fragment is allowlisted",
+      "evidence": ""
+    },
+    {
+      "name": "legacy portal control and product clients are absent",
+      "evidence": ""
+    },
+    {
+      "name": "secure app uses one package-controlled manifest",
+      "evidence": ""
+    },
+    {
+      "name": "unified manifest declares native Business Office rendering",
+      "evidence": ""
+    },
+    {
+      "name": "canonical contract owns all module metadata",
+      "evidence": ""
+    },
+    {
+      "name": "central registry exposes seven workspace groups",
+      "evidence": "Today, Customers, Work, Money, Documents, Growth, Office"
+    },
+    {
+      "name": "central registry has no retired Control group",
+      "evidence": ""
+    },
+    {
+      "name": "representative Business Office routes are present",
+      "evidence": "bo:requests, bo:customers, bo:quotes, bo:workOrders, bo:jobs, bo:invoices, bo:payments, bo:expenses, bo:documents, bo:reports"
+    },
+    {
+      "name": "retired Product Controls route is absent",
+      "evidence": ""
+    },
+    {
+      "name": "Office owns Apps & Modules",
+      "evidence": ""
+    },
+    {
+      "name": "all visible contract modules appear once in navigation",
+      "evidence": "41 routes"
+    },
+    {
+      "name": "retired bookmarks redirect to current workspaces",
+      "evidence": ""
+    },
+    {
+      "name": "unified shell routes Business Office links directly",
+      "evidence": ""
+    },
+    {
+      "name": "unified shell prevents blank workspaces",
+      "evidence": ""
+    },
+    {
+      "name": "startup uses one browser RPC",
+      "evidence": ""
+    },
+    {
+      "name": "product client has no page-wide observer",
+      "evidence": ""
+    },
+    {
+      "name": "native Business Office server adapter lists saves opens and uploads records",
+      "evidence": ""
+    },
+    {
+      "name": "native Business Office client renders tables details forms and upload",
+      "evidence": ""
+    },
+    {
+      "name": "Business Office authentication defines unified user guard",
+      "evidence": ""
+    },
+    {
+      "name": "standalone Portal auth bridge publishes guarded compatibility functions",
+      "evidence": ""
+    },
+    {
+      "name": "combined shell owns self-contained authentication",
+      "evidence": ""
+    },
+    {
+      "name": "combined shell owns route and capability selection",
+      "evidence": ""
+    },
+    {
+      "name": "Business Office package modules are enforced server-side",
+      "evidence": ""
+    },
+    {
+      "name": "native adapter enforces package modules",
+      "evidence": ""
+    },
+    {
+      "name": "Business Office compatibility client is assembled once",
+      "evidence": ""
+    },
+    {
+      "name": "Documents and OCR keep upload inside unified app",
+      "evidence": ""
+    },
+    {
+      "name": "complete package explicitly enables core modules",
+      "evidence": ""
+    },
+    {
+      "name": "checked-in historical deployment tooling still builds exact source",
+      "evidence": ""
+    },
+    {
+      "name": "historical deployment tooling verifies exact remote source",
+      "evidence": ""
+    },
+    {
+      "name": "historical deployment tooling removes old combined auth bridge",
+      "evidence": ""
+    },
+    {
+      "name": "canonical public shell routes Owner links to portal.html",
+      "evidence": ""
+    },
+    {
+      "name": "Business Office dashboard uses calculated owner metrics",
+      "evidence": ""
+    },
+    {
+      "name": "dashboard contains no Open source records action",
+      "evidence": ""
+    },
+    {
+      "name": "administrative spreadsheet link is explicit and confirmed",
+      "evidence": ""
+    },
+    {
+      "name": "Business Office web source does not redirect to spreadsheet",
+      "evidence": ""
+    },
+    {
+      "name": "all static Owner Login and Owner Portal links target portal.html",
+      "evidence": "0 inspected"
+    },
+    {
+      "name": "public static pages contain no direct spreadsheet links",
+      "evidence": "94 HTML files inspected"
+    }
+  ],
+  "failures": []
+}

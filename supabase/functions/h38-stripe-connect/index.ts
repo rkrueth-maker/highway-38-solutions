@@ -457,6 +457,8 @@ Deno.serve(async (req: Request) => {
 
     return json(origin, 400, { status: "FAIL", error: `Unknown action "${action}".` });
   } catch (error) {
-    return json(origin, 500, { status: "FAIL", error: safeMessage(error) });
+    // Auth failures surface as 401 (sign-in state); everything else 500.
+    const msg = safeMessage(error);
+    return json(origin, /Supabase Auth session/.test(msg) ? 401 : 500, { status: "FAIL", error: msg });
   }
 });
