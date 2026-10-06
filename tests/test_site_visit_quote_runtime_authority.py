@@ -74,7 +74,7 @@ def test_final_authorities_are_loaded_directly_from_index():
 
 
 def test_shared_quote_machine_is_loaded_first_by_final_loader_and_is_generic():
-    assert "20260822-quote-runtime-authority-2-machine" in RUNTIME
+    assert "20261004-quote-runtime-authority-3-kit-build" in RUNTIME
     assert "allQuoteBuildsUseMachine:true" in RUNTIME
     assert "automaticDraftRepair:true" in RUNTIME
     assert "automaticFailureRecovery:true" in RUNTIME

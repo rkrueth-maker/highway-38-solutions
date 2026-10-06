@@ -1,20 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-05T14:26:55.102Z",
+  "generatedAt": "2026-10-05T19:14:36.357Z",
   "base": "origin/main",
-  "head": "fix/pricing-brand-kit-bundle",
+  "head": "fix/ci-main-red-20261005",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
-    "artifacts/unified-shell/assembly.json",
-    "artifacts/unified-source-assembly/verification.json",
-    "commercial-app/operator-direct-controls.js",
-    "launch-control/evidence/unified-app-architecture-verification.json"
+    "artifacts/change-plan/verification-plan.md",
+    "business-in-a-box-pricing.html"
   ],
-  "fileCount": 6,
+  "fileCount": 4,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": true,
+    "publicWebsite": true,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -25,24 +23,24 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": true,
+    "publicRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
