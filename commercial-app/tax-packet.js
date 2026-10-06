@@ -80,7 +80,7 @@ function taxPacketSection(){
   return `<section class="card span12" id="h38-tax-packet"><h2>Accountant Tax Packet — ${year}</h2>
   <p class="muted small">Professional year-end documents for your accountant to verify and file. The Office prepares — it never files a return.</p>
   <div class="two"><div><label>Tax year</label><select id="taxPacketYear">${years.map(y=>`<option value="${y}"${y===year?' selected':''}>${y}</option>`).join('')}</select></div>
-  <div><label>&nbsp;</label><div class="actions"><button type="button" class="primary" id="printTaxPacketBtn">Print / Save Tax Packet (PDF)</button></div></div></div>
+  <div><label>&nbsp;</label><div class="actions"><button type="button" class="primary" id="downloadTaxPacketBtn">Download Tax Packet (PDF)</button><button type="button" class="secondary" id="printTaxPacketBtn">Print Tax Packet</button></div></div></div>
   <div class="stats">
     <div class="stat"><strong>${money(pl.totalRevenue)}</strong><span>Revenue</span></div>
     <div class="stat"><strong>${money(pl.totalExpenses)}</strong><span>Expenses</span></div>
@@ -123,6 +123,8 @@ function bindTaxPacket(){
   if(yearSel)yearSel.onchange=e=>{state.taxPacketYear=num(e.target.value);renderTaxPrep();};
   const printBtn=$('printTaxPacketBtn');
   if(printBtn)printBtn.onclick=()=>printTaxPacket(taxPacketYear());
+  const downloadBtn=$('downloadTaxPacketBtn');
+  if(downloadBtn)downloadBtn.onclick=()=>downloadTaxPacketPdf(taxPacketYear());
   bindForm('mileageEntryForm',async(data,form)=>{
     const id=newId('MILEAGE'),record={'Mileage ID':id,'Business ID':state.businessId,'Trip Date':requireValue(data.tripDate,'Date is required.'),'Miles':num(data.miles),'Purpose':requireValue(data.purpose,'Business purpose is required.'),'Origin':data.origin,'Destination':data.destination,'Status':'Recorded','Created Time':now(),'Updated Time':now(),'Record Version':1};
     await queueOperation('SAVE_ENTITY','Mileage',id,{entity:'mileageEntries',record},{collection:'mileageEntries',record,idKeys:['Mileage ID']});
@@ -217,3 +219,124 @@ function printTaxPacket(year){
   w.document.close();
 }
 window.printTaxPacket=printTaxPacket;
+
+/* ---------- Direct PDF export (no print dialog, no external library) ---------- */
+
+function taxPdfClean(value){
+  return String(value===undefined||value===null?'':value)
+    .replace(/\u2192/g,'->').replace(/\u2014/g,'-').replace(/\u2013/g,'-')
+    .replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/\u00B7/g,'-')
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g,'');
+}
+function taxPdfEscape(text){return taxPdfClean(text).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');}
+function taxPdfPad(text,width){const t=taxPdfClean(text);return t.length>width?t.slice(0,width):t+Array(width-t.length+1).join(' ');}
+function taxPdfRight(text,width){const t=taxPdfClean(text);return t.length>width?t.slice(0,width):Array(width-t.length+1).join(' ')+t;}
+function taxPdfWrap(text,width){
+  const words=taxPdfClean(text).split(/\s+/).filter(Boolean),lines=[];let line='';
+  for(const word of words){const next=line?line+' '+word:word;if(next.length>width&&line){lines.push(line);line=word;}else line=next;}
+  if(line)lines.push(line);return lines;
+}
+
+function taxPacketPdfLines(year){
+  const data=taxPacketData(year),pl=taxPL(data),m=taxMileageTotals(data),subs=tax1099(data),ho=taxHomeOffice(data.settings);
+  const threshold1099=tax1099Threshold(year);
+  const biz=state.snapshot&&state.snapshot.business?String(state.snapshot.business.businessName||'Business'):'Business';
+  const prepared=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const usd=n=>'$'+Number(n||0).toFixed(2);
+  const L=[];
+  const title=t=>L.push({t,font:'H',size:16,bold:1,gap:6});
+  const head=t=>L.push({t,font:'H',size:12.5,bold:1,gap:14});
+  const sub=t=>L.push({t,font:'H',size:10.5,bold:1,gap:9});
+  const body=t=>L.push({t,font:'H',size:9.5,gap:5});
+  const row=t=>L.push({t,font:'C',size:8.8,gap:5});
+  const rowB=t=>L.push({t,font:'C',size:8.8,bold:1,gap:5});
+  title(biz+' - Tax Preparation Packet');
+  body('Tax year '+year+' - Prepared '+prepared+' from H38 Business Office records');
+  body('For accountant verification and filing. Informational only - no return has been filed.');
+  head('1. Profit & Loss Statement - '+year);
+  sub('Revenue');
+  const cats=obj=>Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  if(cats(pl.revenue).length)cats(pl.revenue).forEach(([c,a])=>row(taxPdfPad(c,58)+taxPdfRight(usd(a),16)));
+  else row('  No revenue recorded.');
+  rowB(taxPdfPad('Total revenue',58)+taxPdfRight(usd(pl.totalRevenue),16));
+  sub('Expenses');
+  if(cats(pl.expenses).length)cats(pl.expenses).forEach(([c,a])=>row(taxPdfPad(c,58)+taxPdfRight(usd(a),16)));
+  else row('  No expenses recorded.');
+  rowB(taxPdfPad('Total expenses',58)+taxPdfRight(usd(pl.totalExpenses),16));
+  rowB(taxPdfPad('Net profit (loss)',58)+taxPdfRight(usd(pl.netProfit),16));
+  head('2. Expense Detail - '+year);
+  if(data.expenses.length)data.expenses.slice(0,100).forEach(r=>row(taxPdfPad(dateOnly(v(r,'Expense Date')),11)+taxPdfPad(v(r,'Description')||'Expense',30)+taxPdfPad(v(r,'Category')||'Uncategorized',22)+taxPdfRight(usd(num(v(r,'Amount'))+num(v(r,'Tax'))),11)));
+  else row('  No expenses recorded for '+year+'.');
+  body('Receipt images are stored with each expense in the H38 Office (Money - Expenses).');
+  head('3. Business Mileage Log - '+year);
+  body('IRS requires date, miles, and business purpose for each trip. Total: '+m.miles.toFixed(1)+' miles across '+m.trips+' trips.');
+  if(data.mileage.length)data.mileage.slice(0,100).forEach(r=>row(taxPdfPad(dateOnly(v(r,'Trip Date')),11)+taxPdfPad((v(r,'Origin')||'-')+' -> '+(v(r,'Destination')||'-'),30)+taxPdfPad(v(r,'Purpose')||'-',22)+taxPdfRight(num(v(r,'Miles')).toFixed(1),11)));
+  else row('  No mileage entries recorded.');
+  head('4. 1099-NEC Summary - '+year);
+  taxPdfWrap('Subcontractors paid $'+threshold1099.toLocaleString()+' or more in '+year+' generally require a Form 1099-NEC. (IRS threshold: $600 for 2025 payments, $2,000 for 2026 and later.) Confirm with your accountant.',100).forEach(t=>body(t));
+  if(subs.length)subs.forEach(x=>row(taxPdfPad(x.name+(x.tin?' (TIN on file)':''),44)+taxPdfRight(String(x.payments),6)+taxPdfRight(usd(x.total),14)+taxPdfRight(x.total>=threshold1099?'YES':'No',6)));
+  else row('  No subcontractor payments recorded.');
+  head('5. Home Office Deduction - '+year);
+  row(taxPdfPad('Method',40)+taxPdfClean(ho.method));
+  row(taxPdfPad('Office area',40)+ho.officeSqft+' sq ft');
+  row(taxPdfPad('Total home area',40)+ho.homeSqft+' sq ft');
+  rowB(taxPdfPad('Calculated deduction',40)+usd(ho.deduction));
+  if(ho.detail)taxPdfWrap(ho.detail,100).forEach(t=>body(t));
+  head('6. Accountant Review');
+  taxPdfWrap('Prepared from H38 Business Office records on '+prepared+'. Figures are drafts for professional verification - confirm categorization, depreciation, inventory, and payroll tax filings with your accountant before filing. The Office prepares; it never files a return.',100).forEach(t=>body(t));
+  L.push({t:'',font:'H',size:9.5,gap:16});
+  row(taxPdfPad('Owner signature / date',37)+'   '+taxPdfPad('Accountant signature / date',37));
+  row(taxPdfPad('__________________________',37)+'   '+taxPdfPad('__________________________',37));
+  return {lines:L,biz,year};
+}
+
+function taxPacketPdfString(year){
+  const {lines,biz}=taxPacketPdfLines(year);
+  const pageW=612,pageH=792,margin=54,topY=726,bottomY=60;
+  const heights=l=>Math.round(l.size*1.5)+(l.gap||0);
+  const pages=[[]];let y=topY;
+  for(const line of lines){const h=heights(line);if(y-h<bottomY&&pages[pages.length-1].length){pages.push([]);y=topY;}pages[pages.length-1].push({line,y});y-=h;}
+  const fontFor=l=>(l.font==='C'?(l.bold?'/F4':'/F3'):(l.bold?'/F2':'/F1'));
+  const contents=pages.map((items,idx)=>{
+    const ops=['0.4 g', 'BT /F1 7.5 Tf '+margin+' 36 Td ('+taxPdfEscape('H38 Business Office - Tax Preparation Packet '+year+' - Page '+(idx+1)+' of '+pages.length)+') Tj ET','0 g'];
+    for(const {line,y:ly} of items){if(!line.t)continue;ops.push('BT '+fontFor(line)+' '+line.size+' Tf '+margin+' '+ly+' Td ('+taxPdfEscape(line.t)+') Tj ET');}
+    return ops.join('\n');
+  });
+  const objects=[];
+  objects[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  const kids=contents.map((_,i)=>String(7+i*2)+' 0 R').join(' ');
+  objects[2]='<< /Type /Pages /Kids ['+kids+'] /Count '+contents.length+' >>';
+  objects[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+  objects[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';
+  objects[5]='<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>';
+  objects[6]='<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold >>';
+  contents.forEach((content,i)=>{
+    objects[7+i*2]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents '+(8+i*2)+' 0 R >>';
+    objects[8+i*2]='<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream';
+  });
+  let pdf='%PDF-1.4\n';const offsets=[0];
+  for(let n=1;n<objects.length;n++){offsets[n]=pdf.length;pdf+=n+' 0 obj\n'+objects[n]+'\nendobj\n';}
+  const xrefPos=pdf.length;
+  pdf+='xref\n0 '+objects.length+'\n0000000000 65535 f \n';
+  for(let n=1;n<objects.length;n++)pdf+=String(offsets[n]).padStart(10,'0')+' 00000 n \n';
+  pdf+='trailer\n<< /Size '+objects.length+' /Root 1 0 R >>\nstartxref\n'+xrefPos+'\n%%EOF';
+  return pdf;
+}
+
+function downloadTaxPacketPdf(year){
+  try{
+    const text=taxPacketPdfString(year);
+    const bytes=new Uint8Array(text.length);
+    for(let i=0;i<text.length;i++)bytes[i]=text.charCodeAt(i)&0xff;
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement('a');
+    anchor.href=url;anchor.download='H38-Tax-Packet-'+year+'.pdf';
+    document.body.appendChild(anchor);anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast('Tax packet PDF downloaded. Bring it to your accountant for verification and filing.');
+  }catch(error){
+    toast('PDF export failed: '+(error&&error.message?error.message:String(error)),true);
+  }
+}
+window.downloadTaxPacketPdf=downloadTaxPacketPdf;
