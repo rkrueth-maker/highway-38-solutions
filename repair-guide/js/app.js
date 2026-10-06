@@ -77,6 +77,9 @@ const state = {
   photo: null,
 };
 
+// Photo scan (identify-from-photo) state
+const scanState = { photo: null, category: '' };
+
 const $ = id => document.getElementById(id);
 
 function showScreen(id) {
@@ -295,6 +298,8 @@ function renderParts(result) {
     : (result.summary ? `<p>${escapeHtml(result.summary)}</p>` : '<p class="muted">—</p>');
 }
 $('goDiagnose').addEventListener('click', () => showScreen('categoryScreen'));
+$('goPhotoScan').addEventListener('click', () => showScreen('photoScanScreen'));
+$('backToHomeFromPhotoScan').addEventListener('click', () => showScreen('homeScreen'));
 $('goParts').addEventListener('click', () => showScreen('partsScreen'));
 $('goRepairs').addEventListener('click', () => { renderRepairs(); showScreen('repairsScreen'); });
 $('backToHome').addEventListener('click', () => showScreen('homeScreen'));
@@ -459,7 +464,7 @@ function renderRepairs() {
     box.innerHTML = '<p class="muted">No repairs logged yet. Run a diagnosis and it will show up here.</p>';
     return;
   }
-  const labels = {car:'Car / Truck', atv:'ATV / UTV', 'small-engine':'Small Engine', appliance:'Appliance'};
+  const labels = {car:'Car / Truck', atv:'ATV / UTV', 'small-engine':'Small Engine', appliance:'Appliance', photo:'📷 Photo Scan'};
   box.innerHTML = log.map((r, i) => `
     <div class="repair-entry" data-i="${i}">
       <div class="repair-head"><strong>${labels[r.category] || r.category}</strong>
@@ -488,20 +493,111 @@ $('newDiagnosisBtn').addEventListener('click', () => {
   $('unitInfo').value = '';
   $('photoPreview').innerHTML = '';
   state.photo = null;
+  scanState.photo = null;
+  scanState.category = '';
+  $('scanPhotoPreview').innerHTML = '';
+  $('scanNote').value = '';
+  document.querySelectorAll('#scanCategoryChips .chip').forEach(c => c.classList.toggle('active', !c.dataset.cat));
   showScreen('homeScreen');
 });
 
-// Photo handling
+// --- Photo helpers (shared by Diagnose + Photo Scan) ---
+// Downscale phone photos before upload: max 1280px on the long edge,
+// JPEG q0.82 — a multi-MB camera shot becomes ~150–350 KB.
+const PHOTO_MAX_EDGE = 1280;
+function readPhotoFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      } catch (e) { URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that photo.')); };
+    img.src = url;
+  });
+}
+
+function dataUrlToBlob(dataUrl) {
+  const comma = dataUrl.indexOf(',');
+  const head = dataUrl.slice(0, comma);
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+  const bytes = atob(dataUrl.slice(comma + 1));
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// Upload the compressed photo to the shared private storage bucket. Only
+// the storage ref (never the bytes) rides in the task payload, so the
+// diagnosis worker can fetch the picture and actually look at it.
+async function uploadRepairPhoto(dataUrl) {
+  const token = await getAccessToken();
+  if (!token) { logout(); throw new Error('Please sign in first.'); }
+  const blob = dataUrlToBlob(dataUrl);
+  const id = (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
+  const path = `${BUSINESS_ID}/RepairGuide/${id}/photo.jpg`;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/business-office-files/${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true',
+    },
+    body: blob,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Photo upload failed (${res.status})${text ? ': ' + text.substring(0, 120) : ''}`);
+  }
+  return { bucket: 'business-office-files', path, mimeType: 'image/jpeg', fileName: 'photo.jpg', sizeBytes: blob.size };
+}
+
+// Photo handling (symptom screen)
 $('photoBtn').addEventListener('click', () => $('photoInput').click());
-$('photoInput').addEventListener('change', e => {
+$('photoInput').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    state.photo = ev.target.result;
+  try {
+    state.photo = await readPhotoFile(file);
     $('photoPreview').innerHTML = `<img src="${state.photo}" alt="Problem photo">`;
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    alert(friendlyError(err));
+  }
+});
+
+// Photo scan screen
+$('scanPhotoBtn').addEventListener('click', () => $('scanPhotoInput').click());
+$('scanPhotoInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    scanState.photo = await readPhotoFile(file);
+    $('scanPhotoPreview').innerHTML = `<img src="${scanState.photo}" alt="Photo to identify">`;
+    $('scanError').hidden = true;
+  } catch (err) {
+    const eb = $('scanError');
+    eb.textContent = friendlyError(err);
+    eb.hidden = false;
+  }
+});
+document.querySelectorAll('#scanCategoryChips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#scanCategoryChips .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    scanState.category = chip.dataset.cat || '';
+  });
 });
 
 // Diagnosis
@@ -541,6 +637,49 @@ $('diagnoseBtn').addEventListener('click', async () => {
   }
 });
 
+// Photo scan submit: identify what's in the picture + likely issues
+$('scanDiagnoseBtn').addEventListener('click', async () => {
+  const errBox = $('scanError');
+  errBox.hidden = true;
+  if (!scanState.photo) {
+    errBox.textContent = 'Take or upload a photo first.';
+    errBox.hidden = false;
+    return;
+  }
+  const note = $('scanNote').value.trim();
+  const symptoms = note
+    ? `Photo scan: ${note}`
+    : 'Photo scan: identify what this is and what issues it likely has.';
+
+  showScreen('resultScreen');
+  $('diagnosisLoading').hidden = false;
+  $('diagnosisResult').hidden = true;
+  $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is looking at your photo...</p>';
+
+  try {
+    const result = await requestDiagnosis({
+      category: scanState.category || 'unknown',
+      symptoms,
+      unitInfo: '',
+      photo: scanState.photo,
+      source: 'repair-guide-photo-scan',
+    });
+    const diagTop = result && (result.diagnosis || result);
+    saveRepair({
+      category: scanState.category || 'photo',
+      symptoms: note || 'Photo scan',
+      unitInfo: (diagTop && diagTop.identifiedItem && diagTop.identifiedItem.name) || '',
+      topIssue: diagTop && diagTop.likelyIssues && diagTop.likelyIssues[0]
+        ? (diagTop.likelyIssues[0].issue || '')
+        : '',
+    });
+    window.H38_LAST_DIAGNOSIS = { input: { category: scanState.category, symptoms, unitInfo: '', photoScan: true }, result };
+    renderResult(result);
+  } catch (err) {
+    $('diagnosisLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
+  }
+});
+
 async function supabaseFetch(path, options = {}) {
   const token = await getAccessToken();
   if (!token) {
@@ -566,6 +705,15 @@ async function supabaseFetch(path, options = {}) {
 }
 
 async function requestDiagnosis(data) {
+  // 0. If a photo is attached, upload it first — only the storage ref
+  // rides in the task payload; the worker fetches and views the picture.
+  let photoRef = null;
+  if (data.photo) {
+    $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Sending photo to Kit...</p>';
+    photoRef = await uploadRepairPhoto(data.photo);
+    $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is analyzing...<br><small>This usually takes under a minute</small></p>';
+  }
+
   // 1. Insert task into ai_handoff_tasks
   const tasks = await supabaseFetch('ai_handoff_tasks', {
     method: 'POST',
@@ -577,9 +725,9 @@ async function requestDiagnosis(data) {
         category: data.category,
         symptoms: data.symptoms,
         unitInfo: data.unitInfo || null,
-        // Note: photo as data URL is too large for the payload
-        // For now, we note if a photo was provided
-        hasPhoto: !!data.photo,
+        photo: photoRef,
+        hasPhoto: !!photoRef,
+        source: data.source || 'repair-guide-diagnose',
       },
     }),
   });
@@ -615,7 +763,24 @@ function renderResult(result) {
   $('diagnosisResult').hidden = false;
   
   const d = result.diagnosis || result;
-  
+
+  // Photo identification (present when the diagnosis came from a photo)
+  const ident = d.identifiedItem || d.identification || null;
+  const idBox = $('identifiedBox');
+  if (ident) {
+    const idName = typeof ident === 'string' ? ident : (ident.name || ident.item || '');
+    const idConf = typeof ident === 'object' ? (ident.confidence || '') : '';
+    const idDesc = typeof ident === 'object' ? (ident.description || ident.details || '') : '';
+    $('identifiedItem').innerHTML =
+      `${idName ? `<div class="id-name">${escapeHtml(idName)}</div>` : ''}
+       ${idConf ? `<div class="id-conf">Confidence: ${escapeHtml(idConf)}</div>` : ''}
+       ${idDesc ? `<p>${escapeHtml(idDesc)}</p>` : ''}`;
+    idBox.hidden = false;
+  } else {
+    idBox.hidden = true;
+    $('identifiedItem').innerHTML = '';
+  }
+
   // Likely issues
   const issuesHtml = (d.likelyIssues || []).map((item, i) => `
     <div class="issue">
