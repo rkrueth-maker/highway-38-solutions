@@ -25,7 +25,11 @@ const PROFILES={
 const PAGE_COLLECTIONS={today:['customers','jobs','tasks'],customers:['customers','properties','requests'],work:['requests','jobs','tasks'],jobs:['jobs','tasks'],meetings:['meetings'],quotes:['quotes'],schedule:['scheduleEvents'],messages:['conversations','emailThreads','smsThreads','portalThreads'],field:['jobNotes','timeEntries','documents'],money:['invoices','expenses','purchaseOrders'],accounting:['accountingReviews'],payroll:['payrollPrep','payrollRuns'],tax:['taxPrep','taxPeriods'],reports:['jobs','invoices'],people:['users','employees'],inventory:['priceBook','materialRequests','inventoryTransactions'],fleet:['assets','maintenance'],documents:['documents'],files:['documents'],social:['socialPosts'],controls:['quotes','invoices'],ai:['jobs','jobNotes'],assistant:['tasks','jobs'],settings:['businesses']};
 function profile(){return businessKey()==='northern-lakes'?PROFILES['northern-lakes']:PROFILES.highway38;}
 function rows(name){const value=stateNow()?.snapshot?.[name];return Array.isArray(value)?value:[];}
-function isTestRow(row){if(!row||typeof row!=='object')return false;const t=v=>String(v==null?'':v).trim();const name=t(row['Customer Name']||row['Project Title']||row['Job Name']||row['Display Name']||row.name||row.title);return /\bTEST\b/i.test(name)||/^(LOCAL-|TEST-)/i.test(t(row['Job ID']||row['Customer ID']||row.jobId||row.customerId));}
+function isTestRow(row){if(!row||typeof row!=='object')return false;const t=v=>String(v==null?'':v).trim();const name=t(row['Customer Name']||row['Project Title']||row['Job Name']||row['Display Name']||row.name||row.title);
+// In the demo tenant, LOCAL- records ARE the real demo data, not test data
+const isDemo=businessKey()==='demo';
+if(isDemo&&/^(LOCAL-)/i.test(t(row['Job ID']||row['Customer ID']||row.jobId||row.customerId)))return false;
+return /\bTEST\b/i.test(name)||/^(LOCAL-|TEST-)/i.test(t(row['Job ID']||row['Customer ID']||row.jobId||row.customerId));}
 function pageHasRealData(page){const collections=PAGE_COLLECTIONS[page]||[];return collections.some(name=>rows(name).some(row=>!row?.__h38ReferenceSample&&!/SAMPLE/i.test(text(row?.['Record Type']))&&!isTestRow(row)));}
 function itemsFor(page,p){
   const docs=p.documents.join(' · ');
