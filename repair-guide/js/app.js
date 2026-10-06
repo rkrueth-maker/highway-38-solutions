@@ -192,7 +192,7 @@ $('vinDecodeBtn').addEventListener('click', async () => {
     const recalls = await checkRecalls(info.make, info.model, info.year);
     if (recalls.length) {
       recallEl.innerHTML = `<div class="notice warn"><strong>⚠ ${recalls.length} open recall${recalls.length === 1 ? '' : 's'} found</strong>` +
-        recalls.map(r => `<div class="small" style="margin-top:6px"><strong>${esc(r.component)}</strong><br>${esc(r.summary.slice(0, 200))}</div>`).join('') +
+        recalls.map(r => `<div class="small" style="margin-top:6px"><strong>${escapeHtml(r.component)}</strong><br>${escapeHtml(r.summary.slice(0, 200))}</div>`).join('') +
         `<div class="small muted" style="margin-top:6px">Check with a dealer — recall repairs are free.</div></div>`;
     } else {
       recallEl.innerHTML = '<p class="small muted">✓ No open recalls found for this vehicle.</p>';
@@ -524,12 +524,13 @@ $('diagnoseBtn').addEventListener('click', async () => {
       unitInfo: $('unitInfo').value.trim(),
       photo: state.photo,
     });
+    const diagTop = result && (result.diagnosis || result);
     saveRepair({
       category: state.category,
       symptoms,
       unitInfo: $('unitInfo').value.trim(),
-      topIssue: result && result.issues && result.issues[0]
-        ? (result.issues[0].title || result.issues[0].name || '')
+      topIssue: diagTop && diagTop.likelyIssues && diagTop.likelyIssues[0]
+        ? (diagTop.likelyIssues[0].issue || '')
         : '',
     });
     // Stash for the optional Office bridge (dormant without ?office_business=).
