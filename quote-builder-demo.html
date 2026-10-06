@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Free Landscaping Quote Builder Example | Highway 38 Solutions</title>
-  <meta name="description" content="Try a finished, browser-only landscaping quote. Edit scope, line items, quantities, internal costs, markup, tax, deposit, assumptions, exclusions, and terms without sending or storing data.">
+  <title>Free Quote Builder Demo — Try It By Trade | Highway 38 Solutions</title>
+  <meta name="description" content="Try a finished, browser-only quote for your trade. Edit scope, line items, quantities, internal costs, markup, tax, deposit, assumptions, exclusions, and terms without sending or storing data.">
   <link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/quote-builder-demo.html">
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
   <link rel="stylesheet" href="assets/css/project-intelligence.css?v=20260723-flow">
@@ -16,8 +16,7 @@
     .demo-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(380px,.95fr);gap:24px;align-items:start}
     .demo-panel{background:#fff;border:1px solid #d8e2dc;border-radius:18px;box-shadow:0 12px 34px rgba(11,31,52,.08);padding:24px}
     .demo-panel h2,.demo-panel h3{margin-top:0}.section-kicker{margin:0 0 14px;color:#52636c}
-    .preset-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 22px}
-    .preset-btn{border:1px solid #bfd0c6;border-radius:12px;background:#f6faf7;color:#173226;padding:13px;text-align:left;font:inherit;font-weight:850;cursor:pointer}.preset-btn span{display:block;margin-top:4px;color:#63746b;font-size:.78rem;font-weight:650}.preset-btn:hover,.preset-btn[aria-pressed="true"]{border-color:#1f6b47;background:#e8f1ec;color:#12472f}
+    .preset-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 22px}    .preset-btn{border:1px solid #bfd0c6;border-radius:12px;background:#f6faf7;color:#173226;padding:13px;text-align:left;font:inherit;font-weight:850;cursor:pointer}.preset-btn span{display:block;margin-top:4px;color:#63746b;font-size:.78rem;font-weight:650}.preset-btn:hover,.preset-btn[aria-pressed="true"]{border-color:#1f6b47;background:#e8f1ec;color:#12472f}
     .demo-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.demo-field{display:flex;flex-direction:column;gap:6px}.demo-field.full{grid-column:1/-1}.demo-field label{font-weight:800;color:#0b1f34}.demo-field small{color:#65736c}.internal-field{border:1px dashed #aabbb1;border-radius:12px;background:#f6f8f7;padding:12px}
     .demo-field input,.demo-field textarea,.demo-field select{width:100%;box-sizing:border-box;border:1px solid #b9c7bf;border-radius:10px;padding:11px 12px;font:inherit;background:#fff;color:#102033}.demo-field textarea{min-height:102px;resize:vertical}
     .line-wrap{overflow-x:auto;border:1px solid #e0e8e3;border-radius:12px;margin-top:12px}.line-table{width:100%;border-collapse:collapse;min-width:720px}.line-table th,.line-table td{padding:9px 7px;border-bottom:1px solid #e2e9e5;text-align:left;vertical-align:middle}.line-table th{background:#f4f7f5;color:#334b3f;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}.line-table input,.line-table select{width:100%;box-sizing:border-box;border:1px solid #bcc9c1;border-radius:8px;padding:9px;font:inherit;background:#fff}.line-table .category{width:118px}.line-table .num{width:70px}.line-table .unit{width:80px}.line-table .money{width:110px}.line-table .remove{width:40px;text-align:center}.icon-btn{border:1px solid #c5d0ca;background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900}
@@ -38,9 +37,9 @@
 <main id="main">
   <section class="pi-hero">
     <div class="pi-hero-copy">
-      <span class="pi-eyebrow">Free landscaping quote builder example</span>
-      <h1>Start with a finished landscape quote.<br><strong>Change it into your own.</strong></h1>
-      <p>The featured example covers a complete front-entry landscape renovation with removal, soil preparation, edging, plants, mulch, installation, cleanup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
+      <span class="pi-eyebrow">Free quote builder demo — pick your trade</span>
+      <h1>Start with a finished quote.<br><strong>Change it into your own.</strong></h1>
+      <p>Choose a trade below to load a complete sample quote — landscape renovation, drainage, seasonal cleanup, bathroom remodel, kitchen refresh, or deck build. Each covers scope, line items, internal markup, deposit, schedule, assumptions, exclusions, and terms. Internal markup is used to calculate customer pricing but is never shown on the customer preview or printed quote.</p>
       <div class="pi-actions"><a class="pi-btn primary" href="#demo">Edit the Featured Quote</a><a class="pi-btn secondary" href="quote-builder.html#examples">View Complete Quote and CAD Packages</a></div>
     </div>
     <div class="pi-callout"><h3>Nothing leaves this page</h3><p>This demonstration uses browser memory only. It does not create an account, save a customer, upload files, call H38 AI, send a quote, charge a card, or submit information to Highway 38.</p></div>
@@ -59,11 +58,14 @@
     <div class="demo-layout pi-compact">
       <div class="demo-panel demo-editor">
         <h2>Build the quote</h2>
-        <p class="section-kicker">Choose a finished landscaping example, then edit it. Nothing is sent or saved.</p>
-        <div class="preset-bar" aria-label="Landscaping quote example presets">
+        <p class="section-kicker">Choose a trade example, then edit it. Nothing is sent or saved.</p>
+        <div class="preset-bar" aria-label="Quote example presets by trade">
           <button type="button" class="preset-btn" data-preset="landscape" aria-pressed="true">Landscape renovation<span>Beds, edging, plants, mulch, installation</span></button>
           <button type="button" class="preset-btn" data-preset="drainage" aria-pressed="false">Drainage and lawn repair<span>Downspouts, grading, soil, seed, erosion control</span></button>
           <button type="button" class="preset-btn" data-preset="seasonal" aria-pressed="false">Seasonal property cleanup<span>Bed cleanup, pruning, mulch, debris removal</span></button>
+          <button type="button" class="preset-btn" data-preset="bathroom" aria-pressed="false">Bathroom remodel<span>Demo, plumbing, tile, vanity, fixtures</span></button>
+          <button type="button" class="preset-btn" data-preset="kitchen" aria-pressed="false">Kitchen refresh<span>Counters, backsplash, refacing, lighting</span></button>
+          <button type="button" class="preset-btn" data-preset="deck" aria-pressed="false">Deck build<span>Footings, framing, decking, railing, stairs</span></button>
         </div>
 
         <form id="demoForm">
@@ -126,12 +128,12 @@
   </section>
 
   <section class="pi-section alt demo-boundaries">
-    <div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">What this example demonstrates</span><h2>A professional landscaping quote protects the price and explains the work.</h2></div>
+    <div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">What this example demonstrates</span><h2>A professional quote protects the price and explains the work — in any trade.</h2></div>
     <div class="boundary-grid pi-compact">
-      <article class="pi-card"><div class="pi-card-body"><h3>Landscape-ready structure</h3><p>Design, removal, soil, plants, materials, labor, equipment, watering, cleanup, and closeout can be quoted together.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Trade-ready structure</h3><p>Design, removal, materials, labor, equipment, and closeout can be quoted together — whatever the trade.</p></div></article>
       <article class="pi-card"><div class="pi-card-body"><h3>Private markup</h3><p>Markup stays in the editor. Customer unit prices already include it, so the preview and printed quote remain clean.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Site boundaries</h3><p>Utilities, weather, soil, substitutions, watering, access, exclusions, and written-change controls reduce misunderstanding.</p></div></article>
-      <article class="pi-card"><div class="pi-card-body"><h3>Three landscaping jobs</h3><p>Switch between renovation, drainage repair, and seasonal cleanup examples using the same quote structure.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Site boundaries</h3><p>Utilities, weather, soil, substitutions, access, exclusions, and written-change controls reduce misunderstanding.</p></div></article>
+      <article class="pi-card"><div class="pi-card-body"><h3>Six trades, one structure</h3><p>Switch between landscape, drainage, cleanup, bathroom, kitchen, and deck examples using the same quote structure.</p></div></article>
     </div>
     <div class="pi-callout pi-compact" style="margin-top:24px"><h3>What the paid Quote Builder adds</h3><p>Connected customers, saved versions, reusable templates, price-book items, photos, documents, approvals, acceptance records, branded PDFs, controlled H38 AI, and quote-to-job workflow.</p></div>
     <div class="pi-actions" style="justify-content:center;margin-top:24px"><a class="pi-btn primary" href="start-request.html?offer=quote-builder">Start with Quote Builder</a><a class="pi-btn secondary" href="pricing.html">Compare Products</a></div>
@@ -198,6 +200,61 @@
         {category:'Equipment',description:'Debris haul and disposal allowance',qty:1,unit:'load',rate:275},
         {category:'Closeout',description:'Final cleanup, photos, and customer summary',qty:1,unit:'project',rate:110}
       ]
+    },
+    bathroom:{
+      business:'Northwoods Remodeling — fictional',quoteNumber:'B-1042',customer:'Hilltop Residence — fictional',project:'Hall bathroom remodel',location:'Grand Rapids area — sample location',duration:'2–3 weeks',schedule:'Within 4 weeks of written approval and material delivery',markup:18,tax:7.375,deposit:40,validDays:'21 days',
+      scope:'Protect adjacent rooms and flooring; demolish existing tub, vanity, toilet, and finishes to studs where required; rough-in plumbing for new tub/shower valve and vanity; install new tub/shower surround, vanity with top, toilet, tile flooring, lighting, mirror, and accessories; paint; complete punch list and customer walkthrough.',
+      assumptions:'Existing plumbing and electrical can be reused with listed modifications. Subfloor is sound after demolition. Customer selects fixtures and finishes by the approval deadline. Work area has clear access for material delivery and debris removal.',
+      exclusions:'Structural changes, mold remediation beyond surface treatment, asbestos or lead abatement, relocation of plumbing stacks or main drains, heated floors, custom glass beyond listed door, and permit fees unless listed.',
+      terms:'Quote valid for 21 days. A 40% deposit is due after written acceptance and before material ordering. Fixture and finish selections must be finalized within 7 days of acceptance. Balance is due after punch-list completion and walkthrough.',
+      items:[
+        {category:'Design',description:'Site measure, layout review, fixture coordination, and work-area setup',qty:1,unit:'project',rate:350},
+        {category:'Removal',description:'Demolition of tub, vanity, toilet, tile, and drywall to studs',qty:14,unit:'labor hr',rate:68},
+        {category:'Materials',description:'Tub/shower unit, valve, trim, and surround allowance',qty:1,unit:'allowance',rate:1850},
+        {category:'Materials',description:'Vanity, countertop, sink, and faucet allowance',qty:1,unit:'allowance',rate:1450},
+        {category:'Materials',description:'Floor tile, grout, and setting materials',qty:65,unit:'sq ft',rate:14},
+        {category:'Labor',description:'Plumbing rough-in and fixture set',qty:12,unit:'labor hr',rate:95},
+        {category:'Labor',description:'Tile installation — floor and shower walls',qty:20,unit:'labor hr',rate:78},
+        {category:'Labor',description:'Vanity, toilet, trim, paint, and finish work',qty:16,unit:'labor hr',rate:72},
+        {category:'Equipment',description:'Delivery, debris haul, and disposal allowance',qty:1,unit:'allowance',rate:480},
+        {category:'Closeout',description:'Punch list, caulking, final cleanup, photos, and walkthrough',qty:1,unit:'project',rate:220}
+      ]
+    },
+    kitchen:{
+      business:'Northwoods Remodeling — fictional',quoteNumber:'K-2088',customer:'Lakeshore Homeowner — fictional',project:'Mid-range kitchen refresh',location:'Itasca County — sample location',duration:'3–4 weeks',schedule:'Within 5 weeks of written approval and cabinet delivery',markup:18,tax:7.375,deposit:40,validDays:'21 days',
+      scope:'Protect floors and adjacent rooms; remove existing countertops, backsplash, sink, and faucet; install new countertops, tile backsplash, undermount sink, and faucet; install pendant lighting over island; refinish or reface listed cabinets; install new cabinet hardware; paint; complete punch list and walkthrough.',
+      assumptions:'Existing cabinets are sound and suitable for refacing. Plumbing and electrical locations remain unchanged. Customer approves countertop, tile, and fixture selections by the deadline. Appliances remain unless listed.',
+      exclusions:'Full cabinet replacement, structural changes, new appliance installation, flooring replacement, relocation of plumbing or electrical, permit fees, and hidden water damage unless added by written change.',
+      terms:'Quote valid for 21 days. A 40% deposit is due after written acceptance and before material ordering. Selections must be finalized within 7 days of acceptance. Balance is due after punch-list completion and walkthrough.',
+      items:[
+        {category:'Design',description:'Site measure, layout review, material coordination, and setup',qty:1,unit:'project',rate:425},
+        {category:'Removal',description:'Remove countertops, backsplash, sink, faucet, and hardware',qty:10,unit:'labor hr',rate:68},
+        {category:'Materials',description:'Quartz countertops fabricated and installed',qty:42,unit:'sq ft',rate:85},
+        {category:'Materials',description:'Tile backsplash, grout, and setting materials',qty:38,unit:'sq ft',rate:22},
+        {category:'Materials',description:'Undermount sink, faucet, and disposal allowance',qty:1,unit:'allowance',rate:780},
+        {category:'Materials',description:'Cabinet refacing materials and new hardware',qty:1,unit:'allowance',rate:2400},
+        {category:'Labor',description:'Cabinet refacing, hardware install, and trim',qty:24,unit:'labor hr',rate:75},
+        {category:'Labor',description:'Countertop template coordination, sink and faucet set',qty:10,unit:'labor hr',rate:88},
+        {category:'Labor',description:'Backsplash tile, lighting, paint, and finish work',qty:18,unit:'labor hr',rate:72},
+        {category:'Closeout',description:'Punch list, final cleanup, photos, and walkthrough',qty:1,unit:'project',rate:260}
+      ]
+    },
+    deck:{
+      business:'Northwoods Outdoor Builds — fictional',quoteNumber:'D-3115',customer:'Pinewood Residence — fictional',project:'8 x 12 pressure-treated deck',location:'Grand Rapids area — sample location',duration:'4–6 working days',schedule:'Within 3 weeks of written approval and permit',markup:16,tax:7.375,deposit:35,validDays:'21 days',
+      scope:'Confirm final deck location and elevations; obtain permit; install concrete footings below frost line; frame 8 x 12 pressure-treated deck with stairs and railing to code; install decking, railing, and stair treads; complete structural inspection coordination; final cleanup and walkthrough.',
+      assumptions:'Soil conditions allow standard dug footings. Property lines and setbacks are confirmed by customer. Lumber is available at listed pricing. Permit is approved without plan changes.',
+      exclusions:'Roof cover, pergola, lighting beyond listed, under-deck drainage, staining or sealing, landscaping repair beyond work area, and permit fees unless listed.',
+      terms:'Quote valid for 21 days. A 35% deposit is due after written acceptance and before material ordering. Lumber price changes beyond 10% require written approval. Balance is due after final inspection and walkthrough.',
+      items:[
+        {category:'Design',description:'Site measure, layout, permit drawings, and setup',qty:1,unit:'project',rate:380},
+        {category:'Materials',description:'Pressure-treated framing lumber package',qty:1,unit:'package',rate:1650},
+        {category:'Materials',description:'Decking boards, railing, balusters, and stairs',qty:1,unit:'package',rate:1480},
+        {category:'Materials',description:'Concrete, post bases, and hardware',qty:1,unit:'allowance',rate:520},
+        {category:'Labor',description:'Footing excavation, posts, and framing',qty:20,unit:'labor hr',rate:72},
+        {category:'Labor',description:'Decking, railing, stairs, and trim',qty:22,unit:'labor hr',rate:72},
+        {category:'Equipment',description:'Auger rental, delivery, and disposal allowance',qty:1,unit:'allowance',rate:390},
+        {category:'Closeout',description:'Inspection coordination, final cleanup, photos, and walkthrough',qty:1,unit:'project',rate:190}
+      ]
     }
   };
 
@@ -220,11 +277,14 @@
     ['markup','tax','deposit'].forEach(id=>fill(id,preset[id]));
     body.innerHTML='';preset.items.forEach(row);
     document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.preset===name)));
-    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch'};
+    const names={landscape:'Featured landscape renovation',drainage:'Drainage and lawn repair',seasonal:'Seasonal cleanup and mulch',bathroom:'Bathroom remodel',kitchen:'Kitchen refresh',deck:'Deck build'};
     const summaries={
       landscape:{title:'Featured example: Front-entry landscape renovation',desc:'A complete sample with bed removal, soil preparation, natural-stone edging, shrubs, perennials, mulch, installation, cleanup, payment terms, and customer-facing boundaries.',items:'10 line items',duration:'3–4 working days'},
       drainage:{title:'Featured example: Drainage and lawn repair',desc:'A complete sample with downspout extensions, grading, soil prep, seed, erosion control, and site restoration.',items:'8 line items',duration:'2–3 working days'},
-      seasonal:{title:'Featured example: Seasonal property cleanup',desc:'A complete sample with bed cleanup, pruning, mulch refresh, debris removal, and seasonal readiness.',items:'8 line items',duration:'1–2 working days'}
+      seasonal:{title:'Featured example: Seasonal property cleanup',desc:'A complete sample with bed cleanup, pruning, mulch refresh, debris removal, and seasonal readiness.',items:'8 line items',duration:'1–2 working days'},
+      bathroom:{title:'Featured example: Hall bathroom remodel',desc:'A complete sample with demolition, plumbing rough-in, tile, vanity, fixtures, paint, and punch-list closeout.',items:'10 line items',duration:'2–3 weeks'},
+      kitchen:{title:'Featured example: Mid-range kitchen refresh',desc:'A complete sample with countertop replacement, backsplash tile, cabinet refacing, lighting, and finish work.',items:'10 line items',duration:'3–4 weeks'},
+      deck:{title:'Featured example: 8 x 12 pressure-treated deck',desc:'A complete sample with footings, framing, decking, railing, stairs, inspection, and closeout.',items:'8 line items',duration:'4–6 working days'}
     };
     const summary=summaries[name]||summaries.landscape;
     $('summaryTitle').textContent=summary.title;
