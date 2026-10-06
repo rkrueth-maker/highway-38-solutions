@@ -23,10 +23,8 @@ const PAGE_CHECKS = [
     label: 'homepage',
     path: 'index.html',
     required: [
-      'Bring us the problem.',
-      'Start a Project',
-      'Try the Quote Demo',
-      'Choose the kind of help you need',
+      'Your truck is not',
+      'Business in a box',
       'I need better software',
       'I need help solving a project',
       'Implementation and Onboarding',

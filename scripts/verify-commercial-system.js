@@ -21,7 +21,7 @@ check('one canonical public shell owns balanced navigation and Project Examples'
 check('canonical shell preserves Owner gateway',shell.includes("['Owner Access','portal.html']"));
 check('canonical shell locks image source changes',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(shell));
 const home=read('index.html');
-check('homepage is problem first',home.includes('Bring us the problem.')&&home.includes('clear working path.')&&home.includes('See it. Scope it. Run it.'));
+check('homepage is problem first',home.includes('Your truck is not')&&home.includes('filing cabinet')&&home.includes('Business in a box'));
 check('homepage routes through balanced discovery',home.includes('href="start-request.html"')&&home.includes('href="software.html"')&&home.includes('href="project-services.html"')&&home.includes('href="pricing.html"')&&!/href=["']business-systems\.html/i.test(home)&&!/href=["']quote-builder\.html["']/i.test(home));
 check('homepage presents both buyer choices',home.includes('I need better software')&&home.includes('I need help solving a project'));
 check('homepage does not restore retired catalog as primary experience',!home.includes('Choose Your Path')&&!home.includes('15 fixed-price services')&&!home.includes('9 approved bundles'));

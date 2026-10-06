@@ -25,7 +25,7 @@ check('one public shell owns navigation and footer',/navigation\s*:\s*\[/.test(s
 check('public shell contains current destinations',['Project Examples','What We Do','Pricing','About','Contact','Owner Access'].every(label=>shell.includes(label)));
 check('public shell locks runtime image substitution',/imagePolicy:\{changeSource:false,insertImages:false,fallbackImages:false/.test(shell));
 const home=read('index.html');
-check('homepage presents the current project-first promise',home.includes('Bring us the problem.')&&home.includes('clear working path.')&&home.includes('See it. Scope it. Run it.'));
+check('homepage presents the current project-first promise',home.includes('Your truck is not')&&home.includes('filing cabinet')&&home.includes('Business in a box'));
 check('homepage routes to request examples and capabilities',['start-request.html','quote-builder.html#examples','solutions.html'].every(link=>home.includes(`href="${link}"`)));
 check('homepage uses approved local body images without mockup repair',home.includes('src="assets/')&&!home.includes('approved-homepage-mockup.png')&&!/<img[^>]+src=["']https?:/i.test(home));
 check('homepage does not restore retired catalog experience',!home.includes('Choose Your Path')&&!home.includes('15 fixed-price services')&&!home.includes('9 approved bundles'));

@@ -51,7 +51,7 @@ const publicPackages=publicData&&Array.isArray(publicData.packages)?publicData.p
 const publicDrawings=publicData&&publicData.drawings?Object.keys(publicData.drawings):[];
 const matchedSheets=publicPackages.flatMap(item=>item.sheets||[]);
 
-check('homepage uses current problem-first promise',index.includes('Bring us the problem.')&&index.includes('clear working path.')&&index.includes('See it. Scope it. Run it.'));
+check('homepage uses current problem-first promise',index.includes('Your truck is not')&&index.includes('filing cabinet')&&index.includes('Business in a box'));
 check('homepage has controlled request and balanced discovery actions',index.includes('href="start-request.html"')&&index.includes('href="software.html"')&&index.includes('href="project-services.html"')&&index.includes('href="pricing.html"')&&!/href=["']business-systems\.html/i.test(index)&&!/href=["']quote-builder\.html["']/i.test(index));
 check('homepage separates software and project-service buyers',index.includes('I need better software')&&index.includes('I need help solving a project'));
 check('homepage uses approved local imagery without mockup shell',index.includes('assets/approved-website-images/')&&!index.includes('approved-homepage-mockup.png')&&!/class="[^"]*hotspot/.test(index));
