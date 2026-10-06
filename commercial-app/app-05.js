@@ -43,4 +43,5 @@ async function deleteTask(taskId){
     renderWork();
   }catch(error){toast(error?.message||String(error),true);}
 }
+if(typeof window!=='undefined')window.deleteTask=deleteTask;
 
