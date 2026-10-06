@@ -56,7 +56,7 @@ check('request has three primary choices',(request.match(/class="h38-choice-card
 check('request has three secondary choices',(request.match(/class="h38-choice-link"/g)||[]).length===3);
 check('first Continue is disabled until selection',/data-request-next disabled aria-disabled="true"/.test(request)&&requestFlow.includes('updateFirstContinue'));
 check('request uses the approved offer selector',request.includes('id="offer"')&&request.includes('pricing-data.js')&&!request.includes('id="bundle"')&&!request.includes('id="product"'));
-check('request exposes final four customer choices',['quote-builder','business-office','configured-system','business-snapshot'].every(id=>requestOptions.includes(id)));
+check('request exposes final four customer choices',['byo-claude','ai-backend','custom-scope','business-snapshot'].every(id=>requestOptions.includes(id)));
 check('request preserves buying-term truth',['price','payment','turnaround','revisions','exclusions'].every(term=>request.toLowerCase().includes(term)));
 check('request no-charge control',/No charge|no-charge/i.test(request));
 check('secure submission remains owner reviewed',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&publicIntake.includes('Owner Approval Required'));
