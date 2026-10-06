@@ -1,19 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-06T06:28:23.299Z",
-  "base": "main",
-  "head": "fix/operation-test-fixes",
+  "generatedAt": "2026-10-06T22:43:52.699Z",
+  "base": "origin/main",
+  "head": "HEAD",
   "files": [
-    "commercial-app/app-04.js",
-    "commercial-app/app-05.js",
-    "commercial-app/customer-workspace-documents.js",
-    "commercial-app/operator-direct-controls.js",
-    "commercial-app/owner-customer-workflow-polish.js"
+    "repair-guide/css/styles.css",
+    "repair-guide/index.html",
+    "repair-guide/js/app.js",
+    "repair-guide/sw.js"
   ],
-  "fileCount": 5,
+  "fileCount": 4,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": true,
+    "publicWebsite": true,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -24,24 +23,24 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": true,
+    "publicRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
