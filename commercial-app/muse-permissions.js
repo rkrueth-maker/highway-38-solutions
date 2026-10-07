@@ -1,9 +1,9 @@
 (function(){
 'use strict';
 // H38 Muse Permissions: explicit grant flow for contractor personal AI.
-// REQUIRED at minimum: Office access + Business email.
-// Optional: calendar, SMS, files, etc. Grants are revocable.
-const BUILD='20261003-muse-permissions-1';
+// REQUIRED at minimum: Office access, Business email, and Google Drive.
+// Optional: Calendar, SMS, and Fleet Location. Grants are revocable.
+const BUILD='20261006-muse-permissions-2';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -16,7 +16,7 @@ const REQUIRED_PERMS=[
 ];
 
 const OPTIONAL_PERMS=[
-  {id:'calendar',title:'Calendar',desc:'View and manage your work schedule.',icon:'📅',required:false},
+  {id:'calendar',title:'Calendar',desc:'Optional outside-calendar access. Your Office Schedule is already included with Business Office Access and works without this.',icon:'📅',required:false},
   {id:'sms',title:'Business SMS',desc:'Send text messages to customers.',icon:'💬',required:false},
   {id:'fleet',title:'Fleet Location',desc:'View vehicle locations for dispatch.',icon:'🚛',required:false},
 ];
@@ -130,7 +130,7 @@ function renderStatus(){
   
   main.innerHTML=`<div class="page-head"><div><span class="kicker">SETTINGS</span>
     <h1>Muse Permissions</h1><p>Control what your personal AI can access.</p></div>
-    <div class="page-tools"><button class="secondary" data-perm-revoke-all>Revoke All</button></div></div>
+    <div class="page-tools"><button class="secondary" data-perm-back>Back to Settings</button><button class="secondary" data-perm-revoke-all>Revoke All</button></div></div>
   
   <div class="card">
     <div class="h38-perm-status ${hasRequired()?'good':'warn'}">
@@ -154,6 +154,9 @@ function renderStatus(){
     <p class="muted small">Required permissions cannot be turned off while Muse is connected. Use Revoke All to disconnect.</p>
   </div>`;
   
+  document.querySelector('[data-perm-back]')?.addEventListener('click',()=>{
+    if(window.openPage)window.openPage('settings');
+  });
   document.querySelectorAll('[data-perm-toggle]').forEach(cb=>cb.onchange=()=>{
     const g=getGrants();
     const id=cb.dataset.permToggle;
@@ -177,10 +180,89 @@ function toast(msg,bad){
 function startGrant(){renderGrantScreen();}
 function startStatus(){renderStatus();}
 
-if(window.H38_PAGES){
+function openPermissionsPage(){
+  if(window.state)window.state.page='musePermissions';
+  renderStatus();
+  try{window.renderNav?.();}catch(_){}
+  try{
+    const main=document.getElementById('mainContent');
+    if(main){main.scrollTop=0;main.focus?.({preventScroll:true});}
+  }catch(_){}
+}
+
+function openConnectPage(){
+  if(window.state)window.state.page='museConnect';
+  renderGrantScreen();
+  try{window.renderNav?.();}catch(_){}
+  try{
+    const main=document.getElementById('mainContent');
+    if(main){main.scrollTop=0;main.focus?.({preventScroll:true});}
+  }catch(_){}
+}
+
+function renderSettingsCard(){
+  if(window.state?.page!=='settings')return false;
+  const grid=document.querySelector('#mainContent .grid');
+  if(!grid)return false;
+  let card=document.getElementById('h38MusePermissionsCard');
+  if(!card){
+    card=document.createElement('section');
+    card.id='h38MusePermissionsCard';
+    card.className='card span6';
+    const ownerControls=Array.from(grid.querySelectorAll(':scope > section.card')).find(section=>section.querySelector('h2')?.textContent?.trim()==='Owner Controls');
+    if(ownerControls)grid.insertBefore(card,ownerControls);else grid.appendChild(card);
+  }
+  const connected=hasRequired();
+  card.innerHTML=`<h2>Muse Permissions</h2>
+    <p class="muted">${connected?'Your Muse is connected with the required permissions.':'Control what your personal AI can access.'}</p>
+    <p class="muted small">Required: Business Office Access, Business Email, and Google Drive. Optional: Calendar, Business SMS, and Fleet Location. Your Office Schedule works without the Calendar permission.</p>
+    <div class="actions"><button type="button" class="secondary" data-muse-permissions-open>Open Muse Permissions</button></div>`;
+  card.querySelector('[data-muse-permissions-open]')?.addEventListener('click',event=>{event.stopPropagation();openPermissionsPage();});
+  return true;
+}
+
+function scheduleSettingsCard(){
+  queueMicrotask(()=>{try{renderSettingsCard();}catch(error){console.warn('Muse Permissions Settings card:',error?.message||error);}});
+}
+
+let officeIntegrationListenersInstalled=false;
+let settingsCardObserver=null;
+function installOpenPageWrapper(){
+  const baseOpen=window.openPage;
+  if(typeof baseOpen!=='function'||baseOpen.__h38MusePermissions)return;
+  const wrapped=function(page,...args){
+    if(page==='musePermissions'){openPermissionsPage();return;}
+    if(page==='museConnect'){openConnectPage();return;}
+    return baseOpen.apply(this,args);
+  };
+  wrapped.__h38MusePermissions=true;
+  wrapped.__h38MusePermissionsBase=baseOpen;
+  window.openPage=wrapped;
+}
+
+function installOfficeIntegration(){
+  window.H38_PAGES=window.H38_PAGES||{};
   window.H38_PAGES.museConnect={render:startGrant,title:'Connect Muse'};
   window.H38_PAGES.musePermissions={render:startStatus,title:'Muse Permissions'};
+  if(!officeIntegrationListenersInstalled){
+    officeIntegrationListenersInstalled=true;
+    window.addEventListener('h38:office-page-rendered',event=>{if(event?.detail?.page==='settings')scheduleSettingsCard();});
+    window.addEventListener('h38:business-snapshot-updated',()=>{if(window.state?.page==='settings')scheduleSettingsCard();});
+    document.addEventListener('click',event=>{
+      if(event.target?.closest?.('[data-muse-permissions-open]'))openPermissionsPage();
+    });
+    if(document.body&&!settingsCardObserver){
+      settingsCardObserver=new MutationObserver(()=>{if(window.state?.page==='settings'&&!document.getElementById('h38MusePermissionsCard'))scheduleSettingsCard();});
+      settingsCardObserver.observe(document.body,{childList:true,subtree:true});
+    }
+  }
+  installOpenPageWrapper();
+  scheduleSettingsCard();
 }
-window.H38_MUSE_PERMS=Object.freeze({build:BUILD,hasPermission,hasRequired,getGrants,startGrant,startStatus});
+
+window.H38_MUSE_PERMS=Object.freeze({build:BUILD,hasPermission,hasRequired,getGrants,startGrant,startStatus,openGrant:openConnectPage,openStatus:openPermissionsPage,renderSettingsCard});
+
+installOfficeIntegration();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installOfficeIntegration,{once:true});
 
 })();
