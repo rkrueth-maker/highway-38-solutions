@@ -22,7 +22,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //     applications for review.
 //   POST {action:"decide", applicationId, decision} + Highway 38 owner/admin
 //     JWT → "approve" lists the partner; "pass" marks it not listed.
-const BUILD = "20261007-vendor-directory-2";
+const BUILD = "20261007-vendor-directory-4";
 const H38_BUSINESS_ID = "10b85a89-5834-436d-95b0-c6ee2eb335ad";
 const BUILD_SANDBOX_BUSINESS_ID = "d44d32de-dd95-4f6e-81e8-ff5592979d68";
 const MODULE_KEY = "recommended_vendors";
@@ -323,7 +323,7 @@ async function decide(req: Request, input: Json) {
   const p = (appRow.payload || {}) as Json;
   const currentStatus = clean(p["Status"], 60);
   if (currentStatus !== "Pending Review") {
-    return { applicationId, status: currentStatus, alreadyDecided: true };
+    return { applicationId, applicationStatus: currentStatus, alreadyDecided: true };
   }
   const now = new Date().toISOString();
   const isTest = yes(p["Test"]);
@@ -387,7 +387,7 @@ async function decide(req: Request, input: Json) {
       external_action_occurred: false,
     });
   } catch (_) { /* proof is best-effort */ }
-  return { applicationId, status: nextStatus, partnerId };
+  return { applicationId, applicationStatus: nextStatus, partnerId };
 }
 
 Deno.serve(async (req: Request) => {
@@ -399,23 +399,23 @@ Deno.serve(async (req: Request) => {
     const action = clean(input.action || new URL(req.url).searchParams.get("action"), 60);
     if (action === "list") {
       const result = await list(req, input);
-      return json(req, 200, { status: "PASS", build: BUILD, ...result, externalActionOccurred: false });
+      return json(req, 200, { build: BUILD, ...result, externalActionOccurred: false, status: "PASS" });
     }
     if (action === "publicList") {
       const result = await publicList(input);
-      return json(req, 200, { status: "PASS", build: BUILD, ...result, externalActionOccurred: false });
+      return json(req, 200, { build: BUILD, ...result, externalActionOccurred: false, status: "PASS" });
     }
     if (action === "apply") {
       const result = await apply(input);
-      return json(req, 200, { status: "PASS", build: BUILD, ...result, externalActionOccurred: false });
+      return json(req, 200, { build: BUILD, ...result, externalActionOccurred: false, status: "PASS" });
     }
     if (action === "applications") {
       const result = await applications(req);
-      return json(req, 200, { status: "PASS", build: BUILD, ...result, externalActionOccurred: false });
+      return json(req, 200, { build: BUILD, ...result, externalActionOccurred: false, status: "PASS" });
     }
     if (action === "decide") {
       const result = await decide(req, input);
-      return json(req, 200, { status: "PASS", build: BUILD, ...result, externalActionOccurred: false });
+      return json(req, 200, { build: BUILD, ...result, externalActionOccurred: false, status: "PASS" });
     }
     return json(req, 400, { status: "FAIL", message: "Unsupported vendor directory action.", build: BUILD });
   } catch (e) {
