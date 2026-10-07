@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T04:38:08.710Z",
+  "generatedAt": "2026-10-07T04:45:20.979Z",
   "base": null,
   "head": "HEAD",
   "files": [
@@ -2255,6 +2255,7 @@
     "supabase/functions/h38-stripe-connect/index.ts",
     "supabase/functions/h38-stripe-webhook/index.ts",
     "supabase/functions/h38-video-measurements/index.ts",
+    "supabase/functions/h38-voice-receptionist/index.ts",
     "supabase/functions/h38-walkthrough-transcription/deno.json",
     "supabase/functions/h38-walkthrough-transcription/index.ts",
     "supabase/functions/h38-web-video-measurements/index.ts",
@@ -2424,7 +2425,7 @@
     "whole-house-quote-package.html",
     "worked-examples.html"
   ],
-  "fileCount": 2419,
+  "fileCount": 2420,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
