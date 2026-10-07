@@ -1,18 +1,20 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T13:31:04.240Z",
+  "generatedAt": "2026-10-07T13:42:24.481Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "supabase/functions/h38-quote-delivery/index.ts"
+    "assets/js/h38-helper.js",
+    "assets/js/h38-site-v2.js",
+    "scripts/verify-public-helper.js"
   ],
-  "fileCount": 1,
+  "fileCount": 3,
   "scopes": {
-    "publicWebsite": false,
+    "publicWebsite": true,
     "authenticatedApp": false,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -20,21 +22,23 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
+    "publicRendering": true,
     "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
-  "expensiveChecks": [],
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes"
+  ],
   "deploymentWorkflows": [
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
     "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
