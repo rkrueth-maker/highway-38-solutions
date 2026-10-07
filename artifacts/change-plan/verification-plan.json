@@ -1,19 +1,35 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-06T22:43:52.699Z",
+  "generatedAt": "2026-10-06T23:19:12.165Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "repair-guide/css/styles.css",
-    "repair-guide/index.html",
-    "repair-guide/js/app.js",
-    "repair-guide/sw.js"
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/owner-portal-routing/verification.json",
+    "artifacts/public-website-architecture/verification.json",
+    "artifacts/task-messaging/hardening-verification.json",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
+    "commercial-app/customer-portal.html",
+    "commercial-app/index.html",
+    "commercial-app/owner-controls.js",
+    "commercial-app/stripe-payments.js",
+    "launch-control/evidence/customer-portal-security-verification.json",
+    "launch-control/evidence/owner-portal-hard-rule-verification.json",
+    "launch-control/evidence/public-customer-path-verification.json",
+    "launch-control/evidence/public-ecosystem-tools.json",
+    "launch-control/evidence/unified-app-architecture-verification.json",
+    "supabase/functions/h38-customer-portal/index.ts",
+    "supabase/functions/h38-stripe-connect/index.ts",
+    "supabase/functions/h38-stripe-webhook/index.ts"
   ],
-  "fileCount": 4,
+  "fileCount": 20,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": false,
-    "customerPortal": false,
+    "authenticatedApp": true,
+    "customerPortal": true,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -24,24 +40,28 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": false,
-    "externalActionBoundary": false,
+    "authenticatedRendering": true,
+    "externalActionBoundary": true,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-customer-portal-security.js",
+    "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes"
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

@@ -1,0 +1,236 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-06T23:08:29.506Z",
+  "passed": 53,
+  "failed": 0,
+  "controls": {
+    "ownerOnly": true,
+    "selectedRecordOnly": true,
+    "externalActions": false,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "rawJsonInNormalSettings": false,
+    "mobileCards": true,
+    "savedViews": true,
+    "customer360": true,
+    "job360": true,
+    "preview": true,
+    "registryDriven": true,
+    "singleDesignSystem": true
+  },
+  "pass": [
+    {
+      "name": "unified application architecture gate",
+      "detail": "exit 0"
+    },
+    {
+      "name": "Portal Experience server file exists",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal HTML exists",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal style include exists",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal client include Portal_Experience_Client_Core.html",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal client include Portal_Experience_Client_Views.html",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal client include Portal_Experience_Client_Workspace.html",
+      "detail": ""
+    },
+    {
+      "name": "Portal Experience syntax",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal assembled client syntax",
+      "detail": ""
+    },
+    {
+      "name": "template includes are allowlisted",
+      "detail": ""
+    },
+    {
+      "name": "Today dashboard",
+      "detail": "Today"
+    },
+    {
+      "name": "Needs Rick decision view",
+      "detail": "Needs Rick’s Decision"
+    },
+    {
+      "name": "Active Work view",
+      "detail": "Active Work"
+    },
+    {
+      "name": "Money Center",
+      "detail": "Money Center"
+    },
+    {
+      "name": "Growth Center",
+      "detail": "Growth Center"
+    },
+    {
+      "name": "Website Center",
+      "detail": "Website Center"
+    },
+    {
+      "name": "System Health",
+      "detail": "System Health"
+    },
+    {
+      "name": "grouped navigation",
+      "detail": "nav-group"
+    },
+    {
+      "name": "quick create",
+      "detail": "runQuickCreate"
+    },
+    {
+      "name": "universal search",
+      "detail": "globalSearch"
+    },
+    {
+      "name": "saved views",
+      "detail": "saveCurrentView"
+    },
+    {
+      "name": "list view",
+      "detail": "setTaskView('list')"
+    },
+    {
+      "name": "board view",
+      "detail": "setTaskView('board')"
+    },
+    {
+      "name": "calendar view",
+      "detail": "setTaskView('calendar')"
+    },
+    {
+      "name": "Customer 360",
+      "detail": "h38PortalCustomerWorkspace"
+    },
+    {
+      "name": "Job 360",
+      "detail": "h38PortalJobWorkspace"
+    },
+    {
+      "name": "persistent selected-task action rail",
+      "detail": "Selected-task action rail"
+    },
+    {
+      "name": "document image video preview",
+      "detail": "renderPreview"
+    },
+    {
+      "name": "next-action guidance",
+      "detail": "Current next action"
+    },
+    {
+      "name": "SOP help access",
+      "detail": "Help & SOPs"
+    },
+    {
+      "name": "integration health",
+      "detail": "Integration health"
+    },
+    {
+      "name": "mobile record cards",
+      "detail": "data-label"
+    },
+    {
+      "name": "external lock visible",
+      "detail": "External actions locked"
+    },
+    {
+      "name": "responsive mobile CSS",
+      "detail": ""
+    },
+    {
+      "name": "normal Settings do not print raw JSON",
+      "detail": ""
+    },
+    {
+      "name": "no JSON prompt create UX",
+      "detail": ""
+    },
+    {
+      "name": "no dangerous external execution patterns",
+      "detail": ""
+    },
+    {
+      "name": "no raw card fields",
+      "detail": ""
+    },
+    {
+      "name": "experience explicitly reports no external action",
+      "detail": ""
+    },
+    {
+      "name": "saved views use owner UserProperties",
+      "detail": ""
+    },
+    {
+      "name": "saved views capped",
+      "detail": ""
+    },
+    {
+      "name": "selected record execution retained",
+      "detail": ""
+    },
+    {
+      "name": "control center returns all seven hard-rule views",
+      "detail": ""
+    },
+    {
+      "name": "control center stays internal",
+      "detail": ""
+    },
+    {
+      "name": "decision queue is data-derived",
+      "detail": ""
+    },
+    {
+      "name": "system health exposes exact blocker",
+      "detail": ""
+    },
+    {
+      "name": "Customer 360 returns customer-own workspace",
+      "detail": ""
+    },
+    {
+      "name": "Customer 360 rejects invalid ID",
+      "detail": "Customer ID is invalid."
+    },
+    {
+      "name": "saved view persists without external action",
+      "detail": ""
+    },
+    {
+      "name": "saved view writes internal proof",
+      "detail": ""
+    },
+    {
+      "name": "saved view reads back",
+      "detail": ""
+    },
+    {
+      "name": "saved view deletes",
+      "detail": ""
+    },
+    {
+      "name": "saved view rejects unsupported module",
+      "detail": "Saved view module is not allowed."
+    }
+  ],
+  "failures": []
+}
