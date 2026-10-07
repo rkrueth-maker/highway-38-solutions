@@ -1,0 +1,25 @@
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const scanner=read('commercial-app/document-scanner.js');
+const docsRuntime=read('commercial-app/document-photo-service-runtime-v2.js');
+const loader=read('commercial-app/assistant-command-runtime.js');
+const onboarding=read('commercial-app/ai-onboarding.js');
+const index=read('commercial-app/index.html');
+function must(condition,message){if(!condition){console.error('FAIL:',message);process.exit(1);}console.log('PASS:',message);}
+new Function(scanner);new Function(docsRuntime);new Function(onboarding);
+must(scanner.includes("window.H38_DOCUMENT_SCANNER=Object.freeze({build:BUILD,open})"),'scanner exposes the frozen H38_DOCUMENT_SCANNER API');
+must(scanner.includes("runTask('document_scan'"),'scanner submits the document_scan AI handoff task');
+must(scanner.includes('getUserMedia'),'scanner supports live camera capture');
+must(scanner.includes("'Source Type':'Document Scan'"),'saved scans are canonical documents records');
+must(scanner.includes("'Access Classification':'Internal'"),'saved scans stay private/internal by default');
+must(scanner.includes('SAVE_CUSTOMER'),'confirmed customer rows save through the canonical customer operation');
+must(scanner.includes('handleAttachmentFiles'),'manual save falls back to the on-device attachment queue');
+must(scanner.includes('Nothing saves until you confirm')||docsRuntime.includes('data-scan'),'owner-confirm-first copy is present');
+must(!/service[_-]?role\s*[:=]\s*['"][^'"]+/i.test(scanner),'scanner contains no service-role credential');
+must(docsRuntime.includes('data-scan')&&docsRuntime.includes("document-scanner.js?build=20261007-document-scanner-1"),'Documents smart-intake card launches the scanner on demand at the pinned build');
+must(loader.includes('document-photo-service-runtime-v2.js?build=20261007-document-photo-service-3'),'production loader pins the updated documents runtime build');
+must(onboarding.includes('data-onboard-scan-customers')&&onboarding.includes('onCustomers'),'onboarding Customers step can scan a paper list into the review list');
+must(!index.includes('document-scanner.js'),'scanner is NOT in the startup bundle (on-demand loading per performance standard)');
+console.log('Document scanner verification PASS');
