@@ -1,22 +1,16 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T04:59:10.047Z",
-  "base": null,
+  "generatedAt": "2026-10-07T06:41:54.817Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "artifacts/unified-app-ux/verification.json",
-    "artifacts/unified-shell/assembly.json",
-    "artifacts/unified-source-assembly/verification.json",
-    "commercial-app/index.html",
-    "commercial-app/muse-permissions.js",
-    "launch-control/evidence/unified-app-architecture-verification.json"
+    "commercial-app/mobile-runtime-stability.js",
+    "commercial-app/office-account-identity.js",
+    "commercial-app/styles.css"
   ],
-  "fileCount": 9,
+  "fileCount": 3,
   "scopes": {
-    "publicWebsite": true,
+    "publicWebsite": false,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
@@ -28,28 +22,25 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
+    "publicRendering": false,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-business-office.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
     "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
