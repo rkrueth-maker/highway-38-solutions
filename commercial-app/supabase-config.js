@@ -25,6 +25,10 @@
         await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(key=>caches.delete(key)));
       }
     }catch(_){}
+    // If the Office already painted business records, do not reload out from
+    // under the user (that bounce reset navigation back to Today); the repair
+    // above still applies from the next cold start.
+    try{if(window.state&&window.state.snapshot)return;}catch(_){}
     location.reload();
   })();
 })();
