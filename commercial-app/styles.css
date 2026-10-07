@@ -104,3 +104,19 @@ input[type="file"]::file-selector-button:hover{background:#e8eef3}
 @media(max-width:760px){
   #syncBadge{display:inline-flex!important;font-size:.68rem;min-height:26px;padding:2px 8px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+
+/* Visual sweep 2026-10-07: tablet header must not crush icon targets or clip Ask Kit. */
+@media(min-width:761px) and (max-width:1100px){
+  .topbar{gap:8px;padding-left:10px;padding-right:10px}
+  .topbar .brand{flex:1 1 auto;min-width:0}
+  .topbar .brand strong,.topbar .brand small{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar .top-actions{flex:1 1 auto;justify-content:flex-end;min-width:0}
+  .topbar .top-actions>*{flex-shrink:0}
+  .topbar .top-actions .icon-button{flex:0 0 44px!important;width:44px!important;min-width:44px!important}
+  .topbar .top-actions .badge{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar #h38InstallOfficeButton{padding-left:9px;padding-right:9px;white-space:nowrap}
+  .topbar #askKitButton{flex:0 0 auto;white-space:nowrap}
+}
+@media(min-width:761px) and (max-width:880px){
+  .topbar .top-actions .badge{display:none}
+}
