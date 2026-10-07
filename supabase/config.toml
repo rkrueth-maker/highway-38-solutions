@@ -30,3 +30,10 @@ verify_jwt = false
 # per-session / per-IP / daily caps are enforced inside the function.
 [functions.h38-site-helper]
 verify_jwt = false
+
+# Recommended Vendors directory + partner application intake. Anonymous
+# access is intentional for the public list and the application form; the
+# member directory, the per-business on/off gate, and Ricky's application
+# review are enforced inside the function (JWT + membership checks).
+[functions.h38-vendor-directory]
+verify_jwt = false

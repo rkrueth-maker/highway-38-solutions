@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Partner Application | Highway 38 Solutions</title>
+<meta name="description" content="Apply to be a Highway 38 Recommended Vendor. Approved local suppliers and services are listed in the Highway 38 Business Office and, by owner choice, on customer websites.">
+<link rel="canonical" href="https://rkrueth-maker.github.io/highway-38-solutions/partner-apply.html">
+<link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="stylesheet" href="commercial-public.css?v=20260721">
+<link rel="stylesheet" href="assets/css/project-intelligence.css?v=20260723-capabilities-v2">
+<style>
+.rv-form{display:grid;gap:14px;max-width:760px;margin:0 auto;text-align:left}
+.rv-form .rv-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.rv-form .rv-two{grid-template-columns:1fr}}
+.rv-form label{display:block;font-weight:700;font-size:.9rem;margin-bottom:6px}
+.rv-form input,.rv-form select,.rv-form textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid rgba(20,40,30,.3);border-radius:10px;font:inherit;min-height:44px;background:#fff}
+.rv-form textarea{min-height:96px}
+.rv-form button{min-height:48px;padding:0 22px;font:inherit;font-weight:800;border-radius:10px;border:0;background:#113b2e;color:#fff;cursor:pointer}
+.rv-form button[disabled]{opacity:.55;cursor:wait}
+.rv-note{font-size:.9rem;opacity:.8}
+.rv-status{border-radius:12px;padding:16px;display:none}
+.rv-status.ok{display:block;background:#e7f4ea;border:1px solid #2e7d46}
+.rv-status.err{display:block;background:#fbe9e7;border:1px solid #b3261e}
+.rv-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="pi-nav"></header>
+<main id="main">
+<section class="pi-hero"><div class="pi-hero-copy"><span class="pi-eyebrow">Recommended Vendors</span><h1>Get in front of the trades.</h1><p>Highway 38 runs the office software behind local contractor and service businesses — and builds their websites. Our <strong>Recommended Vendors</strong> list puts approved local suppliers and services inside that software, one tap from the people who call you. <strong>Listing is free while we build this out.</strong> Every application is reviewed personally by Highway 38 before anyone appears — there is no automatic listing.</p></div></section>
+<section class="pi-section"><div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">Who this is for</span><h2>The services our businesses already call.</h2><p>Material suppliers, equipment rental, disposal and dumpsters, portable toilets, inspectors, real-estate photographers, bookkeepers, sign shops, small-engine repair — the people a working shop needs on speed dial. If that is you, apply below. All we ask is that you take care of them: listings come down if we hear otherwise.</p></div></section>
+<section class="pi-section alt"><div class="pi-head pi-center pi-compact"><span class="pi-eyebrow">One minute</span><h2>Partner application</h2><p>Tell us who you are and who already recommends you. Highway 38 reviews every application — approval is personal, never automatic.</p></div>
+<form class="rv-form pi-card" id="rvApplyForm" novalidate>
+  <div class="rv-two">
+    <div><label for="rvName">Business name *</label><input id="rvName" name="businessName" required maxlength="200" autocomplete="organization"></div>
+    <div><label for="rvCategory">What best describes you? *</label><select id="rvCategory" name="category" required>
+      <option value="">Choose…</option>
+      <option>Material Suppliers</option>
+      <option>Equipment Rental</option>
+      <option>Disposal &amp; Dumpsters</option>
+      <option>Portable Toilets</option>
+      <option>Inspectors</option>
+      <option>Real-Estate Photography</option>
+      <option>Bookkeeping</option>
+      <option>Sign Shops</option>
+      <option>Small-Engine Repair</option>
+      <option>Other</option>
+    </select></div>
+  </div>
+  <div><label for="rvWhat">What do you do? (one line)</label><input id="rvWhat" name="whatTheyDo" maxlength="500" placeholder="e.g. Lumber, hardware, and jobsite delivery"></div>
+  <div><label for="rvArea">Service area *</label><input id="rvArea" name="serviceArea" required maxlength="300" placeholder="Towns you cover, or your radius"></div>
+  <div class="rv-two">
+    <div><label for="rvContact">Best contact name *</label><input id="rvContact" name="contactName" required maxlength="200" autocomplete="name"></div>
+    <div><label for="rvPhone">Phone</label><input id="rvPhone" name="phone" type="tel" maxlength="60" autocomplete="tel"></div>
+  </div>
+  <div class="rv-two">
+    <div><label for="rvEmail">Email</label><input id="rvEmail" name="email" type="email" maxlength="200" autocomplete="email"></div>
+    <div><label for="rvWebsite">Website</label><input id="rvWebsite" name="website" maxlength="500" placeholder="https://" inputmode="url"></div>
+  </div>
+  <p class="rv-note">A phone number or an email is required so Highway 38 can reach you about your application.</p>
+  <div><label for="rvWhy">Who recommends you? Who do you already work with?</label><textarea id="rvWhy" name="referralSource" maxlength="500" placeholder="Businesses or crews who already use you — this is what makes a recommendation real."></textarea></div>
+  <input class="rv-hp" name="website2" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <div class="rv-status" id="rvStatus" role="status"></div>
+  <div><button type="submit" id="rvSubmit">Send application</button></div>
+  <p class="rv-note">Sending this application never lists your business by itself. Highway 38 reviews every application personally, and listings can be removed at any time. If paid placement is ever offered, it will be labeled as paid — plainly, on the listing.</p>
+</form>
+</section>
+</main>
+<footer class="pi-footer"></footer>
+<script src="assets/js/h38-site-v2.js?v=2026-08-05-public-office-demo-links-v1"></script>
+<script>
+(function(){
+'use strict';
+var FN='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-vendor-directory';
+var form=document.getElementById('rvApplyForm');
+var statusBox=document.getElementById('rvStatus');
+var btn=document.getElementById('rvSubmit');
+function showStatus(kind,msg){statusBox.className='rv-status '+kind;statusBox.textContent=msg;statusBox.style.display='block';}
+form.addEventListener('submit',function(ev){
+  ev.preventDefault();
+  var data=Object.fromEntries(new FormData(form).entries());
+  if(!String(data.businessName||'').trim()){showStatus('err','Please add your business name.');return;}
+  if(!data.category){showStatus('err','Please choose the category that fits you best.');return;}
+  if(!String(data.serviceArea||'').trim()){showStatus('err','Please add the area you serve.');return;}
+  if(!String(data.contactName||'').trim()){showStatus('err','Please add a contact name.');return;}
+  if(!String(data.phone||'').trim()&&!String(data.email||'').trim()){showStatus('err','Please add a phone number or email so Highway 38 can reach you.');return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  fetch(FN,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({action:'apply'},data))})
+    .then(function(res){return res.json().catch(function(){return{};}).then(function(out){return{ok:res.ok,out:out};});})
+    .then(function(r){
+      if(r.ok&&r.out&&r.out.status==='PASS'){
+        form.reset();
+        showStatus('ok','Application received — thank you. Highway 38 reviews every application personally, so watch for a call or email from (218) 212-5299. Nothing is listed until you hear back.');
+      }else{
+        showStatus('err',(r.out&&r.out.message)||'Something went wrong sending your application. Please try again, or call (218) 212-5299.');
+      }
+    })
+    .catch(function(){showStatus('err','Something went wrong sending your application. Please try again, or call (218) 212-5299.');})
+    .finally(function(){btn.disabled=false;btn.textContent='Send application';});
+});
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T12:37:30.599Z",
+  "generatedAt": "2026-10-07T15:18:51.911Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -16,7 +16,7 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 185,
+  "passed": 195,
   "failed": 0,
   "warnings": [],
   "passes": [
@@ -78,7 +78,7 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "8532 bytes"
+      "detail": "8529 bytes"
     },
     {
       "name": "canonical shell CSS budget",
@@ -514,6 +514,46 @@
     },
     {
       "name": "contact.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "partner-apply.html exists",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "partner-apply.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "partner-apply.html canonical URL",
+      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/partner-apply.html"
+    },
+    {
+      "name": "partner-apply.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
     },
     {

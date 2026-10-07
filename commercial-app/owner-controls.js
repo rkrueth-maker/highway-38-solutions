@@ -2,7 +2,7 @@
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261004-machine-shop-1';
+const BUILD='20261007-recommended-vendors-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -18,6 +18,7 @@ const FEATURE_TOGGLES=[
   {id:'gps_tracking',title:'GPS location tracking',desc:'Track staff location during work hours.',icon:'📍',default:false,category:'Fleet'},
   {id:'ai_suggestions',title:'AI suggestions',desc:'Show AI-powered suggestions throughout the app.',icon:'🤖',default:true,category:'AI'},
   {id:'repair_guide_enabled',title:'Repair Guide integration',desc:'Connect the standalone Repair Guide app: send diagnoses to Office jobs and quote drafts, link garage vehicles to customers, deep links both ways. Off by default — the Repair Guide keeps working standalone.',icon:'🔧',default:false,category:'Modules'},
+  {id:'recommended_vendors_enabled',title:'Recommended Vendors',desc:'Show the Recommended Vendors directory: local suppliers and services approved by Highway 38, plus the optional "Recommended local pros" block on your website. Every partner is reviewed by Highway 38 before listing, and paid placement is always labeled. Off by default.',icon:'🤝',default:false,category:'Modules'},
   {id:'auto_review_requests',title:'Auto-ask for reviews',desc:'When a job is marked complete, prompt to send the customer a review request text. Rotates across your Google, Facebook, and Yelp review links from Settings, with one polite follow-up nudge after a few days.',icon:'⭐',default:false,category:'Customers'},
   {id:'on_my_way_texts',title:'"On My Way" texts',desc:'Show a "Text: On My Way" button on scheduled jobs so techs can text customers their ETA. Queued for owner approval — nothing sends automatically.',icon:'🚗',default:false,category:'Customers'},
   {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:false,category:'Money'},
@@ -254,6 +255,45 @@ function bindLeadResponder(){
       if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
     }
   };
+}
+
+// Recommended Vendors (server-side mirror).
+// The vendor directory edge function reads this row before it returns the
+// curated partner list or lights up the tenant-website block, so the owner's
+// intent is enforced even when the request comes from outside the Office.
+const RECOMMENDED_VENDORS_KEY='recommended_vendors';
+function recommendedVendorsSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===RECOMMENDED_VENDORS_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isRecommendedVendorsEnabled(){
+  const row=recommendedVendorsSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('recommended_vendors_enabled');
+}
+// Owner/admin only. Mirrors the toggle to business_module_settings and keeps
+// the local toggle in sync. Throws when the server write fails.
+async function setRecommendedVendorsEnabled(enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can turn Recommended Vendors on or off.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const row={business_id:bid,module_key:RECOMMENDED_VENDORS_KEY,enabled:!!enabled,config:{},updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===RECOMMENDED_VENDORS_KEY);
+    const snap={moduleKey:RECOMMENDED_VENDORS_KEY,module_key:RECOMMENDED_VENDORS_KEY,enabled:!!enabled,config:{}};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['recommended_vendors_enabled']=!!enabled;
+  saveToggles(toggles);
+  try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
 }
 
 function renderMachineShopCard(){
@@ -601,7 +641,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -669,6 +709,28 @@ function bindOwnerControls(){
         try{
           await setRepairGuideEnabled(want);
           if(typeof toast==='function') toast('Repair Guide integration '+(want?'turned ON.':'turned OFF.'));
+          if(window.renderNav) try{window.renderNav();}catch(e){}
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
+      // Recommended Vendors is mirrored to the server: the directory edge
+      // function enforces it before returning partners or lighting up the
+      // tenant website block. Revert locally if the write fails.
+      if(id==='recommended_vendors_enabled'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON Recommended Vendors? Your Office gets the Vendors directory (suppliers and services approved by Highway 38) and, if your website uses the "Recommended local pros" block, it lights up there too. Nothing is listed without Highway 38 review.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setRecommendedVendorsEnabled(want);
+          if(typeof toast==='function') toast('Recommended Vendors '+(want?'turned ON.':'turned OFF.'));
           if(window.renderNav) try{window.renderNav();}catch(e){}
         }catch(e){
           checkbox.checked=!want;
@@ -749,6 +811,8 @@ window.H38OwnerControls={
   isEnabled:isFeatureEnabled,
   isRepairGuideEnabled:isRepairGuideEnabled,
   setRepairGuideEnabled:setRepairGuideEnabled,
+  isRecommendedVendorsEnabled:isRecommendedVendorsEnabled,
+  setRecommendedVendorsEnabled:setRecommendedVendorsEnabled,
   setLeadResponderEnabled:setLeadResponderEnabled,
   isLeadResponderEnabled:isLeadResponderEnabled,
   isModuleVisible:isModuleVisible,

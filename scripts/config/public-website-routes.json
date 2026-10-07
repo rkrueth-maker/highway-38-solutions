@@ -77,6 +77,13 @@
    "visibility": "public"
   },
   {
+   "path": "partner-apply.html",
+   "label": "Partner Application",
+   "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/partner-apply.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
    "path": "start-request.html",
    "label": "Start a Project",
    "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/start-request.html",
