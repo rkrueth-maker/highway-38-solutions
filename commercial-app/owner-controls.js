@@ -22,6 +22,7 @@ const FEATURE_TOGGLES=[
   {id:'on_my_way_texts',title:'"On My Way" texts',desc:'Show a "Text: On My Way" button on scheduled jobs so techs can text customers their ETA. Queued for owner approval — nothing sends automatically.',icon:'🚗',default:false,category:'Customers'},
   {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:false,category:'Money'},
   {id:'online_payments_enabled',title:'Online payments (cards & bank debit)',desc:'Let customers pay invoices online through YOUR OWN Stripe account — money settles straight to your bank; the Office never holds it. Stripe charges 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit; no other fees. Connect Stripe below first, then turn this on. Off by default; manual payments keep working either way.',icon:'💳',default:false,category:'Money'},
+  {id:'recurring_jobs_enabled',title:'Recurring jobs & service plans',desc:'Set repeat visits (lawn, snow, maintenance plans) on a customer once, then generate the upcoming jobs from Today. You tap to generate — nothing is created or charged automatically. Off by default.',icon:'🔁',default:false,category:'Jobs'},
 ];
 
 // Repair Guide module setting (server-side mirror).
