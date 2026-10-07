@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-northern-bouncie-fleet-2';
+const BUILD='20261007-northern-bouncie-fleet-3';
 const ENDPOINT='nl-bouncie-fleet';
 const runtime={tab:'map',vehicles:[],trips:[],events:[],connection:null,loading:false,error:'',map:null,markers:[],timer:null,lastLoad:0};
 const text=v=>String(v==null?'':v).trim();
@@ -27,14 +27,30 @@ async function query(){
   for(const result of [c,v,t,e])if(result.error)throw result.error;
   runtime.connection=c.data||null;runtime.vehicles=v.data||[];runtime.trips=t.data||[];runtime.events=e.data||[];runtime.lastLoad=Date.now();
 }
+const SIGN_IN_AGAIN='Your sign-in session has expired. Please sign in again, then tap Connect Bouncie.';
+function sessionExpired(){try{window.H38_SUPABASE_SESSION_RECOVERY?.validate?.();}catch(_){}return new Error(SIGN_IN_AGAIN);}
+async function validSession(forceRefresh=false){
+  const db=client();if(!db)throw new Error('Supabase client unavailable.');
+  const result=await db.auth.getSession();if(result.error)throw result.error;
+  let session=result.data?.session;if(!session)throw sessionExpired();
+  const expiring=Number(session.expires_at||0)*1000<=Date.now()+120000;
+  if(forceRefresh||expiring){
+    const refreshed=await db.auth.refreshSession();
+    if(refreshed.error||!refreshed.data?.session)throw sessionExpired();
+    session=refreshed.data.session;
+  }
+  const verified=await db.auth.getUser(session.access_token);
+  if(verified.error||!verified.data?.user){if(!forceRefresh)return validSession(true);throw sessionExpired();}
+  return session;
+}
 async function invoke(action,body={}){
   const db=client();if(!db)throw new Error('Supabase client unavailable.');
-  const session=await db.auth.getSession();if(session.error)throw session.error;
-  const token=session.data?.session?.access_token;if(!token)throw new Error('Sign in again.');
+  const session=await validSession();
+  const token=session.access_token;if(!token)throw sessionExpired();
   if(db.functions&&typeof db.functions.setAuth==='function')db.functions.setAuth(token);
   const result=await db.functions.invoke(ENDPOINT,{body:{action,businessId:businessId(),...body},headers:{authorization:`Bearer ${token}`,'x-client-info':'northern-bouncie-fleet-v2'}});
   if(result.error)throw new Error(text(result.error.message||result.error));
-  if(result.data?.status!=='PASS')throw new Error(text(result.data?.message||'Fleet provider request failed.'));
+  if(result.data?.status!=='PASS'){const message=text(result.data?.message||'Fleet provider request failed.');if(/auth session is invalid|session is invalid or expired/i.test(message))throw sessionExpired();throw new Error(message);}
   return result.data;
 }
 async function load(force=false){if(runtime.loading||!active())return;if(!force&&Date.now()-runtime.lastLoad<10000){render();return;}runtime.loading=true;runtime.error='';render();try{await query();}catch(error){runtime.error=text(error?.message||error);}runtime.loading=false;render();}
