@@ -233,7 +233,7 @@ function installOpenPageWrapper(){
   const wrapped=function(page,...args){
     if(page==='musePermissions'){openPermissionsPage();return;}
     if(page==='museConnect'){openConnectPage();return;}
-    return baseOpen.apply(this,args);
+    return baseOpen.apply(this,[page,...args]);
   };
   wrapped.__h38MusePermissions=true;
   wrapped.__h38MusePermissionsBase=baseOpen;
