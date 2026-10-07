@@ -190,7 +190,7 @@ function loadEmployeeWorkspace(){return false;}
    checklist (muse-onboarding-checklist.js) are secondary owner/admin modules.
    They load on demand from Settings (never in the startup bundle) and render
    through the canonical renderPage parity layer in app-19.js. */
-const ONBOARDING_BUILD='20261007-onboarding-wiring-1';
+const ONBOARDING_BUILD='20261007-onboarding-wiring-2';
 const ONBOARDING_MODULES=Object.freeze({
   onboarding:Object.freeze({css:'./ai-onboarding.css',script:'./ai-onboarding.js',datasetKey:'h38AiOnboarding',ready:()=>!!window.H38_ONBOARDING,start:()=>window.H38_ONBOARDING&&window.H38_ONBOARDING.start()}),
   setupChecklist:Object.freeze({css:'./muse-onboarding-checklist.css',script:'./muse-onboarding-checklist.js',datasetKey:'h38OnboardingChecklist',ready:()=>!!window.H38_ONBOARDING_CHECKLIST,start:()=>window.H38_ONBOARDING_CHECKLIST&&window.H38_ONBOARDING_CHECKLIST.start()})

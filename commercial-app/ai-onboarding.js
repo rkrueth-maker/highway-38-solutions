@@ -4,7 +4,7 @@
 // Every step works manually. AI assist is optional and results are always
 // reviewable before saving. H38 AI (Kit) remains as fallback.
 // Nothing executes automatically.
-const BUILD='20261007-ai-onboarding-2';
+const BUILD='20261007-ai-onboarding-3';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -106,6 +106,8 @@ function renderCustomers(){
       <div class="actions"><button type="button" class="secondary" data-onboard-ai-customers>✨ Organize with AI</button></div>
       <div id="h38AiCustomers"></div>
     </div>`:''}
+    <div class="actions" style="margin-top:8px"><button type="button" class="secondary" data-onboard-scan-customers>📷 Scan a paper list</button></div>
+    <p class="muted small">Got your customers on paper? Scan the page (or pick a photo of it). Kit reads it, you check the rows, and they land in this list — nothing is saved until you finish setup.</p>
     <div id="h38CustomerList">${d.customers.map((c,i)=>customerRow(c,i)).join('')||'<p class="muted">No customers yet.</p>'}</div>
     <div class="actions" style="margin-top:8px"><button type="button" class="secondary" data-onboard-add-customer>+ Add customer</button></div>
     <div class="actions"><button type="button" class="secondary" data-onboard-nav="back">Back</button><button data-onboard-nav="next">Continue</button></div>
@@ -234,6 +236,7 @@ function bind(){
   });
   document.querySelector('[data-onboard-ai-services]')?.addEventListener('click',suggestServices);
   document.querySelector('[data-onboard-ai-customers]')?.addEventListener('click',organizeCustomers);
+  document.querySelector('[data-onboard-scan-customers]')?.addEventListener('click',openScannerForCustomers);
   document.querySelector('[data-onboard-finish]')?.addEventListener('click',finish);
   document.querySelector('[data-onboard-load-trade]')?.addEventListener('click',(e)=>{
     collectCurrentStep();
@@ -326,6 +329,24 @@ function showSaveResult(result){
   panel.querySelector('[data-onboard-retry-save]').onclick=()=>finish();
   toast('Some records did not save. See the list and tap Retry save.',true);
   panel.scrollIntoView({block:'nearest'});
+}
+
+function openScannerForCustomers(){
+  const done=rows=>{
+    if(!Array.isArray(rows)||!rows.length){toast('No customers were checked in the scan.',true);return;}
+    collectCurrentStep();
+    let added=0;
+    rows.forEach(r=>{if(text(r.name)){onboardingData.customers.push({name:r.name,phone:r.phone||''});added++;}});
+    render();
+    if(added)toast(added+' scanned customer'+(added===1?'':'s')+' added to your list. Review before finishing setup.');
+  };
+  const ready=()=>window.H38_DOCUMENT_SCANNER&&typeof window.H38_DOCUMENT_SCANNER.open==='function';
+  if(ready()){window.H38_DOCUMENT_SCANNER.open({onCustomers:done});return;}
+  if(document.querySelector('script[data-h38-document-scanner]')){toast('Scanner is loading — try again in a moment.',true);return;}
+  const script=document.createElement('script');script.src='./document-scanner.js?build=20261007-document-scanner-1';script.dataset.h38DocumentScanner='1';script.async=false;
+  script.onload=()=>{if(ready())window.H38_DOCUMENT_SCANNER.open({onCustomers:done});else toast('The document scanner did not initialize.',true);};
+  script.onerror=()=>toast('The document scanner failed to load.',true);
+  document.body.appendChild(script);
 }
 
 async function finish(){
