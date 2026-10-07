@@ -29,6 +29,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./recurring-service-runtime.js?build=20260922-money-invoice-draft-1','h38-recurring-service-runtime',()=>window.H38_RECURRING_SERVICE_RUNTIME);
   loadRuntime('./multi-rate-labor-runtime.js?build=20260912-multi-rate-labor-runtime-1','h38-multi-rate-labor-runtime',()=>window.H38_MULTI_RATE_LABOR_RUNTIME);
   loadRuntime('./plow-trigger-runtime.js?build=20260912-plow-trigger-runtime-1','h38-plow-trigger-runtime',()=>window.H38_PLOW_TRIGGER_RUNTIME);
+  loadRuntime('./recurring-plans-runtime.js?build=20261006-recurring-plans-1','h38-recurring-plans-runtime',()=>window.H38_RECURRING_PLANS_RUNTIME);
   loadRuntime('./invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1','h38-invoice-delete-lifecycle',()=>window.H38_INVOICE_DELETE_LIFECYCLE);
   loadRuntime('./invoice-print-delete-runtime.js?build=20260912-invoice-print-delete-1','h38-invoice-print-delete',()=>window.H38_INVOICE_PRINT_DELETE);
   loadRuntime('./northern-bouncie-fleet.js?build=20260912-northern-bouncie-fleet-2','h38-northern-bouncie-fleet',()=>window.H38_NORTHERN_BOUNCIE_FLEET);
