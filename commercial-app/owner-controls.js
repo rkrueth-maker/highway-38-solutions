@@ -23,6 +23,7 @@ const FEATURE_TOGGLES=[
   {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:false,category:'Money'},
   {id:'online_payments_enabled',title:'Online payments (cards & bank debit)',desc:'Let customers pay invoices online through YOUR OWN Stripe account — money settles straight to your bank; the Office never holds it. Stripe charges 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit; no other fees. Connect Stripe below first, then turn this on. Off by default; manual payments keep working either way.',icon:'💳',default:false,category:'Money'},
   {id:'recurring_jobs_enabled',title:'Recurring jobs & service plans',desc:'Set repeat visits (lawn, snow, maintenance plans) on a customer once, then generate the upcoming jobs from Today. You tap to generate — nothing is created or charged automatically. Off by default.',icon:'🔁',default:false,category:'Jobs'},
+  {id:'ai_lead_responder',title:'AI lead responder',desc:'When a new online booking comes in, Kit queues a personal follow-up draft for your one-tap review and send — after hours too, so no lead sits cold. You approve every message; nothing sends itself. Needs Online Booking on. Off by default.',icon:'📞',default:false,category:'AI'},
 ];
 
 // Repair Guide module setting (server-side mirror).
@@ -195,6 +196,64 @@ async function setMachineShop(enabled){
   try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
   try{if(window.H38_DESKTOP_NAVIGATION_CORE&&typeof window.H38_DESKTOP_NAVIGATION_CORE.reconcile==='function')window.H38_DESKTOP_NAVIGATION_CORE.reconcile();}catch(e){}
   return !!enabled;
+}
+
+// AI lead responder (server-side mirror).
+// The public booking edge function reads this row, so the owner's intent is
+// enforced even for bookings that arrive while the Office is closed.
+const LEAD_RESPONDER_KEY='ai_lead_responder';
+function leadResponderSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===LEAD_RESPONDER_KEY)||null;
+}
+function isLeadResponderEnabled(){
+  const row=leadResponderSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('ai_lead_responder');
+}
+function leadResponderTemplate(){
+  const row=leadResponderSettingRow();
+  return text(row&&row.config&&row.config.template)||'';
+}
+async function setLeadResponderEnabled(enabled,template){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can change this setting.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const cfg={template:text(template||'').slice(0,500),updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:LEAD_RESPONDER_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===LEAD_RESPONDER_KEY);
+    const snap={moduleKey:LEAD_RESPONDER_KEY,module_key:LEAD_RESPONDER_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['ai_lead_responder']=!!enabled;
+  saveToggles(toggles);
+}
+// Template editor rendered under the AI lead responder toggle row.
+function bindLeadResponder(){
+  const checkbox=document.querySelector('[data-toggle="ai_lead_responder"]');
+  if(!checkbox) return;
+  const rowEl=checkbox.closest('.row');
+  if(!rowEl||rowEl.querySelector('[data-lead-template]')) return;
+  const box=document.createElement('div');
+  box.dataset.leadTemplate='1';
+  box.innerHTML=`<label style="display:block;margin-top:8px"><small>Your instant-reply wording (Kit drafts the follow-up from it):</small><textarea data-lead-template-text rows="2" style="width:100%" placeholder="Thanks for reaching out! We got your request and will confirm shortly. — the team">${esc(leadResponderTemplate())}</textarea></label><button type="button" class="secondary" data-lead-template-save>Save wording</button>`;
+  rowEl.appendChild(box);
+  box.querySelector('[data-lead-template-save]').onclick=async()=>{
+    try{
+      await setLeadResponderEnabled(isLeadResponderEnabled(),box.querySelector('[data-lead-template-text]').value);
+      if(typeof toast==='function') toast('Lead responder wording saved.');
+    }catch(e){
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }
+  };
 }
 
 function renderMachineShopCard(){
@@ -542,7 +601,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -590,6 +649,7 @@ function renderOwnerControls(){
 }
 
 function bindOwnerControls(){
+  bindLeadResponder();
   bindMachineShop();
   bindCustomerPortal();
   bindOnlinePayments();
@@ -610,6 +670,26 @@ function bindOwnerControls(){
           await setRepairGuideEnabled(want);
           if(typeof toast==='function') toast('Repair Guide integration '+(want?'turned ON.':'turned OFF.'));
           if(window.renderNav) try{window.renderNav();}catch(e){}
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
+      // AI Lead Responder is server-backed too (the booking function reads
+      // the mirrored row). Revert locally if the write fails.
+      if(id==='ai_lead_responder'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON the AI lead responder? Every new online booking will queue a follow-up draft from Kit for your one-tap review and send. Nothing is ever sent to a customer without your tap.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setLeadResponderEnabled(want,leadResponderTemplate());
+          if(typeof toast==='function') toast('AI lead responder '+(want?'turned ON. Kit will draft follow-ups for new bookings.':'turned OFF.'));
         }catch(e){
           checkbox.checked=!want;
           if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
@@ -669,6 +749,8 @@ window.H38OwnerControls={
   isEnabled:isFeatureEnabled,
   isRepairGuideEnabled:isRepairGuideEnabled,
   setRepairGuideEnabled:setRepairGuideEnabled,
+  setLeadResponderEnabled:setLeadResponderEnabled,
+  isLeadResponderEnabled:isLeadResponderEnabled,
   isModuleVisible:isModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,

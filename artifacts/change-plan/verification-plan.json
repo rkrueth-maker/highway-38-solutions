@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T03:47:17.785Z",
+  "generatedAt": "2026-10-07T03:50:39.812Z",
   "base": null,
   "head": "HEAD",
   "files": [
@@ -1234,6 +1234,7 @@
     "commercial-app/repair-bulletins.js",
     "commercial-app/repair-failure-chains.js",
     "commercial-app/repair-guide-integration.js",
+    "commercial-app/review-nudges-runtime.js",
     "commercial-app/route-optimization.js",
     "commercial-app/route-order-runtime.js",
     "commercial-app/runtime-rowid-fix.js",
@@ -2421,7 +2422,7 @@
     "whole-house-quote-package.html",
     "worked-examples.html"
   ],
-  "fileCount": 2416,
+  "fileCount": 2417,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

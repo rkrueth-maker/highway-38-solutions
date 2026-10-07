@@ -124,7 +124,10 @@ document.getElementById('bookForm').addEventListener('submit',function(e){
   fetch(FN_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
     .then(function(res){return res.json().then(function(out){return{ok:res.ok,status:res.status,out:out};});})
     .then(function(r){
-      if(r.ok&&r.out&&r.out.ok){show(doneCard);return;}
+      if(r.ok&&r.out&&r.out.ok){
+        if(r.out.leadResponder){var dp=doneCard.querySelector('p');if(dp)dp.textContent='Thanks — we got your request and we\u2019re on it right away. We\u2019ll reach out shortly to confirm your booking.';}
+        show(doneCard);return;
+      }
       if(r.status===403&&r.out&&r.out.code==='booking_disabled'){show(offCard);return;}
       throw new Error((r.out&&r.out.error)||'Something went wrong.');
     })

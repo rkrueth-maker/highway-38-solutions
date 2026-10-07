@@ -271,7 +271,51 @@ export async function handleBookingRequest(
     });
     if (error) throw error;
 
-    return json(200, { ok: true, bookingId: id }, headers);
+    // Lead responder (Owner Controls toggle "AI lead responder", mirrored to
+    // business_module_settings module_key 'ai_lead_responder'). Best-effort:
+    // a failure here must never fail the customer's booking. When on, Kit
+    // picks the task up and drafts a personal follow-up for the owner's
+    // one-tap review and send — nothing is ever sent automatically.
+    let leadResponder = false;
+    try {
+      const { data: leadSetting } = await sb
+        .from("business_module_settings")
+        .select("enabled, config")
+        .eq("business_id", businessId)
+        .eq("module_key", "ai_lead_responder")
+        .maybeSingle();
+      if (leadSetting?.enabled === true) {
+        const cfg: any = (leadSetting as any)?.config || {};
+        const template = typeof cfg.template === "string" ? cfg.template.slice(0, 500) : "";
+        const { error: taskError } = await sb.from("ai_handoff_tasks").insert({
+          business_id: businessId,
+          task_type: "lead_response",
+          status: "pending",
+          payload: {
+            bookingId: id,
+            customerName: name,
+            phone,
+            email,
+            service,
+            preferredDate: date,
+            preferredTime: time,
+            notes,
+            ackTemplate: template,
+            source: "Online booking",
+            createdAt: now,
+          },
+        });
+        if (taskError) {
+          console.error("[h38-public-booking] lead responder task failed:", taskError);
+        } else {
+          leadResponder = true;
+        }
+      }
+    } catch (e) {
+      console.error("[h38-public-booking] lead responder check failed:", e);
+    }
+
+    return json(200, { ok: true, bookingId: id, ...(leadResponder ? { leadResponder: true } : {}) }, headers);
   } catch (e) {
     // Never leak internals (table names, RLS details, stack traces) to the client.
     console.error("[h38-public-booking] booking insert failed:", e);
