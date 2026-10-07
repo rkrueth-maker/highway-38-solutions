@@ -1,18 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T03:44:48.560Z",
+  "generatedAt": "2026-10-07T03:46:01.578Z",
   "base": null,
   "head": "HEAD",
   "files": [
-    "artifacts/business-office-clean-install/verification.json",
-    "artifacts/change-governance/verification.json",
-    "artifacts/public-website-architecture/verification.json",
-    "artifacts/unified-shell/assembly.json",
-    "artifacts/unified-source-assembly/verification.json",
-    "launch-control/evidence/public-customer-path-verification.json",
-    "launch-control/evidence/unified-app-architecture-verification.json"
+    "artifacts/business-office-clean-install/verification.json"
   ],
-  "fileCount": 7,
+  "fileCount": 1,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": false,
