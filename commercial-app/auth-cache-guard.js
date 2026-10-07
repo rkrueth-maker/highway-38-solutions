@@ -20,7 +20,7 @@ function h38RetireLegacyNavigationArtifacts(){
 function h38InstallCurrentOfficeWorker(){
   if(!('serviceWorker' in navigator))return;
   const desktop=()=>!!window.matchMedia?.('(min-width: 761px)').matches;let reloading=false;
-  const reloadOnControllerChange=()=>{if(reloading||!desktop())return;try{if(sessionStorage.getItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY)==='1')return;sessionStorage.setItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY,'1');}catch(_){}reloading=true;location.reload();};
+  const reloadOnControllerChange=()=>{if(reloading||!desktop())return;try{if(sessionStorage.getItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY)==='1')return;sessionStorage.setItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY,'1');}catch(_){}try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}reloading=true;location.reload();};
   navigator.serviceWorker.addEventListener('controllerchange',reloadOnControllerChange);
   navigator.serviceWorker.register(`./service-worker.js?build=${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`,{scope:'./',updateViaCache:'none'}).then(registration=>registration.update().catch(()=>{})).catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
 }
@@ -42,7 +42,7 @@ function h38BootstrapAiTeamWhenNeeded(){if(String(window.state?.page||'').trim()
 async function h38RefreshTabletInstallRuntimeOnce(){
   if(!h38TabletLike()||!navigator.onLine||!('caches' in window))return false;
   try{if(localStorage.getItem(H38_TABLET_INSTALL_RESET_KEY)==='1')return false;}catch(_){}
-  try{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(async key=>{const cache=await caches.open(key);await cache.delete('./install-office.js',{ignoreSearch:true});}));try{localStorage.setItem(H38_TABLET_INSTALL_RESET_KEY,'1');}catch(_){}location.reload();return true;}catch(error){console.warn('H38 tablet install runtime refresh:',error?.message||String(error));return false;}
+  try{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(async key=>{const cache=await caches.open(key);await cache.delete('./install-office.js',{ignoreSearch:true});}));try{localStorage.setItem(H38_TABLET_INSTALL_RESET_KEY,'1');}catch(_){}try{if(typeof state!=='undefined'&&state&&state.snapshot)return true;}catch(_){}location.reload();return true;}catch(error){console.warn('H38 tablet install runtime refresh:',error?.message||String(error));return false;}
 }
 function h38InstallTrueBottomCustomerRuntime(){document.querySelector('script[data-h38-customer-true-bottom-runtime]')?.remove();}
 
