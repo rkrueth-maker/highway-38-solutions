@@ -1,0 +1,26 @@
+(function(){
+'use strict';
+const BUILD='20261006-route-order-1';
+const text=v=>String(v==null?'':v).trim();
+const state=()=>window.state||{};
+const rows=n=>Array.isArray(state()?.snapshot?.[n])?state().snapshot[n]:[];
+const val=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
+const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+function customerById(id){return rows('customers').find(r=>text(val(r,'Customer ID','customerId'))===text(id))||null;}
+function stops(){const t=todayStr();return rows('jobs').filter(j=>text(val(j,'Service Date','serviceDate')).slice(0,10)===t&&!/COMPLETE|CLOSED|CANCEL|VOID|ARCHIV/i.test(text(val(j,'Status','status')))).sort((a,b)=>text(val(a,'Start Time','Scheduled Time','startTime')).localeCompare(text(val(b,'Start Time','Scheduled Time','startTime')))).map(j=>{const c=customerById(val(j,'Customer ID','customerId'));const address=[text(val(j,'Service Address','Job Address','Address')),text(val(c,'Service Address','Address')),text(val(c,'City')),text(val(c,'State')),text(val(c,'ZIP','Zip','Postal Code'))].filter(Boolean).join(', ');return{job:j,name:text(val(c,'Customer Name','name'))||text(val(j,'Customer Name'))||'Customer',title:text(val(j,'Project Title','Service Type'))||'Visit',time:text(val(j,'Start Time','Scheduled Time','startTime')),address,lat:null,lon:null};});}
+function dist(a,b){const R=6371,toRad=x=>x*Math.PI/180;const dLat=toRad(b.lat-a.lat),dLon=toRad(b.lon-a.lon);const s=Math.sin(dLat/2)**2+Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+function orderStops(list){const pts=list.filter(s=>typeof s.lat==='number'&&typeof s.lon==='number'),rest=list.filter(s=>!(typeof s.lat==='number'&&typeof s.lon==='number'));if(pts.length<2)return[...pts,...rest];const out=[pts[0]];const left=pts.slice(1);while(left.length){let bi=0,bd=Infinity;for(let i=0;i<left.length;i++){const d=dist(out[out.length-1],left[i]);if(d<bd){bd=d;bi=i;}}out.push(left.splice(bi,1)[0]);}return[...out,...rest];}
+const geoCache=new Map();
+async function geocode(address){if(!address)return null;if(geoCache.has(address))return geoCache.get(address);try{const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`,{headers:{'Accept':'application/json'}});const data=await res.json();const hit=Array.isArray(data)&&data[0]?{lat:parseFloat(data[0].lat),lon:parseFloat(data[0].lon)}:null;geoCache.set(address,hit);return hit;}catch(e){geoCache.set(address,null);return null;}}
+function mapsLink(address){return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;}
+function routeLink(list){const pts=list.filter(s=>s.address);if(pts.length<2)return'';return `https://www.google.com/maps/dir/${pts.map(s=>encodeURIComponent(s.address)).join('/')}`;}
+function render(box,list,planned){const rl=routeLink(list);box.innerHTML=`<div><strong>Today's route</strong><small>${list.length} stop${list.length===1?'':'s'}${planned?' — ordered to cut drive time. Distances by map lookup; check before you roll.':' — in scheduled order. Tap Plan my route to order by drive distance.'}</small></div>
+${list.length?`<ol class="h38-route-list">${list.map((s,i)=>`<li><span>${i+1}. ${esc(s.time?s.time+' — ':'')}${esc(s.name)}</span><small>${esc(s.title)}${s.address?` · ${esc(s.address)}`:''}</small>${s.address?`<a href="${mapsLink(s.address)}" target="_blank" rel="noopener">Navigate</a>`:''}</li>`).join('')}</ol>`:'<small>No jobs scheduled today.</small>'}
+<div class="row-actions"><button type="button" data-route="plan" ${list.length<2?'disabled':''}>Plan my route</button>${rl?`<a class="button secondary" href="${rl}" target="_blank" rel="noopener">Open full route in Maps</a>`:''}</div>`;
+const btn=box.querySelector('[data-route="plan"]');if(btn)btn.onclick=async()=>{btn.disabled=true;btn.textContent='Planning…';const list2=stops();for(const s of list2){if(s.address){const g=await geocode(s.address);if(g){s.lat=g.lat;s.lon=g.lon;}}}render(box,orderStops(list2),true);};}
+function patchToday(){if(state()?.page!=='today')return;const panel=document.querySelector('.h38-life-today');if(!panel||panel.querySelector('[data-h38-route]'))return;const box=document.createElement('div');box.className='h38-route-order';box.dataset.h38Route='1';panel.querySelector('.h38-life-head')?.insertAdjacentElement('afterend',box);render(box,stops(),false);}
+let pending=false;function patch(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;try{patchToday();}catch(e){}});}
+function start(){if(!document.documentElement)return;new MutationObserver(patch).observe(document.documentElement,{childList:true,subtree:true});patch();window.H38_ROUTE_RUNTIME=Object.freeze({build:BUILD,orderStops,dist});}
+if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();}
+})();
