@@ -1,7 +1,7 @@
 (()=>{
   'use strict';
   if(window.H38_PUBLIC_HELPER&&window.H38_PUBLIC_HELPER.mounted)return;
-  const VERSION='2026-10-07-helper-answers-v2';
+  const VERSION='2026-10-07-helper-counters-v3';
   const AI_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-helper';
   const AI_SESSION_CAP=10;
   const PAGE=(location.pathname.split('/').pop()||'index.html').toLowerCase();
@@ -59,6 +59,13 @@
     const respond=(intent,userText)=>{const answer=answers[intent]||answers.fallback;if(userText)addMessage(log,'user',userText);addMessage(log,'assistant',answer.text,answer.actions);};
     const aiSessionId=(()=>{try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();}catch(error){}return `session-${Date.now()}-${Math.floor(Math.random()*1e9)}`;})();
     let aiUsed=0;
+    const countInteraction=(intent,source,questionText)=>{
+      try{
+        const payload={event:'interaction',intent:intent||'unmatched',source:source,page:PAGE,sessionId:aiSessionId};
+        if(source==='typed'&&intent==='fallback')payload.question=String(questionText||'').slice(0,500);
+        fetch(AI_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),keepalive:true}).catch(()=>{});
+      }catch(error){}
+    };
     function addPending(){const item=create('div','h38-helper-message assistant');const label=create('span','h38-helper-message-label','Highway 38 Helper');const body=create('p','','Checking the published Highway 38 information…');item.append(label,body);log.appendChild(item);log.scrollTop=log.scrollHeight;return{item,body};}
     function settlePending(pending,intent){const answer=answers[intent]||answers.fallback;pending.body.textContent=answer.text;addActions(pending.item,answer.actions);log.scrollTop=log.scrollHeight;}
     async function askAi(value){
@@ -75,7 +82,7 @@
         return{answer:payload.answer.trim().slice(0,1500),route:payload.route==='request'?'request':'none'};
       }catch(error){if(timer)clearTimeout(timer);return null;}
     }
-    launcher.addEventListener('click',()=>panel.hidden?open():shut());close.addEventListener('click',shut);quick.addEventListener('click',event=>{const button=event.target.closest('button[data-intent]');if(!button)return;respond(button.dataset.intent,button.textContent.trim());});form.addEventListener('submit',event=>{event.preventDefault();const value=input.value.trim();if(!value)return;input.value='';addMessage(log,'user',value);const pending=addPending();askAi(value).then(result=>{if(result){pending.body.textContent=result.answer;if(result.route==='request')addActions(pending.item,[links.request,links.contact]);log.scrollTop=log.scrollHeight;}else settlePending(pending,resolveIntent(value));});});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)shut();});qsa('[data-h38-helper-open]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();open();}));
+    launcher.addEventListener('click',()=>panel.hidden?open():shut());close.addEventListener('click',shut);quick.addEventListener('click',event=>{const button=event.target.closest('button[data-intent]');if(!button)return;respond(button.dataset.intent,button.textContent.trim());countInteraction(button.dataset.intent,'chip');});form.addEventListener('submit',event=>{event.preventDefault();const value=input.value.trim();if(!value)return;input.value='';addMessage(log,'user',value);const pending=addPending();askAi(value).then(result=>{if(result){pending.body.textContent=result.answer;if(result.route==='request')addActions(pending.item,[links.request,links.contact]);log.scrollTop=log.scrollHeight;}else settlePending(pending,resolveIntent(value));countInteraction(resolveIntent(value),'typed',value);});});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)shut();});qsa('[data-h38-helper-open]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();open();}));
     window.H38_PUBLIC_HELPER={mounted:true,version:VERSION,open,close:shut,resolveIntent};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();

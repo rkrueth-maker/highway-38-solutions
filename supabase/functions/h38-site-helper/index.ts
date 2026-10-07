@@ -18,7 +18,7 @@
 // Credential: ANTHROPIC_API_KEY must exist as an Edge Function secret. Until
 // it does, the function is deployed dark and returns FALLBACK/not_configured.
 
-const BUILD = "20261007-site-helper-1";
+const BUILD = "20261007-site-helper-2";
 const ALLOWED_ORIGINS = new Set([
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
@@ -34,6 +34,66 @@ const SESSION_CAP = 10;
 const IP_DAILY_CAP = 30;
 const GLOBAL_DAILY_CAP = 300;
 const SPEND_OUTCOMES = ["answered", "routed", "declined_offtopic"];
+
+// Helper question counters (2026-10-07): the widget also reports one counted
+// event per interaction (chip tap or typed question) so we can see what
+// visitors ask about most. Counts-only: matched questions store no text;
+// unmatched typed questions store PII-scrubbed text for topic discovery.
+// Separate from the AI spend caps above; a generous daily per-visitor guard
+// only stops beacon abuse.
+const INTERACTION_IP_DAILY_CAP = 600;
+const KNOWN_INTENTS = [
+  "customDigital", "website", "snapshot", "scanning", "customerPortal",
+  "payments", "quoteBuilder", "office", "configured", "construction",
+  "manufacturing", "automation", "implementation", "security", "examples",
+  "pricing", "ai", "comingSoon", "project", "request", "product",
+  "projectCost",
+];
+
+function scrubPii(value: string): string {
+  return value
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[email]")
+    .replace(/(\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}/g, "[phone]")
+    .replace(/\d{6,}/g, "[number]");
+}
+
+type InteractionRow = {
+  intent: string;
+  matched: boolean;
+  source: string;
+  question_text: string | null;
+  page: string | null;
+  session_id: string | null;
+  ip_hash: string | null;
+};
+
+async function restInsertInteraction(row: InteractionRow): Promise<void> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/helper_interactions`, {
+    method: "POST",
+    headers: restHeaders("return=minimal"),
+    body: JSON.stringify(row),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Interaction insert failed (${response.status}): ${clean(await response.text(), 240)}`);
+}
+
+async function interactionCount(ipHash: string): Promise<number> {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const params = new URLSearchParams();
+  params.set("select", "id");
+  params.set("created_at", `gte.${start.toISOString()}`);
+  params.set("ip_hash", `eq.${ipHash}`);
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/helper_interactions?${params.toString()}`, {
+    method: "GET",
+    headers: restHeaders("count=exact"),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Interaction count failed (${response.status}).`);
+  const range = String(response.headers.get("content-range") || "");
+  const total = Number(range.split("/")[1]);
+  return Number.isFinite(total) ? total : 0;
+}
 
 type JsonObject = Record<string, unknown>;
 
@@ -221,6 +281,38 @@ Deno.serve(async (request: Request) => {
   const page = clean(body.page, 120).trim();
   const forwardedFor = String(request.headers.get("x-forwarded-for") || "").split(",")[0].trim();
   const ipHash = forwardedFor ? await sha256Hex(forwardedFor) : null;
+
+  // Counter events from the widget (chip taps + typed questions). One row
+  // per interaction; never affects the answer path or the AI caps.
+  if (body.event === "interaction") {
+    const source = body.source === "chip" || body.source === "typed" ? body.source : null;
+    if (!source) return json(request, 400, { status: "FAIL", message: "A valid interaction source is required.", build: BUILD });
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return json(request, 200, { status: "PASS", counted: false, build: BUILD });
+    }
+    const rawIntent = clean(body.intent, 40).trim();
+    const intent = KNOWN_INTENTS.includes(rawIntent) ? rawIntent : "unmatched";
+    const matched = intent !== "unmatched";
+    const questionText = !matched && source === "typed" ? scrubPii(clean(body.question, 500)).trim() || null : null;
+    try {
+      if (ipHash && (await interactionCount(ipHash)) >= INTERACTION_IP_DAILY_CAP) {
+        return json(request, 200, { status: "PASS", counted: false, build: BUILD });
+      }
+      await restInsertInteraction({
+        intent,
+        matched,
+        source,
+        question_text: questionText,
+        page: page || null,
+        session_id: sessionId || null,
+        ip_hash: ipHash,
+      });
+      return json(request, 200, { status: "PASS", counted: true, build: BUILD });
+    } catch (error) {
+      console.error("site-helper interaction count failed:", clean(error instanceof Error ? error.message : error, 240));
+      return json(request, 200, { status: "PASS", counted: false, build: BUILD });
+    }
+  }
 
   if (!question) return json(request, 400, { status: "FAIL", message: "A question is required.", build: BUILD });
 

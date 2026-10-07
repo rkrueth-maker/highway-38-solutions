@@ -1,26 +1,26 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T15:17:14.982Z",
+  "generatedAt": "2026-10-07T20:24:08.633Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "assets/js/h38-recommended-vendors.js",
-    "businesses/northern-lakes/index.html",
-    "commercial-app/index.html",
-    "commercial-app/owner-controls.js",
-    "commercial-app/recommended-vendors.js",
-    "partner-apply.html",
-    "scripts/config/public-website-routes.json",
-    "supabase/config.toml",
-    "supabase/functions/h38-vendor-directory/index.ts"
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/public-helper/verification.json",
+    "assets/js/h38-helper.js",
+    "assets/js/h38-site-v2.js",
+    "scripts/verify-public-helper.js",
+    "supabase/functions/h38-site-helper/index.ts",
+    "supabase/migrations/20261007171500_helper_interactions.sql"
   ],
   "fileCount": 9,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": true,
+    "authenticatedApp": false,
     "customerPortal": true,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -29,28 +29,27 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
-    "longRunningData": false
+    "longRunningData": true
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
     "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-customer-portal-security.js"
   ],
   "expensiveChecks": [
     "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "resumable small-batch generation with cursor and exact final counts"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
