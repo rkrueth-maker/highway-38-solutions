@@ -4,7 +4,7 @@
 // Every step works manually. AI assist is optional and results are always
 // reviewable before saving. H38 AI (Kit) remains as fallback.
 // Nothing executes automatically.
-const BUILD='20261003-ai-onboarding-1';
+const BUILD='20261007-ai-onboarding-2';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -314,25 +314,54 @@ async function organizeCustomers(){
   }
 }
 
+function showSaveResult(result){
+  render();
+  const card=document.querySelector('#mainContent .card:last-of-type')||document.getElementById('mainContent');
+  if(!card)return;
+  const panel=document.createElement('div');
+  panel.className='notice warn';
+  panel.style.marginTop='12px';
+  panel.innerHTML=`<strong>${result.saved} of ${result.total} records saved.</strong><br>${result.failed.map(f=>esc(f)).join('<br>')}<div class="actions" style="margin-top:8px"><button type="button" data-onboard-retry-save>Retry save</button></div><p class="muted small">Records that saved stay saved — retrying only re-sends the full list safely (same record IDs, no duplicates). Anything queued but not yet synced shows in the sync badge at the top and stays safe on this device.</p>`;
+  card.appendChild(panel);
+  panel.querySelector('[data-onboard-retry-save]').onclick=()=>finish();
+  toast('Some records did not save. See the list and tap Retry save.',true);
+  panel.scrollIntoView({block:'nearest'});
+}
+
 async function finish(){
   collectCurrentStep();
   if(!onboardingData.businessName){toast('Business name is required.',true);currentStep=1;render();return;}
   try{
     toast('Saving your business setup...');
-    // Save via existing queue operations
-    // Business profile, services, customers, team
-    // (Implementation uses standard save patterns)
-    if(typeof window.queueOperation==='function'){
-      // Save services
+    // Save via existing queue operations. Every record is attempted and any
+    // failure is reported on the review step — never silently swallowed.
+    const failed=[];
+    let saved=0,total=0;
+    if(typeof window.queueOperation!=='function'){
+      failed.push('The Office save system is unavailable right now. Reconnect, then tap Launch again — nothing was saved.');
+    }else{
+      const bid=businessId(),stamp=new Date().toISOString();
+      const nextId=prefix=>{try{if(window.H38DB&&typeof window.H38DB.newId==='function')return window.H38DB.newId(prefix);}catch(_){}return prefix+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);};
       for(const s of onboardingData.services){
-        await window.queueOperation('SAVE_SERVICE','Service',s.name,{name:s.name,price:s.price,businessId:businessId()},{collection:'services',record:s},true).catch(()=>{});
+        if(!text(s.name))continue;total++;
+        s._saveId=s._saveId||nextId('SVC');
+        // services collection, matching the canonical SAVE_ENTITY mapping
+        // (SAVE_SERVICE has no operational mapping and would fail at sync).
+        const record={'Service ID':s._saveId,'Business ID':bid,'Service Name':s.name,'Price':text(s.price),'Status':'Active','Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+        try{await window.queueOperation('SAVE_ENTITY','Service',s._saveId,{entity:'services',record},{collection:'services',record,idKeys:['Service ID']},true);saved++;}
+        catch(e){failed.push(`Service "${s.name}" — ${e&&e.message||e}`);}
       }
-      // Save customers
       for(const c of onboardingData.customers){
-        await window.queueOperation('SAVE_CUSTOMER','Customer',c.name,{customerId:c.name,customerName:c.name,phone:c.phone,businessId:businessId()},{collection:'customers',record:c,idKeys:['Customer ID']},true).catch(()=>{});
+        if(!text(c.name))continue;total++;
+        c._saveId=c._saveId||nextId('CUST');
+        const record={'Customer ID':c._saveId,'Business ID':bid,'Customer Name':c.name,'Phone':c.phone||'','Status':'Active','Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+        try{await window.queueOperation('SAVE_CUSTOMER','Customer',c._saveId,{customerId:c._saveId,customerName:c.name,phone:c.phone||'',businessId:bid},{collection:'customers',record,idKeys:['Customer ID']},true);saved++;}
+        catch(e){failed.push(`Customer "${c.name}" — ${e&&e.message||e}`);}
       }
     }
-    toast('✓ Your Office is ready!');
+    if(failed.length){showSaveResult({saved,total,failed});return;}
+    if(total)toast(`✓ Your Office is ready! ${saved} of ${total} records saved.`);
+    else toast('✓ Your Office is ready!');
     /* Load full trade package (price book, checklists, job types, quote notes)
        if one was selected during onboarding. */
     try{

@@ -6,13 +6,15 @@ Object.assign(PAGE_DEFS,{
   payroll:['🧮','Payroll'],
   tax:['🗂️','Tax Prep'],
   controls:['🛡️','Controls'],
-  reports:['📊','Reports']
+  reports:['📊','Reports'],
+  onboarding:['🧭','Business Onboarding'],
+  setupChecklist:['✅','Setup Checklist']
 });
 const H38_PARITY_OFFICE_PAGES=['today','customers','people','work','quotes','schedule','messages','field','inventory','fleet','money','memberships','accounting','payroll','tax','documents','social','controls','reports','ai','settings'];
 OFFICE_PAGES.splice(0,OFFICE_PAGES.length,...H38_PARITY_OFFICE_PAGES);
 SHELL_PAGES.office=OFFICE_PAGES;
 const H38_PARITY_REQUIREMENTS={
-  customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],memberships:['manageFinancial','viewFinancial'],accounting:['manageFinancial','viewFinancial'],payroll:['manageFinancial'],tax:['manageFinancial'],people:['manageUsers'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],controls:['manageSettings'],reports:['manageFinancial','viewFinancial','manageSettings'],settings:['manageSettings','manageUsers']
+  customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],memberships:['manageFinancial','viewFinancial'],accounting:['manageFinancial','viewFinancial'],payroll:['manageFinancial'],tax:['manageFinancial'],people:['manageUsers'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],controls:['manageSettings'],reports:['manageFinancial','viewFinancial','manageSettings'],settings:['manageSettings','manageUsers'],onboarding:['manageSettings','manageUsers'],setupChecklist:['manageSettings','manageUsers']
 };
 
 const H38_TEAM_ACCESS_COMPANION_BUILD='20260910-office-access-1';
@@ -36,7 +38,7 @@ function h38LoadTeamAccessCompanion(){
 allowedPages=function(){return SHELL_PAGES[state.shell].filter(page=>!H38_PARITY_REQUIREMENTS[page]||H38_PARITY_REQUIREMENTS[page].some(can));};
 renderNav=function(){const pages=allowedPages();$('mainNav').innerHTML=pages.map(key=>{const d=PAGE_DEFS[key]||[''];const icon=d.length>1?d[0]:'';const label=d.length>1?d[1]:d[0];return `<button type="button" data-page="${key}" class="${key===state.page?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`;}).join('');$('mainNav').querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));};
 const h38ParityBaseRenderPage=renderPage;
-renderPage=function(){if(!state.snapshot){renderWelcome();return;}const parity={people:renderPeople,accounting:renderAccounting,payroll:renderPayrollPrep,tax:renderTaxPrep,controls:renderControls,reports:renderReports};if(typeof window.renderMemberships==='function')parity.memberships=window.renderMemberships;if(parity[state.page])parity[state.page]();else h38ParityBaseRenderPage();};
+renderPage=function(){if(!state.snapshot){renderWelcome();return;}const parity={people:renderPeople,accounting:renderAccounting,payroll:renderPayrollPrep,tax:renderTaxPrep,controls:renderControls,reports:renderReports,onboarding:()=>window.renderOnboardingPage&&window.renderOnboardingPage(),setupChecklist:()=>window.renderSetupChecklistPage&&window.renderSetupChecklistPage()};if(typeof window.renderMemberships==='function')parity.memberships=window.renderMemberships;if(parity[state.page])parity[state.page]();else h38ParityBaseRenderPage();};
 
 network=function(){const online=navigator.onLine,node=$('networkBadge');node.textContent=online?'Internet':'No internet';node.className=`badge ${online?'online':'offline'}`;updateGatewayBadge();};
 function updateGatewayBadge(status=''){
