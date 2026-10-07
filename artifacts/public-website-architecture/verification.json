@@ -1,11 +1,11 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-05T23:56:34.115Z",
+  "generatedAt": "2026-10-07T03:02:33.386Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
   "imagePlacementsLocked": true,
-  "pricingProducts": 3,
+  "pricingProducts": 2,
   "whatWeDoCapabilities": [
     "Automation & Robotics",
     "CNC Machining & Process Planning",
@@ -78,7 +78,7 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "8447 bytes"
+      "detail": "8525 bytes"
     },
     {
       "name": "canonical shell CSS budget",
@@ -597,7 +597,7 @@
       "detail": ""
     },
     {
-      "name": "final pricing source exposes three software offers",
+      "name": "final pricing source exposes two software offers",
       "detail": ""
     },
     {
@@ -618,7 +618,7 @@
     },
     {
       "name": "request controller JavaScript budget",
-      "detail": "5798 bytes"
+      "detail": "6394 bytes"
     },
     {
       "name": "secure request flow owns one submit handler",
