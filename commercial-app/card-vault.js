@@ -52,7 +52,7 @@ function vaultEnabled(){
     if(window.H38OwnerControls&&typeof window.H38OwnerControls.isEnabled==='function')
       return window.H38OwnerControls.isEnabled('card_on_file');
   }catch(e){}
-  return true; // default ON when Owner Controls is not loaded
+  return false; // fail closed: default OFF when Owner Controls is not loaded
 }
 
 // ---------- provider abstraction ----------
