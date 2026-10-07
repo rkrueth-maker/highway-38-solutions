@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T03:51:13.314Z",
+  "generatedAt": "2026-10-07T04:38:08.710Z",
   "base": null,
   "head": "HEAD",
   "files": [
@@ -1171,6 +1171,8 @@
     "commercial-app/office-scale-task-guard.js",
     "commercial-app/office-scale-workflow.js",
     "commercial-app/offline-mode.js",
+    "commercial-app/offline-status-runtime.js",
+    "commercial-app/offline-sw.js",
     "commercial-app/operations-intelligence.js",
     "commercial-app/operator-direct-controls.js",
     "commercial-app/owner-controls.css",
@@ -2422,7 +2424,7 @@
     "whole-house-quote-package.html",
     "worked-examples.html"
   ],
-  "fileCount": 2417,
+  "fileCount": 2419,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
