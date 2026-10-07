@@ -531,6 +531,32 @@ function enrichAi(){
     wrapped.__h38Lifecycle=true;window.localAi=wrapped;
   }
 }
+function completionBlockers(jobIdValue){
+  const job=rec('jobs').find(row=>jobId(row)===text(jobIdValue));
+  if(!job)return null;
+  return {
+    job,
+    quality:requiredChecklist(job,'Complete').filter(row=>!checklistComplete(row)),
+    closeout:requiredChecklist(job,'Closed').filter(row=>!checklistComplete(row)),
+    changes:openChangeOrders(job)
+  };
+}
+async function ensureCompletionChecklist(jobIdValue){
+  const job=rec('jobs').find(row=>jobId(row)===text(jobIdValue));
+  if(!job)return {created:false,reason:'job-not-found'};
+  const existing=checklistRowsForJob(job).find(row=>upper(val(row,'Checklist Type'))==='QUALITY');
+  if(existing)return {created:false,checklistId:checklistId(existing)};
+  await addChecklist(job,'QUALITY');
+  const created=checklistRowsForJob(job).find(row=>upper(val(row,'Checklist Type'))==='QUALITY');
+  return {created:true,checklistId:created?checklistId(created):''};
+}
+function focusJob(jobIdValue){
+  selectedJob=text(jobIdValue);
+  if(typeof window.renderWork==='function')window.renderWork();
+  const panel=document.querySelector('.h38-life-work');
+  if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
+  return selectedJob;
+}
 function completionGate(){
   if(typeof window.queueOperation!=='function'||window.queueOperation.__h38LifecycleGate)return;
   const original=window.queueOperation;
@@ -545,7 +571,7 @@ function completionGate(){
         if(/COMPLETE/.test(status)&&quality.length)blockers.push(`${quality.length} required completion checklist(s)`);
         if(/CLOSED/.test(status)&&close.length)blockers.push(`${close.length} required closeout checklist(s)`);
         if(changes.length)blockers.push(`${changes.length} unresolved change order(s)`);
-        if(blockers.length)throw new Error(`Job cannot be marked ${status.toLowerCase()} yet: ${blockers.join(', ')}.`);
+        if(blockers.length){const gateError=new Error(`Job cannot be marked ${status.toLowerCase()} yet: ${blockers.join(', ')}.`);gateError.h38GateBlock=true;gateError.h38GateBlockers=blockers.slice();throw gateError;}
       }
     }
     return original(action,recordType,recordId,payload,optimistic,autoSync);
@@ -605,7 +631,7 @@ function start(){
   window.H38_JOB_LIFECYCLE={
     build:BUILD,stages:STAGES.map(([key,label])=>({key,label})),analyzeJob:lifecycle,all:allLifecycle,
     attention,search:searchSnapshot,openSearch,prepareFollowUp:createFollowUp,
-    selectedJobId:()=>selectedJob,selectJob:id=>{selectedJob=text(id);return selectedJob;},
+    selectedJobId:()=>selectedJob,selectJob:id=>{selectedJob=text(id);return selectedJob;},completionBlockers,ensureCompletionChecklist,focusJob,
     authority:{readAutomatic:true,prepareInternalDrafts:true,externalActionsRequireExplicitAuthorization:true},
     features:{nextAction:true,requiredChecklists:true,completionGates:true,changeOrders:true,jobCosting:true,followUpQueue:true,receiptCapture:true,mileage:true,portalStaging:true,recurringWork:true,globalSearch:true,assistantContext:true,startupStable:true,noLateRenderPage:true},
     automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false
