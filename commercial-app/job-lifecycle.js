@@ -552,10 +552,16 @@ async function ensureCompletionChecklist(jobIdValue){
 }
 function focusJob(jobIdValue){
   selectedJob=text(jobIdValue);
+  syncLifecycleSelect();
   if(typeof window.renderWork==='function')window.renderWork();
+  syncLifecycleSelect();
   const panel=document.querySelector('.h38-life-work');
   if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
   return selectedJob;
+}
+function syncLifecycleSelect(){
+  const jobSelect=document.getElementById('h38LifecycleJob');
+  if(jobSelect&&selectedJob&&[...jobSelect.options].some(option=>option.value===selectedJob))jobSelect.value=selectedJob;
 }
 function completionGate(){
   if(typeof window.queueOperation!=='function'||window.queueOperation.__h38LifecycleGate)return;
