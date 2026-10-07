@@ -186,6 +186,70 @@ function loadOfficeAccountIdentity(){
 }
 function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
+/* Business onboarding: guided 6-step setup (ai-onboarding.js) and the setup
+   checklist (muse-onboarding-checklist.js) are secondary owner/admin modules.
+   They load on demand from Settings (never in the startup bundle) and render
+   through the canonical renderPage parity layer in app-19.js. */
+const ONBOARDING_BUILD='20261007-onboarding-wiring-1';
+const ONBOARDING_MODULES=Object.freeze({
+  onboarding:Object.freeze({css:'./ai-onboarding.css',script:'./ai-onboarding.js',datasetKey:'h38AiOnboarding',ready:()=>!!window.H38_ONBOARDING,start:()=>window.H38_ONBOARDING&&window.H38_ONBOARDING.start()}),
+  setupChecklist:Object.freeze({css:'./muse-onboarding-checklist.css',script:'./muse-onboarding-checklist.js',datasetKey:'h38OnboardingChecklist',ready:()=>!!window.H38_ONBOARDING_CHECKLIST,start:()=>window.H38_ONBOARDING_CHECKLIST&&window.H38_ONBOARDING_CHECKLIST.start()})
+});
+const onboardingModuleLoads={};
+function loadOnboardingAsset(kind,path,datasetKey){
+  return new Promise((resolve,reject)=>{
+    const attr='data-'+datasetKey;
+    if(document.querySelector(kind==='css'?`link[${attr}]`:`script[${attr}]`))return resolve(true);
+    let node;
+    if(kind==='css'){node=document.createElement('link');node.rel='stylesheet';node.href=`${path}?build=${ONBOARDING_BUILD}`;}
+    else{node=document.createElement('script');node.src=`${path}?build=${ONBOARDING_BUILD}`;node.async=false;}
+    node.setAttribute(attr,'true');
+    node.onload=()=>resolve(true);
+    node.onerror=()=>reject(new Error(`Business setup failed to load (${path}).`));
+    document.head.appendChild(node);
+  });
+}
+function loadOnboardingModule(page){
+  const mod=ONBOARDING_MODULES[page];
+  if(!mod)return Promise.resolve(false);
+  if(mod.ready())return Promise.resolve(true);
+  if(!onboardingModuleLoads[page]){
+    onboardingModuleLoads[page]=(async()=>{
+      await loadOnboardingAsset('css',mod.css,mod.datasetKey+'Css');
+      await loadOnboardingAsset('script',mod.script,mod.datasetKey+'Js');
+      if(!mod.ready())throw new Error('Business setup loaded but did not initialize.');
+      return true;
+    })().catch(error=>{delete onboardingModuleLoads[page];throw error;});
+  }
+  return onboardingModuleLoads[page];
+}
+function onboardingAllowed(){
+  try{const user=officeState()?.snapshot?.user;if(!user)return false;
+    return user.owner===true||user.permissions?.all===true||user.permissions?.manageSettings===true||user.permissions?.manageUsers===true;
+  }catch(_){return false;}
+}
+function onboardingToast(message,bad){try{if(typeof window.toast==='function')window.toast(message,!!bad);}catch(_){}}
+async function openOnboardingPage(page){
+  const mod=ONBOARDING_MODULES[page];
+  if(!mod)return false;
+  if(!onboardingAllowed()){onboardingToast('Business setup is owner/admin only.',true);return false;}
+  try{await loadOnboardingModule(page);}catch(error){onboardingToast(error?.message||'Business setup could not be opened. Refresh and try again.',true);return false;}
+  const s=officeState();
+  if(s)s.page=page;
+  mod.start();
+  document.getElementById('mainContent')?.focus?.({preventScroll:true});
+  try{window.dispatchEvent(new CustomEvent('h38:office-page-rendered',{detail:{page,shell:s?.shell||'office'}}));}catch(_){}
+  try{if(typeof window.recordUsage==='function')window.recordUsage(page,'open-page');}catch(_){}
+  return true;
+}
+window.renderOnboardingPage=function(){void openOnboardingPage('onboarding');};
+window.renderSetupChecklistPage=function(){void openOnboardingPage('setupChecklist');};
+document.addEventListener('click',event=>{
+  const button=event.target?.closest?.('[data-h38-onboarding-open]');
+  if(!button)return;
+  event.preventDefault();
+  void openOnboardingPage(button.dataset.h38OnboardingOpen);
+});
 installAsFinalAuthority();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queueFinalAuthority,{once:true});else queueFinalAuthority();
 window.addEventListener('load',queueFinalAuthority,{once:true});
@@ -216,6 +280,10 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   loadOfficeAccountIdentity,
   loadNavigationIntegrity,
   loadEmployeeWorkspace,
+  loadOnboardingModule,
+  openOnboardingPage,
+  onboardingWiring:true,
+  onboardingWiringBuild:ONBOARDING_BUILD,
   installProfitabilityInputSafety,
   profitabilityInputSafety:true,
   profitabilityBuild:PROFITABILITY_BUILD,
