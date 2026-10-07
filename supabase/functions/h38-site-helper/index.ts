@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+// Zero-dependency on purpose: plain PostgREST fetch only, so the platform
+// bundler never has to resolve npm packages for this public function.
 
 // Guarded AI helper for the public Highway 38 website (assets/js/h38-helper.js).
 //
@@ -92,9 +92,40 @@ async function readJson(response: Response): Promise<JsonObject> {
   if (!raw) return {};
   try { const parsed = JSON.parse(raw); return parsed && typeof parsed === "object" ? parsed as JsonObject : {}; } catch (_) { return {}; }
 }
-function serviceClient() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase service configuration is unavailable.");
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+function restHeaders(prefer: string): HeadersInit {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "content-type": "application/json",
+    prefer: prefer,
+  };
+}
+async function restCount(column?: string, value?: string): Promise<number> {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const params = new URLSearchParams();
+  params.set("select", "id");
+  params.set("created_at", `gte.${start.toISOString()}`);
+  params.set("outcome", `in.(${SPEND_OUTCOMES.join(",")})`);
+  if (column && value) params.set(column, `eq.${value}`);
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/site_helper_conversations?${params.toString()}`, {
+    method: "GET",
+    headers: restHeaders("count=exact"),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Log count failed (${response.status}).`);
+  const range = String(response.headers.get("content-range") || "");
+  const total = Number(range.split("/")[1]);
+  return Number.isFinite(total) ? total : 0;
+}
+async function restInsert(row: LogRow): Promise<void> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/site_helper_conversations`, {
+    method: "POST",
+    headers: restHeaders("return=minimal"),
+    body: JSON.stringify(row),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Log insert failed (${response.status}): ${clean(await response.text(), 240)}`);
 }
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -113,26 +144,16 @@ type LogRow = {
   output_tokens: number | null;
 };
 
-async function logRow(service: ReturnType<typeof serviceClient>, row: LogRow): Promise<void> {
+async function logRow(row: LogRow): Promise<void> {
   try {
-    const { error } = await service.from("site_helper_conversations").insert(row);
-    if (error) console.error("site-helper log insert failed:", clean(error.message, 240));
+    await restInsert(row);
   } catch (error) {
     console.error("site-helper log insert failed:", clean(error instanceof Error ? error.message : error, 240));
   }
 }
 
-async function spendCount(service: ReturnType<typeof serviceClient>, column?: string, value?: string): Promise<number> {
-  const start = new Date();
-  start.setUTCHours(0, 0, 0, 0);
-  let query = service.from("site_helper_conversations")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", start.toISOString())
-    .in("outcome", SPEND_OUTCOMES);
-  if (column && value) query = query.eq(column, value);
-  const { count, error } = await query;
-  if (error) throw error;
-  return count || 0;
+async function spendCount(column?: string, value?: string): Promise<number> {
+  return restCount(column, value);
 }
 
 async function askClaude(question: string): Promise<{ answer: string; route: string; topic: string; inputTokens: number | null; outputTokens: number | null }> {
@@ -215,49 +236,46 @@ Deno.serve(async (request: Request) => {
     output_tokens: null,
   };
 
-  let service: ReturnType<typeof serviceClient>;
-  try {
-    service = serviceClient();
-  } catch (_) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return json(request, 200, { status: "FALLBACK", reason: "unavailable", build: BUILD });
   }
 
   // Deployed dark: no Muse credential yet -> widget uses its scripted answers.
   if (!ANTHROPIC_API_KEY) {
-    await logRow(service, { ...baseLog, outcome: "not_configured" });
+    await logRow({ ...baseLog, outcome: "not_configured" });
     return json(request, 200, { status: "FALLBACK", reason: "ai_not_configured", build: BUILD });
   }
 
   try {
-    const globalCount = await spendCount(service);
+    const globalCount = await spendCount();
     if (globalCount >= GLOBAL_DAILY_CAP) {
-      await logRow(service, { ...baseLog, outcome: "capped_daily" });
+      await logRow({ ...baseLog, outcome: "capped_daily" });
       return json(request, 200, { status: "FALLBACK", reason: "daily_cap", build: BUILD });
     }
     if (sessionId) {
-      const sessionCount = await spendCount(service, "session_id", sessionId);
+      const sessionCount = await spendCount("session_id", sessionId);
       if (sessionCount >= SESSION_CAP) {
-        await logRow(service, { ...baseLog, outcome: "capped_session" });
+        await logRow({ ...baseLog, outcome: "capped_session" });
         return json(request, 200, { status: "FALLBACK", reason: "session_cap", build: BUILD });
       }
     }
     if (ipHash) {
-      const ipCount = await spendCount(service, "ip_hash", ipHash);
+      const ipCount = await spendCount("ip_hash", ipHash);
       if (ipCount >= IP_DAILY_CAP) {
-        await logRow(service, { ...baseLog, outcome: "capped_ip" });
+        await logRow({ ...baseLog, outcome: "capped_ip" });
         return json(request, 200, { status: "FALLBACK", reason: "ip_cap", build: BUILD });
       }
     }
   } catch (error) {
     console.error("site-helper cap check failed:", clean(error instanceof Error ? error.message : error, 240));
-    await logRow(service, { ...baseLog, outcome: "error" });
+    await logRow({ ...baseLog, outcome: "error" });
     return json(request, 200, { status: "FALLBACK", reason: "unavailable", build: BUILD });
   }
 
   try {
     const result = await askClaude(question);
     const outcome = result.topic === "offtopic" ? "declined_offtopic" : result.route === "request" ? "routed" : "answered";
-    await logRow(service, {
+    await logRow({
       ...baseLog,
       answer: result.answer,
       outcome,
@@ -268,7 +286,7 @@ Deno.serve(async (request: Request) => {
     return json(request, 200, { status: "PASS", answer: result.answer, route: result.route, build: BUILD, externalActionOccurred: false });
   } catch (error) {
     console.error("site-helper answer failed:", clean(error instanceof Error ? error.message : error, 240));
-    await logRow(service, { ...baseLog, outcome: "error", model: MODEL });
+    await logRow({ ...baseLog, outcome: "error", model: MODEL });
     return json(request, 200, { status: "FALLBACK", reason: "unavailable", build: BUILD });
   }
 });
