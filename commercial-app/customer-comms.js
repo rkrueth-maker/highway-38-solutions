@@ -266,8 +266,27 @@ async function markJobComplete(jobId){
     'Updated Time':(typeof now==='function'?now():new Date().toISOString()),
     'Record Version':(parseInt(job['Record Version']||job.recordVersion||0,10)||0)+1
   });
-  await queueOperation('SAVE_JOB','Job',jobId,{jobId:jobId,record:record},
-    {collection:'jobs',record:record,idKeys:['Job ID']});
+  try{
+    await queueOperation('SAVE_JOB','Job',jobId,{jobId:jobId,record:record},
+      {collection:'jobs',record:record,idKeys:['Job ID']});
+  }catch(error){
+    // Lifecycle completion gate refused the write. If what is missing is the
+    // required "Completion quality" checklist, create it (or focus the one
+    // that exists) and tell the user the exact next step instead of failing.
+    var lifecycleApi=window.H38JobLifecycle;
+    var blockers=(error&&error.h38GateBlockers)||[];
+    var checklistBlocker=blockers.some(function(b){return /checklist/i.test(String(b));});
+    if(error&&error.h38GateBlock&&checklistBlocker&&lifecycleApi&&typeof lifecycleApi.ensureCompletionChecklist==='function'){
+      var ensured=null;
+      try{ensured=await lifecycleApi.ensureCompletionChecklist(jobId);}catch(_){ensured=null;}
+      if(typeof lifecycleApi.focusJob==='function')lifecycleApi.focusJob(jobId);
+      if(typeof toast==='function')toast(ensured&&ensured.created
+        ?'Added the required "Completion quality" checklist for this job. Finish its items in the Job Lifecycle panel, then tap Mark Complete again.'
+        :'This job cannot be completed yet. Finish the "Completion quality" checklist in the Job Lifecycle panel, then tap Mark Complete again.',true);
+      return {blocked:'completion-checklist',checklistCreated:!!(ensured&&ensured.created)};
+    }
+    throw error;
+  }
   if(typeof toast==='function')toast('Job marked complete.');
   // Auto review prompt (respects the per-tenant toggle)
   try{await maybeAutoAskReview(Object.assign({},record));}catch(e){
