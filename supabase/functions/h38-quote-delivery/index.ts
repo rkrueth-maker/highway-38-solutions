@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = new Set([
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const ENABLED_BUSINESS_KEYS = new Set(["highway38", "northern-lakes"]);
+const ENABLED_BUSINESS_KEYS = new Set(["highway38", "northern-lakes", "build-sandbox"]);
 const PORTAL_URL = Deno.env.get("H38_CUSTOMER_PORTAL_URL") || "https://highway38solutions.com/customer-portal.html";
 const STORAGE_BUCKET = "customer-portal";
 
