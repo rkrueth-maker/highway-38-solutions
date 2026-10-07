@@ -24,3 +24,9 @@ verify_jwt = false
 # inside the function via business_module_settings (module_key online_booking).
 [functions.h38-public-booking]
 verify_jwt = false
+
+# Public website helper. Anonymous access is intentional: website visitors
+# have no H38 login. Answers are grounded in published site facts only, and
+# per-session / per-IP / daily caps are enforced inside the function.
+[functions.h38-site-helper]
+verify_jwt = false
