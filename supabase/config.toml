@@ -31,6 +31,14 @@ verify_jwt = false
 [functions.h38-site-helper]
 verify_jwt = false
 
+# First-party website traffic counts. Anonymous access is intentional: the
+# public shell beacon posts one pageview per page load. The function sets
+# no cookies, stores no raw IP addresses (daily-rotating salted hash only),
+# records page path / referrer host / device class, rate-limits per
+# visitor, and writes with the service role.
+[functions.h38-site-analytics]
+verify_jwt = false
+
 # Recommended Vendors directory + partner application intake. Anonymous
 # access is intentional for the public list and the application form; the
 # member directory, the per-business on/off gate, and Ricky's application
