@@ -1,0 +1,219 @@
+{
+  "status": "PASS",
+  "sourceCommit": "fd103d369efeab2280670dda3c89b92bb79fec8d",
+  "passed": 51,
+  "failed": 0,
+  "networkedHelper": "guarded-endpoint-only",
+  "storesInput": false,
+  "privateDataAccess": false,
+  "externalActions": false,
+  "customDigitalServices": true,
+  "visualScanPolish": true,
+  "passes": [
+    {
+      "name": "helper JavaScript parses",
+      "detail": ""
+    },
+    {
+      "name": "public shell JavaScript parses",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell loads one public helper asset",
+      "detail": ""
+    },
+    {
+      "name": "visual scan polish version is active",
+      "detail": ""
+    },
+    {
+      "name": "helper identifies approved-information boundary",
+      "detail": ""
+    },
+    {
+      "name": "helper covers current product and service direction",
+      "detail": ""
+    },
+    {
+      "name": "helper removes retired public offer claims",
+      "detail": ""
+    },
+    {
+      "name": "helper preserves human approval and external-action boundary",
+      "detail": ""
+    },
+    {
+      "name": "helper routes to approved public destinations",
+      "detail": ""
+    },
+    {
+      "name": "custom digital service page exists and is scope-priced",
+      "detail": ""
+    },
+    {
+      "name": "request page offers custom app or website path",
+      "detail": ""
+    },
+    {
+      "name": "helper sends typed questions only to the guarded H38 helper endpoint",
+      "detail": ""
+    },
+    {
+      "name": "helper holds no model key and stores nothing in the browser",
+      "detail": ""
+    },
+    {
+      "name": "helper falls back to scripted answers when the endpoint is dark or capped",
+      "detail": ""
+    },
+    {
+      "name": "edge function keeps model key server-side with published-facts guards",
+      "detail": ""
+    },
+    {
+      "name": "helper renders user input with textContent rather than HTML",
+      "detail": ""
+    },
+    {
+      "name": "helper includes accessible controls and keyboard close",
+      "detail": ""
+    },
+    {
+      "name": "helper includes page-aware prompts and quick starts",
+      "detail": ""
+    },
+    {
+      "name": "helper styles support desktop, mobile, focus, and safe-area use",
+      "detail": ""
+    },
+    {
+      "name": "mobile helper launcher is compact and cannot cover wide calls to action",
+      "detail": ""
+    },
+    {
+      "name": "helper launcher hides while the panel is open",
+      "detail": ""
+    },
+    {
+      "name": "all helper quick prompts are visible in a two-column grid",
+      "detail": ""
+    },
+    {
+      "name": "mobile pricing comparison explains horizontal scrolling",
+      "detail": ""
+    },
+    {
+      "name": "footer exposes a non-binding helper entry point",
+      "detail": ""
+    },
+    {
+      "name": "live public shell returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live public shell contains assets/js/h38-helper.js?v=",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains approvedSiteInformationOnly:true",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains sendsQuestionsToH38Helper:true",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains externalActions:false",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains 2026-10-07-helper-answers-v2",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains business-office-review-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "live public shell is not a Pages 404",
+      "detail": ""
+    },
+    {
+      "name": "live public helper returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live public helper contains Ask the H38 Helper",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains functions/v1/h38-site-helper",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains logged for review",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains Can you build my app or website?",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains Highway 38 offers Custom Digital Services",
+      "detail": ""
+    },
+    {
+      "name": "live public helper is not a Pages 404",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live custom digital service contains Custom Digital Services",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Custom Websites",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Custom Web Apps",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Custom Mobile Apps",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Start a Custom Build Request",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service is not a Pages 404",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live helper visual polish contains content:'Help'",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish contains grid-template-columns:repeat(2,minmax(0,1fr))",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish contains Swipe sideways to compare all three products.",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish is not a Pages 404",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}
