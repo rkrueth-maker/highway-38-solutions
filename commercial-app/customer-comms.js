@@ -273,7 +273,7 @@ async function markJobComplete(jobId){
     // Lifecycle completion gate refused the write. If what is missing is the
     // required "Completion quality" checklist, create it (or focus the one
     // that exists) and tell the user the exact next step instead of failing.
-    var lifecycleApi=window.H38JobLifecycle;
+    var lifecycleApi=window.H38_JOB_LIFECYCLE||window.H38JobLifecycle;
     var blockers=(error&&error.h38GateBlockers)||[];
     var checklistBlocker=blockers.some(function(b){return /checklist/i.test(String(b));});
     if(error&&error.h38GateBlock&&checklistBlocker&&lifecycleApi&&typeof lifecycleApi.ensureCompletionChecklist==='function'){
