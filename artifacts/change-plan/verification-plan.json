@@ -1,18 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T13:08:40.606Z",
+  "generatedAt": "2026-10-07T13:42:24.481Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/index.html",
-    "commercial-app/live-customer-navigation-guard-20260910.js",
-    "commercial-app/northern-bouncie-fleet.js",
-    "scripts/verify-northern-fleet-docs-ai.js"
+    "assets/js/h38-helper.js",
+    "assets/js/h38-site-v2.js",
+    "scripts/verify-public-helper.js"
   ],
-  "fileCount": 4,
+  "fileCount": 3,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": true,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": true,
@@ -24,27 +23,24 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
