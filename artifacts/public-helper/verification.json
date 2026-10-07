@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "sourceCommit": "",
-  "passed": 27,
+  "sourceCommit": "55b93c9a3751cf5142d4b950a36db95e46481ada",
+  "passed": 55,
   "failed": 0,
   "networkedHelper": "guarded-endpoint-only",
   "storesInput": false,
@@ -116,6 +116,118 @@
     },
     {
       "name": "footer exposes a non-binding helper entry point",
+      "detail": ""
+    },
+    {
+      "name": "live public shell returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live public shell contains assets/js/h38-helper.js?v=",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains approvedSiteInformationOnly:true",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains sendsQuestionsToH38Helper:true",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains externalActions:false",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains 2026-10-07-helper-counters-v3",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains business-office-review-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "live public shell contains h38-site-analytics",
+      "detail": ""
+    },
+    {
+      "name": "live public shell is not a Pages 404",
+      "detail": ""
+    },
+    {
+      "name": "live public helper returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live public helper contains Ask the H38 Helper",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains functions/v1/h38-site-helper",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains logged for review",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains Can you build my app or website?",
+      "detail": ""
+    },
+    {
+      "name": "live public helper contains Highway 38 offers Custom Digital Services",
+      "detail": ""
+    },
+    {
+      "name": "live public helper is not a Pages 404",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live custom digital service contains Custom Digital Services",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Custom Websites",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Custom Web Apps",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Custom Mobile Apps",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service contains Start a Custom Build Request",
+      "detail": ""
+    },
+    {
+      "name": "live custom digital service is not a Pages 404",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish returns HTTP 200",
+      "detail": "200"
+    },
+    {
+      "name": "live helper visual polish contains content:'Help'",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish contains grid-template-columns:repeat(2,minmax(0,1fr))",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish contains Swipe sideways to compare all three products.",
+      "detail": ""
+    },
+    {
+      "name": "live helper visual polish is not a Pages 404",
       "detail": ""
     }
   ],
