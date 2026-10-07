@@ -343,7 +343,7 @@ function openScannerForCustomers(){
   const ready=()=>window.H38_DOCUMENT_SCANNER&&typeof window.H38_DOCUMENT_SCANNER.open==='function';
   if(ready()){window.H38_DOCUMENT_SCANNER.open({onCustomers:done});return;}
   if(document.querySelector('script[data-h38-document-scanner]')){toast('Scanner is loading — try again in a moment.',true);return;}
-  const script=document.createElement('script');script.src='./document-scanner.js?build=20261007-document-scanner-1';script.dataset.h38DocumentScanner='1';script.async=false;
+  const script=document.createElement('script');script.src='./document-scanner.js?build=20261007-document-scanner-2';script.dataset.h38DocumentScanner='1';script.async=false;
   script.onload=()=>{if(ready())window.H38_DOCUMENT_SCANNER.open({onCustomers:done});else toast('The document scanner did not initialize.',true);};
   script.onerror=()=>toast('The document scanner failed to load.',true);
   document.body.appendChild(script);

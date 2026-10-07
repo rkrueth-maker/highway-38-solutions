@@ -36,7 +36,7 @@
    Verification commands: node scripts/verify-change-governance.js,
      node scripts/verify-business-office.js, node scripts/verify-document-scanner.js,
      npm run plan:change, plus live Playwright walk on the Clearwater demo. */
-const BUILD='20261007-document-scanner-1';
+const BUILD='20261007-document-scanner-2';
 const BUCKET='business-office-files';
 const MAX_DIM=2000,OUT_MAX=1800;
 const CLASS_LABELS={customer_list:'Customer List',invoice:'Invoice',job_note:'Job Note',pricing_sheet:'Pricing Sheet',other:'Other'};
@@ -94,6 +94,8 @@ function dialog(){let d=el('h38DocScannerDialog');if(d)return d;styles();d=docum
   </div>
   <div id="h38ScanConfirm" hidden>
     <div id="h38ScanAiNote"></div>
+    <label>Document name</label>
+    <input id="h38ScanNameConfirm" type="text" maxlength="120">
     <label>What kind of document is this?</label>
     <select id="h38ScanClass">${Object.keys(LABEL_TO_KEY).map(l=>`<option>${l}</option>`).join('')}</select>
     <label>Text Kit read (edit anything that looks wrong)</label>
@@ -320,7 +322,7 @@ async function saveDocumentRecord(useAi){
   const cls=el('h38ScanClass')?el('h38ScanClass').value:'Other';
   const record={
     'Document ID':S.scanId,'Business ID':bid(),
-    'File Name':text(el('h38ScanName').value)||'Scanned document',
+    'File Name':docName(),
     'Mime Type':'image/jpeg','File Size':S.blobSize||0,
     'Source Type':'Document Scan','Source ID':S.scanId,
     'Scan Classification':cls,
@@ -426,8 +428,14 @@ async function readWithKit(){
     el('h38ScanClass').value='Other';el('h38ScanText').value='';onClassChange();
   }finally{S.busy=false;el('h38ScanRead').disabled=false;}
 }
+function docName(){
+  const confirmVisible=el('h38ScanConfirm')&&!el('h38ScanConfirm').hidden;
+  const fromConfirm=confirmVisible?text(el('h38ScanNameConfirm')&&el('h38ScanNameConfirm').value):'';
+  return fromConfirm||text(el('h38ScanName')&&el('h38ScanName').value)||'Scanned document';
+}
 function showConfirm(result,aiError){
   showStep('confirm');
+  const nc=el('h38ScanNameConfirm');if(nc&&!text(nc.value))nc.value=text(el('h38ScanName').value);
   const note=el('h38ScanAiNote');
   if(aiError){note.innerHTML=`<p class="notice warn">${esc(aiError)}</p>`;return;}
   const conf=text(result&&result.confidence);
@@ -501,6 +509,7 @@ function resetState(){
   const enh=el('h38ScanEnhance');if(enh)enh.checked=true;
   const name=el('h38ScanName');if(name)name.value='Scanned document — '+new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
   const txt=el('h38ScanText');if(txt)txt.value='';
+  const nc=el('h38ScanNameConfirm');if(nc)nc.value='';
 }
 function open(opts){
   S.opts=opts||{};

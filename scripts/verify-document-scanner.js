@@ -18,7 +18,7 @@ must(scanner.includes('SAVE_CUSTOMER'),'confirmed customer rows save through the
 must(scanner.includes('handleAttachmentFiles'),'manual save falls back to the on-device attachment queue');
 must(scanner.includes('Nothing saves until you confirm')||docsRuntime.includes('data-scan'),'owner-confirm-first copy is present');
 must(!/service[_-]?role\s*[:=]\s*['"][^'"]+/i.test(scanner),'scanner contains no service-role credential');
-must(docsRuntime.includes('data-scan')&&docsRuntime.includes("document-scanner.js?build=20261007-document-scanner-1"),'Documents smart-intake card launches the scanner on demand at the pinned build');
+must(docsRuntime.includes('data-scan')&&docsRuntime.includes("document-scanner.js?build=20261007-document-scanner-2"),'Documents smart-intake card launches the scanner on demand at the pinned build');
 must(loader.includes('document-photo-service-runtime-v2.js?build=20261007-document-photo-service-3'),'production loader pins the updated documents runtime build');
 must(onboarding.includes('data-onboard-scan-customers')&&onboarding.includes('onCustomers'),'onboarding Customers step can scan a paper list into the review list');
 must(!index.includes('document-scanner.js'),'scanner is NOT in the startup bundle (on-demand loading per performance standard)');
