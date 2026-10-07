@@ -1,14 +1,22 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T04:58:34.886Z",
+  "generatedAt": "2026-10-07T04:59:10.047Z",
   "base": null,
   "head": "HEAD",
   "files": [
-    "commercial-app/muse-permissions.js"
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/unified-app-ux/verification.json",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
+    "commercial-app/index.html",
+    "commercial-app/muse-permissions.js",
+    "launch-control/evidence/unified-app-architecture-verification.json"
   ],
-  "fileCount": 1,
+  "fileCount": 9,
   "scopes": {
-    "publicWebsite": false,
+    "publicWebsite": true,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
@@ -20,25 +28,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
+    "publicRendering": true,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js"
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
     "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
