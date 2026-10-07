@@ -32,6 +32,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./recurring-plans-runtime.js?build=20261006-recurring-plans-1','h38-recurring-plans-runtime',()=>window.H38_RECURRING_PLANS_RUNTIME);
   loadRuntime('./route-order-runtime.js?build=20261006-route-order-1','h38-route-runtime',()=>window.H38_ROUTE_RUNTIME);
   loadRuntime('./numbers-runtime.js?build=20261006-ask-numbers-1','h38-numbers-runtime',()=>window.H38_NUMBERS_RUNTIME);
+  loadRuntime('./review-nudges-runtime.js?build=20261006-review-nudges-1','h38-review-nudges-runtime',()=>window.H38_REVIEW_NUDGES_RUNTIME);
   loadRuntime('./invoice-delete-lifecycle-runtime.js?build=20260912-invoice-delete-lifecycle-1','h38-invoice-delete-lifecycle',()=>window.H38_INVOICE_DELETE_LIFECYCLE);
   loadRuntime('./invoice-print-delete-runtime.js?build=20260912-invoice-print-delete-1','h38-invoice-print-delete',()=>window.H38_INVOICE_PRINT_DELETE);
   loadRuntime('./northern-bouncie-fleet.js?build=20260912-northern-bouncie-fleet-2','h38-northern-bouncie-fleet',()=>window.H38_NORTHERN_BOUNCIE_FLEET);
