@@ -104,7 +104,7 @@
       // Never yank a working Office back to Today: if business records are
       // already painted, the new worker simply takes over on the next cold
       // start instead of reloading mid-session.
-      try { if (window.state && window.state.snapshot) return; } catch (ignore) {}
+      try { if (typeof state !== 'undefined' && state && state.snapshot) return; } catch (ignore) {}
       location.reload();
     });
     navigator.serviceWorker.register(`./service-worker.js?build=${build}`, {
