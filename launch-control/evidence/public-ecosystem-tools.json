@@ -1,0 +1,552 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-06T23:08:21.466Z",
+  "passed": 134,
+  "failed": 0,
+  "pages": [
+    "ecosystem-status.html",
+    "customer-portal.html",
+    "business-concept-builder.html",
+    "proof-center.html",
+    "portal.html"
+  ],
+  "pass": [
+    {
+      "name": "ecosystem-status.html exists",
+      "detail": ""
+    },
+    {
+      "name": "ecosystem-status.html title",
+      "detail": ""
+    },
+    {
+      "name": "ecosystem-status.html viewport",
+      "detail": ""
+    },
+    {
+      "name": "ecosystem-status.html responsive CSS",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "ecosystem-status.html script brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "ecosystem-status.html script syntax brand-global.js",
+      "detail": ""
+    },
+    {
+      "name": "ecosystem-status.html local link brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "ecosystem-status.html local link index.html",
+      "detail": "index.html"
+    },
+    {
+      "name": "ecosystem-status.html local link products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "ecosystem-status.html local link start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "ecosystem-status.html local link customer-portal.html",
+      "detail": "customer-portal.html"
+    },
+    {
+      "name": "ecosystem-status.html local link business-concept-builder.html",
+      "detail": "business-concept-builder.html"
+    },
+    {
+      "name": "ecosystem-status.html local link tool-center.html",
+      "detail": "tool-center.html"
+    },
+    {
+      "name": "ecosystem-status.html local link proof-center.html",
+      "detail": "proof-center.html"
+    },
+    {
+      "name": "ecosystem-status.html local link products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "ecosystem-status.html local link sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "ecosystem-status.html local link revenue-operations-status.html",
+      "detail": "revenue-operations-status.html"
+    },
+    {
+      "name": "ecosystem-status.html local link final-acceptance.html",
+      "detail": "final-acceptance.html"
+    },
+    {
+      "name": "customer-portal.html exists",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html title",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html viewport",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html responsive CSS",
+      "detail": "commercial.css, brand-global.css, ux-unified-public.css, platform-unified.css"
+    },
+    {
+      "name": "customer-portal.html script customer-portal-config.js",
+      "detail": "customer-portal-config.js"
+    },
+    {
+      "name": "customer-portal.html script syntax customer-portal-config.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script customer-portal-supabase.js",
+      "detail": "customer-portal-supabase.js"
+    },
+    {
+      "name": "customer-portal.html script syntax customer-portal-supabase.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script business-office-invite-finish.js",
+      "detail": "business-office-invite-finish.js"
+    },
+    {
+      "name": "customer-portal.html script syntax business-office-invite-finish.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "customer-portal.html script syntax brand-global.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script public-expansion.js",
+      "detail": "public-expansion.js"
+    },
+    {
+      "name": "customer-portal.html script syntax public-expansion.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script platform-states.js",
+      "detail": "platform-states.js"
+    },
+    {
+      "name": "customer-portal.html script syntax platform-states.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script customer-portal-ux.js",
+      "detail": "customer-portal-ux.js"
+    },
+    {
+      "name": "customer-portal.html script syntax customer-portal-ux.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script customer-portal-quote-decisions.js",
+      "detail": "customer-portal-quote-decisions.js"
+    },
+    {
+      "name": "customer-portal.html script syntax customer-portal-quote-decisions.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script customer-portal-quote-delivery.js",
+      "detail": "customer-portal-quote-delivery.js"
+    },
+    {
+      "name": "customer-portal.html script syntax customer-portal-quote-delivery.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html script customer-portal-unification.js",
+      "detail": "customer-portal-unification.js"
+    },
+    {
+      "name": "customer-portal.html script syntax customer-portal-unification.js",
+      "detail": ""
+    },
+    {
+      "name": "customer-portal.html local link favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "customer-portal.html local link commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "customer-portal.html local link brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "customer-portal.html local link ux-unified-public.css",
+      "detail": "ux-unified-public.css"
+    },
+    {
+      "name": "customer-portal.html local link platform-unified.css",
+      "detail": "platform-unified.css"
+    },
+    {
+      "name": "customer-portal.html local link start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "customer-portal.html local link start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "customer-portal.html local link open-business-office.html",
+      "detail": "open-business-office.html"
+    },
+    {
+      "name": "business-concept-builder.html exists",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html title",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html viewport",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html responsive CSS",
+      "detail": "commercial.css, ecosystem.css, brand-global.css"
+    },
+    {
+      "name": "business-concept-builder.html script ecosystem-data.js",
+      "detail": "ecosystem-data.js"
+    },
+    {
+      "name": "business-concept-builder.html script syntax ecosystem-data.js",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html script ecosystem.js",
+      "detail": "ecosystem.js"
+    },
+    {
+      "name": "business-concept-builder.html script syntax ecosystem.js",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html script core-engine/product/business-concept-builder/business-concept-core.js",
+      "detail": "core-engine/product/business-concept-builder/business-concept-core.js"
+    },
+    {
+      "name": "business-concept-builder.html script syntax core-engine/product/business-concept-builder/business-concept-core.js",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html script business-concept-builder.js",
+      "detail": "business-concept-builder.js"
+    },
+    {
+      "name": "business-concept-builder.html script syntax business-concept-builder.js",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html script brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "business-concept-builder.html script syntax brand-global.js",
+      "detail": ""
+    },
+    {
+      "name": "business-concept-builder.html local link favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "business-concept-builder.html local link commercial.css",
+      "detail": "commercial.css"
+    },
+    {
+      "name": "business-concept-builder.html local link ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "business-concept-builder.html local link brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "business-concept-builder.html local link core-engine/product/business-concept-builder/schema/business-concept-input.schema.json",
+      "detail": "core-engine/product/business-concept-builder/schema/business-concept-input.schema.json"
+    },
+    {
+      "name": "proof-center.html exists",
+      "detail": ""
+    },
+    {
+      "name": "proof-center.html title",
+      "detail": ""
+    },
+    {
+      "name": "proof-center.html viewport",
+      "detail": ""
+    },
+    {
+      "name": "proof-center.html responsive CSS",
+      "detail": "ecosystem.css, brand-global.css"
+    },
+    {
+      "name": "proof-center.html script brand-global.js",
+      "detail": "brand-global.js"
+    },
+    {
+      "name": "proof-center.html script syntax brand-global.js",
+      "detail": ""
+    },
+    {
+      "name": "proof-center.html local link favicon.svg",
+      "detail": "favicon.svg"
+    },
+    {
+      "name": "proof-center.html local link ecosystem.css",
+      "detail": "ecosystem.css"
+    },
+    {
+      "name": "proof-center.html local link brand-global.css",
+      "detail": "brand-global.css"
+    },
+    {
+      "name": "proof-center.html local link proof.html",
+      "detail": "proof.html"
+    },
+    {
+      "name": "portal.html exists",
+      "detail": ""
+    },
+    {
+      "name": "portal.html title",
+      "detail": ""
+    },
+    {
+      "name": "portal.html viewport",
+      "detail": ""
+    },
+    {
+      "name": "portal.html responsive CSS",
+      "detail": ""
+    },
+    {
+      "name": "portal.html inline script 1 syntax",
+      "detail": ""
+    },
+    {
+      "name": "portal.html local link assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "portal.html local link open-business-office.html",
+      "detail": "open-business-office.html"
+    },
+    {
+      "name": "customer portal production Supabase configuration is active",
+      "detail": ""
+    },
+    {
+      "name": "customer portal exposes no records when secure configuration fails",
+      "detail": ""
+    },
+    {
+      "name": "customer portal supports password and existing-user magic-link login",
+      "detail": ""
+    },
+    {
+      "name": "customer portal RLS, invited-account linking, and private storage are required",
+      "detail": ""
+    },
+    {
+      "name": "customer portal has safe alternate request path",
+      "detail": ""
+    },
+    {
+      "name": "customer portal has no raw card form or automatic outbound action",
+      "detail": ""
+    },
+    {
+      "name": "customer portal browser bundle contains no secret key",
+      "detail": ""
+    },
+    {
+      "name": "owner portal is noindex",
+      "detail": ""
+    },
+    {
+      "name": "owner portal is a single automatic secure gateway",
+      "detail": ""
+    },
+    {
+      "name": "owner portal targets the accepted Supabase Business Office launcher",
+      "detail": ""
+    },
+    {
+      "name": "owner portal contains no obsolete public iframe",
+      "detail": ""
+    },
+    {
+      "name": "owner portal contains no obsolete six-button workspace row",
+      "detail": ""
+    },
+    {
+      "name": "owner portal does not collect credentials",
+      "detail": ""
+    },
+    {
+      "name": "owner portal preserves upload and Business Office deep links",
+      "detail": ""
+    },
+    {
+      "name": "secure app contains no nested Business Office iframe",
+      "detail": ""
+    },
+    {
+      "name": "secure app includes native Business Office client and styles",
+      "detail": ""
+    },
+    {
+      "name": "secure app uses package-controlled grouped navigation",
+      "detail": ""
+    },
+    {
+      "name": "secure app declares native Business Office rendering",
+      "detail": ""
+    },
+    {
+      "name": "secure app derives seven workspace groups from canonical module contract",
+      "detail": ""
+    },
+    {
+      "name": "Business Office modules render directly in the secure app",
+      "detail": ""
+    },
+    {
+      "name": "Business Office server adapter supports list save open and upload",
+      "detail": ""
+    },
+    {
+      "name": "Documents and OCR exposes upload and camera path inside secure app",
+      "detail": ""
+    },
+    {
+      "name": "owner portal preserves approval boundaries",
+      "detail": ""
+    },
+    {
+      "name": "global Owner Login routes through portal webpage",
+      "detail": ""
+    },
+    {
+      "name": "concept builder owner-review package",
+      "detail": ""
+    },
+    {
+      "name": "concept builder local storage",
+      "detail": ""
+    },
+    {
+      "name": "concept builder Markdown export",
+      "detail": ""
+    },
+    {
+      "name": "concept builder portable JSON export",
+      "detail": ""
+    },
+    {
+      "name": "concept builder offer and workflow package",
+      "detail": ""
+    },
+    {
+      "name": "concept builder task generation",
+      "detail": ""
+    },
+    {
+      "name": "concept builder browser-only operation",
+      "detail": ""
+    },
+    {
+      "name": "retired tool center redirects to project examples",
+      "detail": ""
+    },
+    {
+      "name": "retired tool center contains no calculator product runtime",
+      "detail": ""
+    },
+    {
+      "name": "proof manifest items",
+      "detail": "7"
+    },
+    {
+      "name": "all proof items explicitly public safe",
+      "detail": ""
+    },
+    {
+      "name": "proof target proof.html",
+      "detail": "PUBLIC-PROOF-LIBRARY"
+    },
+    {
+      "name": "proof target sample-library-now.html",
+      "detail": "PUBLIC-SAMPLE-LIBRARY"
+    },
+    {
+      "name": "proof target products.html",
+      "detail": "PUBLIC-SERVICE-CATALOG"
+    },
+    {
+      "name": "proof target free-tools.html",
+      "detail": "PUBLIC-TOOL-CENTER"
+    },
+    {
+      "name": "proof target tool-center.html",
+      "detail": "PUBLIC-PLANNING-TOOL-CENTER"
+    },
+    {
+      "name": "proof target business-concept-builder.html",
+      "detail": "PUBLIC-CONCEPT-BUILDER"
+    },
+    {
+      "name": "proof target downloads/h38-photo-privacy-review.csv",
+      "detail": "PUBLIC-PHOTO-REVIEW-DOWNLOAD"
+    },
+    {
+      "name": "status lock Customer email",
+      "detail": ""
+    },
+    {
+      "name": "status lock Payment collection",
+      "detail": ""
+    },
+    {
+      "name": "status lock Social publishing",
+      "detail": ""
+    },
+    {
+      "name": "status lock Advertising spend",
+      "detail": ""
+    },
+    {
+      "name": "status lock Final delivery",
+      "detail": ""
+    },
+    {
+      "name": "status lock Private proof sources",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

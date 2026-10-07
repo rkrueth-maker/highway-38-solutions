@@ -21,6 +21,7 @@ const FEATURE_TOGGLES=[
   {id:'auto_review_requests',title:'Auto-ask for reviews',desc:'When a job is marked complete, prompt to send the customer a Google review request text. Uses your Google Review Link from Settings.',icon:'⭐',default:false,category:'Customers'},
   {id:'on_my_way_texts',title:'"On My Way" texts',desc:'Show a "Text: On My Way" button on scheduled jobs so techs can text customers their ETA. Queued for owner approval — nothing sends automatically.',icon:'🚗',default:false,category:'Customers'},
   {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:false,category:'Money'},
+  {id:'online_payments_enabled',title:'Online payments (cards & bank debit)',desc:'Let customers pay invoices online through YOUR OWN Stripe account — money settles straight to your bank; the Office never holds it. Stripe charges 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit; no other fees. Connect Stripe below first, then turn this on. Off by default; manual payments keep working either way.',icon:'💳',default:false,category:'Money'},
 ];
 
 // Repair Guide module setting (server-side mirror).
@@ -290,6 +291,178 @@ async function setCustomerPortal(enabled){
   return !!enabled;
 }
 
+// ---- Online Payments (Stripe Connect): server-backed tenant setting ----
+// Stored in business_module_settings (module_key='online_payments').
+// enabled = the owner's master switch (mirrors the online_payments_enabled
+// feature toggle); config holds ONLY connection facts (stripeAccountId,
+// chargesEnabled, payoutsEnabled, detailsSubmitted) — never secrets.
+// Missing row or enabled!==true means OFF: no customer sees a pay option,
+// and the edge functions refuse checkout links server-side too. Each
+// business connects its OWN Stripe account; money settles to that
+// business's bank. H38 never holds or routes customer funds.
+const ONLINE_PAYMENTS_KEY='online_payments';
+
+function onlinePaymentsSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===ONLINE_PAYMENTS_KEY)||null;
+}
+
+function getOnlinePaymentsSetting(){
+  const row=onlinePaymentsSettingRow();
+  const config=(row&&(row.config||row.Config))||{};
+  return {
+    enabled:row?row.enabled===true:false,
+    connected:!!text(config.stripeAccountId),
+    chargesEnabled:config.chargesEnabled===true,
+    payoutsEnabled:config.payoutsEnabled===true,
+    detailsSubmitted:config.detailsSubmitted===true,
+    config
+  };
+}
+
+function isOnlinePaymentsEnabled(){
+  const s=getOnlinePaymentsSetting();
+  return s.enabled===true;
+}
+
+// Payments are actually usable by customers only when the switch is ON
+// and Stripe says the connected account can take charges.
+function isOnlinePaymentsReady(){
+  const s=getOnlinePaymentsSetting();
+  return s.enabled&&s.connected&&s.chargesEnabled;
+}
+
+async function setOnlinePaymentsEnabled(enabled){
+  if(!canManageModules()) throw new Error('Only a business owner or administrator can change module settings.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const sess=await api.auth.getSession();
+  const user=sess&&sess.data&&sess.data.session&&sess.data.session.user;
+  if(!user) throw new Error('Sign in again before changing this setting.');
+  const current=getOnlinePaymentsSetting();
+  const nowTs=new Date().toISOString();
+  // Preserve the Stripe connection facts; only the switch + audit change.
+  const config=Object.assign({},current.config,{updatedBy:user.id,updatedAt:nowTs});
+  const row={business_id:bid,module_key:ONLINE_PAYMENTS_KEY,enabled:!!enabled,config,updated_at:nowTs};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res.error) throw res.error;
+  if(window.state&&window.state.snapshot){
+    if(!Array.isArray(window.state.snapshot.moduleSettings)) window.state.snapshot.moduleSettings=[];
+    const list=window.state.snapshot.moduleSettings;
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===ONLINE_PAYMENTS_KEY);
+    const snapRow={module_key:ONLINE_PAYMENTS_KEY,enabled:!!enabled,config};
+    if(i>=0) list[i]=Object.assign({},list[i],snapRow); else list.push(snapRow);
+  }
+  const toggles=getToggles();
+  toggles['online_payments_enabled']=!!enabled;
+  saveToggles(toggles);
+  return !!enabled;
+}
+
+async function invokeStripeConnect(action,extra){
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure connection is unavailable.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const res=await api.functions.invoke('h38-stripe-connect',{body:Object.assign({action,businessId:bid},extra||{})});
+  if(res.error) throw new Error(res.error.message||String(res.error));
+  const data=res.data||{};
+  if(data.status&&data.status!=='PASS') throw new Error(data.error||'Stripe request failed.');
+  return data;
+}
+
+function renderOnlinePaymentsCard(){
+  const s=getOnlinePaymentsSetting();
+  const can=canManageModules();
+  let stateLine, detail;
+  if(!s.connected){
+    stateLine='Stripe is not connected yet';
+    detail='Connect your own Stripe account so customers can pay invoices online. Money settles straight to your bank account — the Office never holds it. Stripe fees: 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit. No setup or monthly fee from Stripe, and nothing to pay until a customer pays.';
+  } else if(!s.chargesEnabled){
+    stateLine='Stripe connected — onboarding not finished';
+    detail='Stripe still needs a few details before it can take charges. Tap "Continue Stripe setup", then "Refresh status". Fees: 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit — no surprises.';
+  } else {
+    stateLine='Stripe connected and ready'+(s.enabled?' — online payments are ON':' — online payments are OFF');
+    detail=s.enabled
+      ? 'Customers see a "Pay online" button on their invoices. Payments mark invoices paid automatically and email the customer a receipt. Refunds are issued by you, from the invoice, with a confirmation — nothing refunds itself.'
+      : 'Turn on "Online payments" in the Money toggles above to let customers pay. Until then no pay option appears anywhere.';
+  }
+  return `
+    <section class="card span12" id="onlinePaymentsCard">
+      <h2>💳 Online Payments (Stripe)</h2>
+      <p class="muted small">Let customers pay invoices online with a card or bank debit. <strong>Your</strong> Stripe account, <strong>your</strong> bank — the Office only keeps the records. Stays off until you turn it on below.</p>
+      <div class="row">
+        <div class="row-top"><strong>${esc(stateLine)}</strong></div>
+        <small>${esc(detail)}</small>
+        <div class="actions">
+          ${s.connected
+            ? `<button type="button" class="secondary" data-stripe-refresh ${can?'':'disabled'}>Refresh status</button>
+               ${s.chargesEnabled?'':`<button type="button" data-stripe-connect ${can?'':'disabled'}>Continue Stripe setup</button>`}`
+            : `<button type="button" data-stripe-connect ${can?'':'disabled'}>Connect Stripe</button>`}
+        </div>
+        ${can?'<small>Connecting opens Stripe\'s own secure onboarding page. Your bank and tax details go to Stripe, never into the Office.</small>':'<small>Only an owner or administrator can connect Stripe.</small>'}
+      </div>
+    </section>
+  `;
+}
+
+function bindOnlinePayments(){
+  const connectBtn=document.querySelector('[data-stripe-connect]');
+  if(connectBtn&&!connectBtn.dataset.h38Bound){
+    connectBtn.dataset.h38Bound='1';
+    connectBtn.onclick=async()=>{
+      connectBtn.disabled=true;
+      try{
+        const data=await invokeStripeConnect('account_link');
+        if(data.url){window.location.href=data.url;return;}
+        throw new Error('Stripe did not return a setup link.');
+      }catch(e){
+        if(typeof toast==='function') toast('Could not start Stripe setup: '+(e&&e.message?e.message:e),true);
+        connectBtn.disabled=false;
+      }
+    };
+  }
+  const refreshBtn=document.querySelector('[data-stripe-refresh]');
+  if(refreshBtn&&!refreshBtn.dataset.h38Bound){
+    refreshBtn.dataset.h38Bound='1';
+    refreshBtn.onclick=async()=>{
+      refreshBtn.disabled=true;
+      try{
+        const data=await invokeStripeConnect('account_status');
+        // The edge function already saved the fresh facts server-side;
+        // mirror them into the in-memory snapshot so this card agrees.
+        if(window.state&&window.state.snapshot){
+          if(!Array.isArray(window.state.snapshot.moduleSettings)) window.state.snapshot.moduleSettings=[];
+          const cur=getOnlinePaymentsSetting();
+          const list=window.state.snapshot.moduleSettings;
+          const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===ONLINE_PAYMENTS_KEY);
+          const snapRow={module_key:ONLINE_PAYMENTS_KEY,enabled:cur.enabled,config:Object.assign({},cur.config,{
+            stripeAccountId:cur.config.stripeAccountId||'',
+            chargesEnabled:data.chargesEnabled===true,
+            payoutsEnabled:data.payoutsEnabled===true,
+            detailsSubmitted:data.detailsSubmitted===true
+          })};
+          if(i>=0) list[i]=Object.assign({},list[i],snapRow); else list.push(snapRow);
+        }
+        const card=document.getElementById('onlinePaymentsCard');
+        if(card){
+          const tmp=document.createElement('div');
+          tmp.innerHTML=renderOnlinePaymentsCard();
+          const fresh=tmp.firstElementChild;
+          if(fresh){card.replaceWith(fresh);bindOnlinePayments();}
+        }
+        if(typeof toast==='function') toast(data.chargesEnabled?'Stripe is ready to take charges.':'Stripe status refreshed — onboarding not finished yet.');
+      }catch(e){
+        if(typeof toast==='function') toast('Could not refresh Stripe status: '+(e&&e.message?e.message:e),true);
+      }finally{
+        refreshBtn.disabled=false;
+      }
+    };
+  }
+}
+
 function renderRepairWarningsCard(){
   try{
     if(window.H38FailureChains&&typeof window.H38FailureChains.ownerCard==='function')
@@ -368,7 +541,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -407,6 +580,7 @@ function renderOwnerControls(){
       </section>
       ${renderMachineShopCard()}
       ${renderCustomerPortalCard()}
+      ${renderOnlinePaymentsCard()}
       ${renderRepairWarningsCard()}
       ${toggleSections}
       ${moduleSection}
@@ -417,6 +591,7 @@ function renderOwnerControls(){
 function bindOwnerControls(){
   bindMachineShop();
   bindCustomerPortal();
+  bindOnlinePayments();
   try{if(window.H38FailureChains&&typeof window.H38FailureChains.bindOwnerCard==='function')window.H38FailureChains.bindOwnerCard();}catch(e){}
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
     checkbox.onchange=async()=>{
@@ -434,6 +609,33 @@ function bindOwnerControls(){
           await setRepairGuideEnabled(want);
           if(typeof toast==='function') toast('Repair Guide integration '+(want?'turned ON.':'turned OFF.'));
           if(window.renderNav) try{window.renderNav();}catch(e){}
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
+      // Online Payments is server-backed (portal + edge functions enforce
+      // it). Turning ON requires a connected Stripe account with charges
+      // enabled, so customers never see a pay option that cannot work.
+      if(id==='online_payments_enabled'){
+        const want=checkbox.checked;
+        if(want){
+          const s=getOnlinePaymentsSetting();
+          if(!s.connected||!s.chargesEnabled){
+            checkbox.checked=false;
+            if(typeof toast==='function') toast('Connect Stripe first (card above) and finish setup, then turn online payments on.',true);
+            return;
+          }
+          const ok=window.confirm('Turn ON online payments? Customers will see a "Pay online" button on invoices in their portal and on pay links you send. Card payments cost 2.9% + 30¢ and bank debit 0.8% (max $5), charged by Stripe against the payment. Money goes straight to your bank. Manual payments keep working.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setOnlinePaymentsEnabled(want);
+          if(typeof toast==='function') toast('Online payments '+(want?'turned ON.':'turned OFF.'));
         }catch(e){
           checkbox.checked=!want;
           if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
@@ -471,6 +673,10 @@ window.H38OwnerControls={
   setMachineShop:setMachineShop,
   isCustomerPortalEnabled:isCustomerPortalEnabled,
   setCustomerPortal:setCustomerPortal,
+  isOnlinePaymentsEnabled:isOnlinePaymentsEnabled,
+  isOnlinePaymentsReady:isOnlinePaymentsReady,
+  setOnlinePaymentsEnabled:setOnlinePaymentsEnabled,
+  getOnlinePaymentsSetting:getOnlinePaymentsSetting,
   applyVisibility:()=>applyModuleVisibility(getModuleVisibility()),
   FEATURES:FEATURE_TOGGLES,
   MODULES:MODULES,
