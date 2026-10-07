@@ -235,7 +235,7 @@ function loadOwnerCustomerWorkflow(){
   const start=Date.now();
   const ready=()=>{
     if(document.querySelector('script[data-h38-owner-customer-workflow]'))return true;
-    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20260929-owner-customer-workflow-event-render-3';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]')){signalOwnerStartupReady();return;}const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';next.onload=signalOwnerStartupReady;document.body.appendChild(next);};document.body.appendChild(script);return true;
+    const script=document.createElement('script');script.src='./owner-customer-workflow-polish.js?build=20261007-quote-job-handoff-stable-1';script.dataset.h38OwnerCustomerWorkflow='1';script.onload=()=>{if(document.querySelector('script[data-h38-owner-job-handoff]')){signalOwnerStartupReady();return;}const next=document.createElement('script');next.src='./owner-job-lifecycle-handoff.js?build=20260824-owner-job-lifecycle-handoff-1';next.dataset.h38OwnerJobHandoff='1';next.onload=signalOwnerStartupReady;document.body.appendChild(next);};document.body.appendChild(script);return true;
   };
   ready();
 }
