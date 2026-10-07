@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "sourceCommit": "",
-  "projectDir": "/tmp/h38-unified-assembly-uwfsC1",
+  "projectDir": "/tmp/h38-unified-assembly-Q7xVLY",
   "shell": "Unified_AppShell.gs",
   "publicIntake": "Unified_PublicIntake.gs",
   "entryPoints": [

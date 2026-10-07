@@ -1,18 +1,16 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T12:40:32.075Z",
+  "generatedAt": "2026-10-07T12:48:50.770Z",
   "base": "origin/main~1",
   "head": "HEAD",
   "files": [
     "commercial-app/ai-onboarding.js",
-    "commercial-app/assistant-command-runtime.js",
-    "commercial-app/desktop-navigation-authority.js",
     "commercial-app/document-photo-service-runtime-v2.js",
     "commercial-app/document-scanner.js",
     "commercial-app/service-worker.js",
     "scripts/verify-document-scanner.js"
   ],
-  "fileCount": 7,
+  "fileCount": 5,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,
