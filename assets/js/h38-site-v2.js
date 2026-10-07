@@ -3,7 +3,8 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-10-07-helper-answers-v2';
+  const VERSION='2026-10-07-site-analytics-v1';
+  const ANALYTICS_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-analytics';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const OFFICE_DEMO='business-office-review-demo.html';
   const registry={
@@ -32,6 +33,7 @@
       'business-in-a-box-pricing.html':'pricing.html'
     },
     helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsQuestionsToH38Helper:true,privateDataAccess:false,externalActions:false},
+    pageviewPolicy:{firstPartyCounts:true,cookies:false,storesRawIp:false,crossDayTracking:false,sendsToH38Analytics:true},
     imagePolicy:{changeSource:false,insertImages:false,fallbackImages:false,optimizeAttributes:true}
   };
   window.H38_PUBLIC_SITE=registry;
@@ -75,6 +77,16 @@
   }
   function optimizeImages(){const images=[...document.querySelectorAll('main img,article img,section img,footer img,header img')];let primaryAssigned=false;images.forEach(img=>{const src=img.getAttribute('src')||'';img.decoding='async';if(src.startsWith('assets/highway38-logo.png')){img.loading='eager';img.addEventListener('error',()=>{img.hidden=true;},{once:true});return;}const hero=!!img.closest('.pi-hero-media,.workflow-hero-panel,.hero-media,.hero');if(hero&&!primaryAssigned){img.loading='eager';img.fetchPriority='high';primaryAssigned=true;}else img.loading='lazy';});}
   function ensureSkipLink(){const main=document.querySelector('main');if(!main)return;if(!main.id)main.id='main';if(document.querySelector('.skip-link'))return;const link=document.createElement('a');link.className='skip-link';link.href='#main';link.textContent='Skip to main content';document.body.insertBefore(link,document.body.firstChild);}
-  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;}
+  let pageviewSent=false;
+  function trackPageview(){
+    if(pageviewSent)return;pageviewSent=true;
+    try{
+      const payload=JSON.stringify({path:location.pathname||'/',ref:document.referrer||''});
+      if(navigator.sendBeacon&&navigator.sendBeacon(ANALYTICS_ENDPOINT,new Blob([payload],{type:'text/plain;charset=utf-8'})))return;
+      fetch(ANALYTICS_ENDPOINT,{method:'POST',body:payload,headers:{'content-type':'text/plain;charset=utf-8'},keepalive:true,mode:'no-cors'}).catch(()=>{});
+    }catch(error){/* Counting must never break the page. */}
+  }
+  function schedulePageview(){if('requestIdleCallback' in window)window.requestIdleCallback(()=>trackPageview(),{timeout:2500});else setTimeout(trackPageview,0);}
+  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
