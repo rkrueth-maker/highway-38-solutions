@@ -3,7 +3,7 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-08-05-public-office-demo-links-v1';
+  const VERSION='2026-10-07-guarded-ai-helper-v1';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const OFFICE_DEMO='business-office-review-demo.html';
   const registry={
@@ -31,7 +31,7 @@
       'forgeiq.html':'solutions.html','services.html':'solutions.html','specials.html':'pricing.html',
       'business-in-a-box-pricing.html':'pricing.html'
     },
-    helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsInput:false,privateDataAccess:false,externalActions:false},
+    helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsQuestionsToH38Helper:true,privateDataAccess:false,externalActions:false},
     imagePolicy:{changeSource:false,insertImages:false,fallbackImages:false,optimizeAttributes:true}
   };
   window.H38_PUBLIC_SITE=registry;

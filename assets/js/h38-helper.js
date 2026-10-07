@@ -1,7 +1,9 @@
 (()=>{
   'use strict';
   if(window.H38_PUBLIC_HELPER&&window.H38_PUBLIC_HELPER.mounted)return;
-  const VERSION='2026-10-05-pricing-refresh-v1';
+  const VERSION='2026-10-07-guarded-ai-helper-v1';
+  const AI_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-helper';
+  const AI_SESSION_CAP=10;
   const PAGE=(location.pathname.split('/').pop()||'index.html').toLowerCase();
   const qs=(selector,root=document)=>root.querySelector(selector);
   const qsa=(selector,root=document)=>[...root.querySelectorAll(selector)];
@@ -43,16 +45,34 @@
     const launcher=create('button','h38-helper-launcher','Ask the H38 Helper');launcher.type='button';launcher.setAttribute('aria-expanded','false');launcher.setAttribute('aria-controls','h38-helper-panel');
     const panel=create('section','h38-helper-panel');panel.id='h38-helper-panel';panel.hidden=true;panel.setAttribute('aria-label','Highway 38 website helper');
     const head=create('div','h38-helper-head');const titleWrap=create('div','');const eyebrow=create('span','h38-helper-eyebrow','Guided site assistant');const title=create('h2','','Highway 38 Helper');title.id='h38-helper-title';const close=create('button','h38-helper-close','Close');close.type='button';close.setAttribute('aria-label','Close Highway 38 Helper');titleWrap.append(eyebrow,title);head.append(titleWrap,close);
-    const boundary=create('p','h38-helper-boundary','Answers use approved Highway 38 website information. Nothing entered here is sent or saved. Do not enter private customer information.');
+    const boundary=create('p','h38-helper-boundary','Answers use approved Highway 38 website information. Typed questions are answered by the H38 AI helper from the same published facts and are logged for review. Do not enter private customer information.');
     const pageNote=create('p','h38-helper-page-note',pagePrompt[PAGE]||'Ask about products, custom apps and websites, projects, pricing, examples, implementation, or controls.');
     const log=create('div','h38-helper-log');log.setAttribute('role','log');log.setAttribute('aria-live','polite');
     const quick=create('div','h38-helper-quick');quickStarts.forEach(([label,intent])=>{const button=create('button','h38-helper-chip',label);button.type='button';button.dataset.intent=intent;quick.appendChild(button);});
-    const form=create('form','h38-helper-form');const label=create('label','h38-helper-input-label','Ask a question');label.htmlFor='h38-helper-input';const input=create('input','h38-helper-input');input.id='h38-helper-input';input.name='question';input.type='text';input.autocomplete='off';input.maxLength=240;input.placeholder='Example: Can you build a custom mobile app?';const submit=create('button','h38-helper-send','Ask');submit.type='submit';form.append(label,input,submit);
+    const form=create('form','h38-helper-form');const label=create('label','h38-helper-input-label','Ask a question');label.htmlFor='h38-helper-input';const input=create('input','h38-helper-input');input.id='h38-helper-input';input.name='question';input.type='text';input.autocomplete='off';input.maxLength=500;input.placeholder='Example: Can you build a custom mobile app?';const submit=create('button','h38-helper-send','Ask');submit.type='submit';form.append(label,input,submit);
     panel.append(head,boundary,pageNote,log,quick,form);root.append(launcher,panel);document.body.appendChild(root);
     const open=()=>{panel.hidden=false;launcher.setAttribute('aria-expanded','true');root.classList.add('open');if(!log.children.length)addMessage(log,'assistant',answers.welcome.text,answers.welcome.actions);setTimeout(()=>input.focus(),0);};
     const shut=()=>{panel.hidden=true;launcher.setAttribute('aria-expanded','false');root.classList.remove('open');launcher.focus();};
     const respond=(intent,userText)=>{const answer=answers[intent]||answers.fallback;if(userText)addMessage(log,'user',userText);addMessage(log,'assistant',answer.text,answer.actions);};
-    launcher.addEventListener('click',()=>panel.hidden?open():shut());close.addEventListener('click',shut);quick.addEventListener('click',event=>{const button=event.target.closest('button[data-intent]');if(!button)return;respond(button.dataset.intent,button.textContent.trim());});form.addEventListener('submit',event=>{event.preventDefault();const value=input.value.trim();if(!value)return;input.value='';respond(resolveIntent(value),value);});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)shut();});qsa('[data-h38-helper-open]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();open();}));
+    const aiSessionId=(()=>{try{if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();}catch(error){}return `session-${Date.now()}-${Math.floor(Math.random()*1e9)}`;})();
+    let aiUsed=0;
+    function addPending(){const item=create('div','h38-helper-message assistant');const label=create('span','h38-helper-message-label','Highway 38 Helper');const body=create('p','','Checking the published Highway 38 information…');item.append(label,body);log.appendChild(item);log.scrollTop=log.scrollHeight;return{item,body};}
+    function settlePending(pending,intent){const answer=answers[intent]||answers.fallback;pending.body.textContent=answer.text;addActions(pending.item,answer.actions);log.scrollTop=log.scrollHeight;}
+    async function askAi(value){
+      if(aiUsed>=AI_SESSION_CAP)return null;
+      const controller=typeof AbortController!=='undefined'?new AbortController():null;
+      const timer=controller?setTimeout(()=>controller.abort(),20000):null;
+      try{
+        const response=await fetch(AI_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({question:value,sessionId:aiSessionId,page:PAGE}),signal:controller?controller.signal:undefined});
+        if(timer)clearTimeout(timer);
+        if(!response.ok)return null;
+        const payload=await response.json().catch(()=>null);
+        if(!payload||payload.status!=='PASS'||typeof payload.answer!=='string'||!payload.answer.trim())return null;
+        aiUsed+=1;
+        return{answer:payload.answer.trim().slice(0,1500),route:payload.route==='request'?'request':'none'};
+      }catch(error){if(timer)clearTimeout(timer);return null;}
+    }
+    launcher.addEventListener('click',()=>panel.hidden?open():shut());close.addEventListener('click',shut);quick.addEventListener('click',event=>{const button=event.target.closest('button[data-intent]');if(!button)return;respond(button.dataset.intent,button.textContent.trim());});form.addEventListener('submit',event=>{event.preventDefault();const value=input.value.trim();if(!value)return;input.value='';addMessage(log,'user',value);const pending=addPending();askAi(value).then(result=>{if(result){pending.body.textContent=result.answer;if(result.route==='request')addActions(pending.item,[links.request,links.contact]);log.scrollTop=log.scrollHeight;}else settlePending(pending,resolveIntent(value));});});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)shut();});qsa('[data-h38-helper-open]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();open();}));
     window.H38_PUBLIC_HELPER={mounted:true,version:VERSION,open,close:shut,resolveIntent};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
