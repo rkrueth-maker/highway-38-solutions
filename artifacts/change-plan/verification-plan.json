@@ -1,20 +1,23 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T06:41:54.817Z",
+  "generatedAt": "2026-10-07T12:37:26.646Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/mobile-runtime-stability.js",
-    "commercial-app/office-account-identity.js",
-    "commercial-app/styles.css"
+    "assets/js/h38-helper.js",
+    "assets/js/h38-site-v2.js",
+    "scripts/verify-public-helper.js",
+    "supabase/config.toml",
+    "supabase/functions/h38-site-helper/index.ts",
+    "supabase/migrations/20261007120000_site_helper_conversations.sql"
   ],
-  "fileCount": 3,
+  "fileCount": 6,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": true,
-    "customerPortal": false,
+    "publicWebsite": true,
+    "authenticatedApp": false,
+    "customerPortal": true,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -22,24 +25,27 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": true,
+    "publicRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
-    "longRunningData": false
+    "longRunningData": true
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-customer-portal-security.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes",
+    "resumable small-batch generation with cursor and exact final counts"
   ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
