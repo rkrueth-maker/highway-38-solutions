@@ -107,7 +107,7 @@ function handleBridgeError(stage,message){
   state.bridgeReady=false;$('businessStatus').textContent='Business Office connection failed.';toast(text,true);if(!state.snapshot)renderWelcome('error',text);
 }
 function populateBusinessSelector(businesses){
-  const select=$('businessSelect');select.innerHTML='<option value="">Select business</option>'+businesses.map(b=>`<option value="${esc(b.businessId)}">${esc(b.businessName)}${industryPacks(b).length?' — '+esc(industryPacks(b).join(', ')):''}</option>`).join('');select.value=state.businessId||'';
+  const select=$('businessSelect');select.innerHTML='<option value="">Select business</option>'+businesses.map(b=>`<option value="${esc(b.businessId)}">${esc(b.businessName)}</option>`).join('');select.value=state.businessId||'';
 }
 function bindGlobal(){
   $('loadBusinessButton').onclick=()=>{if(!state.canSwitchBusinesses)return;const businessId=$('businessSelect').value;if(!businessId){toast('Choose a business first.',true);return;}setFastBusinessId(businessId);persistBusinessSelection(businessId);state.bridge.request('fullStartupRefresh',{businessId},120000).then(snapshot=>handleFullSnapshot(snapshot,businessId)).catch(error=>handleBridgeError('refresh',error.message));};
