@@ -1,4 +1,4 @@
-/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-3)
+/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-4)
  *
  * Toggle: inventory_enabled (Owner Controls, default OFF, server-mirrored in
  * business_module_settings by owner-controls.js). When OFF, nothing inventory
@@ -14,7 +14,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261008-inventory-module-3';
+const BUILD='20261008-inventory-module-4';
 const text=v=>String(v==null?'':v).trim();
 
 function oc(){return window.H38OwnerControls||null;}
@@ -308,7 +308,7 @@ async function decrementForInvoice(invoice){
 /* ------------------------------------------------------------------ */
 let pending=null;
 function injectQuotePicker(){
-  if(!isInventoryEnabled())return;
+  if(!isEnabled())return;
   if(!window.state||window.state.page!=='quotes')return;
   if(document.getElementById('h38InvQuotePick'))return;
   var editor=document.getElementById('singlePriceEditor');
