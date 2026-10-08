@@ -1,4 +1,4 @@
-/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-1)
+/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-2)
  *
  * Toggle: inventory_enabled (Owner Controls, default OFF, server-mirrored in
  * business_module_settings by owner-controls.js). When OFF, nothing inventory
@@ -14,7 +14,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261008-inventory-module-1';
+const BUILD='20261008-inventory-module-2';
 const text=v=>String(v==null?'':v).trim();
 
 function oc(){return window.H38OwnerControls||null;}
@@ -307,6 +307,51 @@ async function decrementForInvoice(invoice){
 /* Quotes: pending stock-item link between price-book "Use" and Add    */
 /* ------------------------------------------------------------------ */
 let pending=null;
+function injectQuotePicker(){
+  if(!isInventoryEnabled())return;
+  if(!window.state||window.state.page!=='quotes')return;
+  if(document.getElementById('h38InvQuotePick'))return;
+  var editor=document.getElementById('singlePriceEditor');
+  if(!editor)return;
+  var lineRow=editor.querySelector('.quote-line');
+  if(!lineRow)return;
+  var sellable=priceBookRows().filter(function(r){return sellableYes(r)&&asBool(v(r,'Active'))!==false;});
+  var box=document.createElement('div');
+  box.id='h38InvQuotePick';
+  box.className='h38-inv-pick';
+  if(!sellable.length){
+    box.innerHTML='<p class="muted small">Stock items: none sellable yet. Add items on the Inventory page.</p>';
+  }else{
+    var opts=sellable.map(function(r){return '<option value="'+esc(rowIdOf(r))+'">'+esc(v(r,'Description'))+' — '+money(sellPriceOf(r))+' / '+esc(v(r,'Unit')||v(r,'Unit of Measure')||'each')+'</option>';}).join('');
+    box.innerHTML='<label>Sell a stock item</label><div class="h38-inv-pick-row"><select id="h38InvQuoteSelect">'+opts+'</select><input id="h38InvQuoteQty" type="number" min="0.01" step="0.01" value="1" aria-label="Quantity"><button type="button" id="h38InvQuoteAdd">Add stock line</button></div><p class="muted small">Inserts a line at the item\u2019s sell price — editable on the quote. Stock moves when the invoice is paid.</p>';
+  }
+  lineRow.insertAdjacentElement('afterend',box);
+  var addBtn=document.getElementById('h38InvQuoteAdd');
+  if(addBtn){
+    addBtn.addEventListener('click',function(){
+      var sel=document.getElementById('h38InvQuoteSelect');
+      var row=sellable.find(function(r){return rowIdOf(r)===sel.value;});
+      if(!row)return;
+      var desc=document.getElementById('lineDescription'),unit=document.getElementById('lineUnit'),price=document.getElementById('linePrice'),qty=document.getElementById('lineQuantity');
+      if(desc)desc.value=v(row,'Description');
+      if(unit)unit.value=v(row,'Unit')||v(row,'Unit of Measure')||'each';
+      if(price)price.value=sellPriceOf(row).toFixed(2);
+      var q=document.getElementById('h38InvQuoteQty');
+      if(qty&&q)qty.value=q.value||'1';
+      notePendingItem(row);
+      var addLine=document.getElementById('addQuoteLine');
+      if(addLine)addLine.click();
+    });
+  }
+}
+function wrapRenderQuotes(){
+  if(typeof window.renderQuotes!=='function'||window.renderQuotes.__h38InvWrapped)return;
+  var base=window.renderQuotes;
+  var wrapped=function(){var r=base.apply(this,arguments);try{injectQuotePicker();}catch(_){ }return r;};
+  wrapped.__h38InvWrapped=true;
+  window.renderQuotes=wrapped;
+}
+
 function notePendingItem(row){
   if(!isEnabled()||!row)return;
   if(v(row,'Sellable')===false){pending=null;renderChip();return;}
@@ -388,6 +433,7 @@ window.addEventListener('h38:office-page-rendered',e=>{
 
 gateNav();
 wrapRenderInventory();
+  wrapRenderQuotes();
 
 window.H38InventoryModule={
   BUILD:BUILD,
