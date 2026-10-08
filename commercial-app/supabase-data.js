@@ -99,7 +99,8 @@
       payments:['Payment ID','paymentId'], invoices:['Invoice ID','invoiceId'], expenses:['Expense ID','expenseId'],
       documents:['Document ID','documentId'], socialPosts:['Social Post ID','socialPostId'], socialMetrics:['Social Metric ID','socialMetricId'],
       campaigns:['Campaign ID','campaignId'], featureRequests:['Feature Request ID','featureRequestId'],
-      aiRecommendations:['Recommendation ID','recommendationId'], usageLogs:['Usage Log ID','usageLogId'], followUps:['Follow-up ID','followUpId'], communicationLogs:['Communication Log ID','communicationLogId']
+      aiRecommendations:['Recommendation ID','recommendationId'], usageLogs:['Usage Log ID','usageLogId'], followUps:['Follow-up ID','followUpId'], communicationLogs:['Communication Log ID','communicationLogId'],
+      crewLocationStamps:['Stamp ID','stampId'], crewPositions:['Crew Position ID','crewPositionId']
     };
     return map[collection] || ['id'];
   }

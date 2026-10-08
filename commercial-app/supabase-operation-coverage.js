@@ -26,7 +26,9 @@
     'SAVE_EMAIL_DRAFT',
     'SAVE_SMS_DRAFT',
     'SAVE_PORTAL_MESSAGE',
-    'SAVE_VOICE_ITEM'
+    'SAVE_VOICE_ITEM',
+    'SAVE_CREW_LOCATION_STAMP',
+    'SAVE_CREW_POSITION'
   ]);
 
   function client() {
@@ -180,10 +182,45 @@
     return { collection: 'timeEntries', recordKey: text((record || {})['Time Entry ID'] || ''), record: record || {} };
   }
 
+  // Crew Location (Phone) — Sandbox pilot. The crew module queues these with
+  // its full display record as the optimistic local row; here we rebuild the
+  // same record server-side so a stamp survives reload and shows for the
+  // owner on any device. Generic saveRecord keeps it in business_records
+  // under the module's own collections — no new schema.
+  function buildCrewRecord(operation,p,recordId) {
+    if (operation.action === 'SAVE_CREW_LOCATION_STAMP') {
+      const manual=p.manual === true || p.lat == null || p.lat === '';
+      return { collection:'crewLocationStamps', recordKey:text(p.stampId || recordId), record:{
+        'Stamp ID':text(p.stampId || recordId),'Business ID':text(operation.businessId),
+        'Job ID':text(p.jobId),'Schedule Event ID':text(p.scheduleEventId),'Task ID':text(p.taskId),
+        'User ID':text(p.userId),'User Name':text(p.userName),
+        'Stamp Type':text(p.stampType),'Timestamp':text(p.timestamp || operation.localTimestamp || now()),
+        'Lat':manual?'':number(p.lat),'Lng':manual?'':number(p.lng),'Accuracy':manual?'':number(p.accuracy),
+        'Location Status':manual?'manual — no location':'gps','Manual':manual,
+        'Location Message':manual?text(p.locationMessage):'',
+        'Photo Document ID':text(p.photoDocumentId),
+        'Created Time':text(p.timestamp || operation.localTimestamp || now()),'Updated Time':now(),'Record Version':1
+      }};
+    }
+    return { collection:'crewPositions', recordKey:text(p.positionId || recordId), record:{
+      'Crew Position ID':text(p.positionId || recordId),'Business ID':text(operation.businessId),
+      'User ID':text(p.userId),'User Name':text(p.userName),
+      'Lat':number(p.lat),'Lng':number(p.lng),'Accuracy':p.accuracy == null?'':number(p.accuracy),
+      'Simulated':p.simulated === true,
+      'Timestamp':text(p.timestamp || operation.localTimestamp || now()),
+      'Created Time':text(p.timestamp || operation.localTimestamp || now()),'Record Version':1
+    }};
+  }
+
   async function process(operation) {
     const p=operation.payload || {};
     const businessId=text(operation.businessId);
     const recordId=id(operation,'RECORD');
+
+    if (operation.action === 'SAVE_CREW_LOCATION_STAMP' || operation.action === 'SAVE_CREW_POSITION') {
+      const built=buildCrewRecord(operation,p,recordId);
+      return saveRecord(businessId,built.collection,built.recordKey,built.record);
+    }
 
     if (operation.action === 'APPROVE_TIME_ENTRY') {
       return approveTimeEntry(operation);
