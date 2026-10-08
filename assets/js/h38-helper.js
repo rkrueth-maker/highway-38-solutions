@@ -1,7 +1,7 @@
 (()=>{
   'use strict';
   if(window.H38_PUBLIC_HELPER&&window.H38_PUBLIC_HELPER.mounted)return;
-  const VERSION='2026-10-07-helper-counters-v3';
+  const VERSION='2026-10-08-website-queue-v1';
   const AI_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-helper';
   const AI_SESSION_CAP=10;
   const PAGE=(location.pathname.split('/').pop()||'index.html').toLowerCase();
@@ -68,6 +68,62 @@
     };
     function addPending(){const item=create('div','h38-helper-message assistant');const label=create('span','h38-helper-message-label','Highway 38 Helper');const body=create('p','','Checking the published Highway 38 information…');item.append(label,body);log.appendChild(item);log.scrollTop=log.scrollHeight;return{item,body};}
     function settlePending(pending,intent){const answer=answers[intent]||answers.fallback;pending.body.textContent=answer.text;addActions(pending.item,answer.actions);log.scrollTop=log.scrollHeight;}
+    let helperRules=[];
+    async function loadRules(){
+      try{
+        const response=await fetch(AI_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({event:'rules'})});
+        if(!response.ok)return;
+        const payload=await response.json().catch(()=>null);
+        if(payload&&Array.isArray(payload.rules))helperRules=payload.rules.filter(rule=>rule&&typeof rule.id==='string'&&typeof rule.answer_text==='string'&&rule.answer_text.trim()&&Array.isArray(rule.patterns));
+      }catch(error){}
+    }
+    function matchRule(value){
+      const question=normalize(value);
+      if(!question||!helperRules.length)return null;
+      const words=question.split(' ');
+      for(const rule of helperRules){
+        for(const rawPattern of rule.patterns){
+          const phrase=normalize(String(rawPattern||''));
+          if(!phrase)continue;
+          if(question.includes(phrase))return rule;
+          const parts=phrase.split(' ').filter(Boolean);
+          if(parts.length>1&&parts.every(part=>words.includes(part)))return rule;
+        }
+      }
+      return null;
+    }
+    function addQueuePrompt(question){
+      const item=create('div','h38-helper-message assistant');
+      const label=create('span','h38-helper-message-label','Highway 38 Helper');
+      const body=create('p','','Want a real answer from the team? Leave a phone or email and we will get back to you. We check these all day — usually back within the hour.');
+      item.append(label,body);
+      const queueForm=create('form','h38-helper-queue');
+      const contact=create('input','h38-helper-queue-input');
+      contact.type='text';contact.autocomplete='email';contact.maxLength=120;contact.placeholder='Phone or email';contact.setAttribute('aria-label','Your phone number or email');
+      const send=create('button','h38-helper-queue-send','Send');send.type='submit';
+      queueForm.append(contact,send);item.appendChild(queueForm);log.appendChild(item);log.scrollTop=log.scrollHeight;
+      queueForm.addEventListener('submit',async event=>{
+        event.preventDefault();
+        const contactValue=contact.value.trim();
+        if(!contactValue)return;
+        send.disabled=true;contact.disabled=true;
+        try{
+          const response=await fetch(AI_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({event:'question_queue',question,contact:contactValue,page:PAGE,sessionId:aiSessionId})});
+          const payload=await response.json().catch(()=>null);
+          if(payload&&payload.queued){
+            body.textContent='Got it — thanks. We will reply to the contact you left. For a specific job or project, Start a Request puts the full details in front of us.';
+            queueForm.remove();
+          }else{
+            body.textContent='That did not go through. You can reach us any time through Start a Request or the contact page.';
+            queueForm.remove();addActions(item,[links.request,links.contact]);
+          }
+        }catch(error){
+          body.textContent='That did not go through. You can reach us any time through Start a Request or the contact page.';
+          queueForm.remove();addActions(item,[links.request,links.contact]);
+        }
+        log.scrollTop=log.scrollHeight;
+      });
+    }
     async function askAi(value){
       if(aiUsed>=AI_SESSION_CAP)return null;
       const controller=typeof AbortController!=='undefined'?new AbortController():null;
@@ -82,7 +138,8 @@
         return{answer:payload.answer.trim().slice(0,1500),route:payload.route==='request'?'request':'none'};
       }catch(error){if(timer)clearTimeout(timer);return null;}
     }
-    launcher.addEventListener('click',()=>panel.hidden?open():shut());close.addEventListener('click',shut);quick.addEventListener('click',event=>{const button=event.target.closest('button[data-intent]');if(!button)return;respond(button.dataset.intent,button.textContent.trim());countInteraction(button.dataset.intent,'chip');});form.addEventListener('submit',event=>{event.preventDefault();const value=input.value.trim();if(!value)return;input.value='';addMessage(log,'user',value);const pending=addPending();askAi(value).then(result=>{if(result){pending.body.textContent=result.answer;if(result.route==='request')addActions(pending.item,[links.request,links.contact]);log.scrollTop=log.scrollHeight;}else settlePending(pending,resolveIntent(value));countInteraction(resolveIntent(value),'typed',value);});});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)shut();});qsa('[data-h38-helper-open]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();open();}));
+    loadRules();
+    launcher.addEventListener('click',()=>panel.hidden?open():shut());close.addEventListener('click',shut);quick.addEventListener('click',event=>{const button=event.target.closest('button[data-intent]');if(!button)return;respond(button.dataset.intent,button.textContent.trim());countInteraction(button.dataset.intent,'chip');});form.addEventListener('submit',event=>{event.preventDefault();const value=input.value.trim();if(!value)return;input.value='';addMessage(log,'user',value);const pending=addPending();askAi(value).then(result=>{const intent=resolveIntent(value);if(result){pending.body.textContent=result.answer;if(result.route==='request')addActions(pending.item,[links.request,links.contact]);log.scrollTop=log.scrollHeight;countInteraction(intent,'typed',value);return;}if(intent!=='fallback'){settlePending(pending,resolveIntent(value));countInteraction(intent,'typed',value);return;}const rule=matchRule(value);if(rule){pending.body.textContent=rule.answer_text;countInteraction(`rule:${rule.id}`,'typed');log.scrollTop=log.scrollHeight;return;}settlePending(pending,resolveIntent(value));countInteraction('fallback','typed',value);addQueuePrompt(value);});});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)shut();});qsa('[data-h38-helper-open]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();open();}));
     window.H38_PUBLIC_HELPER={mounted:true,version:VERSION,open,close:shut,resolveIntent};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();

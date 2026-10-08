@@ -1,18 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T20:24:08.633Z",
+  "generatedAt": "2026-10-08T05:36:35.280Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
     "artifacts/public-helper/verification.json",
+    "assets/css/h38-site-v2.css",
     "assets/js/h38-helper.js",
     "assets/js/h38-site-v2.js",
+    "privacy.html",
     "scripts/verify-public-helper.js",
     "supabase/functions/h38-site-helper/index.ts",
-    "supabase/migrations/20261007171500_helper_interactions.sql"
+    "supabase/migrations/20261008010000_site_helper_rules.sql"
   ],
   "fileCount": 9,
   "scopes": {

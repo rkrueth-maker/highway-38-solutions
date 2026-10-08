@@ -3,7 +3,7 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-10-07-helper-counters-v3';
+  const VERSION='2026-10-08-website-queue-v1';
   const ANALYTICS_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-analytics';
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const OFFICE_DEMO='business-office-review-demo.html';

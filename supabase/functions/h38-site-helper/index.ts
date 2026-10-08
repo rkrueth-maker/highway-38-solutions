@@ -18,7 +18,7 @@
 // Credential: ANTHROPIC_API_KEY must exist as an Edge Function secret. Until
 // it does, the function is deployed dark and returns FALLBACK/not_configured.
 
-const BUILD = "20261007-site-helper-2";
+const BUILD = "20261008-site-helper-3";
 const ALLOWED_ORIGINS = new Set([
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
@@ -42,6 +42,22 @@ const SPEND_OUTCOMES = ["answered", "routed", "declined_offtopic"];
 // Separate from the AI spend caps above; a generous daily per-visitor guard
 // only stops beacon abuse.
 const INTERACTION_IP_DAILY_CAP = 600;
+
+// Website-question queue + approved auto-answer rules (2026-10-08): a typed
+// question that misses every scripted intent can be handed to the H38 team
+// through the existing 1-minute ai_handoff_tasks watch — no AI key involved
+// and nothing is ever sent to the visitor from here. The poller has no
+// website_question worker (unknown types fail), so queued questions ride the
+// existing assistant_qa type with context.origin = "website_question" as the
+// marker; the cron agent drafts the reply from the published facts and the
+// owner approves it before any send. Approved rules live as data in
+// site_helper_rules and are served live to the widget, so approving a rule
+// never needs a redeploy.
+const H38_BUSINESS_ID = "10b85a89-5834-436d-95b0-c6ee2eb335ad";
+const QUEUE_IP_DAILY_CAP = 5;
+const QUEUE_GLOBAL_DAILY_CAP = 100;
+const RULE_INTENT_RE = /^rule:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
+const BOT_UA_RE = /bot|crawler|spider|headless|curl|wget|python-requests/i;
 const KNOWN_INTENTS = [
   "customDigital", "website", "snapshot", "scanning", "customerPortal",
   "payments", "quoteBuilder", "office", "configured", "construction",
@@ -90,6 +106,77 @@ async function interactionCount(ipHash: string): Promise<number> {
     signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) throw new Error(`Interaction count failed (${response.status}).`);
+  const range = String(response.headers.get("content-range") || "");
+  const total = Number(range.split("/")[1]);
+  return Number.isFinite(total) ? total : 0;
+}
+
+async function readJsonArray(response: Response): Promise<unknown[]> {
+  const raw = await response.text();
+  if (!raw) return [];
+  try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : []; } catch (_) { return []; }
+}
+
+type SiteRule = { id: string; patterns: unknown; answer_text: string; hit_count?: number };
+
+async function restFetchRules(): Promise<SiteRule[]> {
+  const params = new URLSearchParams();
+  params.set("select", "id,patterns,answer_text");
+  params.set("enabled", "eq.true");
+  params.set("order", "created_at.asc");
+  params.set("limit", "50");
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/site_helper_rules?${params.toString()}`, {
+    method: "GET",
+    headers: restHeaders("return=minimal"),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Rules fetch failed (${response.status}).`);
+  const rows = await readJsonArray(response);
+  return rows.filter((row): row is SiteRule => !!row && typeof row === "object" && typeof (row as SiteRule).id === "string" && typeof (row as SiteRule).answer_text === "string");
+}
+
+async function restFetchRule(id: string): Promise<SiteRule | null> {
+  const params = new URLSearchParams();
+  params.set("select", "id,patterns,answer_text,hit_count");
+  params.set("id", `eq.${id}`);
+  params.set("enabled", "eq.true");
+  params.set("limit", "1");
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/site_helper_rules?${params.toString()}`, {
+    method: "GET",
+    headers: restHeaders("return=minimal"),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Rule fetch failed (${response.status}).`);
+  const rows = await readJsonArray(response);
+  const rule = rows[0];
+  return rule && typeof rule === "object" ? rule as SiteRule : null;
+}
+
+async function restBumpRuleHit(rule: SiteRule): Promise<void> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/site_helper_rules?id=eq.${rule.id}`, {
+    method: "PATCH",
+    headers: restHeaders("return=minimal"),
+    body: JSON.stringify({ hit_count: (rule.hit_count || 0) + 1, updated_at: new Date().toISOString() }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Rule hit update failed (${response.status}).`);
+}
+
+async function queueCount(ipHash?: string): Promise<number> {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const params = new URLSearchParams();
+  params.set("select", "id");
+  params.set("created_at", `gte.${start.toISOString()}`);
+  params.set("task_type", "eq.assistant_qa");
+  params.set("payload->context->>origin", "eq.website_question");
+  if (ipHash) params.set("payload->context->>ip_hash", `eq.${ipHash}`);
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/ai_handoff_tasks?${params.toString()}`, {
+    method: "GET",
+    headers: restHeaders("count=exact"),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Queue count failed (${response.status}).`);
   const range = String(response.headers.get("content-range") || "");
   const total = Number(range.split("/")[1]);
   return Number.isFinite(total) ? total : 0;
@@ -290,8 +377,16 @@ Deno.serve(async (request: Request) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return json(request, 200, { status: "PASS", counted: false, build: BUILD });
     }
-    const rawIntent = clean(body.intent, 40).trim();
-    const intent = KNOWN_INTENTS.includes(rawIntent) ? rawIntent : "unmatched";
+    const rawIntent = clean(body.intent, 48).trim();
+    let intent = KNOWN_INTENTS.includes(rawIntent) ? rawIntent : "unmatched";
+    let hitRule: SiteRule | null = null;
+    if (intent === "unmatched") {
+      const ruleMatch = rawIntent.match(RULE_INTENT_RE);
+      if (ruleMatch) {
+        hitRule = await restFetchRule(ruleMatch[1]).catch(() => null);
+        if (hitRule) intent = `rule:${hitRule.id}`;
+      }
+    }
     const matched = intent !== "unmatched";
     const questionText = !matched && source === "typed" ? scrubPii(clean(body.question, 500)).trim() || null : null;
     try {
@@ -307,10 +402,94 @@ Deno.serve(async (request: Request) => {
         session_id: sessionId || null,
         ip_hash: ipHash,
       });
+      if (hitRule) {
+        try { await restBumpRuleHit(hitRule); } catch (_) { /* hit count is advisory */ }
+      }
       return json(request, 200, { status: "PASS", counted: true, build: BUILD });
     } catch (error) {
       console.error("site-helper interaction count failed:", clean(error instanceof Error ? error.message : error, 240));
       return json(request, 200, { status: "PASS", counted: false, build: BUILD });
+    }
+  }
+
+  // Approved auto-answer rules, served as data: the widget evaluates the
+  // patterns client-side between the scripted intents and the queue prompt,
+  // so approving or disabling a rule takes effect with no redeploy.
+  if (body.event === "rules") {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return json(request, 200, { status: "PASS", rules: [], build: BUILD });
+    }
+    try {
+      const rules = await restFetchRules();
+      return json(request, 200, {
+        status: "PASS",
+        rules: rules.map((rule) => ({
+          id: rule.id,
+          patterns: Array.isArray(rule.patterns) ? rule.patterns.slice(0, 20).map((p) => clean(p, 120)) : [],
+          answer_text: clean(rule.answer_text, 1500),
+        })),
+        build: BUILD,
+      });
+    } catch (error) {
+      console.error("site-helper rules fetch failed:", clean(error instanceof Error ? error.message : error, 240));
+      return json(request, 200, { status: "PASS", rules: [], build: BUILD });
+    }
+  }
+
+  // Queue an unmatched question for the H38 team through the existing
+  // 1-minute handoff watch. The contact lives ONLY in the task payload —
+  // never in helper_interactions or the conversation log (both scrubbed).
+  if (body.event === "question_queue") {
+    const userAgent = String(request.headers.get("user-agent") || "");
+    if (BOT_UA_RE.test(userAgent)) return json(request, 200, { status: "PASS", queued: false, build: BUILD });
+    const contact = clean(body.contact, 200).trim();
+    const emailOk = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(contact);
+    const contactDigits = contact.replace(/\D/g, "");
+    const phoneOk = !emailOk && contactDigits.length >= 10 && contactDigits.length <= 15;
+    if (!emailOk && !phoneOk) {
+      return json(request, 400, { status: "FAIL", message: "A valid email or phone number is required.", build: BUILD });
+    }
+    const queuedQuestion = scrubPii(question).trim();
+    if (queuedQuestion.length < 5) {
+      return json(request, 400, { status: "FAIL", message: "A question of at least 5 characters is required.", build: BUILD });
+    }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return json(request, 200, { status: "PASS", queued: false, build: BUILD });
+    }
+    try {
+      if ((await queueCount()) >= QUEUE_GLOBAL_DAILY_CAP) {
+        return json(request, 200, { status: "PASS", queued: false, build: BUILD });
+      }
+      if (ipHash && (await queueCount(ipHash)) >= QUEUE_IP_DAILY_CAP) {
+        return json(request, 200, { status: "PASS", queued: false, build: BUILD });
+      }
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/ai_handoff_tasks`, {
+        method: "POST",
+        headers: restHeaders("return=minimal"),
+        body: JSON.stringify({
+          business_id: H38_BUSINESS_ID,
+          task_type: "assistant_qa",
+          status: "pending",
+          payload: {
+            businessId: H38_BUSINESS_ID,
+            question: queuedQuestion,
+            role: "website visitor",
+            context: {
+              origin: "website_question",
+              contact,
+              page,
+              ip_hash: ipHash,
+              source: "website helper",
+            },
+          },
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error(`Queue insert failed (${response.status}): ${clean(await response.text(), 240)}`);
+      return json(request, 200, { status: "PASS", queued: true, build: BUILD });
+    } catch (error) {
+      console.error("site-helper question queue failed:", clean(error instanceof Error ? error.message : error, 240));
+      return json(request, 200, { status: "PASS", queued: false, build: BUILD });
     }
   }
 
