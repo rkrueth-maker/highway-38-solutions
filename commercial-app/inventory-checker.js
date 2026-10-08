@@ -92,7 +92,7 @@ function lowStockCard(){
       `<small>${esc(v(x.item,'SKU'))} · ${x.onHand} ${esc(v(x.item,'Unit of Measure')||'')} on hand</small>`+
       `<div class="actions"><button onclick="H38Inventory.markOrdered('${itemId}')">Mark ordered</button></div></div>`;
   }).join(''):empty('No low-stock items. Everything is above its reorder point.');
-  return `<section class="card span7"><h2>Low stock</h2>`+
+  return `<section class="card span7"><h2>Low stock — reorder list (${low.length} item${low.length===1?'':'s'})</h2>`+
     `<div class="actions"><button onclick="H38Inventory.checkLowStock()">Check stock now</button></div>`+
     `<div class="list">${rows}</div></section>`;
 }

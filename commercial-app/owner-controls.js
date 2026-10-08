@@ -2,7 +2,7 @@
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261007-recommended-vendors-1';
+const BUILD='20261008-inventory-module-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -19,6 +19,7 @@ const FEATURE_TOGGLES=[
   {id:'ai_suggestions',title:'AI suggestions',desc:'Show AI-powered suggestions throughout the app.',icon:'🤖',default:true,category:'AI'},
   {id:'repair_guide_enabled',title:'Repair Guide integration',desc:'Connect the standalone Repair Guide app: send diagnoses to Office jobs and quote drafts, link garage vehicles to customers, deep links both ways. Off by default — the Repair Guide keeps working standalone.',icon:'🔧',default:false,category:'Modules'},
   {id:'recommended_vendors_enabled',title:'Recommended Vendors',desc:'Show the Recommended Vendors directory: local suppliers and services approved by Highway 38, plus the optional "Recommended local pros" block on your website. Every partner is reviewed by Highway 38 before listing, and paid placement is always labeled. Off by default.',icon:'🤝',default:false,category:'Modules'},
+  {id:'inventory_enabled',title:'Inventory & Materials',desc:'Track stock you buy, sell and rent: on-hand counts, reorder points with a low-stock list, items that drop onto quotes and invoices (stock leaves when the invoice is paid), and an advertised-stock list showing name + availability only. Nothing auto-orders and nothing auto-sends. Off by default.',icon:'📦',default:false,category:'Modules'},
   {id:'auto_review_requests',title:'Auto-ask for reviews',desc:'When a job is marked complete, prompt to send the customer a review request text. Rotates across your Google, Facebook, and Yelp review links from Settings, with one polite follow-up nudge after a few days.',icon:'⭐',default:false,category:'Customers'},
   {id:'on_my_way_texts',title:'"On My Way" texts',desc:'Show a "Text: On My Way" button on scheduled jobs so techs can text customers their ETA. Queued for owner approval — nothing sends automatically.',icon:'🚗',default:false,category:'Customers'},
   {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:false,category:'Money'},
@@ -292,6 +293,46 @@ async function setRecommendedVendorsEnabled(enabled){
   }
   const toggles=getToggles();
   toggles['recommended_vendors_enabled']=!!enabled;
+  saveToggles(toggles);
+  try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
+}
+
+// Inventory & Materials (server-side mirror).
+// The Inventory page, the quote/invoice stock-item pickers, the advertised
+// stock list and the payment-time stock decrement all read this row, so the
+// owner's intent holds from every entry point. Off by default — nothing
+// inventory appears until the owner turns it on here.
+const INVENTORY_MODULE_KEY='inventory_enabled';
+function inventorySettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===INVENTORY_MODULE_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isInventoryEnabled(){
+  const row=inventorySettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('inventory_enabled');
+}
+// Owner/admin only. Mirrors the toggle to business_module_settings and keeps
+// the local toggle in sync. Throws when the server write fails.
+async function setInventoryEnabled(enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can turn Inventory on or off.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const row={business_id:bid,module_key:INVENTORY_MODULE_KEY,enabled:!!enabled,config:{},updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===INVENTORY_MODULE_KEY);
+    const snap={moduleKey:INVENTORY_MODULE_KEY,module_key:INVENTORY_MODULE_KEY,enabled:!!enabled,config:{}};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['inventory_enabled']=!!enabled;
   saveToggles(toggles);
   try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
 }
@@ -641,7 +682,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -740,6 +781,28 @@ function bindOwnerControls(){
         }
         return;
       }
+      // Inventory is mirrored to the server: the Inventory page, quote and
+      // invoice item pickers and the payment-time stock decrement all check
+      // it. Revert locally if the write fails.
+      if(id==='inventory_enabled'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON Inventory & Materials? The Inventory page appears in navigation with stock counts, a reorder list, items you can sell on quotes and invoices, rentals and an advertised-stock list. Stock only moves when you receive, issue, or record a payment — nothing auto-orders.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setInventoryEnabled(want);
+          if(typeof toast==='function') toast('Inventory & Materials '+(want?'turned ON.':'turned OFF.'));
+          if(window.renderNav) try{window.renderNav();}catch(e){}
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       // AI Lead Responder is server-backed too (the booking function reads
       // the mirrored row). Revert locally if the write fails.
       if(id==='ai_lead_responder'){
@@ -813,6 +876,8 @@ window.H38OwnerControls={
   setRepairGuideEnabled:setRepairGuideEnabled,
   isRecommendedVendorsEnabled:isRecommendedVendorsEnabled,
   setRecommendedVendorsEnabled:setRecommendedVendorsEnabled,
+  isInventoryEnabled:isInventoryEnabled,
+  setInventoryEnabled:setInventoryEnabled,
   setLeadResponderEnabled:setLeadResponderEnabled,
   isLeadResponderEnabled:isLeadResponderEnabled,
   isModuleVisible:isModuleVisible,
