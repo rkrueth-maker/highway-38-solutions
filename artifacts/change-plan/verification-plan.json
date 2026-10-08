@@ -1,26 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-08T05:36:35.280Z",
+  "generatedAt": "2026-10-08T07:51:41.417Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
-    "artifacts/public-helper/verification.json",
-    "assets/css/h38-site-v2.css",
-    "assets/js/h38-helper.js",
-    "assets/js/h38-site-v2.js",
-    "privacy.html",
-    "scripts/verify-public-helper.js",
-    "supabase/functions/h38-site-helper/index.ts",
-    "supabase/migrations/20261008010000_site_helper_rules.sql"
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "commercial-app/crew-phone-location.js",
+    "commercial-app/index.html",
+    "commercial-app/supabase-data.js",
+    "commercial-app/supabase-operation-coverage.js"
   ],
-  "fileCount": 9,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": false,
-    "customerPortal": true,
+    "authenticatedApp": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -29,27 +27,27 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
     "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
     "desktop and mobile public browser verification for affected routes",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
