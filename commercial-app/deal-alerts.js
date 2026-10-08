@@ -218,6 +218,8 @@ async function checkQuoteAgingAlerts() {
 async function checkLowStockAlerts() {
   const rules = activeAlertRules('low_stock');
   if (!rules.length) return { checked: 0, raised: 0 };
+  // Inventory & Materials module off = no low-stock alerts surface.
+  if (window.H38OwnerControls && window.H38OwnerControls.isInventoryEnabled && !window.H38OwnerControls.isInventoryEnabled()) return { checked: 0, raised: 0 };
   const stock = new Map();
   records('inventoryTransactions').forEach(function (row) {
     const id = String(v(row, 'Item ID') || '').trim();
