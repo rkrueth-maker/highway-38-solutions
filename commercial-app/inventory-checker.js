@@ -97,6 +97,7 @@ function lowStockCard(){
     `<div class="list">${rows}</div></section>`;
 }
 
+window.lowStockCard=lowStockCard;
 window.H38Inventory={
   computeStock:computeStock,
   lowStockItems:lowStockItems,
