@@ -1,4 +1,4 @@
-/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-4)
+/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-5)
  *
  * Toggle: inventory_enabled (Owner Controls, default OFF, server-mirrored in
  * business_module_settings by owner-controls.js). When OFF, nothing inventory
@@ -14,7 +14,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261008-inventory-module-4';
+const BUILD='20261008-inventory-module-5';
 const text=v=>String(v==null?'':v).trim();
 
 function oc(){return window.H38OwnerControls||null;}
@@ -315,14 +315,14 @@ function injectQuotePicker(){
   if(!editor)return;
   var lineRow=editor.querySelector('.quote-line');
   if(!lineRow)return;
-  var sellable=priceBookRows().filter(function(r){return sellableYes(r)&&asBool(v(r,'Active'))!==false;});
+  var sellable=(records('priceBook')||[]).filter(function(r){return v(r,'Sellable')!==false&&v(r,'Active')!==false;});
   var box=document.createElement('div');
   box.id='h38InvQuotePick';
   box.className='h38-inv-pick';
   if(!sellable.length){
     box.innerHTML='<p class="muted small">Stock items: none sellable yet. Add items on the Inventory page.</p>';
   }else{
-    var opts=sellable.map(function(r){return '<option value="'+esc(rowIdOf(r))+'">'+esc(v(r,'Description'))+' — '+money(sellPriceOf(r))+' / '+esc(v(r,'Unit')||v(r,'Unit of Measure')||'each')+'</option>';}).join('');
+    var opts=sellable.map(function(r){return '<option value="'+esc(itemId(r))+'">'+esc(v(r,'Description'))+' — '+money(sellPrice(r))+' / '+esc(v(r,'Unit')||v(r,'Unit of Measure')||'each')+'</option>';}).join('');
     box.innerHTML='<label>Sell a stock item</label><div class="h38-inv-pick-row"><select id="h38InvQuoteSelect">'+opts+'</select><input id="h38InvQuoteQty" type="number" min="0.01" step="0.01" value="1" aria-label="Quantity"><button type="button" id="h38InvQuoteAdd">Add stock line</button></div><p class="muted small">Inserts a line at the item\u2019s sell price — editable on the quote. Stock moves when the invoice is paid.</p>';
   }
   lineRow.insertAdjacentElement('afterend',box);
@@ -330,12 +330,12 @@ function injectQuotePicker(){
   if(addBtn){
     addBtn.addEventListener('click',function(){
       var sel=document.getElementById('h38InvQuoteSelect');
-      var row=sellable.find(function(r){return rowIdOf(r)===sel.value;});
+      var row=sellable.find(function(r){return itemId(r)===sel.value;});
       if(!row)return;
       var desc=document.getElementById('lineDescription'),unit=document.getElementById('lineUnit'),price=document.getElementById('linePrice'),qty=document.getElementById('lineQuantity');
       if(desc)desc.value=v(row,'Description');
       if(unit)unit.value=v(row,'Unit')||v(row,'Unit of Measure')||'each';
-      if(price)price.value=sellPriceOf(row).toFixed(2);
+      if(price)price.value=sellPrice(row).toFixed(2);
       var q=document.getElementById('h38InvQuoteQty');
       if(qty&&q)qty.value=q.value||'1';
       notePendingItem(row);
