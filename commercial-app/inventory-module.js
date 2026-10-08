@@ -1,4 +1,4 @@
-/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-2)
+/* inventory-module.js — Inventory & Materials module (build 20261008-inventory-module-3)
  *
  * Toggle: inventory_enabled (Owner Controls, default OFF, server-mirrored in
  * business_module_settings by owner-controls.js). When OFF, nothing inventory
@@ -14,7 +14,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261008-inventory-module-2';
+const BUILD='20261008-inventory-module-3';
 const text=v=>String(v==null?'':v).trim();
 
 function oc(){return window.H38OwnerControls||null;}
@@ -428,7 +428,7 @@ window.addEventListener('h38:office-page-rendered',e=>{
   const p=e&&e.detail&&e.detail.page;
   if(p==='inventory')bindInventoryPage();
   if(p==='money')bindMoneyPage();
-  if(p==='quotes')renderChip();
+  if(p==='quotes'){renderChip();try{injectQuotePicker();}catch(_){}}
 });
 
 gateNav();
