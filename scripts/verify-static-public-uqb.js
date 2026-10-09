@@ -52,12 +52,12 @@ need(viewer,'Open original SVG','full-size original CAD action');
 need(viewer,'does not read or expose private Highway 38 records','viewer private-record boundary');
 absent(viewer,'script.google.com','viewer Apps Script dependency');
 
-if(data.version!=='2026-07-26-static-public-v1')throw new Error('Unexpected public dataset version.');
-if(!Array.isArray(data.packages)||data.packages.length!==7)throw new Error(`Expected 7 public packages; found ${data.packages&&data.packages.length}.`);
+if(data.version!=='2026-10-09-static-public-v2')throw new Error('Unexpected public dataset version.');
+if(!Array.isArray(data.packages)||data.packages.length!==12)throw new Error(`Expected 12 public packages; found ${data.packages&&data.packages.length}.`);
 const drawingKeys=Object.keys(data.drawings||{});
 if(drawingKeys.length!==10)throw new Error(`Expected 10 public CAD sheets; found ${drawingKeys.length}.`);
 const assigned=data.packages.flatMap(item=>item.sheets||[]);
-if(assigned.length!==10||new Set(assigned).size!==10)throw new Error('Every public CAD sheet must be assigned exactly once.');
+if(new Set(assigned).size!==10)throw new Error('Every public CAD sheet must be assigned to at least one package.');
 assigned.forEach(sheet=>{if(!data.drawings[sheet])throw new Error(`Missing drawing record ${sheet}.`);});
 data.packages.forEach(item=>{
   if(!item.key||!item.title||!item.quoteTitle||!item.summary)throw new Error('A public package is missing presentation content.');

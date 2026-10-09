@@ -57,11 +57,11 @@ check(!publicPage.includes('class="universal-card"')&&!publicPage.includes('See 
 check(!publicPage.includes('What Office creates')&&!publicPage.includes('What Quote Builder produced'),'Tangent result board remains on public demonstration.');
 check(publicRedirect.includes('sample-library-now.html#universal-quote-builder-examples'),'Legacy Universal Quote Builder route must redirect to the embedded house section.');
 check(publicViewer.includes('Print / Save PDF')&&publicViewer.includes('@page cad{size:17in 11in landscape'),'Printable full-size package viewer is missing.');
-check(publicData&&publicData.version==='2026-07-26-static-public-v1','Static public dataset version is missing.');
-check(publicData.packages.length===7,'Public page must define seven matched quote and CAD packages.');
+check(publicData&&publicData.version==='2026-10-09-static-public-v2','Static public dataset version is missing.');
+check(publicData.packages.length===12,'Public page must define twelve matched quote and CAD packages.');
 check(Object.keys(publicData.drawings).length===10,'Public dataset must define ten CAD drawing sheets.');
 const assignedSheets=publicData.packages.flatMap(item=>item.sheets);
-check(assignedSheets.length===10&&new Set(assignedSheets).size===10,'Each public CAD sheet must be matched exactly once.');
+check(new Set(assignedSheets).size===10,'Every public CAD sheet must be matched to at least one quote package.');
 check(quotePage.includes('universal-quote-builder.html'),'Quote Builder product page must retain the compatibility link to the Universal demonstration.');
 check(samples.includes('id="universal-quote-builder-examples"'),'Project examples must contain the Universal Quote Builder library beneath the house example.');
 check(!/Eight complete|Explore the Eight|current eight-project/i.test(samples+' '+redirect),'Fixed eight-example language must be removed.');

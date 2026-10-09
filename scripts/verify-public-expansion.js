@@ -61,11 +61,11 @@ check('Universal Quote Builder uses standalone public examples',samples.includes
 check('Universal demonstration provides quote CAD and package actions',samples.includes('View full quote')&&samples.includes('View full-size CAD sheets')&&samples.includes('Print / save complete package'));
 check('Legacy Universal route redirects to the embedded house section',universalRedirect.includes('sample-library-now.html#universal-quote-builder-examples'));
 check('Static viewer provides printable full-size packages',publicViewer.includes('Print / Save PDF')&&publicViewer.includes('@page cad{size:17in 11in landscape'));
-check('Static public dataset initializes',publicData&&publicData.version==='2026-07-26-static-public-v1');
+check('Static public dataset initializes',publicData&&publicData.version==='2026-10-09-static-public-v2');
 const staticPackages=publicData&&Array.isArray(publicData.packages)?publicData.packages:[];
 const staticDrawings=publicData&&publicData.drawings?Object.keys(publicData.drawings):[];
 const staticMatched=staticPackages.flatMap(item=>item.sheets||[]);
-check('Universal demonstration defines seven matched packages using ten unique CAD sheets',staticPackages.length===7&&staticDrawings.length===10&&staticMatched.length===10&&new Set(staticMatched).size===10);
+check('Universal demonstration defines twelve matched packages covering all ten CAD sheets',staticPackages.length===12&&staticDrawings.length===10&&new Set(staticMatched).size===10);
 check('Universal demonstration removes result-board and renovation tangents',!samples.includes('What Office creates')&&!samples.includes('What Quote Builder produced')&&!samples.includes('Whole-House Renovation and Property Improvement')&&!samples.includes('$342,815'));
 check('Internal Office demo remains owner-controlled',publicExamples.includes('No live customers, private Highway 38 records')&&publicDemo.includes('externalActionsPerformed:false')&&publicRoute.includes('boRenderUniversalPublicExamples_'));
 check('Office demo defines fourteen quotes and ten CAD sheets',(publicDemo.match(/Object\.freeze\(\{n:'\d{2}',key:/g)||[]).length===14&&(publicDemo.match(/Object\.freeze\(\{n:'(?:G|A|M|P|E|C-S-L)-/g)||[]).length===10);
