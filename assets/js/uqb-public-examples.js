@@ -48,6 +48,78 @@
       exclusions: ['Final stamped engineering beyond allowance', 'Land purchase or financing costs']
     },
     {
+      key: 'siteprep',
+      title: 'Site Preparation & Excavation',
+      quoteTitle: 'Site Preparation, Clearing & Excavation',
+      summary: 'Clearing, excavation, temporary access, and rough-grading quote matched to the site plan and clearing limits.',
+      total: 27900,
+      duration: '2–4 weeks, seasonal',
+      deposit: '30% before mobilization',
+      sheets: ['C-S-L-101', 'G-001'],
+      scope: [
+        'Clearing limits, tree/brush clearing, grubbing, and stump removal in the build zone',
+        'Excavation, cut/fill, subgrade preparation, and stockpile management',
+        'Temporary access, erosion control, and drainage protection during construction',
+        'Rough grading, compaction, and elevation proof before foundation work'
+      ],
+      items: [
+        ['Clearing and grubbing', 1, 'lot', 6400, 6400],
+        ['Excavation and cut/fill', 210, 'cu yd', 42, 8820],
+        ['Temporary access and erosion control', 1, 'lot', 3480, 3480],
+        ['Rough grading and compaction', 1, 'lot', 9200, 9200]
+      ],
+      assumptions: ['Owner controls the lot and clearing limits are marked', 'No wetlands or protected trees inside the clearing limits'],
+      exclusions: ['Rock excavation or blasting', 'Wetland mitigation or protected-tree removal']
+    },
+    {
+      key: 'utilities',
+      title: 'Underground Utilities, Well & Septic',
+      quoteTitle: 'Well, Septic & Underground Utilities',
+      summary: 'Well, septic, and underground utility quote matched to the site utility routes and plumbing service plan.',
+      total: 36400,
+      duration: '3–6 weeks with inspections',
+      deposit: '30% before drilling and installation',
+      sheets: ['C-S-L-101', 'P-101'],
+      scope: [
+        'Drilled well, pump, pressure system, and water-quality test',
+        'Septic tank and drain-field installation with inspection coordination',
+        'Trenching, bedding, and sleeves for water, sewer, and power crossings',
+        'As-built utility map, testing, and service labeling'
+      ],
+      items: [
+        ['Drilled well and pump system', 1, 'lot', 9800, 9800],
+        ['Septic tank and drain field', 1, 'lot', 16400, 16400],
+        ['Utility trenching and sleeves', 320, 'lin ft', 22, 7040],
+        ['Testing, permits, and as-built map', 1, 'lot', 3160, 3160]
+      ],
+      assumptions: ['Soil and percolation conditions suit a conventional system', 'Permit approvals arrive on normal timelines'],
+      exclusions: ['Municipal tap fees or utility-company charges', 'Water treatment beyond basic filtration']
+    },
+    {
+      key: 'foundation',
+      title: 'Foundation & Concrete',
+      quoteTitle: 'Footings, Foundation Walls & Slab',
+      summary: 'Footing, foundation-wall, waterproofing, and slab quote matched to the building sections and floor plan.',
+      total: 43800,
+      duration: '3–5 weeks with cure windows',
+      deposit: '30% before footing excavation',
+      sheets: ['A-301', 'A-101'],
+      scope: [
+        'Footing excavation, forming, reinforcement, and placement',
+        'Foundation walls, waterproofing, drain tile, and foundation insulation',
+        'Slab preparation, vapor control, placement, and finish',
+        'Backfill, compaction, and elevation proof before framing'
+      ],
+      items: [
+        ['Footings and foundation walls', 1, 'lot', 21800, 21800],
+        ['Waterproofing, drain tile, and insulation', 1, 'lot', 6400, 6400],
+        ['Slab preparation and placement', 1450, 'sq ft', 8, 11600],
+        ['Backfill and compaction proof', 1, 'lot', 4000, 4000]
+      ],
+      assumptions: ['Soils bear as assumed by the design', 'Frost depth follows local code requirements'],
+      exclusions: ['Rock excavation or extended dewatering', 'Stamped engineering beyond the design allowance']
+    },
+    {
       key: 'framing',
       title: 'Structural Framing & Architectural Plans',
       quoteTitle: 'Structural Framing & Weather-Tight Shell',
@@ -58,18 +130,42 @@
       sheets: ['A-101', 'A-102', 'A-201', 'A-301'],
       scope: [
         'Floor, wall, stair, and roof framing with connectors and blocking',
-        'Structural sheathing and weather-resistive layers',
-        'Windows, exterior doors, roofing, and temporary weather protection',
+        'Structural sheathing and temporary weather-protection layers',
+        'Windows, exterior doors, and temporary weather protection',
         'Framing inspections and concealed-work documentation'
       ],
       items: [
         ['Structural lumber and framing package', 1, 'allowance', 48500, 48500],
         ['Framing labor and equipment', 1, 'lot', 31500, 31500],
         ['Windows and exterior doors allowance', 1, 'allowance', 10500, 10500],
-        ['Roofing and dry-in allowance', 1, 'allowance', 6000, 6000]
+        ['Temporary weather protection', 1, 'lot', 6000, 6000]
       ],
       assumptions: ['Approved framing plans are available', 'Standard material lead times apply'],
       exclusions: ['Specialty structural steel beyond allowance', 'Design changes after framing release']
+    },
+    {
+      key: 'exterior',
+      title: 'Roofing, Siding & Exterior Envelope',
+      quoteTitle: 'Roofing, Siding & Exterior Trim',
+      summary: 'Roofing, siding, and exterior-trim quote matched to the roof plan and exterior elevations.',
+      total: 39600,
+      duration: '3–5 weeks, weather dependent',
+      deposit: '40% before material order',
+      sheets: ['A-102', 'A-201'],
+      scope: [
+        'Architectural shingle roofing with underlayment, ice-and-water protection, and ventilation',
+        'Siding, weather-resistive barrier, and flashing integration at every penetration',
+        'Soffit, fascia, exterior trim, and sealant completion',
+        'Manufacturer warranty registration and finished-envelope photo proof'
+      ],
+      items: [
+        ['Architectural shingle roofing system', 24, 'square', 685, 16440],
+        ['Siding and weather-resistive barrier', 2100, 'sq ft', 8.4, 17640],
+        ['Soffit, fascia, and exterior trim', 1, 'lot', 3520, 3520],
+        ['Sealing, cleanup, and warranty registration', 1, 'lot', 2000, 2000]
+      ],
+      assumptions: ['Roof deck is sound under the framing package', 'Siding and roofing selections are approved before ordering'],
+      exclusions: ['Metal roofing beyond the shingle allowance', 'Gutters and downspouts']
     },
     {
       key: 'interior',
@@ -168,6 +264,30 @@
       exclusions: ['Geothermal wells', 'Utility fuel extension']
     },
     {
+      key: 'drywall',
+      title: 'Insulation & Drywall',
+      quoteTitle: 'Insulation, Drywall & Interior Shell',
+      summary: 'Insulation and drywall quote matched to the floor plan and kitchen plan after mechanical rough-in.',
+      total: 26300,
+      duration: '3–4 weeks',
+      deposit: '30% before insulation',
+      sheets: ['A-101', 'A-401'],
+      scope: [
+        'Wall and ceiling insulation matched to the energy design',
+        'Drywall hanging, taping, and Level 4 finish',
+        'Moisture readings and shell inspection proof before close-in',
+        'Texture/prime preparation and dust-controlled cleanup'
+      ],
+      items: [
+        ['Wall and ceiling insulation', 1, 'lot', 8400, 8400],
+        ['Drywall hang, tape, and finish', 6800, 'sq ft', 2.1, 14280],
+        ['Shell inspection and moisture proof', 1, 'lot', 1620, 1620],
+        ['Prime preparation and cleanup', 1, 'lot', 2000, 2000]
+      ],
+      assumptions: ['Mechanical rough-in inspections have passed', 'Interior is weather-tight and conditioned before finishing'],
+      exclusions: ['Specialty plaster or Level 5 finish', 'Paint and finish coatings (Interior package)']
+    },
+    {
       key: 'sitefinish',
       title: 'Final Grading, Drainage & Landscaping',
       quoteTitle: 'Driveway, Final Grading & Landscaping',
@@ -194,7 +314,7 @@
   ];
 
   global.H38_UQB_PUBLIC_EXAMPLES = Object.freeze({
-    version: '2026-07-26-static-public-v1',
+    version: '2026-10-09-static-public-v2',
     projectTitle: 'New-House Construction — Lot Clearing to Closeout',
     projectLocation: 'Fictional demonstration property — Grand Rapids, Minnesota',
     disclosure: 'Public fictional demonstration only — not a contract, permit set, stamped design, or construction authorization.',
