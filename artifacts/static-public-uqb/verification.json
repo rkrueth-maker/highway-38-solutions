@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "architecture": "static-public-github-pages",
+  "placement": "directly-beneath-whole-building-house-example",
+  "datasetVersion": "2026-10-09-static-public-v2",
+  "publicPackages": 12,
+  "publicCadSheets": 10,
+  "matchedCadSheets": 20,
+  "fullQuoteViews": true,
+  "fullSizeCadViews": true,
+  "printableCompletePackages": true,
+  "privateRecordsRead": false,
+  "authenticatedServiceRequired": false,
+  "externalActionsPerformed": false
+}

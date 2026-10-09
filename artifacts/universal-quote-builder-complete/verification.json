@@ -1,0 +1,567 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-09T09:52:17.681Z",
+  "architecture": "one-business-office-one-shared-quote-builder",
+  "quoteLevels": 5,
+  "pricingMethods": 34,
+  "agents": 8,
+  "examples": 18,
+  "structuredRecordTypes": 14,
+  "documentTypes": 12,
+  "workspaceTabs": 10,
+  "ownerReviewWorkspace": true,
+  "externalActionsPerformed": false,
+  "passed": 137,
+  "failed": 0,
+  "passes": [
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Records.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Controls.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Workspace_Client.html",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Control_Client.html",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_QuoteBuilder_Index.html",
+      "evidence": ""
+    },
+    {
+      "name": "Apps Script source parses",
+      "evidence": ""
+    },
+    {
+      "name": "workspace client source parses",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review client source parses",
+      "evidence": ""
+    },
+    {
+      "name": "five progressive quote levels",
+      "evidence": "5"
+    },
+    {
+      "name": "34 deterministic pricing methods",
+      "evidence": "34"
+    },
+    {
+      "name": "eight controlled universal agents",
+      "evidence": "8"
+    },
+    {
+      "name": "18 cross-industry scenarios",
+      "evidence": "18"
+    },
+    {
+      "name": "eight drawing classifications",
+      "evidence": ""
+    },
+    {
+      "name": "persistent structured storage has 14 record types",
+      "evidence": "14"
+    },
+    {
+      "name": "structured projects",
+      "evidence": ""
+    },
+    {
+      "name": "structured project revisions",
+      "evidence": ""
+    },
+    {
+      "name": "structured sub-quotes",
+      "evidence": ""
+    },
+    {
+      "name": "structured quote items",
+      "evidence": ""
+    },
+    {
+      "name": "structured measurements",
+      "evidence": ""
+    },
+    {
+      "name": "structured calculations",
+      "evidence": ""
+    },
+    {
+      "name": "structured scope sections",
+      "evidence": ""
+    },
+    {
+      "name": "structured drawings",
+      "evidence": ""
+    },
+    {
+      "name": "structured drawing revisions",
+      "evidence": ""
+    },
+    {
+      "name": "structured bid packages",
+      "evidence": ""
+    },
+    {
+      "name": "structured subcontractor bids",
+      "evidence": ""
+    },
+    {
+      "name": "structured knowledge packs",
+      "evidence": ""
+    },
+    {
+      "name": "structured agent runs",
+      "evidence": ""
+    },
+    {
+      "name": "structured estimate actuals",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalEnsureStore",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalListProjects",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalCreateProject",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalUpdateProject",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalReviseProject",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalGetProject",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalCreateSubquote",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalUpdateSubquote",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalAddQuoteItem",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalAddMeasurement",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalAddScopeSection",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalCreateDrawing",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalReviseDrawing",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalCreateBidPackage",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalRecordBid",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalCompareBids",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalSelectBid",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalCreateKnowledgePack",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalActivateKnowledgePack",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalRunAgent",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalReviewAgentRun",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalRecordActual",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalMaterializeQuote",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalPrepareExecution",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalGenerateDocument",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalPrepareExampleSuite",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalPrepareHouseDemonstration",
+      "evidence": ""
+    },
+    {
+      "name": "server function boUniversalAcceptance",
+      "evidence": ""
+    },
+    {
+      "name": "control function boUniversalListKnowledgePacks",
+      "evidence": ""
+    },
+    {
+      "name": "control function boUniversalApproveRecord",
+      "evidence": ""
+    },
+    {
+      "name": "control function boUniversalCompleteConsistencyReview",
+      "evidence": ""
+    },
+    {
+      "name": "control function boUniversalReviewProject",
+      "evidence": ""
+    },
+    {
+      "name": "control function boUniversalGenerateCompletionPackage",
+      "evidence": ""
+    },
+    {
+      "name": "control function boUniversalPrepareChangeOrderRecord",
+      "evidence": ""
+    },
+    {
+      "name": "no duplicate Universal Quote server functions",
+      "evidence": ""
+    },
+    {
+      "name": "demo-only preview is isolated",
+      "evidence": ""
+    },
+    {
+      "name": "document output Customer Proposal",
+      "evidence": ""
+    },
+    {
+      "name": "document output Individual Subquote",
+      "evidence": ""
+    },
+    {
+      "name": "document output Combined Proposal Package",
+      "evidence": ""
+    },
+    {
+      "name": "document output Subcontractor Bid Package",
+      "evidence": ""
+    },
+    {
+      "name": "document output Drawing Package",
+      "evidence": ""
+    },
+    {
+      "name": "document output Internal Estimate",
+      "evidence": ""
+    },
+    {
+      "name": "document output Material Takeoff",
+      "evidence": ""
+    },
+    {
+      "name": "document output Labor Estimate",
+      "evidence": ""
+    },
+    {
+      "name": "document output Work Instructions",
+      "evidence": ""
+    },
+    {
+      "name": "document output Work Order",
+      "evidence": ""
+    },
+    {
+      "name": "document output Change Order",
+      "evidence": ""
+    },
+    {
+      "name": "document output Revision Comparison",
+      "evidence": ""
+    },
+    {
+      "name": "customer proposal excludes internal cost",
+      "evidence": ""
+    },
+    {
+      "name": "documents are private and unsent",
+      "evidence": ""
+    },
+    {
+      "name": "combined completion package is supported",
+      "evidence": ""
+    },
+    {
+      "name": "drawing changes trigger consistency review",
+      "evidence": ""
+    },
+    {
+      "name": "regulated drawing truth boundary is explicit",
+      "evidence": ""
+    },
+    {
+      "name": "regulated drawing approval requires professional review",
+      "evidence": ""
+    },
+    {
+      "name": "AI cannot independently execute external actions",
+      "evidence": ""
+    },
+    {
+      "name": "bid packages cannot send without approval",
+      "evidence": ""
+    },
+    {
+      "name": "projects and sub-quotes have independent approvals",
+      "evidence": ""
+    },
+    {
+      "name": "approval history uses canonical records",
+      "evidence": ""
+    },
+    {
+      "name": "canonical quote connection",
+      "evidence": ""
+    },
+    {
+      "name": "work and purchase preparation connection",
+      "evidence": ""
+    },
+    {
+      "name": "change orders use canonical records",
+      "evidence": ""
+    },
+    {
+      "name": "Proof Log evidence is written throughout",
+      "evidence": "30"
+    },
+    {
+      "name": "audit history is preserved",
+      "evidence": ""
+    },
+    {
+      "name": "quote review covers required areas",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab overview",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab subquotes",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab pricing",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab measurements",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab scope",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab drawings",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab bids",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab setup",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab exports",
+      "evidence": ""
+    },
+    {
+      "name": "workspace tab actuals",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action new",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addSubquote",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addItem",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addMeasurement",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addScope",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addDrawing",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action reviseDrawing",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addBidPackage",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action recordBid",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action compareBids",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addKnowledge",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action runAgent",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action export",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action addActual",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action materialize",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action execution",
+      "evidence": ""
+    },
+    {
+      "name": "workspace action examples",
+      "evidence": ""
+    },
+    {
+      "name": "progressive disclosure uses project tabs",
+      "evidence": ""
+    },
+    {
+      "name": "responsive operational workspace",
+      "evidence": ""
+    },
+    {
+      "name": "accessible operational workspace",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review UI calls boUniversalListKnowledgePacks",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review UI calls boUniversalApproveRecord",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review UI calls boUniversalCompleteConsistencyReview",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review UI calls boUniversalReviewProject",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review UI calls boUniversalGenerateCompletionPackage",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review UI calls boUniversalPrepareChangeOrderRecord",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review covers all independently approved records",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review workspace is responsive",
+      "evidence": ""
+    },
+    {
+      "name": "operational workspace load order",
+      "evidence": ""
+    },
+    {
+      "name": "Owner review workspace load order",
+      "evidence": ""
+    },
+    {
+      "name": "owner-labeled example runs",
+      "evidence": ""
+    },
+    {
+      "name": "house creates structured records",
+      "evidence": ""
+    },
+    {
+      "name": "fixed Demo 08 is not regenerated",
+      "evidence": ""
+    },
+    {
+      "name": "no new app database or automatic send",
+      "evidence": ""
+    }
+  ],
+  "failures": []
+}
