@@ -22,7 +22,7 @@
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
       {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
-      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html']]},
+      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
       {heading:'Call or Text',links:[['(218) 212-5299','tel:+12182125299']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
