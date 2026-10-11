@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "passed": 10,
+  "failed": 0,
+  "passes": [
+    "catalog exposes only approval-gated actions",
+    "prepare creates preview without executing",
+    "wrong or conversational confirmation is blocked",
+    "non-owner cannot execute prepared action",
+    "owner confirmation executes exactly once and records proof",
+    "expired prepared action is blocked",
+    "tampered payload fails integrity verification",
+    "forbidden system-change request cannot be prepared",
+    "threaded reply is limited to current inbox session",
+    "record and financial preparation actions preserve deterministic services"
+  ],
+  "failures": [],
+  "externalActionsOccurred": false
+}

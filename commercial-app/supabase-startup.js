@@ -254,7 +254,9 @@ handleFullSnapshot=async function(snapshot,businessId){
     openPage(state.page,false);
     await updatePending().catch(()=>{});
     h38MarkAuthoritativeStartupReady('full-snapshot');
-    if(!firstAuthoritativeOpen)toast('Office refreshed.');
+    // Polish (2026-10-11): removed noisy "Office refreshed." toast on every
+    // background data refresh — users don't need to know about syncs, and the
+    // toast was blocking buttons. Only errors get toasts now.
   }catch(error){handleBridgeError('refresh',error.message||String(error));}
 };
 

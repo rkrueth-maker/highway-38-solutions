@@ -1,0 +1,306 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-06T08:23:39.450Z",
+  "checks": [
+    {
+      "name": "AI action engine syntax",
+      "pass": true
+    },
+    {
+      "name": "AI assistant syntax",
+      "pass": true
+    },
+    {
+      "name": "Business Office web API syntax",
+      "pass": true
+    },
+    {
+      "name": "client manifest syntax",
+      "pass": true
+    },
+    {
+      "name": "AI approval engine simulation syntax",
+      "pass": true
+    },
+    {
+      "name": "AI client script exists",
+      "pass": true
+    },
+    {
+      "name": "AI client syntax",
+      "pass": true
+    },
+    {
+      "name": "Approved logo client script exists",
+      "pass": true
+    },
+    {
+      "name": "Approved logo client syntax",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'email.send'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'SEND'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'email.reply'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'record.approve'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'APPROVE'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'record.reject'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'REJECT'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'quote.convert'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'CONVERT'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'job.invoice'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'CREATE'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'journal.post'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'POST'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'payroll.export'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'EXPORT'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract 'tax.finalize'",
+      "pass": true
+    },
+    {
+      "name": "AI action contract confirmation: 'FINALIZE'",
+      "pass": true
+    },
+    {
+      "name": "AI never executes during planning",
+      "pass": true
+    },
+    {
+      "name": "AI uses exact confirmation phrase",
+      "pass": true
+    },
+    {
+      "name": "AI uses user lock",
+      "pass": true
+    },
+    {
+      "name": "AI verifies action integrity",
+      "pass": true
+    },
+    {
+      "name": "AI records owner approval",
+      "pass": true
+    },
+    {
+      "name": "AI records PASS and FAIL proof",
+      "pass": true
+    },
+    {
+      "name": "AI forbids system mutations",
+      "pass": true
+    },
+    {
+      "name": "AI action result cache expires",
+      "pass": true
+    },
+    {
+      "name": "AI action engine leaves no permanent user properties",
+      "pass": true
+    },
+    {
+      "name": "Inbox session is private and short lived",
+      "pass": true
+    },
+    {
+      "name": "Inbox supports ordered message playback",
+      "pass": true
+    },
+    {
+      "name": "Replies are restricted to current inbox session",
+      "pass": true
+    },
+    {
+      "name": "Reply drafting treats email as untrusted",
+      "pass": true
+    },
+    {
+      "name": "Threaded reply headers are preserved",
+      "pass": true
+    },
+    {
+      "name": "Gmail scopes use least privilege for read and send",
+      "pass": true
+    },
+    {
+      "name": "Email compatibility route uses approval engine",
+      "pass": true
+    },
+    {
+      "name": "Voice client plans commands",
+      "pass": true
+    },
+    {
+      "name": "Voice client confirms actions",
+      "pass": true
+    },
+    {
+      "name": "Voice client states nothing executed",
+      "pass": true
+    },
+    {
+      "name": "Voice client reads complete preview",
+      "pass": true
+    },
+    {
+      "name": "AI launcher reports configuration status",
+      "pass": true
+    },
+    {
+      "name": "AI launcher attaches to live shells",
+      "pass": true
+    },
+    {
+      "name": "Web exposes gated AI endpoints",
+      "pass": true
+    },
+    {
+      "name": "Client includes are centralized",
+      "pass": true
+    },
+    {
+      "name": "Client manifest has no duplicates",
+      "pass": true
+    },
+    {
+      "name": "AI client is in manifest",
+      "pass": true
+    },
+    {
+      "name": "Approved logo is in manifest",
+      "pass": true
+    },
+    {
+      "name": "Owner Portal visibly includes H38 AI",
+      "pass": true
+    },
+    {
+      "name": "Quote Builder visibly includes H38 AI",
+      "pass": true
+    },
+    {
+      "name": "Owner Portal visibly includes approved logo",
+      "pass": true
+    },
+    {
+      "name": "Quote Builder visibly includes approved logo",
+      "pass": true
+    },
+    {
+      "name": "Business Office has approved logo target",
+      "pass": true
+    },
+    {
+      "name": "One approved logo client targets all live shells",
+      "pass": true
+    },
+    {
+      "name": "Approved Drive asset provenance is preserved",
+      "pass": true
+    },
+    {
+      "name": "Approved logo is embedded as WebP",
+      "pass": true
+    },
+    {
+      "name": "Embedded logo bytes match approved Drive file",
+      "pass": true
+    },
+    {
+      "name": "Logo pinning is idempotent and scoped",
+      "pass": true
+    },
+    {
+      "name": "Deployment manifest schema upgraded",
+      "pass": true
+    },
+    {
+      "name": "One production project is pinned",
+      "pass": true
+    },
+    {
+      "name": "One production workflow is declared",
+      "pass": true
+    },
+    {
+      "name": "AI deployment permission disabled",
+      "pass": true
+    },
+    {
+      "name": "Business Office workflow is verification only",
+      "pass": true
+    },
+    {
+      "name": "AI verifier runs before production push",
+      "pass": true
+    },
+    {
+      "name": "Unified workflow is production authority",
+      "pass": true
+    },
+    {
+      "name": "Unified deploy reads pinned project",
+      "pass": true
+    },
+    {
+      "name": "Unified deploy compares controlled source",
+      "pass": true
+    },
+    {
+      "name": "AI approval engine runtime simulation passes",
+      "pass": true
+    }
+  ],
+  "failures": [],
+  "runtimeSimulation": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdoutTail": "PASS: catalog exposes only approval-gated actions\nPASS: prepare creates preview without executing\nPASS: wrong or conversational confirmation is blocked\nPASS: non-owner cannot execute prepared action\nPASS: owner confirmation executes exactly once and records proof\nPASS: expired prepared action is blocked\nPASS: tampered payload fails integrity verification\nPASS: forbidden system-change request cannot be prepared\nPASS: threaded reply is limited to current inbox session\nPASS: record and financial preparation actions preserve deterministic services\n{\n  \"status\": \"PASS\",\n  \"passed\": 10,\n  \"failed\": 0,\n  \"passes\": [\n    \"catalog exposes only approval-gated actions\",\n    \"prepare creates preview without executing\",\n    \"wrong or conversational confirmation is blocked\",\n    \"non-owner cannot execute prepared action\",\n    \"owner confirmation executes exactly once and records proof\",\n    \"expired prepared action is blocked\",\n    \"tampered payload fails integrity verification\",\n    \"forbidden system-change request cannot be prepared\",\n    \"threaded reply is limited to current inbox session\",\n    \"record and financial preparation actions preserve deterministic services\"\n  ],\n  \"failures\": [],\n  \"externalActionsOccurred\": false\n}\n",
+    "stderrTail": ""
+  },
+  "contractHash": "3c11304b16a8c5ed1cf3c388c76f857462839bf80372a3666e1b99f6c16d4093"
+}

@@ -54,7 +54,7 @@
     const moreActive = !EARLY_PRIMARY.some(([key]) => key === current);
     const desired = [
       ...EARLY_PRIMARY.filter(([key]) => pages.has(key)).map(([key,icon,label]) => `<button type="button" data-h38-primary="${key}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
-      `<button type="button" data-h38-primary="more" class="${moreActive?'active':''}" aria-haspopup="dialog"><span class="nav-icon">•••</span><span>More</span></button>`
+      `<button type="button" data-h38-primary="more" class="" aria-haspopup="dialog"><span class="nav-icon">•••</span><span>More</span></button>`
     ].join('');
     nav.classList.add('h38-five-primary-nav');
     nav.classList.remove('h38-operator-scroll-nav');
