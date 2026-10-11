@@ -9,10 +9,14 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:8000",
 ]);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+// --- AI usage tracking & per-tenant monthly caps (Muse Spark: $1.25/1M in, $4.25/1M out) ---
+const AI_MONTHLY_CAP_USD=20,AI_ALERT_USD=15,AI_COST_IN_PER_M=1.25,AI_COST_OUT_PER_M=4.25;
+async function aiCapCheck(svc:any,businessId:string):Promise<{spend:number;alert:boolean}>{const m=new Date();m.setUTCDate(1);m.setUTCHours(0,0,0,0);const r=await svc.from("ai_usage_log").select("cost_estimate").eq("business_id",businessId).gte("created_at",m.toISOString());if(r.error)throw r.error;const spend=(r.data||[]).reduce((t:number,x:any)=>t+Number(x.cost_estimate||0),0);const ov=await svc.from("business_records").select("payload").eq("business_id",businessId).eq("collection","ai_config").eq("record_key","ai_cap_override").eq("record_status","active").maybeSingle();const override=!ov.error&&ov.data&&(ov.data.payload as any)?.enabled===true;if(spend>=AI_MONTHLY_CAP_USD&&!override)throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}). Usage resets on the 1st.`);return{spend,alert:spend>=AI_ALERT_USD};}
+async function aiLogUsage(svc:any,businessId:string,fn:string,usage:any,model:string):Promise<void>{try{const ti=Number(usage?.prompt_tokens??0),to=Number(usage?.completion_tokens??0);const cost=(ti/1e6)*AI_COST_IN_PER_M+(to/1e6)*AI_COST_OUT_PER_M;const r=await svc.from("ai_usage_log").insert({business_id:businessId,function_name:fn,tokens_in:ti,tokens_out:to,cost_estimate:Number(cost.toFixed(6)),model:model||"muse-spark-1.1"});if(r.error)console.warn("ai_usage_log insert failed:",r.error.message);}catch(e){console.warn("aiLogUsage failed:",e instanceof Error?e.message:e);}}
+
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
-const MODEL = Deno.env.get("OPENAI_SITE_SCANNER_MODEL") ||
-  Deno.env.get("OPENAI_QUOTE_MODEL") || "claude-sonnet-4-20250514";
+const MUSE_SPARK_API_KEY = Deno.env.get("MUSE_SPARK_API_KEY") || "";
+const MODEL = Deno.env.get("MUSE_SPARK_MODEL") || "muse-spark-1.1";
 const BUCKET = "business-office-files";
 const ENGINE = "video-reference-scale-v2-field-authority";
 const VERIFIED_STATUSES = new Set([
@@ -54,7 +58,7 @@ type VerifiedMeasurement = {
 };
 type FrameInput = {
   id: string;
-  image: { type: "input_image"; image_url: string; detail: "high" };
+  image: { type: "image_url"; image_url: { url: string } };
 };
 type Estimate = {
   id: string;
@@ -371,7 +375,7 @@ async function collectFrames(
     if (signedError || !signed?.signedUrl) continue;
     selected.push({
       id: clean(payload["Original Document ID"] || payload.originalDocumentId || payload["Document ID"] || payload.documentId || row.record_key, 180),
-      image: { type: "input_image", image_url: signed.signedUrl, detail: "high" },
+      image: { type: "image_url", image_url: { url: signed.signedUrl } },
     });
     if (selected.length >= 6) break;
   }
@@ -407,6 +411,7 @@ function reviewSchema(): J {
   };
 }
 function outputText(payload: J): string {
+  const _ch=(payload.choices as J[]|undefined)?.[0];const _m=_ch?(_ch as J).message as J|undefined:undefined;if(_m&&typeof _m.content==="string"&&_m.content)return _m.content as string;
   if (typeof payload.output_text === "string") return payload.output_text;
   for (const output of Array.isArray(payload.output) ? payload.output : []) {
     if (!output || typeof output !== "object") continue;
@@ -582,7 +587,8 @@ Deno.serve(async (request: Request) => {
         message: "No saved walkthrough review frames are available.", references, estimates: [],
         suppressedTargets: filteredTargets.resolved.map((item) => ({ target: item.target, supersededByFieldMeasurementId: item.measurement.id })) });
     }
-    if (!ANTHROPIC_API_KEY) throw new Error("The OpenAI API key is not configured.");
+    if (!MUSE_SPARK_API_KEY) throw new Error("The Muse Spark API key is not configured.");
+    await aiCapCheck(client, businessId);
     const instructions = [
       "You are H38's internal video measurement locator.",
       "Your job is only to mark image endpoints for SAME-FRAME reference scaling.",
@@ -601,22 +607,24 @@ Deno.serve(async (request: Request) => {
         fieldVerificationRequired: true, ownerReviewRequired: true, fieldMeasuredWins: true },
     }) }];
     frames.forEach((frame, index) => {
-      content.push({ type: "input_text", text: `FRAME ${index} document ${frame.id}` });
+      content.push({ type: "text", text: `FRAME ${index} document ${frame.id}` });
       content.push(frame.image);
     });
-    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const aiResponse = await fetch("https://api.meta.ai/v1/chat/completions", {
       method: "POST",
-      headers: { authorization: `Bearer ${ANTHROPIC_API_KEY}`, "content-type": "application/json" },
+      headers: { authorization: `Bearer ${MUSE_SPARK_API_KEY}`, "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODEL, instructions, input: [{ role: "user", content }],
-        text: { format: { type: "json_schema", name: "h38_video_measurement_observations", strict: true, schema: reviewSchema() } },
+        model: MODEL, max_tokens: 4000,
+        messages: [{ role: "system", content: instructions }, { role: "user", content }],
+        response_format: { type: "json_schema", json_schema: { name: "h38_video_measurement_observations", strict: true, schema: reviewSchema() } },
       }),
       signal: AbortSignal.timeout(120000),
     });
     const aiPayload = await readJson(aiResponse);
+    await aiLogUsage(client, businessId, "h38-video-measurements", (aiPayload as J).usage, MODEL);
     if (!aiResponse.ok) {
       const errorPayload = aiPayload.error && typeof aiPayload.error === "object" ? aiPayload.error as J : {};
-      throw new Error(clean(errorPayload.message || aiPayload.message || `OpenAI returned ${aiResponse.status}.`, 1000));
+      throw new Error(clean(errorPayload.message || aiPayload.message || `Muse Spark returned ${aiResponse.status}.`, 1000));
     }
     const raw = outputText(aiPayload);
     const parsed = raw ? JSON.parse(raw) as J : { observations: [] };

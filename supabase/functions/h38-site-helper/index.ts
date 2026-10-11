@@ -15,7 +15,7 @@
 // AI call): 10 per page session, 30 per visitor IP per day, 300 site-wide per
 // day. Every request — answered, capped, declined, or dark — is logged.
 //
-// Credential: ANTHROPIC_API_KEY must exist as an Edge Function secret. Until
+// Credential: MUSE_SPARK_API_KEY must exist as an Edge Function secret. Until
 // it does, the function is deployed dark and returns FALLBACK/not_configured.
 
 const BUILD = "20261008-site-helper-3";
@@ -28,8 +28,8 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
-const MODEL = Deno.env.get("H38_SITE_HELPER_MODEL") || "claude-haiku-4-5-20251001";
+const MUSE_SPARK_API_KEY = Deno.env.get("MUSE_SPARK_API_KEY") || "";
+const MODEL = Deno.env.get("MUSE_SPARK_MODEL") || "muse-spark-1.1";
 const SESSION_CAP = 10;
 const IP_DAILY_CAP = 30;
 const GLOBAL_DAILY_CAP = 300;
@@ -247,6 +247,12 @@ function restHeaders(prefer: string): HeadersInit {
     prefer: prefer,
   };
 }
+
+// --- AI usage tracking & per-tenant monthly caps (Muse Spark, REST-based) ---
+const AI_MONTHLY_CAP_USD=20,AI_ALERT_USD=15,AI_COST_IN_PER_M=1.25,AI_COST_OUT_PER_M=4.25;
+async function aiCapCheckRest(businessId:string):Promise<void>{const m=new Date();m.setUTCDate(1);m.setUTCHours(0,0,0,0);const params=new URLSearchParams();params.set("select","cost_estimate");params.set("business_id",`eq.${businessId}`);params.set("created_at",`gte.${m.toISOString()}`);const r=await fetch(`${SUPABASE_URL}/rest/v1/ai_usage_log?${params.toString()}`,{headers:restHeaders(""),signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Error(`AI usage check failed (${r.status}).`);const rows=await r.json();const spend=(Array.isArray(rows)?rows:[]).reduce((t:number,x:any)=>t+Number(x.cost_estimate||0),0);if(spend>=AI_MONTHLY_CAP_USD)throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}).`);}
+async function aiLogUsageRest(businessId:string,fn:string,usage:any,model:string):Promise<void>{try{const ti=Number(usage?.prompt_tokens??usage?.input_tokens??0),to=Number(usage?.completion_tokens??usage?.output_tokens??0);const cost=(ti/1e6)*AI_COST_IN_PER_M+(to/1e6)*AI_COST_OUT_PER_M;await fetch(`${SUPABASE_URL}/rest/v1/ai_usage_log`,{method:"POST",headers:restHeaders("return=minimal"),body:JSON.stringify({business_id:businessId,function_name:fn,tokens_in:ti,tokens_out:to,cost_estimate:Number(cost.toFixed(6)),model:model||"muse-spark-1.1"}),signal:AbortSignal.timeout(10000)});}catch(e){console.warn("aiLogUsage failed:",e instanceof Error?e.message:e);}}
+
 async function restCount(column?: string, value?: string): Promise<number> {
   const start = new Date();
   start.setUTCHours(0, 0, 0, 0);
@@ -303,39 +309,40 @@ async function spendCount(column?: string, value?: string): Promise<number> {
   return restCount(column, value);
 }
 
-async function askClaude(question: string): Promise<{ answer: string; route: string; topic: string; inputTokens: number | null; outputTokens: number | null }> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+async function askMuseSpark(question: string): Promise<{ answer: string; route: string; topic: string; inputTokens: number | null; outputTokens: number | null }> {
+  const response = await fetch("https://api.meta.ai/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      authorization: `Bearer ${MUSE_SPARK_API_KEY}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 700,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: question }],
+      max_tokens: 2000,
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: question }],
     }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(30000),
   });
   const payload = await readJson(response);
   if (!response.ok) {
     const err = payload.error && typeof payload.error === "object" ? payload.error as JsonObject : {};
-    throw new Error(clean(err.message || `Muse request failed (${response.status}).`, 400));
+    throw new Error(clean(err.message || `Muse Spark request failed (${response.status}).`, 400));
   }
-  const blocks = Array.isArray(payload.content) ? payload.content : [];
-  let text = "";
-  for (const block of blocks) {
-    if (block && typeof block === "object" && (block as JsonObject).type === "text" && typeof (block as JsonObject).text === "string") {
-      text += (block as JsonObject).text as string;
+  const _msg = (payload.choices as JsonObject[]|undefined)?.[0]?.message as JsonObject|undefined;
+  let text = typeof _msg?.content === "string" ? (_msg.content as string).trim() : "";
+  if (!text) {
+    const blocks = Array.isArray(payload.content) ? payload.content : [];
+    for (const block of blocks) {
+      if (block && typeof block === "object" && (block as JsonObject).type === "text" && typeof (block as JsonObject).text === "string") {
+        text += (block as JsonObject).text as string;
+      }
     }
+    text = text.trim();
   }
-  text = text.trim();
-  if (!text) throw new Error("Muse returned no answer.");
+  if (!text) throw new Error("Muse Spark returned no answer.");
   const usageRow = payload.usage && typeof payload.usage === "object" ? payload.usage as JsonObject : {};
-  const inputTokens = Number(usageRow.input_tokens);
-  const outputTokens = Number(usageRow.output_tokens);
+  const inputTokens = Number(usageRow.prompt_tokens ?? usageRow.input_tokens);
+  const outputTokens = Number(usageRow.completion_tokens ?? usageRow.output_tokens);
   const jsonText = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   let parsed: JsonObject = {};
   try {
@@ -511,8 +518,8 @@ Deno.serve(async (request: Request) => {
     return json(request, 200, { status: "FALLBACK", reason: "unavailable", build: BUILD });
   }
 
-  // Deployed dark: no Muse credential yet -> widget uses its scripted answers.
-  if (!ANTHROPIC_API_KEY) {
+  // Deployed dark: no Muse Spark credential yet -> widget uses its scripted answers.
+  if (!MUSE_SPARK_API_KEY) {
     await logRow({ ...baseLog, outcome: "not_configured" });
     return json(request, 200, { status: "FALLBACK", reason: "ai_not_configured", build: BUILD });
   }
@@ -544,7 +551,9 @@ Deno.serve(async (request: Request) => {
   }
 
   try {
-    const result = await askClaude(question);
+    await aiCapCheckRest(H38_BUSINESS_ID);
+    const result = await askMuseSpark(question);
+    await aiLogUsageRest(H38_BUSINESS_ID,"h38-site-helper",{prompt_tokens:result.inputTokens,completion_tokens:result.outputTokens},MODEL);
     const outcome = result.topic === "offtopic" ? "declined_offtopic" : result.route === "request" ? "routed" : "answered";
     await logRow({
       ...baseLog,
