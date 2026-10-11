@@ -52,3 +52,10 @@ verify_jwt = false
 # and completing that one task. Rate-limited per IP inside the function.
 [functions.h38-task-complete]
 verify_jwt = false
+
+# Proactive Kit engine. Runs on schedule (cron), monitors each business for
+# overdue quotes, late invoices, schedule gaps. Creates DRAFT follow-ups and
+# approval tasks — never sends customer messages, never moves money.
+# Requires service_role (internal only, not public).
+[functions.kit-proactive-engine]
+verify_jwt = false
