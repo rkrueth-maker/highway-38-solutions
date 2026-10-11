@@ -2,9 +2,12 @@
  * Replaces the stats-based Today page with a tenant-aware action center.
  *
  * TENANT TYPES (detected from businessKey + industry packs):
- * - contractor: quotes waiting, today's jobs, overdue invoices, new leads
+ * - service:    today's schedule first, quick quotes, dispatch unscheduled jobs
+ * - project:    active projects with milestones first, materials, quotes
  * - lawn-snow:  today's route, plow/mow triggers, jobs progress, seasonal
  * - shop:       jobs in progress + due dates, quotes awaiting approval, parts
+ * - rental:     legacy alias of project (project-like businesses)
+ * - contractor: legacy alias of service (kept for backward compatibility)
  * - default:    generic action cards
  *
  * Philosophy: "The owner doesn't have a learning curve."
@@ -28,18 +31,21 @@
         .join(' ')
         .toLowerCase();
       const hay = key + ' ' + packs;
-      if (/northern-lakes|lawn|snow|plow|mow|landscape/.test(hay)) return 'lawn-snow';
-      if (/rental/.test(hay)) return 'rental';
-      if (/machine|auto|repair/.test(hay)) return 'shop';
-      return 'contractor';
-    } catch (e) { return 'contractor'; }
+      if (/northern-lakes|lawn|snow|plow|mow/.test(hay)) return 'lawn-snow';
+      if (/machine|auto|repair|appliance/.test(hay)) return 'shop';
+      if (/gutter|hvac|plumb|electric/.test(hay)) return 'service';
+      if (/rental|landscape|bathroom|kitchen|deck|drainage|clean/.test(hay)) return 'project';
+      return 'service';
+    } catch (e) { return 'service'; }
   }
 
   const TYPE_LABEL = {
-    'contractor': '🔨 Contractor',
+    'service': '⚡ Service',
+    'project': '🏗️ Project',
     'lawn-snow': '🌿 Lawn & Snow',
     'shop': '🔧 Shop',
     'rental': '🏠 Rental',
+    'contractor': '🔨 Contractor',
     'default': '🏢 Business'
   };
 
@@ -256,6 +262,55 @@
     } catch (e) { return null; }
   }
 
+  /* ================= Service collectors (quick jobs) ================= */
+
+  function getUnscheduledJobs() {
+    try {
+      const jobs = records('jobs') || [];
+      const pending = jobs.filter(j =>
+        ['LEAD', 'QUOTED', 'APPROVED', 'NEW'].includes(String(v(j, 'Status') || '').toUpperCase()));
+      if (!pending.length) return null;
+      const first = pending[0];
+      return {
+        count: pending.length,
+        summary: `${v(first, 'Project Title') || 'Job'}${pending.length > 1 ? ` +${pending.length - 1} more` : ''} not yet dispatched`,
+        action: 'Dispatch →',
+        actionFn: () => openPage('schedule'),
+        aiPrompt: 'Which unscheduled jobs should I dispatch first?'
+      };
+    } catch (e) { return null; }
+  }
+
+  /* ================= Project collectors (multi-day work) ================= */
+
+  function getActiveProjects() {
+    try {
+      const jobs = records('jobs') || [];
+      const active = jobs.filter(j =>
+        ['IN PROGRESS', 'SCHEDULED', 'APPROVED'].includes(String(v(j, 'Status') || '').toUpperCase())
+      ).slice(0, 4);
+      if (!active.length) return null;
+      const reqs = records('materialRequests') || [];
+      const openReqs = {};
+      reqs.forEach(r => {
+        if (String(v(r, 'Status') || '').toUpperCase() !== 'CLOSED') {
+          const jid = v(r, 'Job ID');
+          openReqs[jid] = (openReqs[jid] || 0) + 1;
+        }
+      });
+      return active.map(j => {
+        const jid = v(j, 'Job ID');
+        const due = v(j, 'Due Date') || v(j, 'Due');
+        return {
+          title: v(j, 'Project Title') || 'Project',
+          status: v(j, 'Status') || 'Active',
+          due: due ? String(due).slice(0, 10) : '',
+          materialsOpen: openReqs[jid] || 0
+        };
+      });
+    } catch (e) { return null; }
+  }
+
   /* ================= Lawn/Snow collectors ================= */
 
   function getRouteSummary() {
@@ -433,11 +488,24 @@
       parts: { icon: '📦', label: 'Order Parts', fn: () => {
         if (window.H38OrderInventory && typeof window.H38OrderInventory.start === 'function') window.H38OrderInventory.start();
         else openPage('inventory');
-      } }
+      } },
+      servicecall: { icon: '📞', label: 'New Service Call', fn: () => openPage('work') },
+      todaysschedule: { icon: '🗓️', label: "Today's Schedule", fn: () => openPage('schedule') },
+      quickquote: { icon: '⚡', label: 'Quick Quote', fn: () => openPage('quotes') },
+      dispatch: { icon: '🚚', label: 'Dispatch', fn: () => openPage('schedule') },
+      newproject: { icon: '🏗️', label: 'New Project', fn: () => openPage('work') },
+      timeline: { icon: '📊', label: 'Project Timeline', fn: () => openPage('schedule') },
+      materials: { icon: '📦', label: 'Order Materials', fn: () => {
+        if (window.H38OrderInventory && typeof window.H38OrderInventory.start === 'function') window.H38OrderInventory.start();
+        else openPage('inventory');
+      } },
+      milestones: { icon: '🎯', label: 'Milestones', fn: () => openPage('work') }
     };
     switch (type) {
       case 'lawn-snow': return [all.trigger, all.route, all.sendtask, all.customer];
       case 'shop': return [all.job, all.quote, all.parts, all.sendtask];
+      case 'service': return [all.servicecall, all.todaysschedule, all.quickquote, all.dispatch];
+      case 'project': return [all.newproject, all.timeline, all.materials, all.milestones];
       case 'contractor': return [all.quote, all.customer, all.sendtask, all.schedule];
       default: return [all.quote, all.customer, all.sendtask, all.schedule];
     }
@@ -457,9 +525,62 @@
 
     /* ---- Type-specific cards ---- */
     let routeHtml = '';
+    let heroHtml = '';
     let extraHtml = '';
 
-    if (type === 'lawn-snow') {
+    if (type === 'service') {
+      // Service hero: today's schedule FIRST
+      const sched = getTodaySchedule();
+      const sidx = registerAction(() => openPage('schedule'));
+      heroHtml = `
+        <section class="h38-schedule-hero">
+          <div class="h38-schedule-top">
+            <span class="h38-schedule-icon" aria-hidden="true">🛠️</span>
+            <div><strong>Today's Schedule</strong><small>${sched.length ? `${sched.length} call${sched.length === 1 ? '' : 's'} booked` : 'No calls booked yet'}</small></div>
+          </div>
+          ${sched.length ? `
+          <div class="h38-schedule-stops">
+            ${sched.map(s => `<div class="h38-stop"><b>${esc(s.time)}</b><span>${esc(s.title)}</span></div>`).join('')}
+          </div>` : ''}
+          <div class="h38-schedule-actions">
+            <button type="button" class="h38-schedule-go" data-action-idx="${sidx}">View Schedule →</button>
+          </div>
+        </section>`;
+      pushCard(cards, '🧾', 'Quotes waiting', getQuotesWaiting());
+      pushCard(cards, '🚚', 'Dispatch needed', getUnscheduledJobs());
+    } else if (type === 'project') {
+      // Project hero: active projects with milestones FIRST
+      const projects = getActiveProjects();
+      if (projects) {
+        const pidx = registerAction(() => openPage('work'));
+        heroHtml = `
+          <section class="h38-project-hero">
+            <div class="h38-project-top">
+              <span class="h38-project-icon" aria-hidden="true">🏗️</span>
+              <div><strong>Active Projects</strong><small>${projects.length} project${projects.length === 1 ? '' : 's'} in the pipeline</small></div>
+            </div>
+            <div class="h38-project-list">
+              ${projects.map(p => `
+                <div class="h38-project-row">
+                  <div class="h38-project-main">
+                    <b>${esc(p.title)}</b>
+                    <span class="h38-project-status">${esc(p.status)}${p.due ? ` · due ${esc(p.due)}` : ''}</span>
+                  </div>
+                  ${p.materialsOpen ? `<span class="h38-project-materials">📦 ${p.materialsOpen} material${p.materialsOpen === 1 ? '' : 's'} open</span>` : ''}
+                </div>`).join('')}
+            </div>
+            <div class="h38-project-actions">
+              <button type="button" class="h38-project-go" data-action-idx="${pidx}">Open Projects →</button>
+            </div>
+          </section>`;
+      }
+      const low = getLowStock();
+      if (low) {
+        low.summary = 'Materials: ' + low.summary;
+        pushCard(cards, '📦', 'Materials low', low);
+      }
+      pushCard(cards, '🧾', 'Quotes waiting', getQuotesWaiting());
+    } else if (type === 'lawn-snow') {
       // Route hero
       const route = getRouteSummary();
       if (route) {
@@ -509,7 +630,7 @@
         pushCard(cards, '⚙️', 'Parts low', parts);
       }
     } else {
-      // contractor + default
+      // default (legacy contractor/rental fall here if ever returned)
       pushCard(cards, '🧾', 'Quotes waiting', getQuotesWaiting());
       pushCard(cards, '🔨', "Today's jobs", getTodaysJobs());
       pushCard(cards, '📥', 'New leads', getNewLeads());
@@ -534,9 +655,10 @@
           </div>`).join('') : '<p class="muted" style="margin:0">Nothing assigned. Send a task to get something off your plate.</p>'}
       </section>`;
 
-    /* ---- Schedule (contractor/shop/default) ---- */
+    /* ---- Schedule (project/shop/default) ----
+     * Service gets the schedule hero instead (see above); lawn-snow gets the route hero. */
     let scheduleHtml = '';
-    if (type !== 'lawn-snow') {
+    if (type === 'project' || type === 'shop' || type === 'default' || type === 'contractor') {
       const schedule = getTodaySchedule();
       scheduleHtml = `
         <section class="h38-schedule-card">
@@ -597,6 +719,7 @@
     $('mainContent').innerHTML = headerHtml + `
       <div class="h38-owner-home h38-type-${type}">
         ${quickHtml}
+        ${heroHtml}
         ${routeHtml}
         ${cardsHtml}
         ${extraHtml}
@@ -637,7 +760,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261011-owner-home-2',
+    build: '20261011-owner-home-3',
     detectBusinessType: detectBusinessType
   });
 
