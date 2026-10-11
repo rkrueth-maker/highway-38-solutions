@@ -52,7 +52,7 @@
     const logoNode=document.getElementById('approvedOfficeLogo');
     if(logoNode){logoNode.src=logo;logoNode.alt=`${businessName} logo`;}
     const brandName=document.querySelector('.brand strong');
-    if(brandName){brandName.textContent=businessName;brandName.dataset.h38FullBrand=businessName;brandName.dataset.h38ShortBrand=text(brand.shortName||businessName);}
+    if(brandName){brandName.textContent=businessName;brandName.dataset.h38FullBrand=businessName;brandName.dataset.h38ShortBrand=text(brand.shortName||businessName);brandName.title=businessName;}
     const shellLabel=document.getElementById('shellLabel');
     if(shellLabel)shellLabel.textContent='Business Office';
     const theme=document.querySelector('meta[name="theme-color"]');

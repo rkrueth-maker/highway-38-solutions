@@ -174,7 +174,7 @@ function ensurePrimaryNav(){
   const pages=new Set(allowed()),current=statePage(),primary=primaryNavigation(),signature=fieldRole()?'field-role':'owner-office',moreActive=!primary.some(([key])=>key===current);
   const desired=[
     ...primary.filter(([key])=>pages.has(key)).map(([key,icon,label])=>`<button type="button" data-h38-primary="${key}" data-h38-role-primary="${signature}" class="${current===key?'active':''}"${current===key?' aria-current="page"':''}><span class="nav-icon">${icon}</span><span>${label}</span></button>`),
-    `<button type="button" data-h38-primary="more" class="${moreActive?'active':''}" aria-haspopup="dialog" aria-controls="h38PrimaryMoreDialog"><span class="nav-icon">•••</span><span>More</span></button>`
+    `<button type="button" data-h38-primary="more" class="" aria-haspopup="dialog" aria-controls="h38PrimaryMoreDialog"><span class="nav-icon">•••</span><span>More</span></button>`
   ].join('');
   if(nav.classList.contains('h38-five-primary-nav')&&nav.dataset.h38PrimaryNav===signature&&nav.innerHTML===desired)return;
   navBusy=true;
