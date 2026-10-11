@@ -1,0 +1,217 @@
+/* ---- H38 Owner Home styles (2026-10-11) ----
+ * Phase 1 of the Owner Ease rebuild.
+ * Clean, spacious action center. Mobile-first.
+ *
+ * Philosophy: "The owner doesn't have a learning curve."
+ * - Generous spacing (not cramped)
+ * - Clear visual hierarchy (urgent stands out)
+ * - One clear action per card
+ */
+
+/* Owner Home container */
+.h38-owner-home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+/* Section label (e.g., "NEEDS YOU NOW") */
+.h38-section-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted, #5a6c7d);
+  margin: 8px 4px -8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.h38-urgent-dot {
+  font-size: 0.9rem;
+}
+
+/* Action cards */
+.h38-action-card {
+  border-left: 4px solid var(--accent, #2a7de1);
+  padding: 18px;
+}
+
+.h38-action-card.h38-action-urgent {
+  border-left-color: #d32f2f;
+  background: #fff8f8;
+}
+
+.h38-action-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.h38-action-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.h38-action-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.h38-action-text strong {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--ink, #1a1a1a);
+}
+
+.h38-action-text small {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--ink-muted, #5a6c7d);
+  line-height: 1.4;
+}
+
+/* Action buttons */
+.h38-action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.h38-action-main {
+  flex: 1;
+  min-width: 160px;
+  min-height: 48px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.h38-action-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 2px solid var(--accent, #2a7de1);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--accent, #2a7de1);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.h38-action-ai:hover {
+  background: rgba(42, 125, 225, 0.08);
+}
+
+/* Tasks summary */
+.h38-tasks-summary .h38-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.h38-tasks-summary .h38-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+/* Quick actions grid */
+.h38-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.h38-quick-grid button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 12px;
+  border: 1px solid var(--line, #e0e0e0);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink, #1a1a1a);
+}
+
+.h38-quick-grid button:hover {
+  border-color: var(--accent, #2a7de1);
+  background: #f8fbff;
+}
+
+.h38-quick-grid button span {
+  font-size: 1.3rem;
+}
+
+/* All clear state */
+.h38-all-clear {
+  text-align: center;
+  padding: 32px 20px;
+}
+
+.h38-all-clear-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.h38-all-clear-inner strong {
+  font-size: 1.15rem;
+}
+
+/* Owner header */
+.h38-owner-head h1 {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+}
+
+.h38-owner-head p {
+  font-size: 0.95rem;
+  color: var(--ink-muted, #5a6c7d);
+  margin: 0;
+}
+
+/* Mobile: ensure cards don't overflow */
+@media (max-width: 480px) {
+  .h38-action-card {
+    padding: 16px;
+  }
+
+  .h38-action-buttons {
+    flex-direction: column;
+  }
+
+  .h38-action-main,
+  .h38-action-ai {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .h38-quick-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+/* Desktop: constrain width for readability */
+@media (min-width: 768px) {
+  .h38-owner-home {
+    max-width: 720px;
+  }
+}
