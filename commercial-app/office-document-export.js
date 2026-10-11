@@ -17,10 +17,16 @@ function currency(value){const number=Number(value||0);return new Intl.NumberFor
 function date(value){if(!value)return'';const parsed=new Date(value);return Number.isNaN(parsed.getTime())?text(value).slice(0,10):parsed.toLocaleDateString();}
 function businessKey(){return text(snapshot()?.business?.businessKey||snapshot()?.businessKey).toLowerCase();}
 function approvedBrand(){
-  const business=snapshot()?.business||{},key=businessKey(),logo=document.getElementById('approvedOfficeLogo'),src=text(logo?.getAttribute('src'));
+  const business=snapshot()?.business||{},key=businessKey();
+  const fallbackLogo=key==='northern-lakes'?'../businesses/northern-lakes/assets/diamond-logo.svg':'../assets/highway38-logo.png?v=20260720-exact-0cbc4514';
+  const name=text(business.businessName||business.displayName)||(key==='northern-lakes'?'Northern Lakes Property Maintenance LLC':'Highway 38 Solutions');
+  const logo=document.getElementById('approvedOfficeLogo'),src=text(logo?.getAttribute('src'));
   const pattern=APPROVED_LOGOS[key];
-  if(!pattern||!pattern.test(src))throw new Error('The approved business logo is not loaded. Reopen the business before printing.');
-  return{key,name:text(business.businessName||business.displayName)|| (key==='northern-lakes'?'Northern Lakes Property Maintenance LLC':'Highway 38 Solutions'),logo:src};
+  if(pattern&&pattern.test(src))return{key,name,logo:src};
+  // Logo did not finish loading (transient network hiccup, slow CDN). Do NOT
+  // block printing: fall back to the approved logo URL and warn gently.
+  try{if(typeof window.toast==='function')window.toast('Business logo was still loading — using the approved logo for this print.');}catch(_){}
+  return{key,name,logo:fallbackLogo};
 }
 function findSection(title){const wanted=text(title).toLowerCase();return Array.from(document.querySelectorAll('#mainContent section.card')).find(card=>text(card.querySelector('h2')?.textContent).toLowerCase()===wanted)||null;}
 function status(message,error=false){if(typeof window.toast==='function')window.toast(message,error);}
