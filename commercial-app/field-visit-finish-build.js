@@ -40,7 +40,14 @@ function loadPhotoQuoteRuntimeRepair(){
 async function finishAndBuild(){
   if(busy)return;
   const api=handoffApi(),quoteId=activeQuoteId();
-  if(!api?.handoff||!api?.buildDraftFromContext||!quoteId)return;
+  if(!api?.handoff||!api?.buildDraftFromContext){
+    toast('Quote tools are still loading. Wait a moment and try again.',true);
+    return;
+  }
+  if(!quoteId){
+    toast('This Site Visit is not linked to a draft quote yet. Start a new quote from the Quotes page, then return here to finish the walkthrough and build it.',true);
+    return;
+  }
   busy=true;
   try{
     loadPhotoQuoteRuntimeRepair();
@@ -82,6 +89,13 @@ function scheduleDecorate(delay=40){clearTimeout(decorateTimer);decorateTimer=se
 window.addEventListener('click',event=>{
   const target=event.target instanceof Element?event.target.closest('#fieldAttach'):null;
   if(!target||!handoffApi()?.handoff)return;
+  // Only intercept when we can run the full finish-and-build flow.
+  // If no draft quote is linked, let the simpler handoff handler try instead
+  // (it will guide the user to the Quotes page).
+  if(!activeQuoteId()){
+    toast('This Site Visit is not linked to a draft quote yet. Start a new quote from the Quotes page, then return here to finish the walkthrough and build it.',true);
+    return;
+  }
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
