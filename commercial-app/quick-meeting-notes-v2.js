@@ -31,14 +31,14 @@ try{
   let transcript='';
   if(b?.size)transcript=await transcribeOnly(f,b);
   if(!transcript&&!f.typedNotes)throw Error('Record the meeting or type notes first.');
-  notify('Kit is creating bullet notes…');
+  notify('Hank is creating bullet notes…');
   const result=await window.H38_AI_HANDOFF.runTask('meeting_notes',{businessId,customerId:f.customerId,title:f.title,typedNotes:f.typedNotes,transcript});
   return result.notes||result||{};
 }catch(e){
   const msg=String(e?.message||e||'');
-  const kitUnavailable=e?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|timedout|Kit could not complete|handoff/i.test(msg);
+  const kitUnavailable=e?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|timedout|(?:Kit|Hank) could not complete|handoff/i.test(msg);
   if(!kitUnavailable)throw e;
-  notify('Kit is unavailable — using built-in AI instead.');
+  notify('Hank is unavailable — using built-in AI instead.');
   const p=await askEdge(f,b,retry);
   return p.notes||{};
 }}

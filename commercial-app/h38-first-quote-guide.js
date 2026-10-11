@@ -100,9 +100,9 @@ function h38RenderGuide(){
       <strong>Heads up:</strong> this draft ${!s.lines?'has no line items yet':'totals $0'}.
       That's fine for a draft — add lines and prices when you're ready, then save again.
       <div class="row-actions" style="margin-top:8px">
-        <button type="button" class="secondary" id="kitHelpQuoteBtn">Ask Kit to draft the lines</button>
+        <button type="button" class="secondary" id="kitHelpQuoteBtn">Ask Hank to draft the lines</button>
       </div>
-      <p class="muted small" style="margin:6px 0 0">Kit drafts from your scope text and the price book. You review every line before it goes in — nothing is final until you say so.</p>
+      <p class="muted small" style="margin:6px 0 0">Hank drafts from your scope text and the price book. You review every line before it goes in — nothing is final until you say so.</p>
     </div>`:''}
   </section>`;
 }
@@ -115,12 +115,12 @@ function h38WireGuide(){
   btn.onclick=async ()=>{
     const q=(typeof state!=='undefined'&&state.quote)||{};
     const scopeText=[q.projectTitle,q.scope,q.measurementNotes].filter(Boolean).join('\n');
-    if(!scopeText.trim()){ toast('Describe the scope first — Kit needs something to work from.',true); return; }
+    if(!scopeText.trim()){ toast('Describe the scope first — Hank needs something to work from.',true); return; }
     if(!window.H38_AI_HANDOFF||typeof window.H38_AI_HANDOFF.runTask!=='function'){
       toast('AI helper is not available right now. Add lines by hand — everything works manually.',true);
       return;
     }
-    btn.disabled=true; btn.textContent='Kit is drafting…';
+    btn.disabled=true; btn.textContent='Hank is drafting…';
     try{
       const result=await window.H38_AI_HANDOFF.runTask('quote_build',{
         projectTitle:q.projectTitle||'',
@@ -129,12 +129,12 @@ function h38WireGuide(){
         businessId:state.businessId
       });
       const lines=(result&&(result.draft&&result.draft.suggestedLines))||result.suggestedLines||[];
-      if(!lines.length) throw new Error('Kit returned no lines.');
+      if(!lines.length) throw new Error('Hank returned no lines.');
       // Stage as reviewable suggestions — do NOT auto-insert into the quote.
       // Show them in a confirm dialog; owner picks which to add.
       const preview=lines.slice(0,12).map((l,i)=>`${i+1}. ${l.description||'Suggested work'} — ${l.quantity||1} × $${num(l.unitPrice||0).toFixed(2)}`).join('\n');
       const extra=lines.length>12?`\n…plus ${lines.length-12} more.`:'';
-      if(confirm(`Kit drafted ${lines.length} line(s) from your scope. Review:\n\n${preview}${extra}\n\nAdd all ${lines.length} to the quote as draft lines? You can edit or remove any of them.`)){
+      if(confirm(`Hank drafted ${lines.length} line(s) from your scope. Review:\n\n${preview}${extra}\n\nAdd all ${lines.length} to the quote as draft lines? You can edit or remove any of them.`)){
         lines.forEach(l=>{
           (state.quote.lines=state.quote.lines||[]).push({
             quoteLineId:newId('QUOTE-LINE'),
@@ -142,7 +142,7 @@ function h38WireGuide(){
             quantity:Math.max(0.01,num(l.quantity||1)),
             unit:String(l.unit||'each'),
             unitPrice:num(l.unitPrice||0),
-            priceSource:'Kit draft — owner review required',
+            priceSource:'Hank draft — owner review required',
             priceStatus:'Owner review required'
           });
         });
@@ -150,9 +150,9 @@ function h38WireGuide(){
         toast(`${lines.length} draft line(s) added. Review prices before saving.`);
       }
     }catch(err){
-      toast('Kit could not draft lines: '+(err&&err.message||err)+'. Add them by hand — nothing is blocked.',true);
+      toast('Hank could not draft lines: '+(err&&err.message||err)+'. Add them by hand — nothing is blocked.',true);
     }finally{
-      btn.disabled=false; btn.textContent='Ask Kit to draft the lines';
+      btn.disabled=false; btn.textContent='Ask Hank to draft the lines';
     }
   };
 }

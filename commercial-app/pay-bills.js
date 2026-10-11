@@ -92,10 +92,10 @@
 
   async function h38PBAskKit() {
     var btn = $('h38PBAskKit');
-    if (btn) { btn.disabled = true; btn.textContent = 'Kit is reviewing…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Hank is reviewing…'; }
     try {
       if (!window.H38_AI_HANDOFF || typeof window.H38_AI_HANDOFF.runTask !== 'function')
-        throw new Error('Kit review is not available right now.');
+        throw new Error('Hank review is not available right now.');
       var summary = h38PB.bills.map(function (b) {
         return {
           vendor: v(b.row, 'Vendor Name'), amount: b.balance,
@@ -106,9 +106,9 @@
         businessId: state.businessId, bills: summary
       });
       var text = (result && (result.advice || result.summary || result.review)) || '';
-      h38PB.kitAdvice = String(text).trim() || 'Kit reviewed your bills and found nothing unusual.';
+      h38PB.kitAdvice = String(text).trim() || 'Hank reviewed your bills and found nothing unusual.';
     } catch (e) {
-      h38PB.kitAdvice = 'Kit could not review this time (' + (e && e.message || e) + '). You can still pay — nothing is blocked.';
+      h38PB.kitAdvice = 'Hank could not review this time (' + (e && e.message || e) + '). You can still pay — nothing is blocked.';
     }
     h38PBRenderStep1();
   }
@@ -124,7 +124,7 @@
     h38PB.bills = h38PBDueBills();
     h38PB.bills.forEach(function (b) { if (!(b.id in h38PB.selected)) h38PB.selected[b.id] = true; });
     var advice = h38PB.kitAdvice
-      ? '<div class="notice"><strong>Kit’s review:</strong> ' + esc(h38PB.kitAdvice) + '</div>' : '';
+      ? '<div class="notice"><strong>Hank’s review:</strong> ' + esc(h38PB.kitAdvice) + '</div>' : '';
     var body;
     if (!h38PB.bills.length) {
       body = '<section class="card span12"><h2>🎉 No bills due</h2><p class="muted">Nothing is owed right now. New vendor bills will show up here when they are due.</p>' +
@@ -147,7 +147,7 @@
         '<div class="actions"><button type="button" class="secondary" data-open-page="today">Cancel</button></div></section>';
     }
     $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Pay Bills', 'See what is owed, pick what to pay, choose how to pay it.',
-      h38PB.bills.length ? '<button class="secondary" id="h38PBAskKit">Ask Kit which to pay first</button>' : '') +
+      h38PB.bills.length ? '<button class="secondary" id="h38PBAskKit">Ask Hank which to pay first</button>' : '') +
       '<div class="grid">' + body + '</div>' + '</div>';
     var ask = $('h38PBAskKit'); if (ask) ask.onclick = h38PBAskKit;
     var done = $('h38PBDoneEmpty'); if (done) done.onclick = function () { openPage('today'); };

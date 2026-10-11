@@ -27,7 +27,7 @@ async function invoke(command){
     if(!result||!result.base64)throw new Error('The document factory did not return a file.');
   }catch(kitError){
     const kitMsg=String(kitError?.message||kitError||'');
-    const kitUnavailable=kitError?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|Kit could not complete|handoff/i.test(kitMsg);
+    const kitUnavailable=kitError?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|(?:Kit|Hank) could not complete|handoff/i.test(kitMsg);
     if(!kitUnavailable)throw kitError;
     const api=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(!api)throw new Error('Supabase client is unavailable.');
     const sessionResult=await api.auth.getSession();if(sessionResult.error)throw sessionResult.error;const session=sessionResult.data?.session;if(!session?.access_token)throw new Error('Sign in again before creating a document.');

@@ -27,9 +27,9 @@ async function waitForResult(taskId,opts){
     const rows=await res.json().catch(()=>[]),row=rows[0];
     if(!row)throw Error('AI handoff task disappeared.');
     if(row.status==='done')return row.result||{};
-    if(row.status==='failed'||row.status==='cancelled')throw Error(text(row.last_error,500)||'Kit could not complete the task.');
+    if(row.status==='failed'||row.status==='cancelled')throw Error(text(row.last_error,500)||'Hank could not complete the task.');
   }
-  throw Error('Timed out waiting for Kit. Try again.');
+  throw Error('Timed out waiting for Hank. Try again.');
 }
 async function runTask(taskType,payload,opts){
   const taskId=await submitTask(taskType,payload);

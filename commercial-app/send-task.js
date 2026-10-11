@@ -308,7 +308,7 @@ async function doSend(){
       var link=completeUrl(token);
       var smsBody=sentBy+' ('+bname+') sent you a task: '+S.title+'. Tap to view: '+link;
       var sendSms=(window.H38Sms&&window.H38Sms.sendSms)||null;
-      if(!sendSms) throw new Error('Texting is not set up yet. Ask Kit to connect it, then send again.');
+      if(!sendSms) throw new Error('Texting is not set up yet. Ask Hank to connect it, then send again.');
       await sendSms({to:rec.phone,body:smsBody,purpose:'Task: '+S.title,category:'Task'});
       note='Your text to '+rec.name+' is queued in Messages — approve it there and the task goes out.';
     }else if(S.method==='email'){

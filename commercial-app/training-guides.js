@@ -46,7 +46,7 @@ var GUIDES = {
       { selector: 'body', title: 'Welcome to H38 Office', body: 'This is your Today view — what needs attention right now. Let\'s take a quick tour.', action: 'info' },
       { selector: '[data-page="quotes"], #navQuotes', title: 'Quotes', body: 'Build quotes here. Tap it to see the Quote Builder.', action: 'click', fallbackPage: 'quotes' },
       { selector: '[data-page="jobs"], #navJobs', title: 'Jobs', body: 'Active work lives here. Quotes turn into jobs when approved.', action: 'info' },
-      { selector: '[data-page="today"], #navToday', title: 'You\'re set', body: 'That\'s the core loop: Today → Quotes → Jobs. Ask Kit anytime with "How do I..."', action: 'info' }
+      { selector: '[data-page="today"], #navToday', title: 'You\'re set', body: 'That\'s the core loop: Today → Quotes → Jobs. Ask Hank anytime with "How do I..."', action: 'info' }
     ]
   },
 
@@ -67,12 +67,12 @@ var GUIDES = {
 
   'photo-to-quote': {
     title: 'Let AI draft from photos',
-    desc: 'Take site photos, let Kit suggest the line items.',
+    desc: 'Take site photos, let Hank suggest the line items.',
     icon: '📸',
     pages: ['quotes'],
     steps: [
       { selector: '#quotePhotoButton', title: 'Add site photos', body: 'Take or upload photos of the work area. More angles = better suggestions.', action: 'info' },
-      { selector: '#quoteFromPhotosButton', title: 'Tap "Quote from photos"', body: 'Kit analyzes the photos and drafts line items. This takes about a minute.', action: 'click' },
+      { selector: '#quoteFromPhotosButton', title: 'Tap "Quote from photos"', body: 'Hank analyzes the photos and drafts line items. This takes about a minute.', action: 'click' },
       { selector: '#quoteLines', title: 'Review suggestions', body: 'Check every line — prices marked "Owner review required" need your eyes before saving.', action: 'info' }
     ]
   },
@@ -101,14 +101,14 @@ var GUIDES = {
   },
 
   'sms-basics': {
-    title: 'Text customers through Kit',
+    title: 'Text customers through Hank',
     desc: 'Templates, approvals, and stop rules.',
     icon: '💬',
     pages: ['messages'],
     steps: [
       { selector: '#smsForm', title: 'Draft a text', body: 'Write your message. Nothing sends until you approve it.', action: 'info' },
       { selector: '#smsRequestSendButton', title: 'Request send', body: 'This queues it for owner approval — required before any customer text goes out.', action: 'info' },
-      { selector: 'body', title: 'Kit drafts for you', body: 'Kit can draft reminders and follow-ups automatically. You always approve before they send.', action: 'info' }
+      { selector: 'body', title: 'Hank drafts for you', body: 'Hank can draft reminders and follow-ups automatically. You always approve before they send.', action: 'info' }
     ]
   },
 
@@ -264,7 +264,7 @@ function next(){
 function complete(){
   markComplete(currentGuide);
   end();
-  if(window.toast) window.toast('Guide complete! Ask Kit anytime with "How do I..."');
+  if(window.toast) window.toast('Guide complete! Ask Hank anytime with "How do I..."');
 }
 
 function end(){

@@ -69,7 +69,7 @@
   }
   function kitUnavailableError(e){
     const msg=text(e&&(e.message||e)||'');
-    return (e&&e.code==='HANDOFF_NOT_DEPLOYED')||/timed out|Kit could not complete|handoff|disappeared|no answer/i.test(msg);
+    return (e&&e.code==='HANDOFF_NOT_DEPLOYED')||/timed out|(?:Kit|Hank) could not complete|handoff|disappeared|no answer/i.test(msg);
   }
   const KIT_SPECIALISTS=['general','quote','site_visit','jobs','schedule','money','documents','communications'];
 
@@ -110,7 +110,7 @@
     const rawCtx=args&&args.context&&typeof args.context==='object'?args.context:{};
     const isReceptionistTest=text(rawCtx.experienceMode)==='receptionist_test';
     if(!isReceptionistTest&&window.H38_AI_HANDOFF){
-      notify('Kit is thinking…');
+      notify('Hank is thinking…');
       try{
         const kit=await window.H38_AI_HANDOFF.runTask('assistant_qa',{
           businessId,
@@ -118,15 +118,15 @@
           context:kitSafeContext(args||{}),
           role:text(window.state?.snapshot?.user?.roleName||'')
         },{timeoutMs:90000});
-        if(!text(kit.answer).trim())throw new Error('Kit returned no answer.');
+        if(!text(kit.answer).trim())throw new Error('Hank returned no answer.');
         return {status:'PASS',answer:text(kit.answer),
           specialist:KIT_SPECIALISTS.includes(kit.specialist)?kit.specialist:'general',
           recommendedPage:text(kit.recommendedPage),
           requiresExistingOfficeControl:kit.requiresExistingOfficeControl===true,
-          reason:text(kit.reason),provider:'Kit AI handoff',externalActionOccurred:false};
+          reason:text(kit.reason),provider:'Hank AI handoff',externalActionOccurred:false};
       }catch(e){
         if(!kitUnavailableError(e))throw e; // real errors (auth, validation) surface
-        notify('Kit is unavailable — using built-in AI instead.');
+        notify('Hank is unavailable — using built-in AI instead.');
         // fall through to the OpenAI edge function below, unchanged
       }
     }

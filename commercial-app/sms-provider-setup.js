@@ -136,7 +136,7 @@ async function setActiveSender(senderId){
   if(senderId!==SENDER_PHONE){
     var cfg=(window.H38Sms&&window.H38Sms.smsProviderConfig)?window.H38Sms.smsProviderConfig():null;
     var connected=cfg&&cfg.connected&&cfg.provider===senderId;
-    if(!connected) throw new Error('Set up '+senderId+' with Kit first — it is not connected yet.');
+    if(!connected) throw new Error('Set up '+senderId+' with Hank first — it is not connected yet.');
   }
   var api=sharedClient();
   var row={business_id:state.businessId,module_key:MODULE_KEY,enabled:true,
@@ -212,18 +212,18 @@ function setupCard(){
       if(isActive) action=pill('ACTIVE');
       else if(connected) action='<button class="secondary" data-sms-sender="'+p.id+'">Make active</button>';
       else if(requested) action=pill('SETUP REQUESTED');
-      else action='<button class="secondary" data-sms-setup="'+p.id+'">Set up with Kit</button>';
+      else action='<button class="secondary" data-sms-setup="'+p.id+'">Set up with Hank</button>';
       var credList=p.creds.map(function(c){return esc(c.label);}).join(' + ');
       return '<div class="row"><div class="row-top"><strong>'+p.icon+' '+esc(p.name)+'</strong>'
         +'<span>'+action+(p.recommended?' '+pill('RECOMMENDED'):'')+'</span></div>'
         +'<small>'+esc(p.cost)+' · '+esc(p.monthly)+' — '+esc(p.blurb)+'<br>'
-        +'Kit will ask you for: '+esc(credList)+' (collected securely, stored as edge-function secrets — never in the app or database).</small></div>';
+        +'Hank will ask you for: '+esc(credList)+' (collected securely, stored as edge-function secrets — never in the app or database).</small></div>';
     }).join('');
 
     return '<section class="card span12" id="smsProviderSetupCard"><h2>Texting provider</h2>'
       +'<p class="muted small">ACTIVE sender: <strong>'+esc(activeSenderLabel())+'</strong>. '
       +(phoneActive
-        ? 'Your cell handles sends for now. Pick a provider below when you want a real business number — Kit collects the keys securely.'
+        ? 'Your cell handles sends for now. Pick a provider below when you want a real business number — Hank collects the keys securely.'
         : 'Customer texts go out through '+esc(activeSenderLabel())+'.')
       +'</p>'
       +'<div class="list">'+phoneCard+providerCards+'</div>'
@@ -240,7 +240,7 @@ function bindSetupUI(){
         var pid=b.getAttribute('data-sms-setup');
         b.disabled=true;
         requestProviderSetup(pid).then(function(){
-          if(typeof toast==='function') toast('Kit will securely collect your '+pid+' credentials. Watch for the secure prompt.');
+          if(typeof toast==='function') toast('Hank will securely collect your '+pid+' credentials. Watch for the secure prompt.');
           if(typeof renderMessages==='function') renderMessages();
         }).catch(function(e){
           b.disabled=false;

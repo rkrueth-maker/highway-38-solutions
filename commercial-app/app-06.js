@@ -27,7 +27,7 @@ async function quoteFromPhotos(){
       photoIds:photos.map(p=>p.id||p.filename).slice(0,10)
     },{timeoutMs:120000});
     const lines=result?.suggestedLines||result?.lines||[];
-    if(!lines.length)throw new Error('Kit could not identify quotable work from the photos.');
+    if(!lines.length)throw new Error('Hank could not identify quotable work from the photos.');
     q.lines=q.lines||[];
     lines.forEach(line=>{
       q.lines.push({

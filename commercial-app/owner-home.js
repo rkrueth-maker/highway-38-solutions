@@ -442,8 +442,8 @@
   function actionCard(icon, title, data, actionIdx) {
     const urgentClass = data.urgent ? ' h38-action-urgent' : '';
     const aiButton = data.aiPrompt ? `
-      <button type="button" class="h38-action-ai" data-ai-prompt="${esc(data.aiPrompt)}" aria-label="Ask Kit about this">
-        <span aria-hidden="true">✨</span> Ask Kit
+      <button type="button" class="h38-action-ai" data-ai-prompt="${esc(data.aiPrompt)}" aria-label="Ask Hank about this">
+        <span aria-hidden="true">✨</span> Ask Hank
       </button>` : '';
     /* Bold Numbers: the count dominates. Minimal text below it. */
     const bigNum = (data.count !== undefined && data.count !== null)

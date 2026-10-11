@@ -173,7 +173,7 @@
           icon: '📣',
           count: staleQuotes.length,
           title: staleQuotes.length + ' quote' + (staleQuotes.length === 1 ? '' : 's') + ' going cold',
-          detail: 'No follow-up in 7+ days. Kit can draft check-ins for your review.',
+          detail: 'No follow-up in 7+ days. Hank can draft check-ins for your review.',
           action: 'Draft follow-ups',
           items: staleQuotes.slice(0, 5)
         });
@@ -203,7 +203,7 @@
           icon: '💵',
           count: lateInvoices.length,
           title: money(total) + ' overdue',
-          detail: lateInvoices.length + ' invoice' + (lateInvoices.length === 1 ? '' : 's') + ' 14+ days past due. Kit can draft reminders.',
+          detail: lateInvoices.length + ' invoice' + (lateInvoices.length === 1 ? '' : 's') + ' 14+ days past due. Hank can draft reminders.',
           action: 'Draft reminders',
           items: lateInvoices.slice(0, 5)
         });
@@ -288,7 +288,7 @@
   }
 
   async function dismissDraft(id) {
-    if (!confirm('Dismiss this draft? Kit will not send it.')) return;
+    if (!confirm('Dismiss this draft? Hank will not send it.')) return;
     try {
       await setTaskStatus(id, 'cancelled', { dismissed_by_owner: true, at: new Date().toISOString() });
       render();
@@ -314,12 +314,12 @@
       }
       var bid = (window.state && window.state.businessId) || '';
       if (!bid) { toast('No business selected.', true); return; }
-      toast('Asking Kit to draft…');
+      toast('Asking Hank to draft…');
       var taskType = kind === 'invoices' ? 'draft_invoice_nudges' : 'draft_quote_followups';
       await window.H38_AI_HANDOFF.submitTask(taskType, { businessId: bid, source: 'kits-workspace-suggestion' });
-      toast('Kit is drafting. Check "Needs your review" shortly.');
+      toast('Hank is drafting. Check "Needs your review" shortly.');
     } catch (e) {
-      toast('Could not ask Kit: ' + (e.message || e), true);
+      toast('Could not ask Hank: ' + (e.message || e), true);
     }
   }
 
@@ -363,14 +363,14 @@
         ? chat.map(function (m) {
             return '<div class="ai-bubble ' + escHtml(m.role) + '">' + escHtml(m.body) + '</div>';
           }).join('')
-        : '<div class="ai-bubble assistant">Ask Kit anything about your business — quotes, schedule, customers, money.</div>';
+        : '<div class="ai-bubble assistant">Ask Hank anything about your business — quotes, schedule, customers, money.</div>';
     } catch (e) {}
     return '<section class="card kw-chat">' +
-      '<h2>Ask Kit</h2>' +
+      '<h2>Ask Hank</h2>' +
       '<div id="kwAiChat" class="ai-chat">' + history + '</div>' +
       '<form id="kwAiForm"><label>Question</label>' +
       '<textarea name="question" required placeholder="What should I work on next?"></textarea>' +
-      '<div class="actions"><button>Ask Kit</button>' +
+      '<div class="actions"><button>Ask Hank</button>' +
       '<button type="button" class="secondary" id="kwAiVoiceButton">Ask by voice</button></div></form>' +
       '</section>';
   }
@@ -429,7 +429,7 @@
   async function render() {
     var main = document.getElementById('mainContent');
     if (!main) return;
-    main.innerHTML = '<div class="kw-workspace"><div class="kw-loading">Loading Kit\u2019s workspace…</div></div>';
+    main.innerHTML = '<div class="kw-workspace"><div class="kw-loading">Loading Hank\u2019s workspace…</div></div>';
 
     var items = [], drafts = [], suggestions = [];
     try {
@@ -451,36 +451,36 @@
             (it.reviewPage ? '<button type="button" class="kw-link" data-kit-review="' + escHtml(it.reviewPage) + '">Review →</button>' : '') +
             '</div>';
         }).join('')
-      : '<p class="kw-empty">Kit hasn\u2019t taken any actions yet today. When Kit drafts quotes, follow-ups, or flags invoices, they\u2019ll show up here.</p>';
+      : '<p class="kw-empty">Hank hasn\u2019t taken any actions yet today. When Hank drafts quotes, follow-ups, or flags invoices, they\u2019ll show up here.</p>';
 
     var reviewHtml = drafts.length
       ? drafts.map(renderReviewCard).join('')
-      : '<p class="kw-empty">Nothing waiting. Kit will put drafts here for your approval.</p>';
+      : '<p class="kw-empty">Nothing waiting. Hank will put drafts here for your approval.</p>';
 
     var suggestHtml = suggestions.length
       ? suggestions.map(renderSuggestion).join('')
-      : '<p class="kw-empty">All caught up. Kit is watching quotes, invoices, and your schedule.</p>';
+      : '<p class="kw-empty">All caught up. Hank is watching quotes, invoices, and your schedule.</p>';
 
     main.innerHTML =
       '<div class="kw-workspace">' +
       '<section class="kw-hero">' +
-        '<div><h1>Kit\u2019s Workspace</h1><p>Your AI office worker — what got done, what needs you.</p></div>' +
+        '<div><h1>Hank\u2019s Workspace</h1><p>Your AI office worker — what got done, what needs you.</p></div>' +
         '<div class="kw-hero-num"><span>' + todayCount + '</span><small>action' + (todayCount === 1 ? '' : 's') + ' today</small></div>' +
       '</section>' +
 
       (reviewCount ? sectionLabel('✋', 'Needs your review', reviewCount, 'kw-count-red') +
         '<div class="kw-review-list">' + reviewHtml + '</div>' : '') +
 
-      sectionLabel('⚡', 'What Kit did today', todayCount, todayCount ? 'kw-count-green' : '') +
+      sectionLabel('⚡', 'What Hank did today', todayCount, todayCount ? 'kw-count-green' : '') +
       '<div id="kwDidToday" class="kw-did-list">' + didHtml + '</div>' +
 
       sectionLabel('💡', 'Suggestions', suggestions.length || null, suggestions.length ? 'kw-count-amber' : '') +
       '<div class="kw-suggest-list">' + suggestHtml + '</div>' +
 
-      sectionLabel('💬', 'Ask Kit', null) +
+      sectionLabel('💬', 'Ask Hank', null) +
       renderChat() +
 
-      '<p class="kw-fineprint">Kit drafts and suggests — nothing is sent, purchased, or changed without your approval.</p>' +
+      '<p class="kw-fineprint">Hank drafts and suggests — nothing is sent, purchased, or changed without your approval.</p>' +
       '</div>';
 
     bindAll();
