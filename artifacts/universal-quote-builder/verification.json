@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "version": "2026-07-26-universal-v2",
+  "publicArchitecture": "static GitHub Pages",
+  "publicPlacement": "directly beneath whole-building house example",
+  "publicDatasetVersion": "2026-10-09-static-public-v2",
+  "quoteLevels": 5,
+  "pricingMethods": 34,
+  "agents": 8,
+  "examples": 18,
+  "matchedPublicPackages": 12,
+  "publicCadSheets": 10,
+  "anonymousPublicAccess": true,
+  "privateRecordsRead": false,
+  "externalActionsPerformed": false
+}

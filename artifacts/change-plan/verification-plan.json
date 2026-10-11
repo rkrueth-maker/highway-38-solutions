@@ -1,17 +1,45 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T08:01:45.794Z",
-  "base": null,
+  "generatedAt": "2026-10-11T06:01:19.365Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/app-19.js",
-    "commercial-app/payroll-print.css"
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "commercial-app/app-04.js",
+    "commercial-app/app-05.js",
+    "commercial-app/app-06.js",
+    "commercial-app/app-09.js",
+    "commercial-app/app-13.js",
+    "commercial-app/customer-360-authority.js",
+    "commercial-app/customer-import-intelligence.js",
+    "commercial-app/customer-workspace-documents.js",
+    "commercial-app/email-send-runtime.js",
+    "commercial-app/field-operations-ui.js",
+    "commercial-app/field-visit-finish-build.js",
+    "commercial-app/gps-dispatch.js",
+    "commercial-app/h38-first-quote-guide.js",
+    "commercial-app/h38-flow-helpers.js",
+    "commercial-app/index.html",
+    "commercial-app/inventory-module.js",
+    "commercial-app/job-lifecycle.js",
+    "commercial-app/owner-customer-workflow-polish.js",
+    "commercial-app/plow-trigger-runtime.js",
+    "commercial-app/recurring-service-runtime.js",
+    "commercial-app/service-worker.js",
+    "commercial-app/site-visit-finish-persistence.js",
+    "commercial-app/smart-upload-ai.js",
+    "commercial-app/smart-upload.js",
+    "commercial-app/sms-approval-runtime.js",
+    "commercial-app/sms-provider.js",
+    "supabase/functions/h38-send-email/index.ts"
   ],
-  "fileCount": 2,
+  "fileCount": 30,
   "scopes": {
-    "publicWebsite": false,
+    "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": false,
+    "customerPortal": true,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -21,26 +49,30 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
+    "publicRendering": true,
     "authenticatedRendering": true,
-    "externalActionBoundary": false,
-    "longRunningData": false
+    "externalActionBoundary": true,
+    "longRunningData": true
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
+    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces",
+    "resumable small-batch generation with cursor and exact final counts"
   ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

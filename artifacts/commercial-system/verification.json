@@ -1,0 +1,332 @@
+{
+  "status": "HOLD",
+  "generatedAt": "2026-10-09T09:52:54.512Z",
+  "passed": 69,
+  "failed": 9,
+  "architecture": "competitive-readiness-split-buyer-paths-with-interactive-quote-proof",
+  "pricingProducts": 3,
+  "existingProjectExamples": 30,
+  "universalDemonstration": true,
+  "interactiveQuoteDemo": true,
+  "publicPlacement": "Quote Builder examples plus browser-only interactive demo",
+  "officeGeneratedDemo": true,
+  "publicMatchedPackages": 12,
+  "publicCadSheets": 10,
+  "catalogCompatibilityOnly": true,
+  "passes": [
+    {
+      "name": "required index.html",
+      "detail": ""
+    },
+    {
+      "name": "required software.html",
+      "detail": ""
+    },
+    {
+      "name": "required project-services.html",
+      "detail": ""
+    },
+    {
+      "name": "required quote-builder-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "required implementation.html",
+      "detail": ""
+    },
+    {
+      "name": "required security-reliability.html",
+      "detail": ""
+    },
+    {
+      "name": "required sample-library-now.html",
+      "detail": ""
+    },
+    {
+      "name": "required universal-quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "required universal-quote-builder-example.html",
+      "detail": ""
+    },
+    {
+      "name": "required assets/js/uqb-public-examples.js",
+      "detail": ""
+    },
+    {
+      "name": "required solutions.html",
+      "detail": ""
+    },
+    {
+      "name": "required pricing.html",
+      "detail": ""
+    },
+    {
+      "name": "required pricing-data.js",
+      "detail": ""
+    },
+    {
+      "name": "required quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "required business-systems.html",
+      "detail": ""
+    },
+    {
+      "name": "required about.html",
+      "detail": ""
+    },
+    {
+      "name": "required contact.html",
+      "detail": ""
+    },
+    {
+      "name": "required start-request.html",
+      "detail": ""
+    },
+    {
+      "name": "required portal.html",
+      "detail": ""
+    },
+    {
+      "name": "required cabin-project-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "required contractor-quote-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "required assets/js/h38-site-v2.js",
+      "detail": ""
+    },
+    {
+      "name": "required assets/css/h38-site-v2.css",
+      "detail": ""
+    },
+    {
+      "name": "required scripts/config/public-website-routes.json",
+      "detail": ""
+    },
+    {
+      "name": "required scripts/config/approved-public-assets.json",
+      "detail": ""
+    },
+    {
+      "name": "required scripts/config/approved-public-image-placements.json",
+      "detail": ""
+    },
+    {
+      "name": "required catalog-data.js",
+      "detail": ""
+    },
+    {
+      "name": "required apps-script/commercial-intake/FormBuilder.gs",
+      "detail": ""
+    },
+    {
+      "name": "required apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicDemo.gs",
+      "detail": ""
+    },
+    {
+      "name": "required apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_PublicExamples.gs",
+      "detail": ""
+    },
+    {
+      "name": "required apps-script/business-office/ZZZ_BusinessOffice_UniversalQuoteBuilder_PublicRoute.gs",
+      "detail": ""
+    },
+    {
+      "name": "Universal Quote Builder compatibility route is public and canonical",
+      "detail": ""
+    },
+    {
+      "name": "retired catalog routes point to current project-first pages",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell preserves Owner gateway",
+      "detail": ""
+    },
+    {
+      "name": "canonical shell locks image source changes",
+      "detail": ""
+    },
+    {
+      "name": "homepage is problem first",
+      "detail": ""
+    },
+    {
+      "name": "homepage does not restore retired catalog as primary experience",
+      "detail": ""
+    },
+    {
+      "name": "software page preserves three approved commercial levels",
+      "detail": ""
+    },
+    {
+      "name": "project services preserves professional verification boundary",
+      "detail": ""
+    },
+    {
+      "name": "interactive quote demonstration is browser-only and non-submitting",
+      "detail": ""
+    },
+    {
+      "name": "What We Do exposes five accepted capabilities",
+      "detail": ""
+    },
+    {
+      "name": "What We Do uses specialist links",
+      "detail": ""
+    },
+    {
+      "name": "What We Do does not restore fixed-price product cards",
+      "detail": ""
+    },
+    {
+      "name": "Project Examples preserves existing examples and supports future additions",
+      "detail": "30"
+    },
+    {
+      "name": "Project Examples places Universal Quote Builder beneath the house",
+      "detail": ""
+    },
+    {
+      "name": "Project Examples removes separate Universal result board",
+      "detail": ""
+    },
+    {
+      "name": "Project Examples removes fixed example-count wording",
+      "detail": ""
+    },
+    {
+      "name": "Project Examples preserves representative disclosure",
+      "detail": ""
+    },
+    {
+      "name": "deck irrigation and kitchen use six direct approved files",
+      "detail": ""
+    },
+    {
+      "name": "cabin example includes plan and finished concept",
+      "detail": ""
+    },
+    {
+      "name": "Universal Quote Builder demonstrates matched public packages",
+      "detail": ""
+    },
+    {
+      "name": "Universal demonstration provides all three package actions",
+      "detail": ""
+    },
+    {
+      "name": "Universal demonstration preserves public-only safety boundary",
+      "detail": ""
+    },
+    {
+      "name": "Universal compatibility route redirects to embedded house section",
+      "detail": ""
+    },
+    {
+      "name": "Universal demonstration assigns twelve packages across all ten drawings",
+      "detail": ""
+    },
+    {
+      "name": "Universal demonstration removes the result-board and renovation tangents",
+      "detail": ""
+    },
+    {
+      "name": "Office demo defines complete records",
+      "detail": ""
+    },
+    {
+      "name": "request page keeps three-step secure intake",
+      "detail": ""
+    },
+    {
+      "name": "request page preserves no-charge and Owner review language",
+      "detail": ""
+    },
+    {
+      "name": "request uses approved offer selector",
+      "detail": ""
+    },
+    {
+      "name": "request page preserves draft recovery and email fallback",
+      "detail": ""
+    },
+    {
+      "name": "public Owner gateway opens one unified Business Office",
+      "detail": ""
+    },
+    {
+      "name": "retired catalog compatibility data remains complete",
+      "detail": ""
+    },
+    {
+      "name": "compatibility product and bundle IDs remain unique",
+      "detail": ""
+    },
+    {
+      "name": "compatibility bundles reference existing products",
+      "detail": ""
+    },
+    {
+      "name": "commercial form builder performs no automatic external action",
+      "detail": ""
+    },
+    {
+      "name": "commercial form builder preserves Owner review boundary",
+      "detail": ""
+    },
+    {
+      "name": "public source contains no private owner email or committed secrets",
+      "detail": ""
+    },
+    {
+      "name": "prohibited CNC quantity claim remains absent",
+      "detail": ""
+    }
+  ],
+  "failures": [
+    {
+      "name": "competitive-readiness route manifest owns the thirteen current gateways",
+      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"project-services.html\",\"pricing.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\"]"
+    },
+    {
+      "name": "one canonical public shell owns balanced navigation and Project Examples",
+      "detail": ""
+    },
+    {
+      "name": "homepage routes through balanced discovery",
+      "detail": ""
+    },
+    {
+      "name": "homepage presents both buyer choices",
+      "detail": ""
+    },
+    {
+      "name": "implementation and security pages explain commercial delivery controls",
+      "detail": ""
+    },
+    {
+      "name": "pricing page has final three-product structure",
+      "detail": ""
+    },
+    {
+      "name": "pricing preserves Snapshot and approval boundaries",
+      "detail": ""
+    },
+    {
+      "name": "pricing marks Business Office Most Popular",
+      "detail": ""
+    },
+    {
+      "name": "pricing explains implementation value without changing prices",
+      "detail": ""
+    }
+  ]
+}

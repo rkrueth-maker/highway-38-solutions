@@ -1,0 +1,363 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-09T09:52:17.575Z",
+  "version": "2026-07-31-site-measurement-v1",
+  "architecture": "existing-UQB-measurements-calculations-subquotes",
+  "indoorAr": "assisted-with-required-verification",
+  "outdoorAr": "not-primary",
+  "externalActionsPerformed": false,
+  "passed": 78,
+  "failed": 0,
+  "passes": [
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part01.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part02.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part03.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part04.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part05.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part06.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part07.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part08.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Part09.gs",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Resume_Client.html",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Styles.html",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Client_Core.html",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_SiteMeasurementWizard_Client_Forms.html",
+      "evidence": ""
+    },
+    {
+      "name": "required file apps-script/business-office/BusinessOffice_UniversalQuoteBuilder_Records.gs",
+      "evidence": ""
+    },
+    {
+      "name": "Site Measurement Apps Script source parses",
+      "evidence": ""
+    },
+    {
+      "name": "Site Measurement client script 1 parses",
+      "evidence": ""
+    },
+    {
+      "name": "Site Measurement client script 2 parses",
+      "evidence": ""
+    },
+    {
+      "name": "Site Measurement client script 3 parses",
+      "evidence": ""
+    },
+    {
+      "name": "Site Measurement client script 4 parses",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementCatalog",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementGetProject",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementGetArea",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementCreateArea",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementSaveBaseline",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementSaveShape",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementSaveRoom",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementSaveMaterial",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementVerify",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementValidateArea",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementClientBundle",
+      "evidence": ""
+    },
+    {
+      "name": "server function boSiteMeasurementAcceptance",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker OUTDOOR_ZONE",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker INDOOR_ROOM",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker INDOOR_GARAGE_OR_SHOP",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker AR room scan",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker LiDAR-assisted room capture",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker Baseline and widths",
+      "evidence": ""
+    },
+    {
+      "name": "catalog marker Simple shapes",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status FIELD_MEASURED",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status FIELD_MEASURED_AND_CHECKED",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status AR_CAPTURED",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status AR_CAPTURED_AND_CHECKED",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status IMPORTED_VERIFIED",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status PRELIMINARY_ESTIMATE",
+      "evidence": ""
+    },
+    {
+      "name": "confidence status NEEDS_REMEASUREMENT",
+      "evidence": ""
+    },
+    {
+      "name": "material calculator mulch",
+      "evidence": ""
+    },
+    {
+      "name": "material calculator paint",
+      "evidence": ""
+    },
+    {
+      "name": "material calculator flooring",
+      "evidence": ""
+    },
+    {
+      "name": "material calculator drywall",
+      "evidence": ""
+    },
+    {
+      "name": "material calculator trim",
+      "evidence": ""
+    },
+    {
+      "name": "uses existing UQB Measurements store",
+      "evidence": ""
+    },
+    {
+      "name": "uses existing UQB Calculations store",
+      "evidence": ""
+    },
+    {
+      "name": "areas remain typed UQB sub-quotes",
+      "evidence": ""
+    },
+    {
+      "name": "project consistency and approval are invalidated after measurement change",
+      "evidence": ""
+    },
+    {
+      "name": "Proof Log evidence is written",
+      "evidence": "7"
+    },
+    {
+      "name": "no external send or new database",
+      "evidence": ""
+    },
+    {
+      "name": "customer/internal architecture remains authoritative",
+      "evidence": ""
+    },
+    {
+      "name": "outdoor AR is not primary",
+      "evidence": ""
+    },
+    {
+      "name": "indoor AR requires critical verification",
+      "evidence": ""
+    },
+    {
+      "name": "native room capture is not falsely claimed complete",
+      "evidence": ""
+    },
+    {
+      "name": "client action site-measurements",
+      "evidence": ""
+    },
+    {
+      "name": "client action addOutdoor",
+      "evidence": ""
+    },
+    {
+      "name": "client action addIndoor",
+      "evidence": ""
+    },
+    {
+      "name": "client action baseline",
+      "evidence": ""
+    },
+    {
+      "name": "client action shape",
+      "evidence": ""
+    },
+    {
+      "name": "client action room",
+      "evidence": ""
+    },
+    {
+      "name": "client action material",
+      "evidence": ""
+    },
+    {
+      "name": "client action verify",
+      "evidence": ""
+    },
+    {
+      "name": "client action validate",
+      "evidence": ""
+    },
+    {
+      "name": "measurement navigation is installed",
+      "evidence": ""
+    },
+    {
+      "name": "responsive field UI",
+      "evidence": ""
+    },
+    {
+      "name": "browser AR capability detection",
+      "evidence": ""
+    },
+    {
+      "name": "baseline station parser is present",
+      "evidence": ""
+    },
+    {
+      "name": "indoor room calculations are present",
+      "evidence": ""
+    },
+    {
+      "name": "deterministic acceptance returns PASS",
+      "evidence": "[{\"name\":\"baseline station example\",\"expected\":181.9,\"actual\":181.9,\"pass\":true},{\"name\":\"12 × 10 room floor\",\"expected\":120,\"actual\":120,\"pass\":true},{\"name\":\"12 × 10 × 8 gross walls\",\"expected\":352,\"actual\":352,\"pass\":true},{\"name\":\"rectangle formula\",\"expected\":120,\"actual\":120,\"pass\":true},{\"name\":\"mulch formula available\",\"expected\":true,\"actual\":true,\"pass\":true}]"
+    },
+    {
+      "name": "baseline example equals 181.9 square feet",
+      "evidence": "181.9"
+    },
+    {
+      "name": "12 × 10 room equals 120 square feet",
+      "evidence": "120"
+    },
+    {
+      "name": "12 × 10 × 8 room equals 352 gross wall square feet",
+      "evidence": "352"
+    }
+  ],
+  "failures": [],
+  "acceptance": {
+    "status": "PASS",
+    "version": "2026-07-31-site-measurement-v1",
+    "checks": [
+      {
+        "name": "baseline station example",
+        "expected": 181.9,
+        "actual": 181.9,
+        "pass": true
+      },
+      {
+        "name": "12 × 10 room floor",
+        "expected": 120,
+        "actual": 120,
+        "pass": true
+      },
+      {
+        "name": "12 × 10 × 8 gross walls",
+        "expected": 352,
+        "actual": 352,
+        "pass": true
+      },
+      {
+        "name": "rectangle formula",
+        "expected": 120,
+        "actual": 120,
+        "pass": true
+      },
+      {
+        "name": "mulch formula available",
+        "expected": true,
+        "actual": true,
+        "pass": true
+      }
+    ],
+    "externalActionsPerformed": false
+  }
+}
