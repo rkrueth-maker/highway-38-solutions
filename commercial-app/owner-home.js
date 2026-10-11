@@ -24,7 +24,14 @@
   function detectBusinessType() {
     try {
       const b = (state.snapshot && state.snapshot.business) || {};
-      const key = String(b.businessKey || state.businessKey || '').toLowerCase();
+      let key = String(b.businessKey || state.businessKey || '').toLowerCase();
+      // Fallback: check URL ?businessKey= parameter (for deep links / testing)
+      if (!key) {
+        try {
+          const m = window.location.href.match(/[?&]businessKey=([^&]+)/);
+          if (m) key = decodeURIComponent(m[1]).toLowerCase();
+        } catch (e) {}
+      }
       const packs = []
         .concat(b.industryPacks || [])
         .concat((b.brandConfig && b.brandConfig.industryPacks) || [])
