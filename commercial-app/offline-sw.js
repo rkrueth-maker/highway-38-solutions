@@ -3,7 +3,7 @@
    shell (scripts, styles, images, fonts, documents) after a successful load.
    API/Supabase traffic is never intercepted. If anything here misbehaves,
    bump CACHE to roll the whole cache forward. */
-const CACHE = 'h38-office-shell-v1';
+const CACHE = 'h38-office-shell-v2-20261011';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
