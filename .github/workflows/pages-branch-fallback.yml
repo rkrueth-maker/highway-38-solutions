@@ -147,13 +147,12 @@ jobs:
           node --check commercial-app/quote-drift-control.js
           node --check commercial-app/quote-delivery-final-fix.js
           node --check commercial-app/service-worker.js
-          node --check commercial-app/bundle-core.js
-          node --check commercial-app/bundle-pages.js
-          node --check commercial-app/bundle-features.js
 
-          grep -Fq "bundle-core.js" commercial-app/index.html
-          grep -Fq "bundle-pages.js" commercial-app/index.html
-          grep -Fq "bundle-features.js" commercial-app/index.html
+          grep -Fq "supabase-config.js" commercial-app/index.html
+          grep -Fq "field-visit-core.js" commercial-app/index.html
+          grep -Fq "webxr-measure.js" commercial-app/index.html
+          grep -Fq "voice-dimensions.js" commercial-app/index.html
+          # Bundles are disabled (IIFE scope breakage); individual scripts are canonical
 
           index_build="$(sed -n "s/.*window.H38_ASSET_BUILD='\([^']*\)'.*/\1/p" commercial-app/index.html | head -1)"
           cache_build="$(sed -n "s/^const CACHE_NAME='h38-business-office-\([^']*\)'.*/\1/p" commercial-app/service-worker.js | head -1)"
