@@ -715,17 +715,29 @@
         </div>
       </section>`;
 
-    /* ---- Assemble: hero → quick actions → needs-you-now → type extras → tasks → schedule ---- */
+    /* ---- Kit AI activity feed ("While You Were Away") ---- */
+    const kitFeedSlotHtml = '<div id="h38KitFeedSlot"></div>';
+
+    /* ---- Assemble: hero → quick actions → needs-you-now → kit feed → type extras → tasks → schedule ---- */
     $('mainContent').innerHTML = headerHtml + `
       <div class="h38-owner-home h38-type-${type}">
         ${quickHtml}
         ${heroHtml}
         ${routeHtml}
         ${cardsHtml}
+        ${kitFeedSlotHtml}
         ${extraHtml}
         ${tasksHtml}
         ${scheduleHtml}
       </div>`;
+
+    /* ---- While You Were Away feed (reads real state.snapshot.proofLog) ---- */
+    try {
+      const kitSlot = document.getElementById('h38KitFeedSlot');
+      if (kitSlot && window.H38KitFeed && typeof window.H38KitFeed.render === 'function') {
+        window.H38KitFeed.render(kitSlot);
+      }
+    } catch (e) { console.warn('[H38 kit feed]', e && e.message ? e.message : e); }
 
     /* ---- Wire buttons ---- */
     document.querySelectorAll('.h38-owner-home [data-action-idx]').forEach(btn => {

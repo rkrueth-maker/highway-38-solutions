@@ -407,6 +407,80 @@
   color: #5d7285;
 }
 
+/* ---------- Kit activity feed ("While You Were Away") ---------- */
+.h38-kit-feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.h38-kit-feed-head h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+.h38-kit-feed-ask {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.h38-kit-feed-list {
+  display: flex;
+  flex-direction: column;
+}
+.h38-kit-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #eef2f6;
+}
+.h38-kit-feed-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.h38-kit-feed-row:last-child {
+  padding-bottom: 0;
+}
+.h38-kit-feed-icon {
+  font-size: 1.45rem;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+.h38-kit-feed-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.h38-kit-feed-body strong {
+  display: block;
+  font-weight: 600;
+  font-size: .95rem;
+}
+.h38-kit-feed-body small {
+  color: #5d7285;
+  font-size: .8rem;
+}
+.h38-kit-feed-review {
+  flex: 0 0 auto;
+  background: #fff;
+  border: 1px solid #d7e0e8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: .85rem;
+  font-weight: 600;
+  min-height: 44px;
+  cursor: pointer;
+  color: #14384f;
+  white-space: nowrap;
+}
+.h38-kit-feed-review:active {
+  background: #f0f5f9;
+}
+.h38-kit-feed-empty {
+  margin: 0;
+  color: #5d7285;
+  font-size: .92rem;
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 760px) {
   .h38-flow-view .page-head {
