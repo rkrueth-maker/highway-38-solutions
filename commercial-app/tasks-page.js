@@ -142,7 +142,7 @@ function render(){
   var done=doneToday();
   var head=g('pageHead');
   var sendBtn='<button type="button" id="h38TasksSendBtn">+ Send Task</button>';
-  main.innerHTML=(head?head('Tasks','Everything you asked someone to do — all in one place.',sendBtn):'')
+  main.innerHTML='<div class="h38-flow-view">'+(head?head('Tasks','Everything you asked someone to do — all in one place.',sendBtn):'')
     +'<div class="grid">'
     +'<section class="card span12"><h2>Needs attention'+(open.length?' ('+open.length+')':'')+'</h2>'
     +'<div class="list" id="h38TasksOpen">'
@@ -152,7 +152,7 @@ function render(){
     +'<div class="list" id="h38TasksDone">'
     +(done.length?done.map(doneRow).join(''):Hempty('Nothing finished yet today.'))
     +'</div></section>'
-    +'</div>';
+    +'</div>'+'</div>';
   var sb=document.getElementById('h38TasksSendBtn');
   if(sb) sb.addEventListener('click',function(){
     if(window.H38SendTask&&window.H38SendTask.start) window.H38SendTask.start();
