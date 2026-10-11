@@ -26,7 +26,7 @@ function device(){
   const hasNative=typeof window.H38NativeScanner?.start==='function';
   const lidar=!!native.lidar,roomPlan=!!native.roomPlan,depth=!!native.depth,arcore=!!native.arcore;
   let label='Browser capture';
-  if(platform==='android')label=hasNative?(depth?'Android ARCore Depth':'Android ARCore'):'Android browser';
+  if(platform==='android')label=hasNative?(depth?'Android ARCore Depth':'Android ARCore'):('xr' in navigator?'Android browser · WebXR AR':'Android browser');
   if(platform==='ios')label=hasNative?(lidar||roomPlan?'Apple LiDAR / RoomPlan':'Apple ARKit'):'iPhone / iPad browser';
   return{platform,hasNative,lidar,roomPlan,depth,arcore,label,ios,android};
 }
@@ -48,6 +48,18 @@ async function camera(){
     const d=device();
     if(!d.hasNative){
       if(d.platform==='ios')throw Error('Apple camera photos work here now. For LiDAR measuring on iPhone, install Mozilla\'s free WebXR Viewer app from the App Store, then open this page in it. Or use Take Photos or tape/laser entry.');
+      if(d.platform==='android'&&window.H38WebXRMeasure){
+        try{
+          const xrOk=await window.H38WebXRMeasure.supported();
+          if(xrOk){
+            toast('Opening AR measuring…');
+            const m=await window.H38WebXRMeasure.measure();
+            if(m&&m.inches>0)await ingest({captureSessionId:state.visit.sessionId,measurements:[{label:'AR point-to-point',type:'Length',value:m.inches,unit:'in',source:'ARCORE_POINT_TO_POINT',confidence:.75,notes:'WebXR AR measured. Check critical work with tape or laser.'}]});
+            else if(m)toast('Measurement was zero — nothing saved.',true);
+            return;
+          }
+        }catch(xrErr){ /* fall through to native-app message */ }
+      }
       throw Error('AR measuring requires the installed H38 Android or Apple field app. Photos and tape/laser entry still work offline.');
     }
     const allowed=d.platform==='ios'?['LIDAR_ROOM','LIDAR_MESH','ARKIT_POINT_TO_POINT']:['ARCORE_DEPTH','ARCORE_POINT_TO_POINT'];
