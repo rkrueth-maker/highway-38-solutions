@@ -274,7 +274,7 @@
             <span class="h38-kit-feed-count" aria-label="${items.length} AI actions">${items.length}</span>
             <h2>While You Were Away<small>Kit's activity</small></h2>
           </div>
-          <button type="button" class="secondary small h38-kit-feed-ask" data-kit-ask="1">Ask Kit</button>
+          <button type="button" class="h38-kit-feed-ask" data-kit-ask="1">Ask Kit</button>
         </div>
         ${items.length ? `<div class="h38-kit-feed-list">${rowsHtml}</div>` : emptyHtml}
       </section>`;
