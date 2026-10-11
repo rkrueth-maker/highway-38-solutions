@@ -4,28 +4,39 @@
 // Runs on schedule (cron), processes each active business:
 //
 // 1. Overdue quote follow-ups — quotes sent >7 days ago, no response
-//    → drafts a polite follow-up, creates owner approval task
+//    → AI drafts a personalized follow-up, creates owner approval task
 // 2. Late invoice nudges — invoices overdue >14 days
-//    → drafts a payment reminder, owner reviews before send
-// 3. Schedule gap detection — finds open days, suggests filling
-// 4. Daily digest — "here's what needs you today"
+//    → AI drafts a personalized payment reminder, owner reviews before send
+// 3. Daily digest — AI writes a natural morning briefing for the owner
 //
 // HARD RULES:
 // - NEVER sends customer-facing messages without owner approval
 // - NEVER moves money
 // - All actions logged to business_proof_log with [ai:kit] tag
 // - Respects per-tenant AI settings (ai_config.can_do_autonomously)
+// - Respects $20/month per-business AI cap (falls back to template drafts)
 // - Idempotent: won't create duplicate drafts for the same quote/invoice
+//   within 7 days (any status, not just pending)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+const BUILD = "20261011-proactive-ai-drafts-1";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const MUSE_SPARK_API_KEY = Deno.env.get("MUSE_SPARK_API_KEY") || "";
+const MUSE_MODEL = "muse-spark-1.1";
+
+// AI cost accounting (matches the per-tenant usage system)
+const AI_MONTHLY_CAP_USD = 20;
+const AI_COST_IN_PER_M = 1.25;
+const AI_COST_OUT_PER_M = 4.25;
 
 // Thresholds (days)
 const QUOTE_FOLLOWUP_DAYS = 7;
 const INVOICE_NUDGE_DAYS = 14;
+const DRAFT_DEDUPE_DAYS = 7; // Don't re-draft for the same quote/invoice within this window
 
 // Kit's actor ID for proof log (from MEMORY.md: Kit's Office account)
 const KIT_ACTOR_ID = "ccf25333-47cd-42ca-a20b-cdbc63a8a695";
@@ -66,6 +77,10 @@ function daysAgo(dateStr: string): number {
   return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function money(n: number): string {
+  return `$${Number(n || 0).toFixed(2)}`;
+}
+
 async function logProof(
   supabase: any,
   businessId: string,
@@ -92,6 +107,137 @@ async function logProof(
   });
 }
 
+// ---- AI usage accounting (per-tenant $20/month cap) ----
+
+async function aiCapCheck(supabase: any, businessId: string): Promise<void> {
+  const m = new Date();
+  m.setUTCDate(1);
+  m.setUTCHours(0, 0, 0, 0);
+  const { data, error } = await supabase
+    .from("ai_usage_log")
+    .select("cost_estimate")
+    .eq("business_id", businessId)
+    .gte("created_at", m.toISOString());
+  if (error) throw new Error(`AI usage check failed: ${error.message}`);
+  const spend = (data || []).reduce(
+    (t: number, x: any) => t + Number(x.cost_estimate || 0),
+    0,
+  );
+  if (spend >= AI_MONTHLY_CAP_USD) {
+    throw new Error(
+      `AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}).`,
+    );
+  }
+}
+
+async function aiLogUsage(
+  supabase: any,
+  businessId: string,
+  fn: string,
+  usage: any,
+  model: string,
+): Promise<void> {
+  try {
+    const ti = Number(usage?.prompt_tokens ?? usage?.input_tokens ?? 0);
+    const to = Number(usage?.completion_tokens ?? usage?.output_tokens ?? 0);
+    const cost =
+      (ti / 1e6) * AI_COST_IN_PER_M + (to / 1e6) * AI_COST_OUT_PER_M;
+    await supabase.from("ai_usage_log").insert({
+      business_id: businessId,
+      function_name: fn,
+      tokens_in: ti,
+      tokens_out: to,
+      cost_estimate: Number(cost.toFixed(6)),
+      model: model || MUSE_MODEL,
+    });
+  } catch (e) {
+    console.warn("aiLogUsage failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+// ---- AI draft writer ----
+// Returns { text, source } where source is "ai" or "template".
+// Falls back to the template when the cap is hit, the key is missing,
+// or the API errors — the engine keeps working either way.
+
+async function aiDraft(
+  supabase: any,
+  businessId: string,
+  systemPrompt: string,
+  userPrompt: string,
+  templateFallback: string,
+): Promise<{ text: string; source: "ai" | "template" }> {
+  if (!MUSE_SPARK_API_KEY) {
+    console.warn("MUSE_SPARK_API_KEY not set — using template draft");
+    return { text: templateFallback, source: "template" };
+  }
+  try {
+    await aiCapCheck(supabase, businessId);
+    const res = await fetch("https://api.meta.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${MUSE_SPARK_API_KEY}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MUSE_MODEL,
+        max_tokens: 2000,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+    const payload = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        `Muse Spark error ${res.status}: ${JSON.stringify(payload).substring(0, 200)}`,
+      );
+    }
+    const text: string = payload?.choices?.[0]?.message?.content || "";
+    if (!text.trim()) throw new Error("Muse Spark returned empty draft.");
+    await aiLogUsage(supabase, businessId, "kit-proactive-engine", payload?.usage, MUSE_MODEL);
+    return { text: text.trim(), source: "ai" };
+  } catch (e) {
+    console.warn(
+      "AI draft failed, using template:",
+      e instanceof Error ? e.message : e,
+    );
+    return { text: templateFallback, source: "template" };
+  }
+}
+
+function quoteFollowupSystem(businessName: string): string {
+  return (
+    `You are Kit, the office worker for ${businessName}, a home-services business. ` +
+    `You write short, warm, human follow-up messages to customers — like a real person ` +
+    `at the front desk would, not a robot and not a marketing email. ` +
+    `Keep it under 3 sentences. Never use phrases like "I hope this message finds you well", ` +
+    `"just bumping this", or "per my last email". Be specific about the work. ` +
+    `End with one easy next step (reply, call, or ask questions).`
+  );
+}
+
+function invoiceNudgeSystem(businessName: string): string {
+  return (
+    `You are Kit, the office worker for ${businessName}, a home-services business. ` +
+    `You write polite, professional payment reminders — firm but friendly, never aggressive ` +
+    `or guilt-tripping. Like a real office manager who values the relationship. ` +
+    `Keep it under 3 sentences. Mention the invoice number and amount. ` +
+    `Offer an easy next step (questions, payment options). Never threaten fees or collections.`
+  );
+}
+
+function digestSystem(): string {
+  return (
+    `You are Kit, the office worker. Write a brief morning briefing for the business owner — ` +
+    `like you'd say it walking into their office with coffee. Most urgent first. ` +
+    `Conversational, specific with numbers, under 150 words. No bullet points, no headers, ` +
+    `no "Dear" — just talk to them. If there's nothing urgent, say so plainly and keep it short.`
+  );
+}
+
 async function checkAiEnabled(supabase: any, businessId: string): Promise<boolean> {
   // Check ai_config for this business — respects per-tenant settings
   const { data } = await supabase
@@ -113,10 +259,23 @@ async function checkAiEnabled(supabase: any, businessId: string): Promise<boolea
   return true;
 }
 
+async function getCustomerName(
+  supabase: any,
+  customerId: string,
+): Promise<string> {
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("display_name, first_name")
+    .eq("id", customerId)
+    .limit(1)
+    .single();
+  return customer?.display_name || customer?.first_name || "there";
+}
+
 async function processQuoteFollowups(
   supabase: any,
   business: Business,
-): Promise<number> {
+): Promise<{ count: number; ai: number; template: number }> {
   // Find quotes sent >7 days ago with no customer decision
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - QUOTE_FOLLOWUP_DAYS);
@@ -130,36 +289,48 @@ async function processQuoteFollowups(
     .lt("updated_at", cutoff.toISOString())
     .limit(20);
 
-  if (!quotes?.length) return 0;
+  if (!quotes?.length) return { count: 0, ai: 0, template: 0 };
+
+  // Dedupe window: don't re-draft for the same quote within 7 days (any status)
+  const dedupeCutoff = new Date();
+  dedupeCutoff.setDate(dedupeCutoff.getDate() - DRAFT_DEDUPE_DAYS);
 
   let processed = 0;
+  let aiCount = 0;
+  let templateCount = 0;
 
   for (const quote of quotes as Quote[]) {
-    // Check if we already drafted a follow-up for this quote (idempotent)
     const { data: existing } = await supabase
       .from("ai_handoff_tasks")
       .select("id")
       .eq("business_id", business.id)
       .eq("task_type", "quote_followup_draft")
       .eq("payload->>quote_id", quote.id)
-      .eq("status", "pending")
+      .gte("created_at", dedupeCutoff.toISOString())
       .limit(1);
 
-    if (existing?.length) continue; // Already have a pending draft
+    if (existing?.length) continue; // Already drafted recently
 
-    // Get customer name for the draft
-    const { data: customer } = await supabase
-      .from("customers")
-      .select("display_name, first_name")
-      .eq("id", quote.customer_id)
-      .limit(1)
-      .single();
-
-    const customerName = customer?.display_name || customer?.first_name || "there";
+    const customerName = await getCustomerName(supabase, quote.customer_id);
     const firstName = customerName.split(" ")[0];
+    const daysWaiting = daysAgo(quote.updated_at);
 
-    // Draft a polite follow-up
-    const draftMessage = `Hi ${firstName}, just checking in on the quote I sent for "${quote.title}". Wanted to see if you had any questions or if you'd like to move forward. Let me know!`;
+    // Template fallback (used when AI is capped/unavailable)
+    const templateMessage =
+      `Hi ${firstName}, just checking in on the quote I sent for "${quote.title}". ` +
+      `Wanted to see if you had any questions or if you'd like to move forward. Let me know!`;
+
+    const { text: draftMessage, source } = await aiDraft(
+      supabase,
+      business.id,
+      quoteFollowupSystem(business.display_name),
+      `Write a follow-up message for this customer:\n\n` +
+        `Customer: ${customerName}\n` +
+        `Quote: "${quote.title}" (#${quote.quote_number}), ${money(quote.amount)}\n` +
+        `Sent ${daysWaiting} days ago, no response yet.\n\n` +
+        `Write just the message, nothing else.`,
+      templateMessage,
+    );
 
     // Create an approval task (owner reviews before anything sends)
     await supabase.from("ai_handoff_tasks").insert({
@@ -171,7 +342,8 @@ async function processQuoteFollowups(
         customer_id: quote.customer_id,
         customer_name: customerName,
         draft_message: draftMessage,
-        days_since_sent: daysAgo(quote.updated_at),
+        draft_source: source,
+        days_since_sent: daysWaiting,
         amount: quote.amount,
       },
       status: "pending",
@@ -182,20 +354,23 @@ async function processQuoteFollowups(
     await logProof(supabase, business.id, "QUOTE_FOLLOWUP_DRAFTED", "quote", quote.id, {
       quoteNumber: quote.quote_number,
       customerName,
-      daysSinceSent: daysAgo(quote.updated_at),
+      daysSinceSent: daysWaiting,
+      draftSource: source,
       draftPreview: draftMessage.substring(0, 100),
     });
 
     processed++;
+    if (source === "ai") aiCount++;
+    else templateCount++;
   }
 
-  return processed;
+  return { count: processed, ai: aiCount, template: templateCount };
 }
 
 async function processInvoiceNudges(
   supabase: any,
   business: Business,
-): Promise<number> {
+): Promise<{ count: number; ai: number; template: number }> {
   // Find invoices overdue >14 days
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - INVOICE_NUDGE_DAYS);
@@ -209,36 +384,49 @@ async function processInvoiceNudges(
     .gt("amount_due", 0)
     .limit(20);
 
-  if (!invoices?.length) return 0;
+  if (!invoices?.length) return { count: 0, ai: 0, template: 0 };
+
+  // Dedupe window: don't re-draft for the same invoice within 7 days (any status)
+  const dedupeCutoff = new Date();
+  dedupeCutoff.setDate(dedupeCutoff.getDate() - DRAFT_DEDUPE_DAYS);
 
   let processed = 0;
+  let aiCount = 0;
+  let templateCount = 0;
 
   for (const invoice of invoices as Invoice[]) {
-    // Check for existing pending nudge (idempotent)
     const { data: existing } = await supabase
       .from("ai_handoff_tasks")
       .select("id")
       .eq("business_id", business.id)
       .eq("task_type", "invoice_nudge_draft")
       .eq("payload->>invoice_id", invoice.id)
-      .eq("status", "pending")
+      .gte("created_at", dedupeCutoff.toISOString())
       .limit(1);
 
-    if (existing?.length) continue;
+    if (existing?.length) continue; // Already drafted recently
 
-    // Get customer name
-    const { data: customer } = await supabase
-      .from("customers")
-      .select("display_name, first_name")
-      .eq("id", invoice.customer_id)
-      .limit(1)
-      .single();
-
-    const customerName = customer?.display_name || customer?.first_name || "there";
+    const customerName = await getCustomerName(supabase, invoice.customer_id);
     const firstName = customerName.split(" ")[0];
+    const daysOverdue = daysAgo(invoice.due_date);
 
-    // Draft a polite payment reminder
-    const draftMessage = `Hi ${firstName}, just a friendly reminder that invoice ${invoice.invoice_number} for $${invoice.amount_due.toFixed(2)} is now past due. Let me know if you have any questions or need to discuss payment options.`;
+    // Template fallback (used when AI is capped/unavailable)
+    const templateMessage =
+      `Hi ${firstName}, just a friendly reminder that invoice ${invoice.invoice_number} ` +
+      `for ${money(invoice.amount_due)} is now past due. ` +
+      `Let me know if you have any questions or need to discuss payment options.`;
+
+    const { text: draftMessage, source } = await aiDraft(
+      supabase,
+      business.id,
+      invoiceNudgeSystem(business.display_name),
+      `Write a payment reminder for this customer:\n\n` +
+        `Customer: ${customerName}\n` +
+        `Invoice: ${invoice.invoice_number}, ${money(invoice.amount_due)} due\n` +
+        `${daysOverdue} days past due.\n\n` +
+        `Write just the message, nothing else.`,
+      templateMessage,
+    );
 
     await supabase.from("ai_handoff_tasks").insert({
       business_id: business.id,
@@ -249,7 +437,8 @@ async function processInvoiceNudges(
         customer_id: invoice.customer_id,
         customer_name: customerName,
         draft_message: draftMessage,
-        days_overdue: daysAgo(invoice.due_date),
+        draft_source: source,
+        days_overdue: daysOverdue,
         amount_due: invoice.amount_due,
       },
       status: "pending",
@@ -259,20 +448,23 @@ async function processInvoiceNudges(
     await logProof(supabase, business.id, "INVOICE_NUDGE_DRAFTED", "invoice", invoice.id, {
       invoiceNumber: invoice.invoice_number,
       customerName,
-      daysOverdue: daysAgo(invoice.due_date),
+      daysOverdue,
       amountDue: invoice.amount_due,
+      draftSource: source,
     });
 
     processed++;
+    if (source === "ai") aiCount++;
+    else templateCount++;
   }
 
-  return processed;
+  return { count: processed, ai: aiCount, template: templateCount };
 }
 
 async function processDailyDigest(
   supabase: any,
   business: Business,
-): Promise<boolean> {
+): Promise<{ done: boolean; source: "ai" | "template" | null }> {
   // Check if we already created a digest today (idempotent)
   const today = new Date().toISOString().split("T")[0];
 
@@ -284,22 +476,61 @@ async function processDailyDigest(
     .gte("created_at", `${today}T00:00:00Z`)
     .limit(1);
 
-  if (existing?.length) return false; // Already did today's digest
+  if (existing?.length) return { done: false, source: null }; // Already did today's digest
 
   // Gather today's priorities
-  const { count: overdueQuotes } = await supabase
+  const { data: overdueQuotes } = await supabase
     .from("customer_quotes")
-    .select("id", { count: "exact", head: true })
+    .select("id, updated_at, amount")
     .eq("business_id", business.id)
     .in("status", ["sent", "presented"])
-    .is("customer_decision", null);
+    .is("customer_decision", null)
+    .limit(50);
 
-  const { count: overdueInvoices } = await supabase
+  const { data: overdueInvoices } = await supabase
     .from("customer_invoices")
-    .select("id", { count: "exact", head: true })
+    .select("id, amount_due")
     .eq("business_id", business.id)
     .in("status", ["sent", "viewed", "overdue"])
-    .gt("amount_due", 0);
+    .gt("amount_due", 0)
+    .limit(50);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const { count: jobsDue } = await supabase
+    .from("customer_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", business.id)
+    .lte("due_date", `${todayStr}T23:59:59Z`)
+    .not("status", "in", "(completed,cancelled)");
+
+  const quoteCount = overdueQuotes?.length || 0;
+  const invoiceCount = overdueInvoices?.length || 0;
+  const totalDue = (overdueInvoices || []).reduce(
+    (t: number, inv: any) => t + Number(inv.amount_due || 0),
+    0,
+  );
+  const oldestQuoteDays = (overdueQuotes || []).reduce(
+    (m: number, q: any) => Math.max(m, daysAgo(q.updated_at)),
+    0,
+  );
+
+  // Template fallback (used when AI is capped/unavailable)
+  const templateSummary =
+    `Good morning! Here's what needs your attention today: ${quoteCount} quotes waiting ` +
+    `for follow-up, ${invoiceCount} invoices with balances due (${money(totalDue)} total).`;
+
+  const { text: summary, source } = await aiDraft(
+    supabase,
+    business.id,
+    digestSystem(),
+    `Write today's morning briefing for the owner of ${business.display_name}:\n\n` +
+      `- ${quoteCount} quotes waiting for follow-up` +
+      (quoteCount ? ` (oldest waiting ${oldestQuoteDays} days)` : "") + `\n` +
+      `- ${invoiceCount} invoices with balances due (${money(totalDue)} total)\n` +
+      `- ${jobsDue || 0} jobs due today or overdue\n\n` +
+      `Write just the briefing, nothing else.`,
+    templateSummary,
+  );
 
   // Create digest task
   await supabase.from("ai_handoff_tasks").insert({
@@ -307,9 +538,12 @@ async function processDailyDigest(
     task_type: "daily_digest",
     payload: {
       date: today,
-      overdue_quotes: overdueQuotes || 0,
-      overdue_invoices: overdueInvoices || 0,
-      summary: `Good morning! Here's what needs your attention today: ${overdueQuotes || 0} quotes waiting for follow-up, ${overdueInvoices || 0} invoices with balances due.`,
+      overdue_quotes: quoteCount,
+      overdue_invoices: invoiceCount,
+      total_due: totalDue,
+      jobs_due: jobsDue || 0,
+      summary,
+      summary_source: source,
     },
     status: "pending",
     created_by: KIT_ACTOR_ID,
@@ -317,11 +551,14 @@ async function processDailyDigest(
 
   await logProof(supabase, business.id, "DAILY_DIGEST_PREPARED", "digest", today, {
     date: today,
-    overdueQuotes: overdueQuotes || 0,
-    overdueInvoices: overdueInvoices || 0,
+    overdueQuotes: quoteCount,
+    overdueInvoices: invoiceCount,
+    totalDue,
+    jobsDue: jobsDue || 0,
+    summarySource: source,
   });
 
-  return true;
+  return { done: true, source };
 }
 
 Deno.serve(async (req: Request) => {
@@ -336,10 +573,13 @@ Deno.serve(async (req: Request) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const results: Record<string, any> = {
+    build: BUILD,
     businesses_processed: 0,
     quote_followups: 0,
     invoice_nudges: 0,
     digests: 0,
+    ai_drafts: 0,
+    template_drafts: 0,
     skipped: [],
     errors: [],
   };
@@ -368,18 +608,16 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        // Skip demo tenants for proactive actions (they're not real businesses)
-        // Actually, let Ricky decide — for now, process all but log it
-        const isDemo = business.business_key.startsWith("demo-");
-
         const followups = await processQuoteFollowups(supabase, business);
         const nudges = await processInvoiceNudges(supabase, business);
         const digest = await processDailyDigest(supabase, business);
 
         results.businesses_processed++;
-        results.quote_followups += followups;
-        results.invoice_nudges += nudges;
-        if (digest) results.digests++;
+        results.quote_followups += followups.count;
+        results.invoice_nudges += nudges.count;
+        if (digest.done) results.digests++;
+        results.ai_drafts += followups.ai + nudges.ai + (digest.done && digest.source === "ai" ? 1 : 0);
+        results.template_drafts += followups.template + nudges.template + (digest.done && digest.source === "template" ? 1 : 0);
 
       } catch (bizErr) {
         results.errors.push({
@@ -392,6 +630,8 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify(results), {
       headers: { "Content-Type": "application/json" },
     });
+    // Note: ai_drafts vs template_drafts show how many drafts used Muse Spark
+    // vs the template fallback (cap hit, key missing, or API error).
 
   } catch (err) {
     return new Response(JSON.stringify({
