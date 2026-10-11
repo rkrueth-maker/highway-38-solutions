@@ -5,7 +5,7 @@
 })(typeof window!=='undefined'?window:null,function(){
 'use strict';
 const VERSION='20260927-customer-sales-wave2-1';
-const STAGES=Object.freeze(['New Lead','Contacted','Qualified','Site Visit','Quote Preparation','Quote Sent','Follow-up','Won','Lost']);
+const STAGES=Object.freeze(['New lead','Contacted','Qualified','Site Visit','Quote Preparation','Quote Sent','Follow-up','Won','Lost']);
 const MESSAGE_KINDS=Object.freeze(['appointment-confirmation','quote-sent','quote-reminder','job-reminder','on-my-way','work-completed','invoice-sent','payment-receipt','overdue-invoice','custom']);
 const PORTAL_COLLECTIONS=Object.freeze(['customers','properties','quotes','quoteRevisions','scheduleEvents','jobs','invoices','payments','documents','attachments','messages','portalThreads','portalMessages','signatures','changeOrders','siteCaptureSessions','jobPhotos','photos']);
 const PORTAL_DENIED_COLLECTIONS=Object.freeze(['proofLog','proofLogs','errorLog','errorLogs','accountingTransactions','accountingAccounts','bankAccounts','bankTransactions','checks','paymentInstructions','vendorBills','vendors','expenses','payrollPreparations','reimbursements','budgets','integrationStates','users','userRoles','sessions','apiKeys','webhooks']);
@@ -20,18 +20,18 @@ function business(v){return required(v,'Business ID is required.');}
 function cleanEmail(v){return lower(v).replace(/\s+/g,'');}
 function cleanPhone(v){return text(v).replace(/\D/g,'').slice(-10);}
 function normAddress(v){return lower(v).replace(/[^a-z0-9]/g,'');}
-function lead({businessId,leadId,name,email,phone,address,source,leadOwner,nextAction,status='New Lead',notes,createdAt}){
- const stage=STAGES.includes(status)?status:'New Lead';
+function lead({businessId,leadId,name,email,phone,address,source,leadOwner,nextAction,status='New lead',notes,createdAt}){
+ const stage=STAGES.includes(status)?status:'New lead';
  return{id:leadId||id('LEAD'),'Lead ID':leadId||undefined,'Business ID':business(businessId),'Name':required(name,'Lead name is required.'),'Email':text(email),'Phone':text(phone),'Address':text(address),'Source':text(source)||'Unknown','Lead Owner':text(leadOwner),'Next Action':text(nextAction),'Status':stage,'Notes':text(notes),'Lost Reason':'','Created Time':createdAt||now(),'Updated Time':now(),'Stage History':[{'Stage':stage,'Time':createdAt||now(),'Actor ID':'','Note':'Created'}],'Record Version':1};
 }
 function transitionLead(row,nextStage,{actorId,note,nextAction,lostReason,at}={}){
  if(!STAGES.includes(nextStage))throw new Error(`Unsupported lead stage: ${nextStage}.`);
  if(nextStage==='Lost'&&!text(lostReason))throw new Error('Lost reason is required when a lead is marked Lost.');
- const previous=text(row?.Status)||'New Lead',stamp=at||now(),history=Array.isArray(row?.['Stage History'])?row['Stage History'].slice():[];
+ const previous=text(row?.Status)||'New lead',stamp=at||now(),history=Array.isArray(row?.['Stage History'])?row['Stage History'].slice():[];
  history.push({'Stage':nextStage,'Previous Stage':previous,'Time':stamp,'Actor ID':text(actorId),'Note':text(note),'Lost Reason':nextStage==='Lost'?text(lostReason):''});
  return{...row,'Status':nextStage,'Next Action':text(nextAction),'Lost Reason':nextStage==='Lost'?text(lostReason):'','Updated Time':stamp,'Stage History':history,'Record Version':Math.max(1,num(row?.['Record Version']))+1};
 }
-function pipeline(leads=[]){const counts=Object.fromEntries(STAGES.map(s=>[s,0]));let won=0,lost=0;for(const l of leads||[]){const s=STAGES.includes(l?.Status)?l.Status:'New Lead';counts[s]++;if(s==='Won')won++;if(s==='Lost')lost++;}const closed=won+lost;return{counts,total:(leads||[]).length,won,lost,closeRate:closed?won/closed:null,open:(leads||[]).length-closed};}
+function pipeline(leads=[]){const counts=Object.fromEntries(STAGES.map(s=>[s,0]));let won=0,lost=0;for(const l of leads||[]){const s=STAGES.includes(l?.Status)?l.Status:'New lead';counts[s]++;if(s==='Won')won++;if(s==='Lost')lost++;}const closed=won+lost;return{counts,total:(leads||[]).length,won,lost,closeRate:closed?won/closed:null,open:(leads||[]).length-closed};}
 function matchCustomer(leadRow,customers=[]){const le=cleanEmail(leadRow?.Email),lp=cleanPhone(leadRow?.Phone),la=normAddress(leadRow?.Address||leadRow?.['Service Address']),ln=lower(leadRow?.Name);let best=null;for(const c of customers||[]){let score=0,reasons=[];const ce=cleanEmail(c.Email),cp=cleanPhone(c.Phone),ca=normAddress(c['Service Address']||c.Address),cn=lower(c['Customer Name']||c.Name);if(le&&ce&&le===ce){score+=100;reasons.push('email');}if(lp&&cp&&lp===cp){score+=90;reasons.push('phone');}if(la&&ca&&la===ca){score+=70;reasons.push('address');}if(ln&&cn&&ln===cn){score+=40;reasons.push('name');}if(!best||score>best.score)best={customer:c,score,reasons};}return best&&best.score>=70?best:null;}
 function conversionProposal(leadRow,customers=[]){const match=matchCustomer(leadRow,customers);if(match)return{action:'use-existing-customer',duplicatePrevented:true,matchConfidence:Math.min(1,match.score/100),reasons:match.reasons,customer:match.customer,newCustomer:null};const customerId=id('CUSTOMER'),draft={'Customer ID':customerId,'Business ID':business(leadRow?.['Business ID']),'Customer Name':required(leadRow?.Name,'Lead name is required.'),'Email':text(leadRow?.Email),'Phone':text(leadRow?.Phone),'Service Address':text(leadRow?.Address),'Lead Source':text(leadRow?.Source),'Lead ID':text(leadRow?.['Lead ID']||leadRow?.id),'Status':'Active','Created Time':now(),'Updated Time':now(),'Record Version':1};return{action:'create-customer-after-owner-confirmation',duplicatePrevented:false,matchConfidence:0,reasons:[],customer:null,newCustomer:draft};}
 function messageTemplate(kind,ctx={}){const name=text(ctx.customerName)||'there',when=text(ctx.when),amount=text(ctx.amount),businessName=text(ctx.businessName)||'our team';const templates={
