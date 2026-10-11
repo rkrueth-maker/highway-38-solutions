@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '20261011-kit-feed-1';
+  const BUILD = '20261011-kit-feed-bold-numbers-1';
   const KIT_TAG = '[ai:kit]';
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
   const MAX_ITEMS = 10;
@@ -270,7 +270,10 @@
     return `
       <section class="card h38-kit-feed" aria-label="Kit's recent activity">
         <div class="h38-kit-feed-head">
-          <h2>🤖 While You Were Away</h2>
+          <div class="h38-kit-feed-title">
+            <span class="h38-kit-feed-count" aria-label="${items.length} AI actions">${items.length}</span>
+            <h2>While You Were Away<small>Kit's activity</small></h2>
+          </div>
           <button type="button" class="secondary small h38-kit-feed-ask" data-kit-ask="1">Ask Kit</button>
         </div>
         ${items.length ? `<div class="h38-kit-feed-list">${rowsHtml}</div>` : emptyHtml}
