@@ -4,7 +4,10 @@ const BUILD='20261006-offline-field-1';
 function register(){
   if(!('serviceWorker' in navigator))return;
   if(!/^https:$/.test(location.protocol)&&location.hostname!=='localhost')return;
-  navigator.serviceWorker.register('./offline-sw.js').catch(function(){});
+  navigator.serviceWorker.register('./offline-sw.js',{updateViaCache:'none'}).then(function(reg){
+    // Force update check on every load — don't wait for Chrome's 24h throttle
+    if(reg&&reg.update)reg.update().catch(function(){});
+  }).catch(function(){});
 }
 function pill(){
   let el=document.querySelector('[data-h38-offline-pill]');
