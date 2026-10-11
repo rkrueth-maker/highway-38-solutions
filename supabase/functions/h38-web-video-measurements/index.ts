@@ -3,8 +3,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL=Deno.env.get('SUPABASE_URL')||'';
 const SERVICE_KEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
-const OPENAI_API_KEY=Deno.env.get('OPENAI_API_KEY')||'';
-const MODEL=Deno.env.get('OPENAI_SITE_SCANNER_MODEL')||Deno.env.get('OPENAI_QUOTE_MODEL')||'gpt-5-mini-2025-08-07';
+const ANTHROPIC_API_KEY=Deno.env.get('ANTHROPIC_API_KEY')||'';
+const MODEL=Deno.env.get('OPENAI_SITE_SCANNER_MODEL')||Deno.env.get('OPENAI_QUOTE_MODEL')||'claude-sonnet-4-20250514';
 const BUCKET='business-office-files';
 const ENGINE='web-video-reference-scale-v1';
 const ORIGINS=new Set([
@@ -181,7 +181,7 @@ Deno.serve(async r=>{
     const refs=await references(c,b,sid),reviewFrames=await frames(c,b,sid);
     if(!refs.length)return reply(r,200,{status:'PASS',engine:ENGINE,outcome:'NO_VERIFIED_REFERENCE',message:'Confirm one accurate reference dimension that is visible in the uploaded video before running distance estimates.',references:[],estimates:[],fieldVerificationRequired:true,measurementsVerified:false});
     if(!reviewFrames.length)return reply(r,200,{status:'PASS',engine:ENGINE,outcome:'NO_REVIEW_FRAMES',message:'No saved review frames are available for this uploaded video.',references:refs,estimates:[],fieldVerificationRequired:true,measurementsVerified:false});
-    if(!OPENAI_API_KEY)throw Error('OpenAI API key is not configured.');
+    if(!ANTHROPIC_API_KEY)throw Error('OpenAI API key is not configured.');
     const instructions=[
       'You are H38 internal web-video endpoint locator.',
       'Use only supplied owner-confirmed reference dimensions that are clearly visible in the SAME FRAME and on the SAME PHYSICAL PLANE as a requested target.',
@@ -192,9 +192,9 @@ Deno.serve(async r=>{
     ].join(' ');
     const content:any[]=[{type:'input_text',text:JSON.stringify({targets,references:refs,policy:{sameFrameOnly:true,samePlaneOnly:true,serverComputesScale:true,fieldVerificationRequired:true}})}];
     reviewFrames.forEach((f,i)=>{content.push({type:'input_text',text:`FRAME ${i}, ${f.time}s, ${f.id}`});content.push({type:'input_image',image_url:f.url,detail:'high'});});
-    const res=await fetch('https://api.openai.com/v1/responses',{
-      method:'POST',headers:{authorization:`Bearer ${OPENAI_API_KEY}`,'content-type':'application/json'},
-      body:JSON.stringify({model:MODEL,instructions,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'h38_web_video_measurement_observations',strict:true,schema:schema()}}}),
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{"x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01",'content-type':'application/json'},
+      body:JSON.stringify({model:MODEL,system:instructions,messages:[{role:'user',content}],text:{format:{type:'json_schema',name:'h38_web_video_measurement_observations',strict:true,schema:schema()}}}),
       signal:AbortSignal.timeout(120000),
     });
     const payload=await readJson(res);

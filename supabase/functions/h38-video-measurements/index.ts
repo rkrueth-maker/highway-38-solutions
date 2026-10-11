@@ -10,9 +10,9 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const MODEL = Deno.env.get("OPENAI_SITE_SCANNER_MODEL") ||
-  Deno.env.get("OPENAI_QUOTE_MODEL") || "gpt-5-mini-2025-08-07";
+  Deno.env.get("OPENAI_QUOTE_MODEL") || "claude-sonnet-4-20250514";
 const BUCKET = "business-office-files";
 const ENGINE = "video-reference-scale-v2-field-authority";
 const VERIFIED_STATUSES = new Set([
@@ -582,7 +582,7 @@ Deno.serve(async (request: Request) => {
         message: "No saved walkthrough review frames are available.", references, estimates: [],
         suppressedTargets: filteredTargets.resolved.map((item) => ({ target: item.target, supersededByFieldMeasurementId: item.measurement.id })) });
     }
-    if (!OPENAI_API_KEY) throw new Error("The OpenAI API key is not configured.");
+    if (!ANTHROPIC_API_KEY) throw new Error("The OpenAI API key is not configured.");
     const instructions = [
       "You are H38's internal video measurement locator.",
       "Your job is only to mark image endpoints for SAME-FRAME reference scaling.",
@@ -604,9 +604,9 @@ Deno.serve(async (request: Request) => {
       content.push({ type: "input_text", text: `FRAME ${index} document ${frame.id}` });
       content.push(frame.image);
     });
-    const aiResponse = await fetch("https://api.openai.com/v1/responses", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { authorization: `Bearer ${OPENAI_API_KEY}`, "content-type": "application/json" },
+      headers: { authorization: `Bearer ${ANTHROPIC_API_KEY}`, "content-type": "application/json" },
       body: JSON.stringify({
         model: MODEL, instructions, input: [{ role: "user", content }],
         text: { format: { type: "json_schema", name: "h38_video_measurement_observations", strict: true, schema: reviewSchema() } },
