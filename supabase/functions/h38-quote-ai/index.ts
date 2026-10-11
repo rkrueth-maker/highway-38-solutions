@@ -662,7 +662,7 @@ async function callQuoteModel(svc:any,businessId:string,context: JsonObject, pho
         { role: "user", content: [{ type: "text", text: JSON.stringify(context) }, ...visionPhotos] },
       ],
       tools: [{ type: "function", function: { name: "h38_quote_draft", description: "Structured quote draft", parameters: quoteSchema() } }],
-      tool_choice: { type: "function", function: { name: "h38_quote_draft" } },
+      tool_choice: "auto",
     }),
     signal: AbortSignal.timeout(QUOTE_MODEL_TIMEOUT_MS),
   });
