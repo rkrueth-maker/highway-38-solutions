@@ -804,7 +804,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261011-owner-home-3',
+    build: '20261011-owner-home-minimal-clean-1',
     detectBusinessType: detectBusinessType
   });
 

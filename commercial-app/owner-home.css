@@ -1,680 +1,640 @@
 /* ============================================================================
- * H38 Owner Home — Visual Refresh (2026-10-11)
+ * H38 Owner Home — Minimal Clean (2026-10-11)
  * ----------------------------------------------------------------------------
- * Dramatic visual redesign. The home screen should feel like a NEW app:
- * - Hero greeting header with gradient
- * - Quick actions PROMINENT (not buried at the bottom)
- * - Action cards with icon tiles and clear hierarchy
- * - Tenant-aware accents (service / project / lawn-snow / shop)
- * - Polished empty states
+ * Ricky picked Direction 3 from the mockups. Design language:
+ *
+ * - Lots of whitespace. Breathing room, not cramped.
+ * - Subtle 1px borders. No heavy shadows, no gradients.
+ * - Small icons. Clean typography.
+ * - Calm and scannable. Nothing shouts.
+ * - The ACTION BUTTON is the only colored element. Everything else neutral.
+ * - Less is more.
  *
  * Philosophy: "The owner doesn't have a learning curve."
- * If it needs explaining, redesign it.
  * ========================================================================== */
 
 /* ---------- Container ---------- */
 .h38-owner-home {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding-bottom: 32px;
-  max-width: 760px;
+  gap: 28px;
+  padding: 4px 0 48px;
+  max-width: 720px;
 }
 
-/* ---------- Hero header ---------- */
+/* ---------- Hero header (quiet) ---------- */
 .h38-owner-head {
-  background: linear-gradient(135deg, #0b2438 0%, #174a70 65%, #1f6488 100%);
-  border-radius: 20px;
-  padding: 26px 22px;
-  margin: 0 0 4px;
-  box-shadow: 0 12px 32px rgba(11, 36, 56, .18);
-  position: relative;
-  overflow: hidden;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 8px 4px 0;
+  margin: 0;
+  box-shadow: none;
+  position: static;
+  overflow: visible;
 }
-.h38-owner-head::after {
-  content: "";
-  position: absolute;
-  right: -40px;
-  top: -40px;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.09) 0%, transparent 70%);
-  pointer-events: none;
-}
+.h38-owner-head::after { display: none; }
 .h38-owner-head h1 {
-  color: #fff;
-  font-size: 1.65rem;
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  font-weight: 700;
   letter-spacing: -.02em;
-  margin: 0 0 4px;
-  position: relative;
+  margin: 0 0 2px;
 }
 .h38-owner-head p {
-  color: rgba(255, 255, 255, .75);
-  font-size: .95rem;
+  color: #6b7280;
+  font-size: .9rem;
   margin: 0;
-  position: relative;
+  font-weight: 400;
 }
 .h38-owner-head .h38-type-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 12px;
-  padding: 6px 14px;
+  margin-top: 10px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .22);
-  color: #fff;
-  font-size: .78rem;
-  font-weight: 800;
-  letter-spacing: .04em;
-  position: relative;
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
-/* ---------- Section labels ---------- */
+/* ---------- Section labels (whisper) ---------- */
 .h38-section-label {
-  font-size: .78rem;
-  font-weight: 900;
-  letter-spacing: .1em;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  color: #5d7285;
-  margin: 6px 4px -6px;
+  color: #9ca3af;
+  margin: 0 4px -14px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .h38-section-label .h38-count {
-  background: #0b2438;
-  color: #fff;
+  background: none;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
   border-radius: 999px;
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: .72rem;
-  padding: 0 7px;
+  font-size: .7rem;
+  font-weight: 600;
+  padding: 0 6px;
 }
+/* Urgent dot: small, no pulse. Calm. */
 .h38-urgent-dot {
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #d32f2f;
-  box-shadow: 0 0 0 4px rgba(211, 47, 47, .15);
-  animation: h38-pulse 2s infinite;
-}
-@keyframes h38-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(211, 47, 47, .15); }
-  50% { box-shadow: 0 0 0 7px rgba(211, 47, 47, .06); }
+  background: #dc2626;
+  box-shadow: none;
+  animation: none;
 }
 
-/* ---------- Quick actions (PROMINENT) ---------- */
+/* ---------- Quick actions (quiet grid) ---------- */
 .h38-quick-hero {
-  background: #fff;
-  border: 1px solid #e2e9ef;
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 8px 24px rgba(11, 36, 56, .07);
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 .h38-quick-hero > strong {
   display: block;
-  font-size: .82rem;
-  font-weight: 900;
-  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  color: #5d7285;
+  color: #9ca3af;
   margin-bottom: 12px;
 }
 .h38-quick-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 .h38-quick-grid button {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 92px;
-  padding: 12px 6px;
-  border: 1.5px solid #e2e9ef;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #fff, #f8fafc);
-  font-size: .78rem;
-  font-weight: 800;
-  color: #0b2438;
+  gap: 6px;
+  min-height: 76px;
+  padding: 10px 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  font-size: .72rem;
+  font-weight: 500;
+  color: #374151;
   cursor: pointer;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  line-height: 1.25;
+  transition: border-color .15s ease;
+  line-height: 1.3;
   text-align: center;
 }
 .h38-quick-grid button span {
-  font-size: 1.7rem;
+  font-size: 1.3rem;
   line-height: 1;
 }
 .h38-quick-grid button:hover {
-  border-color: #236a9a;
-  box-shadow: 0 8px 20px rgba(35, 106, 154, .14);
-  transform: translateY(-2px);
+  border-color: #9ca3af;
+  box-shadow: none;
+  transform: none;
 }
-.h38-quick-grid button:active {
-  transform: translateY(0);
-}
+.h38-quick-grid button:active { transform: none; }
 
-/* ---------- Action cards ---------- */
+/* ---------- Action cards (minimal) ---------- */
 .h38-action-card {
-  border: 1px solid #e2e9ef;
-  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   padding: 20px;
   background: #fff;
-  box-shadow: 0 8px 24px rgba(11, 36, 56, .07);
-  position: relative;
-  overflow: hidden;
+  box-shadow: none;
+  position: static;
+  overflow: visible;
 }
-.h38-action-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background: linear-gradient(180deg, #236a9a, #174a70);
-  border-radius: 5px 0 0 5px;
-}
+/* No colored accent bar. Urgency shown by the dot + button only. */
+.h38-action-card::before { display: none; }
 .h38-action-card.h38-action-urgent {
-  border-color: #f0b9b5;
-  background: linear-gradient(180deg, #fffafa, #fff);
-}
-.h38-action-card.h38-action-urgent::before {
-  background: linear-gradient(180deg, #e05348, #b3261e);
+  border-color: #e5e7eb;
+  background: #fff;
 }
 .h38-action-head {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 16px;
 }
 .h38-action-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.15rem;
   line-height: 1;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #e8f0f7, #d7e5f0);
-  box-shadow: inset 0 0 0 1px rgba(23, 74, 112, .12);
+  background: #f3f4f6;
+  box-shadow: none;
 }
-.h38-action-urgent .h38-action-icon {
-  background: linear-gradient(135deg, #fdecea, #f9d2ce);
-  box-shadow: inset 0 0 0 1px rgba(179, 38, 30, .14);
-}
-.h38-action-text {
-  flex: 1;
-  min-width: 0;
-}
+.h38-action-urgent .h38-action-icon { background: #f3f4f6; box-shadow: none; }
+.h38-action-text { flex: 1; min-width: 0; }
 .h38-action-text strong {
   display: block;
-  font-size: 1.08rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 600;
   letter-spacing: -.01em;
-  margin-bottom: 3px;
-  color: #0b2438;
+  margin-bottom: 2px;
+  color: #1a1a1a;
 }
 .h38-action-text small {
   display: block;
-  font-size: .88rem;
-  color: #5d7285;
-  line-height: 1.45;
+  font-size: .85rem;
+  color: #6b7280;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
-/* Action buttons */
+/* Action buttons — THE only colored element */
 .h38-action-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 .h38-action-main {
   flex: 1;
-  min-height: 54px;
-  font-size: 1.02rem;
-  font-weight: 800;
-  border-radius: 14px;
-  border: 1px solid #174a70;
-  background: linear-gradient(180deg, #1d5a86, #174a70);
+  min-height: 48px;
+  font-size: .95rem;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  background: #1a1a1a;
   color: #fff;
-  box-shadow: 0 6px 16px rgba(23, 74, 112, .24);
+  box-shadow: none;
   cursor: pointer;
-  letter-spacing: .01em;
+  letter-spacing: 0;
 }
-.h38-action-main:hover { filter: brightness(1.08); }
-.h38-action-main:active {
-  transform: translateY(1px);
-  box-shadow: 0 3px 8px rgba(23, 74, 112, .2);
-}
+.h38-action-main:hover { filter: none; background: #333; }
+.h38-action-main:active { transform: none; box-shadow: none; }
+/* Ask Kit: quiet text button, not a second colored button */
 .h38-action-ai {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 54px;
-  padding: 0 18px;
-  border: 2px solid #236a9a;
-  border-radius: 14px;
-  background: #eef5fb;
-  color: #174a70;
-  font-size: .92rem;
-  font-weight: 800;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: none;
+  color: #6b7280;
+  font-size: .85rem;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
 }
-.h38-action-ai:hover { background: #e0edf7; }
+.h38-action-ai:hover { background: #f9fafb; border-color: #d1d5db; }
 
-/* ---------- Route hero (lawn/snow) ---------- */
+/* ---------- Type heroes (quiet versions) ----------
+ * Service / Project / Lawn-Snow heroes: same minimal language.
+ * No gradients. Subtle border, neutral. Button is the color. */
+.h38-schedule-hero,
+.h38-project-hero,
 .h38-route-hero {
-  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   overflow: hidden;
-  background: linear-gradient(135deg, #123f2b 0%, #1d5c3a 60%, #2a7a4e 100%);
-  color: #fff;
-  box-shadow: 0 12px 32px rgba(18, 63, 43, .22);
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: none;
 }
+.h38-schedule-hero .h38-schedule-top,
+.h38-project-hero .h38-project-top,
 .h38-route-hero .h38-route-top {
-  padding: 20px 20px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.h38-route-hero .h38-route-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  flex-shrink: 0;
-}
-.h38-route-hero strong {
-  display: block;
-  font-size: 1.12rem;
-  letter-spacing: -.01em;
-}
-.h38-route-hero small {
-  color: rgba(255, 255, 255, .78);
-  font-size: .88rem;
-}
-.h38-route-hero .h38-route-stops {
-  display: flex;
-  gap: 8px;
-  padding: 0 20px 16px;
-  overflow-x: auto;
-}
-.h38-route-hero .h38-stop {
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, .12);
-  border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: .8rem;
-  min-width: 120px;
-}
-.h38-route-hero .h38-stop b { display: block; font-size: .85rem; }
-.h38-route-hero .h38-stop span { color: rgba(255,255,255,.7); }
-.h38-route-hero .h38-route-actions {
-  display: flex;
-  gap: 10px;
-  padding: 0 20px 20px;
-}
-.h38-route-hero .h38-route-actions button {
-  flex: 1;
-  min-height: 50px;
-  border-radius: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  border: 0;
-}
-.h38-route-hero .h38-route-go {
-  background: #fff;
-  color: #123f2b;
-}
-.h38-route-hero .h38-route-opt {
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .3) !important;
-  color: #fff;
-}
-
-/* ---------- Progress bar (jobs completed vs pending) ---------- */
-.h38-progress-wrap { margin-top: 12px; }
-.h38-progress-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: .82rem;
-  font-weight: 700;
-  color: #5d7285;
-  margin-bottom: 6px;
-}
-.h38-progress-bar {
-  height: 12px;
-  border-radius: 999px;
-  background: #e6edf2;
-  overflow: hidden;
-}
-.h38-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #2a7a4e, #3d9a63);
-  transition: width .5s ease;
-  min-width: 8px;
-}
-
-/* ---------- Seasonal banner ---------- */
-.h38-season-banner {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border-radius: 18px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, #fff8e6, #ffefd0);
-  border: 1.5px solid #eed9a4;
-  box-shadow: 0 6px 18px rgba(138, 91, 8, .08);
-}
-.h38-season-banner .h38-season-icon { font-size: 2rem; }
-.h38-season-banner strong { display: block; color: #5c3f06; font-size: .98rem; }
-.h38-season-banner small { color: #8a6a1f; font-size: .85rem; line-height: 1.4; }
-
-/* ---------- Tasks summary ---------- */
-.h38-tasks-summary {
-  background: #fff;
-  border: 1px solid #e2e9ef;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 8px 24px rgba(11, 36, 56, .07);
-}
-.h38-tasks-summary .h38-section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.h38-tasks-summary .h38-section-head h2 {
-  margin: 0;
-  font-size: 1.08rem;
-  letter-spacing: -.01em;
-}
-.h38-task-row {
+  padding: 18px 18px 12px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid #eef2f6;
 }
-.h38-task-row:last-child { border-bottom: 0; padding-bottom: 0; }
-.h38-task-check {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2px solid #c9d6e0;
-  flex-shrink: 0;
-}
-.h38-task-row strong { font-size: .95rem; display: block; }
-.h38-task-row small { color: #5d7285; font-size: .82rem; }
-
-/* ---------- Schedule snapshot ---------- */
-.h38-schedule-card {
-  background: #fff;
-  border: 1px solid #e2e9ef;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 8px 24px rgba(11, 36, 56, .07);
-}
-.h38-schedule-card h2 { margin: 0 0 12px; font-size: 1.08rem; }
-.h38-sched-row {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #eef2f6;
-}
-.h38-sched-row:last-child { border-bottom: 0; }
-.h38-sched-time {
-  min-width: 76px;
-  font-weight: 800;
-  color: #174a70;
-  font-size: .92rem;
-  font-variant-numeric: tabular-nums;
-}
-.h38-sched-title { font-size: .92rem; }
-
-/* ---------- All clear (polished empty state) ---------- */
-.h38-all-clear {
-  text-align: center;
-  padding: 44px 24px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #f2f9f2, #eaf5ea);
-  border: 1.5px solid #cde6cd;
-  box-shadow: 0 8px 24px rgba(23, 107, 58, .08);
-}
-.h38-all-clear-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.h38-all-clear-check {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #bfe3cc;
+.h38-schedule-hero .h38-schedule-icon,
+.h38-project-hero .h38-project-icon,
+.h38-route-hero .h38-route-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  border: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
-  margin-bottom: 10px;
-  box-shadow: 0 8px 20px rgba(23, 107, 58, .12);
-}
-.h38-all-clear-inner strong { font-size: 1.25rem; color: #123f2b; }
-.h38-all-clear-inner p { color: #4a6b52; font-size: .95rem; margin: 0 0 16px; }
-.h38-all-clear-cta {
-  min-height: 50px;
-  padding: 0 24px;
-  border-radius: 14px;
-  border: 0;
-  background: linear-gradient(180deg, #2a7a4e, #1d5c3a);
-  color: #fff;
-  font-weight: 800;
-  font-size: .95rem;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(29, 92, 58, .25);
-}
-
-/* ---------- Schedule hero (service) ---------- */
-.h38-schedule-hero {
-  border-radius: 20px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #0a2f5c 0%, #155a9e 60%, #1f7cc9 100%);
-  color: #fff;
-  box-shadow: 0 12px 32px rgba(10, 47, 92, .22);
-}
-.h38-schedule-hero .h38-schedule-top {
-  padding: 20px 20px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.h38-schedule-hero .h38-schedule-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
 }
-.h38-schedule-hero strong {
+.h38-schedule-hero strong,
+.h38-project-hero strong,
+.h38-route-hero strong {
   display: block;
-  font-size: 1.12rem;
+  font-size: 1rem;
+  font-weight: 600;
   letter-spacing: -.01em;
+  color: #1a1a1a;
 }
-.h38-schedule-hero small {
-  color: rgba(255, 255, 255, .78);
-  font-size: .88rem;
+.h38-schedule-hero small,
+.h38-project-hero small,
+.h38-route-hero small {
+  color: #6b7280;
+  font-size: .85rem;
 }
-.h38-schedule-hero .h38-schedule-stops {
+.h38-schedule-hero .h38-schedule-stops,
+.h38-route-hero .h38-route-stops {
   display: flex;
   gap: 8px;
-  padding: 0 20px 16px;
+  padding: 0 18px 12px;
   overflow-x: auto;
 }
-.h38-schedule-hero .h38-stop {
+.h38-schedule-hero .h38-stop,
+.h38-route-hero .h38-stop {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, .12);
-  border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: .8rem;
-  min-width: 120px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: .78rem;
+  min-width: 110px;
+  color: #374151;
 }
-.h38-schedule-hero .h38-stop b { display: block; font-size: .85rem; }
-.h38-schedule-hero .h38-stop span { color: rgba(255,255,255,.7); }
-.h38-schedule-hero .h38-schedule-actions {
+.h38-schedule-hero .h38-stop b,
+.h38-route-hero .h38-stop b { display: block; font-size: .82rem; font-weight: 600; }
+.h38-schedule-hero .h38-stop span,
+.h38-route-hero .h38-stop span { color: #9ca3af; }
+.h38-schedule-hero .h38-schedule-actions,
+.h38-project-hero .h38-project-actions,
+.h38-route-hero .h38-route-actions {
   display: flex;
-  gap: 10px;
-  padding: 0 20px 20px;
+  gap: 8px;
+  padding: 0 18px 18px;
 }
-.h38-schedule-hero .h38-schedule-go {
+.h38-schedule-hero .h38-schedule-go,
+.h38-project-hero .h38-project-go,
+.h38-route-hero .h38-route-go {
   flex: 1;
-  min-height: 50px;
-  border-radius: 12px;
-  font-weight: 800;
+  min-height: 48px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: .95rem;
   cursor: pointer;
-  border: 0;
-  background: #fff;
-  color: #0a2f5c;
-}
-
-/* ---------- Project hero (multi-day work) ---------- */
-.h38-project-hero {
-  border-radius: 20px;
-  overflow: hidden;
-  background: linear-gradient(135deg, #3d2404 0%, #a55a10 60%, #d47d1e 100%);
+  border: none;
+  background: #1a1a1a;
   color: #fff;
-  box-shadow: 0 12px 32px rgba(61, 36, 4, .22);
 }
-.h38-project-hero .h38-project-top {
-  padding: 20px 20px 14px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.h38-project-hero .h38-project-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  flex-shrink: 0;
-}
-.h38-project-hero strong {
-  display: block;
-  font-size: 1.12rem;
-  letter-spacing: -.01em;
-}
-.h38-project-hero small {
-  color: rgba(255, 255, 255, .78);
-  font-size: .88rem;
+.h38-route-hero .h38-route-opt {
+  background: none;
+  border: 1px solid #e5e7eb !important;
+  color: #6b7280;
+  min-height: 48px;
+  border-radius: 10px;
+  font-weight: 500;
+  padding: 0 16px;
+  cursor: pointer;
 }
 .h38-project-hero .h38-project-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 0 20px 14px;
+  padding: 0 18px 12px;
 }
 .h38-project-hero .h38-project-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: rgba(255, 255, 255, .1);
-  border: 1px solid rgba(255, 255, 255, .16);
-  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   padding: 10px 12px;
 }
-.h38-project-hero .h38-project-main b { display: block; font-size: .92rem; }
-.h38-project-hero .h38-project-status {
-  font-size: .78rem;
-  color: rgba(255, 255, 255, .72);
-}
+.h38-project-hero .h38-project-main b { display: block; font-size: .88rem; font-weight: 600; color: #1a1a1a; }
+.h38-project-hero .h38-project-status { font-size: .76rem; color: #9ca3af; }
 .h38-project-hero .h38-project-materials {
   flex-shrink: 0;
-  font-size: .78rem;
-  font-weight: 800;
-  background: rgba(255, 255, 255, .18);
-  border: 1px solid rgba(255, 255, 255, .28);
+  font-size: .74rem;
+  font-weight: 600;
+  background: none;
+  border: 1px solid #e5e7eb;
   border-radius: 999px;
-  padding: 5px 10px;
-}
-.h38-project-hero .h38-project-actions {
-  display: flex;
-  gap: 10px;
-  padding: 0 20px 20px;
-}
-.h38-project-hero .h38-project-go {
-  flex: 1;
-  min-height: 50px;
-  border-radius: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  border: 0;
-  background: #fff;
-  color: #5c3507;
+  padding: 4px 10px;
+  color: #6b7280;
 }
 
-/* ---------- Tenant type accents ---------- */
-.h38-owner-home.h38-type-service .h38-owner-head {
-  background: linear-gradient(135deg, #0a2547 0%, #155cb0 65%, #1e88e5 100%);
+/* ---------- Progress bar (quiet) ---------- */
+.h38-progress-wrap { margin-top: 10px; }
+.h38-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: .78rem;
+  font-weight: 500;
+  color: #9ca3af;
+  margin-bottom: 6px;
 }
-.h38-owner-home.h38-type-project .h38-owner-head {
-  background: linear-gradient(135deg, #3d2404 0%, #a55a10 65%, #d47d1e 100%);
+.h38-progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  overflow: hidden;
 }
-.h38-owner-home.h38-type-project .h38-action-main {
-  background: linear-gradient(180deg, #d47d1e, #a55a10);
-  border-color: #a55a10;
-  box-shadow: 0 6px 16px rgba(165, 90, 16, .28);
+.h38-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #1a1a1a;
+  transition: width .5s ease;
+  min-width: 6px;
 }
-/* NOTE: the renderer emits h38-type-lawn-snow; keep the historic
- * .h38-type-lawn selectors too so nothing previously styled regresses. */
-.h38-owner-home.h38-type-lawn .h38-owner-head,
-.h38-owner-home.h38-type-lawn-snow .h38-owner-head {
-  background: linear-gradient(135deg, #0e2f20 0%, #175c38 65%, #237a4b 100%);
+
+/* ---------- Seasonal banner (quiet) ---------- */
+.h38-season-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
 }
-.h38-owner-home.h38-type-shop .h38-owner-head {
-  background: linear-gradient(135deg, #2b1a08 0%, #6b4a12 65%, #8a6118 100%);
+.h38-season-banner .h38-season-icon { font-size: 1.4rem; }
+.h38-season-banner strong { display: block; color: #1a1a1a; font-size: .92rem; font-weight: 600; }
+.h38-season-banner small { color: #6b7280; font-size: .82rem; line-height: 1.4; }
+
+/* ---------- Tasks summary (quiet) ---------- */
+.h38-tasks-summary {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: none;
 }
-.h38-owner-home.h38-type-lawn .h38-action-main,
-.h38-owner-home.h38-type-lawn-snow .h38-action-main {
-  background: linear-gradient(180deg, #2a7a4e, #1d5c3a);
-  border-color: #1d5c3a;
-  box-shadow: 0 6px 16px rgba(29, 92, 58, .25);
+.h38-tasks-summary .h38-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
+.h38-tasks-summary .h38-section-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: #1a1a1a;
+}
+.h38-task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.h38-task-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.h38-task-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  flex-shrink: 0;
+}
+.h38-task-row strong { font-size: .9rem; font-weight: 500; display: block; color: #1a1a1a; }
+.h38-task-row small { color: #9ca3af; font-size: .78rem; }
+
+/* ---------- Schedule snapshot (quiet) ---------- */
+.h38-schedule-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: none;
+}
+.h38-schedule-card h2 { margin: 0 0 8px; font-size: 1rem; font-weight: 600; color: #1a1a1a; }
+.h38-sched-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.h38-sched-row:last-child { border-bottom: 0; }
+.h38-sched-time {
+  min-width: 70px;
+  font-weight: 600;
+  color: #374151;
+  font-size: .85rem;
+  font-variant-numeric: tabular-nums;
+}
+.h38-sched-title { font-size: .88rem; color: #1a1a1a; }
+
+/* ---------- All clear (quiet empty state) ---------- */
+.h38-all-clear {
+  text-align: center;
+  padding: 40px 24px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+.h38-all-clear-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.h38-all-clear-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+  box-shadow: none;
+}
+.h38-all-clear-inner strong { font-size: 1.1rem; font-weight: 600; color: #1a1a1a; }
+.h38-all-clear-inner p { color: #6b7280; font-size: .88rem; margin: 0 0 14px; }
+.h38-all-clear-cta {
+  min-height: 48px;
+  padding: 0 22px;
+  border-radius: 10px;
+  border: none;
+  background: #1a1a1a;
+  color: #fff;
+  font-weight: 600;
+  font-size: .9rem;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+/* ---------- Kit activity feed (minimal clean) ---------- */
+.h38-kit-feed {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: none;
+}
+.h38-kit-feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.h38-kit-feed-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -.01em;
+}
+.h38-kit-feed-ask {
+  border: 1px solid #e5e7eb;
+  background: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: .78rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  min-height: 36px;
+}
+.h38-kit-feed-ask:hover { border-color: #d1d5db; background: #f9fafb; }
+.h38-kit-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.h38-kit-feed-row:last-child { border-bottom: 0; }
+.h38-kit-feed-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.h38-kit-feed-body { flex: 1; min-width: 0; }
+.h38-kit-feed-body strong {
+  display: block;
+  font-size: .88rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.h38-kit-feed-body small {
+  display: block;
+  font-size: .76rem;
+  color: #9ca3af;
+}
+.h38-kit-feed-review {
+  border: 1px solid #e5e7eb;
+  background: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: .76rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.h38-kit-feed-review:hover { border-color: #d1d5db; background: #f9fafb; }
+.h38-kit-feed-empty {
+  color: #9ca3af;
+  font-size: .85rem;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+/* ---------- Quick Start hero (quiet) ---------- */
+.h38-qs-hero { margin: 0; }
+.h38-qs-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+  cursor: pointer;
+}
+.h38-qs-emoji { font-size: 1.4rem; }
+.h38-qs-text { flex: 1; }
+.h38-qs-text strong { display: block; font-size: .95rem; font-weight: 600; color: #1a1a1a; }
+.h38-qs-text small { display: block; font-size: .8rem; color: #6b7280; margin-top: 2px; }
+.h38-qs-arrow { font-size: 1.2rem; color: #9ca3af; }
+
+/* ---------- Tenant accents: REMOVED ----------
+ * Minimal Clean has no tenant-colored heroes. The type tag in the header
+ * is the only tenant indicator. Everything else stays neutral. */
 
 /* ---------- Mobile ---------- */
 @media (max-width: 480px) {
-  .h38-owner-head { padding: 22px 18px; border-radius: 18px; }
-  .h38-owner-head h1 { font-size: 1.45rem; }
+  .h38-owner-home { gap: 24px; }
+  .h38-owner-head { padding: 6px 4px 0; }
+  .h38-owner-head h1 { font-size: 1.35rem; }
   .h38-quick-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .h38-quick-grid button { min-height: 84px; font-size: .7rem; }
-  .h38-quick-grid button span { font-size: 1.5rem; }
+  .h38-quick-grid button { min-height: 72px; font-size: .68rem; }
+  .h38-quick-grid button span { font-size: 1.2rem; }
   .h38-action-card { padding: 18px 16px; }
   .h38-action-buttons { flex-direction: column; }
   .h38-action-main, .h38-action-ai { width: 100%; justify-content: center; }
@@ -682,6 +642,6 @@
 
 /* ---------- Desktop ---------- */
 @media (min-width: 768px) {
-  .h38-owner-home { max-width: 720px; margin: 0 auto; }
+  .h38-owner-home { max-width: 680px; margin: 0 auto; }
   .h38-quick-grid { grid-template-columns: repeat(4, 1fr); }
 }
