@@ -35,6 +35,10 @@
   </script>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://jqukmwtsgcsaruucnqja.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="https://jqukmwtsgcsaruucnqja.supabase.co">
   <meta name="referrer" content="no-referrer">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -108,7 +112,20 @@
     window.H38_EXECUTION_HANDOFF_PRESENT=false;
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script>
+  /* pdf-lib lazy-load: only needed for PDF generation (quotes, CPA package).
+     Load on demand to avoid blocking initial page render. */
+  window.H38PdfLibReady = new Promise(function(resolve){
+    if(window.PDFLib){resolve(window.PDFLib);return;}
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+    s.onload=function(){resolve(window.PDFLib);};
+    s.onerror=function(){resolve(null);};
+    // Load after initial render, not blocking
+    if(document.readyState==='complete'){document.head.appendChild(s);}
+    else{window.addEventListener('load',function(){document.head.appendChild(s);},{once:true});}
+  });
+  </script>
   <script defer src="./db.js?build=20260806-0344"></script>
   <script defer src="./bridge.js?build=20260806-0344"></script>
   <script defer src="./supabase-config.js?build=20260806-0344"></script>
