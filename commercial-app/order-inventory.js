@@ -171,9 +171,9 @@
         '<label>Or type supplier name</label><input id="h38OISupplierName" placeholder="e.g. Menards" value="' + esc(h38OI.supplierName) + '">' +
         '<p class="muted small">Quantities are suggestions from your reorder points. Change anything — nothing is sent yet.</p></section>';
     }
-    $('mainContent').innerHTML = pageHead('Order Inventory — Review', 'Confirm what to order and from whom.',
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Order Inventory — Review', 'Confirm what to order and from whom.',
       h38OI.items.length ? '<button class="secondary" id="h38OIAskKit">Ask Kit to check quantities</button>' : '') +
-      '<div class="grid">' + body + '</div>';
+      '<div class="grid">' + body + '</div>' + '</div>';
     var ask = $('h38OIAskKit'); if (ask) ask.onclick = h38OIAskKit;
     var gen = $('h38OIGeneral'); if (gen) gen.onclick = function () { toast('Add reorder points on the Inventory page to enable restock suggestions.', false); openPage('inventory'); };
     document.querySelectorAll('[data-h38oi-check]').forEach(function (box) {
@@ -246,7 +246,7 @@
         '<input type="radio" name="h38oiMethod" value="' + value + '" ' + (h38OI.sendMethod === value ? 'checked' : '') + ' style="width:22px;height:22px;margin-top:2px">' +
         '<span><strong>' + title + '</strong><br><small class="muted">' + desc + '</small></span></label>';
     };
-    $('mainContent').innerHTML = pageHead('Order Inventory — Send', 'Review and send the order.') +
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Order Inventory — Send', 'Review and send the order.') +
       '<div class="grid"><section class="card span8"><h2>Send this order?</h2>' +
       '<div class="stats"><div class="stat"><strong>' + chosen.length + '</strong><span>Items</span></div>' +
       '<div class="stat"><strong>' + money(total) + '</strong><span>Est. total</span></div></div>' +
@@ -263,7 +263,7 @@
       '<div class="row-actions"><button type="button" class="secondary" id="h38OICopy">Copy order text</button></div>' +
       '<div class="actions" style="margin-top:12px"><button id="h38OISend">Send Order</button>' +
       '<button type="button" class="secondary" id="h38OIBack">← Back</button></div></section>' +
-      '<section class="card span4"><h2>After you send</h2><p class="muted small">We save the order in your books, mark the stock alerts as ordered, and set a reminder in 5 days to check it arrived.</p></section></div>';
+      '<section class="card span4"><h2>After you send</h2><p class="muted small">We save the order in your books, mark the stock alerts as ordered, and set a reminder in 5 days to check it arrived.</p></section></div>' + '</div>';
     document.querySelectorAll('input[name="h38oiMethod"]').forEach(function (radio) {
       radio.onchange = function () { h38OI.sendMethod = radio.value; };
     });
@@ -363,7 +363,7 @@
   function h38OIRenderStep3() {
     var r = h38OI.result;
     var verb = r.method === 'Order list — owner will call' ? 'saved as a list' : 'sent';
-    $('mainContent').innerHTML = pageHead('Order Inventory — Done', 'Order ' + verb + '.') +
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Order Inventory — Done', 'Order ' + verb + '.') +
       '<div class="grid"><section class="card span8"><h2>✅ Order ' + esc(verb) + (r.method === 'Order list — owner will call' ? '' : ' to ' + esc(r.supplier)) + '</h2>' +
       '<div class="list">' + r.items.map(function (x) {
         return '<div class="row"><div class="row-top"><strong>' + esc(v(x.item, 'Description') || x.itemId) + '</strong><span>' + esc(String(h38OI.qty[x.itemId])) + ' ' + esc(v(x.item, 'Unit of Measure') || 'each') + '</span></div></div>';
@@ -371,7 +371,7 @@
       '<div class="stats" style="margin-top:12px"><div class="stat"><strong>' + money(r.total) + '</strong><span>Est. total</span></div>' +
       '<div class="stat"><strong>' + esc(r.orderNumber) + '</strong><span>Order #</span></div></div>' +
       '<p class="muted">We saved the order in your books, marked the stock alerts as ordered, and set a reminder in 5 days to check it arrived.</p>' +
-      '<div class="actions"><button id="h38OIDone">Done → Home</button></div></section></div>';
+      '<div class="actions"><button id="h38OIDone">Done → Home</button></div></section></div>' + '</div>';
     $('h38OIDone').onclick = function () { openPage('today'); };
   }
 

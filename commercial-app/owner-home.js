@@ -1,30 +1,52 @@
-/* ---- H38 Owner Home (2026-10-11) ----
- * Phase 1 of the Owner Ease rebuild.
- * Replaces the stats-based Today page with an action center.
+/* ---- H38 Owner Home (2026-10-11, visual refresh + tenant-aware) ----
+ * Replaces the stats-based Today page with a tenant-aware action center.
+ *
+ * TENANT TYPES (detected from businessKey + industry packs):
+ * - contractor: quotes waiting, today's jobs, overdue invoices, new leads
+ * - lawn-snow:  today's route, plow/mow triggers, jobs progress, seasonal
+ * - shop:       jobs in progress + due dates, quotes awaiting approval, parts
+ * - default:    generic action cards
  *
  * Philosophy: "The owner doesn't have a learning curve."
  * - Every card has ONE clear action with a verb
  * - Plain language, no jargon
- * - If you need to explain it, redesign it
  * - 10-second test: could someone new figure it out?
- *
- * Build-Test-Polish-Test cycle applied.
- *
- * Integration:
- * - Script tag: <script src="./owner-home.js?build=20261011-owner-home-1"></script>
- * - Called from renderToday() in app-03.js
- * - Action cards link to existing pages OR Phase 2/3/4 guided flows (when available)
  */
 
 (function() {
   'use strict';
 
-  /* ---------- Data collectors ---------- */
-  /* Each returns {count, items, summary} or null if nothing needs attention */
+  /* ================= Tenant type detection ================= */
+
+  function detectBusinessType() {
+    try {
+      const b = (state.snapshot && state.snapshot.business) || {};
+      const key = String(b.businessKey || state.businessKey || '').toLowerCase();
+      const packs = []
+        .concat(b.industryPacks || [])
+        .concat((b.brandConfig && b.brandConfig.industryPacks) || [])
+        .join(' ')
+        .toLowerCase();
+      const hay = key + ' ' + packs;
+      if (/northern-lakes|lawn|snow|plow|mow|landscape/.test(hay)) return 'lawn-snow';
+      if (/rental/.test(hay)) return 'rental';
+      if (/machine|auto|repair/.test(hay)) return 'shop';
+      return 'contractor';
+    } catch (e) { return 'contractor'; }
+  }
+
+  const TYPE_LABEL = {
+    'contractor': '🔨 Contractor',
+    'lawn-snow': '🌿 Lawn & Snow',
+    'shop': '🔧 Shop',
+    'rental': '🏠 Rental',
+    'default': '🏢 Business'
+  };
+
+  /* ================= Shared data collectors ================= */
 
   function getPayrollStatus() {
     try {
-      // Check for unprocessed time entries in the current pay period
       const entries = records('timeEntries') || [];
       const now = new Date();
       const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -33,7 +55,6 @@
         return d >= periodStart && !v(e, 'Payroll Processed');
       });
       if (!periodEntries.length) return null;
-
       const employees = {};
       periodEntries.forEach(e => {
         const name = v(e, 'Employee') || v(e, 'Employee Name') || 'Unknown';
@@ -41,17 +62,13 @@
       });
       const empCount = Object.keys(employees).length;
       const totalHours = Object.values(employees).reduce((s, h) => s + h, 0);
-
       return {
         count: empCount,
-        summary: `${empCount} employee${empCount === 1 ? '' : 's'} · ${Math.round(totalHours)} hours`,
+        summary: `${empCount} employee${empCount === 1 ? '' : 's'} · ${Math.round(totalHours)} hours this period`,
         action: 'Review & Run →',
         actionFn: () => {
-          if (window.H38GuidedPayroll && typeof window.H38GuidedPayroll.start === 'function') {
-            window.H38GuidedPayroll.start();
-          } else {
-            openPage('payroll');
-          }
+          if (window.H38GuidedPayroll && typeof window.H38GuidedPayroll.start === 'function') window.H38GuidedPayroll.start();
+          else openPage('payroll');
         },
         aiPrompt: 'Help me review payroll for this period'
       };
@@ -66,25 +83,19 @@
         const status = String(v(b, 'Status') || '').toUpperCase();
         if (['PAID', 'CANCELLED'].includes(status)) return false;
         const dueDate = new Date(v(b, 'Due Date') || v(b, 'dueDate') || 0);
-        // Due within 7 days or overdue
         return dueDate <= new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
       });
       if (!due.length) return null;
-
       const overdue = due.filter(b => new Date(v(b, 'Due Date') || 0) < now).length;
       const total = due.reduce((s, b) => s + num(v(b, 'Total') || v(b, 'Amount') || 0), 0);
-
       return {
         count: due.length,
         summary: `${due.length} bill${due.length === 1 ? '' : 's'} · $${total.toFixed(0)} total${overdue ? ` · ${overdue} overdue` : ''}`,
         urgent: overdue > 0,
         action: 'Review & Pay →',
         actionFn: () => {
-          if (window.H38PayBills && typeof window.H38PayBills.start === 'function') {
-            window.H38PayBills.start();
-          } else {
-            openPage('accounting');
-          }
+          if (window.H38PayBills && typeof window.H38PayBills.start === 'function') window.H38PayBills.start();
+          else openPage('accounting');
         },
         aiPrompt: 'Which bills should I pay first?'
       };
@@ -93,7 +104,6 @@
 
   function getLowStock() {
     try {
-      // Use the same logic as inventory-checker.js
       const items = records('inventoryItems') || records('inventory') || [];
       const stock = {};
       (records('inventoryStock') || []).forEach(s => {
@@ -107,20 +117,15 @@
         }))
         .filter(x => x.reorderPoint > 0 && x.onHand <= x.reorderPoint);
       if (!low.length) return null;
-
       const names = low.slice(0, 2).map(x => v(x.item, 'Item Name') || v(x.item, 'Name') || 'Item').join(', ');
       const more = low.length > 2 ? ` +${low.length - 2} more` : '';
-
       return {
         count: low.length,
         summary: `${names}${more}`,
         action: 'Review Order →',
         actionFn: () => {
-          if (window.H38OrderInventory && typeof window.H38OrderInventory.start === 'function') {
-            window.H38OrderInventory.start();
-          } else {
-            openPage('inventory');
-          }
+          if (window.H38OrderInventory && typeof window.H38OrderInventory.start === 'function') window.H38OrderInventory.start();
+          else openPage('inventory');
         },
         aiPrompt: 'What should I reorder?'
       };
@@ -135,11 +140,9 @@
         return status.includes('DRAFT') || status.includes('SENT');
       });
       if (!waiting.length) return null;
-
       const total = waiting.reduce((s, q) => s + num(v(q, 'Total') || 0), 0);
       const first = waiting[0];
       const custName = v(first, 'Customer Name') || 'Customer';
-
       return {
         count: waiting.length,
         summary: `${custName}${waiting.length > 1 ? ` +${waiting.length - 1} more` : ''} · $${total.toFixed(0)} total`,
@@ -161,20 +164,15 @@
         return dueDate < now;
       });
       if (!overdue.length) return null;
-
       const total = overdue.reduce((s, inv) => s + num(v(inv, 'Total') || v(inv, 'Amount Due') || 0), 0);
-
       return {
         count: overdue.length,
         summary: `$${total.toFixed(0)} outstanding`,
         urgent: true,
         action: 'Send Reminders →',
         actionFn: () => {
-          if (window.H38OverdueNudge && typeof window.H38OverdueNudge.start === 'function') {
-            window.H38OverdueNudge.start();
-          } else {
-            openPage('money');
-          }
+          if (window.H38OverdueNudge && typeof window.H38OverdueNudge.start === 'function') window.H38OverdueNudge.start();
+          else openPage('money');
         },
         aiPrompt: 'Draft a payment reminder'
       };
@@ -188,24 +186,14 @@
         const status = String(v(t, 'Status') || '').toUpperCase();
         return !['DONE', 'COMPLETE', 'CANCELLED'].includes(status);
       });
-      if (!open.length) return null;
-
       return {
         count: open.length,
         items: open.slice(0, 3).map(t => ({
           title: v(t, 'Task Title') || v(t, 'Title') || 'Task',
           assignee: v(t, 'Assigned To') || v(t, 'Assignee') || ''
-        })),
-        action: 'View Tasks →',
-        actionFn: () => {
-          if (window.H38TasksPage && typeof window.H38TasksPage.render === 'function') {
-            window.H38TasksPage.render();
-          } else {
-            openPage('work');
-          }
-        }
+        }))
       };
-    } catch (e) { return null; }
+    } catch (e) { return { count: 0, items: [] }; }
   }
 
   function getTodaySchedule() {
@@ -214,29 +202,187 @@
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-      const todays = events
+      return events
         .filter(e => {
           const d = new Date(v(e, 'Start Time') || 0);
           return d >= today && d < tomorrow;
         })
         .sort((a, b) => new Date(v(a, 'Start Time')) - new Date(v(b, 'Start Time')))
-        .slice(0, 3);
-      return todays.map(e => ({
-        time: new Date(v(e, 'Start Time')).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-        title: v(e, 'Title') || 'Event'
-      }));
+        .slice(0, 5)
+        .map(e => ({
+          time: new Date(v(e, 'Start Time')).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+          title: v(e, 'Title') || v(e, 'Customer Name') || 'Event'
+        }));
     } catch (e) { return []; }
   }
 
-  /* ---------- Card renderers ---------- */
+  /* ================= Contractor collectors ================= */
+
+  function getTodaysJobs() {
+    try {
+      const jobs = records('jobs') || [];
+      const active = jobs.filter(j => {
+        const s = String(v(j, 'Status') || '').toUpperCase();
+        return ['IN PROGRESS', 'SCHEDULED', 'APPROVED'].includes(s);
+      });
+      if (!active.length) return null;
+      const first = active[0];
+      return {
+        count: active.length,
+        summary: `${v(first, 'Project Title') || 'Job'}${active.length > 1 ? ` +${active.length - 1} more` : ''}`,
+        action: 'View Jobs →',
+        actionFn: () => openPage('work'),
+        aiPrompt: "What's the priority on today's jobs?"
+      };
+    } catch (e) { return null; }
+  }
+
+  function getNewLeads() {
+    try {
+      const requests = records('requests') || [];
+      const fresh = requests.filter(r => {
+        const s = String(v(r, 'Status') || '').toUpperCase();
+        return s === 'NEW' || s === '';
+      });
+      if (!fresh.length) return null;
+      const first = fresh[0];
+      return {
+        count: fresh.length,
+        summary: `${v(first, 'Subject') || 'New request'}${fresh.length > 1 ? ` +${fresh.length - 1} more` : ''}`,
+        action: 'Review Leads →',
+        actionFn: () => openPage('work'),
+        aiPrompt: 'Help me prioritize these new leads'
+      };
+    } catch (e) { return null; }
+  }
+
+  /* ================= Lawn/Snow collectors ================= */
+
+  function getRouteSummary() {
+    try {
+      const stops = getTodaySchedule();
+      if (!stops.length) return null;
+      return {
+        count: stops.length,
+        stops: stops,
+        summary: `${stops.length} stop${stops.length === 1 ? '' : 's'} today`,
+        action: 'Open Route →',
+        actionFn: () => openPage('schedule')
+      };
+    } catch (e) { return null; }
+  }
+
+  function getPlowInfo() {
+    try {
+      const customers = records('customers') || [];
+      const auto = customers.filter(c => {
+        const rate = v(c, 'Plowing Rate') || v(c, 'Mowing Rate');
+        return rate && String(v(c, 'Auto Plow') || v(c, 'Automatic') || '').toLowerCase() !== 'false';
+      });
+      const withRate = customers.filter(c => v(c, 'Plowing Rate') || v(c, 'Mowing Rate'));
+      return { autoCount: auto.length, withRateCount: withRate.length };
+    } catch (e) { return { autoCount: 0, withRateCount: 0 }; }
+  }
+
+  function getJobsProgress() {
+    try {
+      const jobs = records('jobs') || [];
+      const done = jobs.filter(j => String(v(j, 'Status') || '').toUpperCase() === 'COMPLETE').length;
+      const open = jobs.filter(j => !['COMPLETE', 'CLOSED', 'CANCELLED'].includes(String(v(j, 'Status') || '').toUpperCase())).length;
+      const total = done + open;
+      if (!total) return null;
+      return { done: done, open: open, total: total, pct: Math.round((done / total) * 100) };
+    } catch (e) { return null; }
+  }
+
+  function getSeasonalPrompt() {
+    const month = new Date().getMonth(); // 0-11
+    if (month >= 10 || month <= 2) {
+      return {
+        icon: '❄️',
+        title: 'Snow season is here',
+        body: 'Make sure every plow customer has a rate set and automatic triggers on.'
+      };
+    }
+    if (month === 3) {
+      return {
+        icon: '🌱',
+        title: 'Spring cleanup season',
+        body: 'Reach out to winter customers about spring cleanup visits.'
+      };
+    }
+    if (month >= 4 && month <= 8) {
+      return {
+        icon: '🌿',
+        title: 'Mowing season',
+        body: 'Check that recurring mow customers are on schedule.'
+      };
+    }
+    return {
+      icon: '🍂',
+      title: 'Fall cleanup season',
+      body: 'Leaf cleanup is coming — line up your fall customers now.'
+    };
+  }
+
+  /* ================= Shop collectors ================= */
+
+  function getJobsInProgress() {
+    try {
+      const jobs = records('jobs') || [];
+      const open = jobs.filter(j => {
+        const s = String(v(j, 'Status') || '').toUpperCase();
+        return ['IN PROGRESS', 'SCHEDULED', 'APPROVED', 'QUOTED'].includes(s);
+      });
+      if (!open.length) return null;
+      const withDue = open.filter(j => v(j, 'Due Date') || v(j, 'Due'));
+      const first = withDue[0] || open[0];
+      const due = v(first, 'Due Date') || v(first, 'Due');
+      return {
+        count: open.length,
+        summary: `${v(first, 'Project Title') || 'Job'}${due ? ' · due ' + due.slice(0, 10) : ''}${open.length > 1 ? ` +${open.length - 1} more` : ''}`,
+        action: 'View Jobs →',
+        actionFn: () => openPage('work'),
+        aiPrompt: 'Which jobs are at risk of missing their due dates?'
+      };
+    } catch (e) { return null; }
+  }
+
+  function getQuotesAwaitingApproval() {
+    try {
+      const quotes = records('quotes') || [];
+      const waiting = quotes.filter(q => {
+        const approval = String(v(q, 'Approval Status') || '').toUpperCase();
+        const status = String(v(q, 'Status') || '').toUpperCase();
+        return (approval === '' || approval === 'PENDING') && status.includes('SENT');
+      });
+      if (!waiting.length) return null;
+      const total = waiting.reduce((s, q) => s + num(v(q, 'Total') || 0), 0);
+      return {
+        count: waiting.length,
+        summary: `${waiting.length} quote${waiting.length === 1 ? '' : 's'} · $${total.toFixed(0)} waiting on customer`,
+        action: 'Follow Up →',
+        actionFn: () => openPage('quotes'),
+        aiPrompt: 'Draft follow-ups for quotes awaiting approval'
+      };
+    } catch (e) { return null; }
+  }
+
+  /* ================= Card renderer ================= */
+
+  const actionHandlers = [];
+  function registerAction(fn) {
+    const idx = actionHandlers.length;
+    actionHandlers[idx] = fn;
+    return idx;
+  }
 
   function actionCard(icon, title, data, actionIdx) {
     const urgentClass = data.urgent ? ' h38-action-urgent' : '';
     const aiButton = data.aiPrompt ? `
       <button type="button" class="h38-action-ai" data-ai-prompt="${esc(data.aiPrompt)}" aria-label="Ask Kit about this">
-        <span aria-hidden="true">🤖</span> Ask Kit
+        <span aria-hidden="true">✨</span> Ask Kit
       </button>` : '';
-
     return `
       <section class="card h38-action-card${urgentClass}">
         <div class="h38-action-head">
@@ -247,209 +393,252 @@
           </div>
         </div>
         <div class="h38-action-buttons">
-          <button type="button" class="primary h38-action-main" data-action-idx="${actionIdx}">
+          <button type="button" class="h38-action-main" data-action-idx="${actionIdx}">
             ${esc(data.action)}
           </button>
           ${aiButton}
         </div>
       </section>`;
   }
-  const actionHandlers = [];
 
-  function registerAction(fn) {
-    const idx = actionHandlers.length;
-    actionHandlers[idx] = fn;
-    return idx;
+  function pushCard(cards, icon, title, data) {
+    if (!data) return;
+    const idx = registerAction(data.actionFn);
+    cards.push({ urgent: !!data.urgent, html: actionCard(icon, title, data, idx) });
   }
 
-  /* ---------- Main renderer ---------- */
+  /* ================= Type-specific quick actions ================= */
+
+  function quickActionsFor(type) {
+    const all = {
+      quote: { icon: '🧾', label: 'New Quote', fn: () => openPage('quotes') },
+      customer: { icon: '👤', label: 'New Customer', fn: () => openPage('customers') },
+      sendtask: {
+        icon: '📋', label: 'Send Task',
+        fn: () => {
+          if (window.H38SendTask && typeof window.H38SendTask.start === 'function') window.H38SendTask.start();
+          else { toast('Send Task is loading. Try again in a moment.', true); }
+        }
+      },
+      schedule: { icon: '🗓️', label: 'Schedule', fn: () => openPage('schedule') },
+      route: { icon: '🗺️', label: "Today's Route", fn: () => openPage('schedule') },
+      trigger: {
+        icon: '❄️', label: 'Trigger Jobs',
+        fn: () => {
+          if (window.H38PlowTrigger && typeof window.H38PlowTrigger.triggerAll === 'function') window.H38PlowTrigger.triggerAll();
+          else openPage('customers');
+        }
+      },
+      job: { icon: '🔨', label: 'New Job', fn: () => openPage('work') },
+      parts: { icon: '📦', label: 'Order Parts', fn: () => {
+        if (window.H38OrderInventory && typeof window.H38OrderInventory.start === 'function') window.H38OrderInventory.start();
+        else openPage('inventory');
+      } }
+    };
+    switch (type) {
+      case 'lawn-snow': return [all.trigger, all.route, all.sendtask, all.customer];
+      case 'shop': return [all.job, all.quote, all.parts, all.sendtask];
+      case 'contractor': return [all.quote, all.customer, all.sendtask, all.schedule];
+      default: return [all.quote, all.customer, all.sendtask, all.schedule];
+    }
+  }
+
+  /* ================= Main renderer ================= */
 
   function renderOwnerHome() {
-    // Reset handlers for this render
     actionHandlers.length = 0;
-
-    // Collect action cards (most urgent first)
+    const type = detectBusinessType();
     const cards = [];
 
-    const overdue = getOverdueInvoices();
-    if (overdue) {
-      const idx = registerAction(overdue.actionFn);
-      cards.push({ urgent: true, html: actionCard('💵', `${overdue.count} invoice${overdue.count === 1 ? '' : 's'} overdue`, overdue, idx) });
+    /* ---- Shared money cards (all types) ---- */
+    pushCard(cards, '💵', 'Invoices overdue', getOverdueInvoices());
+    pushCard(cards, '💸', 'Bills due', getBillsDue());
+    pushCard(cards, '💰', 'Payroll ready', getPayrollStatus());
+
+    /* ---- Type-specific cards ---- */
+    let routeHtml = '';
+    let extraHtml = '';
+
+    if (type === 'lawn-snow') {
+      // Route hero
+      const route = getRouteSummary();
+      if (route) {
+        const ridx = registerAction(route.actionFn);
+        routeHtml = `
+          <section class="h38-route-hero">
+            <div class="h38-route-top">
+              <span class="h38-route-icon" aria-hidden="true">🗺️</span>
+              <div><strong>Today's Route</strong><small>${esc(route.summary)}</small></div>
+            </div>
+            <div class="h38-route-stops">
+              ${route.stops.map(s => `<div class="h38-stop"><b>${esc(s.time)}</b><span>${esc(s.title)}</span></div>`).join('')}
+            </div>
+            <div class="h38-route-actions">
+              <button type="button" class="h38-route-go" data-action-idx="${ridx}">Open Route →</button>
+              <button type="button" class="h38-route-opt" data-route-opt="1">⚡ Optimize</button>
+            </div>
+          </section>`;
+      }
+      // Seasonal banner
+      const season = getSeasonalPrompt();
+      const plow = getPlowInfo();
+      extraHtml += `
+        <section class="h38-season-banner">
+          <span class="h38-season-icon" aria-hidden="true">${season.icon}</span>
+          <div><strong>${esc(season.title)}</strong><small>${esc(season.body)}${plow.autoCount ? ` ${plow.autoCount} on automatic.` : ''}</small></div>
+        </section>`;
+      // Jobs progress
+      const prog = getJobsProgress();
+      if (prog) {
+        extraHtml += `
+          <section class="card">
+            <h2>📊 Jobs</h2>
+            <div class="h38-progress-wrap">
+              <div class="h38-progress-meta"><span>${prog.done} done</span><span>${prog.open} open</span></div>
+              <div class="h38-progress-bar"><div class="h38-progress-fill" style="width:${prog.pct}%"></div></div>
+            </div>
+          </section>`;
+      }
+      pushCard(cards, '📦', 'Low stock', getLowStock());
+    } else if (type === 'shop') {
+      pushCard(cards, '🔨', 'Jobs in progress', getJobsInProgress());
+      pushCard(cards, '📝', 'Quotes awaiting approval', getQuotesAwaitingApproval());
+      const parts = getLowStock();
+      if (parts) {
+        parts.summary = 'Parts: ' + parts.summary;
+        pushCard(cards, '⚙️', 'Parts low', parts);
+      }
+    } else {
+      // contractor + default
+      pushCard(cards, '🧾', 'Quotes waiting', getQuotesWaiting());
+      pushCard(cards, '🔨', "Today's jobs", getTodaysJobs());
+      pushCard(cards, '📥', 'New leads', getNewLeads());
+      pushCard(cards, '📦', 'Low stock', getLowStock());
     }
 
-    const bills = getBillsDue();
-    if (bills) {
-      const idx = registerAction(bills.actionFn);
-      cards.push({ urgent: bills.urgent, html: actionCard('💸', `${bills.count} bill${bills.count === 1 ? '' : 's'} due`, bills, idx) });
-    }
-
-    const payroll = getPayrollStatus();
-    if (payroll) {
-      const idx = registerAction(payroll.actionFn);
-      cards.push({ urgent: false, html: actionCard('💰', 'Payroll ready to run', payroll, idx) });
-    }
-
-    const stock = getLowStock();
-    if (stock) {
-      const idx = registerAction(stock.actionFn);
-      cards.push({ urgent: false, html: actionCard('📦', `Low stock: ${stock.count} item${stock.count === 1 ? '' : 's'}`, stock, idx) });
-    }
-
-    const quotes = getQuotesWaiting();
-    if (quotes) {
-      const idx = registerAction(quotes.actionFn);
-      cards.push({ urgent: false, html: actionCard('🧾', `${quotes.count} quote${quotes.count === 1 ? '' : 's'} waiting`, quotes, idx) });
-    }
-
-    // Sort: urgent first
+    // Urgent first
     cards.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0));
 
-    // Tasks section
+    /* ---- Tasks ---- */
     const tasks = getMyTasks();
-    const tasksHtml = tasks ? `
-      <section class="card h38-tasks-summary">
+    const tasksHtml = `
+      <section class="h38-tasks-summary">
         <div class="h38-section-head">
-          <h2>📋 My Tasks (${tasks.count})</h2>
-          <button type="button" class="secondary small" id="h38ViewAllTasks">View all →</button>
+          <h2>📋 My Tasks${tasks.count ? ` (${tasks.count})` : ''}</h2>
+          <button type="button" class="secondary small" id="h38ViewAllTasks" style="min-height:44px">View all →</button>
         </div>
-        <div class="list">
-          ${tasks.items.map(t => `
-            <div class="row">
-              <div class="row-top"><strong>${esc(t.title)}</strong></div>
-              ${t.assignee ? `<small>→ ${esc(t.assignee)}</small>` : ''}
-            </div>`).join('')}
-        </div>
-      </section>` : '';
+        ${tasks.items.length ? tasks.items.map(t => `
+          <div class="h38-task-row">
+            <span class="h38-task-check" aria-hidden="true"></span>
+            <div><strong>${esc(t.title)}</strong>${t.assignee ? `<small>→ ${esc(t.assignee)}</small>` : ''}</div>
+          </div>`).join('') : '<p class="muted" style="margin:0">Nothing assigned. Send a task to get something off your plate.</p>'}
+      </section>`;
 
-    // Schedule snapshot
-    const schedule = getTodaySchedule();
-    const scheduleHtml = `
-      <section class="card">
-        <h2>📅 Today</h2>
-        <div class="list">
+    /* ---- Schedule (contractor/shop/default) ---- */
+    let scheduleHtml = '';
+    if (type !== 'lawn-snow') {
+      const schedule = getTodaySchedule();
+      scheduleHtml = `
+        <section class="h38-schedule-card">
+          <h2>📅 Today</h2>
           ${schedule.length ? schedule.map(s => `
-            <div class="row">
-              <div class="row-top"><strong>${esc(s.time)}</strong></div>
-              <small>${esc(s.title)}</small>
-            </div>`).join('') : '<p class="muted">Nothing scheduled today.</p>'}
-        </div>
-      </section>`;
+            <div class="h38-sched-row">
+              <span class="h38-sched-time">${esc(s.time)}</span>
+              <span class="h38-sched-title">${esc(s.title)}</span>
+            </div>`).join('') : '<p class="muted" style="margin:0">Nothing scheduled today.</p>'}
+        </section>`;
+    }
 
-    // Quick actions
+    /* ---- Quick actions (PROMINENT, near top) ---- */
+    const quicks = quickActionsFor(type);
+    const quickIdx = quicks.map(q => registerAction(q.fn));
     const quickHtml = `
-      <section class="card">
-        <h2>⚡ Quick Actions</h2>
+      <section class="h38-quick-hero">
+        <strong>⚡ Quick actions</strong>
         <div class="h38-quick-grid">
-          <button type="button" data-quick="quotes"><span aria-hidden="true">🧾</span>New Quote</button>
-          <button type="button" data-quick="customers"><span aria-hidden="true">👤</span>New Customer</button>
-          <button type="button" data-quick="sendtask"><span aria-hidden="true">📋</span>Send Task</button>
-          <button type="button" data-quick="schedule"><span aria-hidden="true">🗓</span>Schedule</button>
+          ${quicks.map((q, i) => `
+            <button type="button" data-action-idx="${quickIdx[i]}">
+              <span aria-hidden="true">${q.icon}</span>${esc(q.label)}
+            </button>`).join('')}
         </div>
       </section>`;
 
-    // Greeting
+    /* ---- Header ---- */
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     const businessName = state.snapshot?.business?.businessName || 'Your Business';
     const userName = state.snapshot?.user?.name || state.snapshot?.user?.email || '';
-
-    const needsAttention = cards.length;
     const headerHtml = `
       <header class="page-head h38-owner-head">
-        <div>
-          <h1>${esc(greeting)}${userName ? ', ' + esc(userName.split(' ')[0]) : ''}</h1>
-          <p>${esc(businessName)}</p>
-        </div>
+        <h1>${esc(greeting)}${userName ? ', ' + esc(String(userName).split(' ')[0]) : ''}</h1>
+        <p>${esc(businessName)}</p>
+        <span class="h38-type-tag">${TYPE_LABEL[type] || TYPE_LABEL.default}</span>
       </header>`;
 
+    /* ---- Cards section ---- */
     const cardsHtml = cards.length ? `
       <div class="h38-section-label">
-        <span class="h38-urgent-dot" aria-hidden="true">🔴</span>
-        NEEDS YOU NOW (${needsAttention})
+        <span class="h38-urgent-dot" aria-hidden="true"></span>
+        Needs you now <span class="h38-count">${cards.length}</span>
       </div>
       ${cards.map(c => c.html).join('')}` : `
-      <section class="card h38-all-clear">
+      <section class="h38-all-clear">
         <div class="h38-all-clear-inner">
-          <span aria-hidden="true" style="font-size:2em">✅</span>
+          <span class="h38-all-clear-check" aria-hidden="true">✅</span>
           <strong>All clear!</strong>
-          <p class="muted">Nothing needs your attention right now.</p>
+          <p>Nothing needs your attention right now.<br>Start something below.</p>
+          <button type="button" class="h38-all-clear-cta" data-action-idx="${registerAction(quicks[0].fn)}">
+            ${esc(quicks[0].icon)} ${esc(quicks[0].label)}
+          </button>
         </div>
       </section>`;
 
-    // Assemble
+    /* ---- Assemble: hero → quick actions → needs-you-now → type extras → tasks → schedule ---- */
     $('mainContent').innerHTML = headerHtml + `
-      <div class="h38-owner-home">
+      <div class="h38-owner-home h38-type-${type}">
+        ${quickHtml}
+        ${routeHtml}
         ${cardsHtml}
+        ${extraHtml}
         ${tasksHtml}
         ${scheduleHtml}
-        ${quickHtml}
       </div>`;
 
-    // Wire action buttons
-    document.querySelectorAll('.h38-action-main').forEach(btn => {
+    /* ---- Wire buttons ---- */
+    document.querySelectorAll('.h38-owner-home [data-action-idx]').forEach(btn => {
       const idx = parseInt(btn.dataset.actionIdx, 10);
-      if (actionHandlers[idx]) {
-        btn.onclick = actionHandlers[idx];
-      }
+      if (actionHandlers[idx]) btn.onclick = actionHandlers[idx];
     });
-
-    // Wire AI buttons
     document.querySelectorAll('.h38-action-ai').forEach(btn => {
       btn.onclick = () => {
         const prompt = btn.dataset.aiPrompt;
-        if (window.H38_AI_HANDOFF && typeof window.H38_AI_HANDOFF.runTask === 'function') {
-          // Open AI page with the prompt
-          openPage('ai');
-          setTimeout(() => {
-            const input = document.querySelector('#aiForm textarea, #aiForm input[name="question"]');
-            if (input) {
-              input.value = prompt;
-              input.focus();
-            }
-          }, 300);
-        } else {
-          toast('AI helper is not available right now.', true);
-        }
+        openPage('ai');
+        setTimeout(() => {
+          const input = document.querySelector('#aiForm textarea, #aiForm input[name="question"]');
+          if (input) { input.value = prompt; input.focus(); }
+        }, 300);
       };
     });
-
-    // Wire tasks "View all"
-    const viewAllTasks = $('h38ViewAllTasks');
+    const viewAllTasks = document.getElementById('h38ViewAllTasks');
     if (viewAllTasks) {
       viewAllTasks.onclick = () => {
-        if (window.H38TasksPage && typeof window.H38TasksPage.render === 'function') {
-          window.H38TasksPage.render();
-        } else {
-          openPage('work');
-        }
+        if (window.H38TasksPage && typeof window.H38TasksPage.render === 'function') window.H38TasksPage.render();
+        else openPage('work');
       };
     }
-
-    // Wire quick actions
-    document.querySelectorAll('[data-quick]').forEach(btn => {
-      btn.onclick = () => {
-        const action = btn.dataset.quick;
-        switch (action) {
-          case 'quotes': openPage('quotes'); break;
-          case 'customers': openPage('customers'); break;
-          case 'schedule': openPage('schedule'); break;
-          case 'sendtask':
-            if (window.H38SendTask && typeof window.H38SendTask.start === 'function') {
-              window.H38SendTask.start();
-            } else {
-              toast('Send Task is coming soon. Use the Work page for now.', true);
-              openPage('work');
-            }
-            break;
-        }
+    const routeOpt = document.querySelector('[data-route-opt]');
+    if (routeOpt) {
+      routeOpt.onclick = () => {
+        if (window.H38Route && typeof window.H38Route.optimize === 'function') window.H38Route.optimize();
+        else openPage('schedule');
       };
-    });
+    }
   }
 
-  // Expose globally
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261011-owner-home-1'
+    build: '20261011-owner-home-2',
+    detectBusinessType: detectBusinessType
   });
 
 })();
