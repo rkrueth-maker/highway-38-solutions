@@ -146,9 +146,9 @@
         '<section class="card span4"><h2>How this works</h2><p class="muted small">Pick the bills to pay. Next you choose how to pay — from a configured account, or mark as paid manually if you write a check or pay in person. <strong>Nothing moves money until you confirm.</strong></p>' +
         '<div class="actions"><button type="button" class="secondary" data-open-page="today">Cancel</button></div></section>';
     }
-    $('mainContent').innerHTML = pageHead('Pay Bills', 'See what is owed, pick what to pay, choose how to pay it.',
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Pay Bills', 'See what is owed, pick what to pay, choose how to pay it.',
       h38PB.bills.length ? '<button class="secondary" id="h38PBAskKit">Ask Kit which to pay first</button>' : '') +
-      '<div class="grid">' + body + '</div>';
+      '<div class="grid">' + body + '</div>' + '</div>';
     var ask = $('h38PBAskKit'); if (ask) ask.onclick = h38PBAskKit;
     var done = $('h38PBDoneEmpty'); if (done) done.onclick = function () { openPage('today'); };
     document.querySelectorAll('[data-h38pb-check]').forEach(function (box) {
@@ -187,7 +187,7 @@
     var methodBlock = accounts.length
       ? '<div class="list">' + methodRows + '</div>'
       : '<div class="notice"><strong>No payment accounts configured.</strong> Add one in Accounting, or use "Mark as paid manually" below.</div>';
-    $('mainContent').innerHTML = pageHead('Pay Bills — How to pay', 'Choose where the money comes from.') +
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Pay Bills — How to pay', 'Choose where the money comes from.') +
       '<div class="grid"><section class="card span8"><h2>Pay ' + money(total) + ' (' + chosen.length + ' bill' + (chosen.length === 1 ? '' : 's') + ')</h2>' +
       '<div class="list">' + chosen.map(function (b) {
         return '<div class="row"><div class="row-top"><strong>' + esc(v(b.row, 'Vendor Name') || 'Vendor') + '</strong><span>' + money(b.balance) + '</span></div>' +
@@ -204,7 +204,7 @@
       '</div>' +
       '<div class="actions" style="margin-top:12px"><button id="h38PBSchedule">' + (h38PB.method === 'manual' ? 'Mark as Paid' : 'Schedule Payments') + '</button>' +
       '<button type="button" class="secondary" id="h38PBBack">← Back</button></div></section>' +
-      '<section class="card span4"><h2>Good to know</h2><p class="muted small">Overdue bills are scheduled for today. Bills due later move on their due dates. A confirmation is saved for your records on the next screen.</p></section></div>';
+      '<section class="card span4"><h2>Good to know</h2><p class="muted small">Overdue bills are scheduled for today. Bills due later move on their due dates. A confirmation is saved for your records on the next screen.</p></section></div>' + '</div>';
     document.querySelectorAll('input[name="h38pbMethod"]').forEach(function (radio) {
       radio.onchange = function () { h38PB.method = radio.value; h38PBRenderStep2(); };
     });
@@ -289,7 +289,7 @@
   function h38PBRenderStep3() {
     var manual = h38PB.resultMode === 'manual';
     var total = h38PB.result.reduce(function (s, b) { return s + b.balance; }, 0);
-    $('mainContent').innerHTML = pageHead('Pay Bills — Done', manual ? 'Marked as paid.' : 'Payments scheduled.') +
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Pay Bills — Done', manual ? 'Marked as paid.' : 'Payments scheduled.') +
       '<div class="grid"><section class="card span8"><h2>✅ ' + h38PB.result.length + ' payment' + (h38PB.result.length === 1 ? '' : 's') + ' ' + (manual ? 'recorded' : 'scheduled') + '</h2>' +
       '<div class="list">' + h38PB.result.map(function (b) {
         return '<div class="row"><div class="row-top"><strong>' + esc(v(b.row, 'Vendor Name') || 'Vendor') + '</strong><span>' + money(b.balance) + '</span></div>' +
@@ -301,7 +301,7 @@
         ? '<p class="muted small">Each bill is now marked paid in your books. A confirmation receipt is below for your records.</p>'
         : '<p class="muted small">Money moves on the due dates shown above, not right now. A confirmation is below for your records.</p>') +
       '<div class="actions"><button class="secondary" id="h38PBReceipt">Download receipt</button></div>' +
-      '<div class="actions" style="margin-top:10px"><button id="h38PBDone">Done → Home</button></div></section></div>';
+      '<div class="actions" style="margin-top:10px"><button id="h38PBDone">Done → Home</button></div></section></div>' + '</div>';
     $('h38PBReceipt').onclick = function () {
       var lines = h38PB.result.map(function (b) {
         return [v(b.row, 'Vendor Name') || 'Vendor', 'Bill ' + (v(b.row, 'Bill Number') || b.id),
