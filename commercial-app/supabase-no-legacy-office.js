@@ -222,7 +222,7 @@
     }
     if (!window.H38_OFFICE_POLISH && !document.querySelector('script[data-h38-office-polish]')) {
       const script = document.createElement('script');
-      script.src = './office-polish.js?build=20260807-2306';
+      script.src = './office-polish.js?build=20261011-e2e-mutation-fix-1';
       script.dataset.h38OfficePolish = '1';
       document.body.appendChild(script);
     }
