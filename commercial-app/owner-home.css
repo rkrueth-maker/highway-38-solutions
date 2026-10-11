@@ -733,3 +733,41 @@
   .h38-owner-home { max-width: 680px; margin: 0 auto; }
   .h38-quick-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* ---------- Cascade wins vs office-polish.css ----------
+ * office-polish.css uses `body.h38-auth-authorized #mainContent .card{...!important}`
+ * which would flatten the Bold Numbers cards back to plain white. These
+ * higher-specificity overrides restore the intended design. */
+body.h38-auth-authorized #mainContent .card.h38-kit-feed {
+  background: #1a1a1a !important;
+  border: 2px solid #1a1a1a !important;
+  border-radius: 16px !important;
+  box-shadow: 4px 4px 0 rgba(26,26,26,.35) !important;
+}
+body.h38-auth-authorized #mainContent .card.h38-action-card {
+  border: 2px solid #1a1a1a !important;
+  border-radius: 16px !important;
+  box-shadow: 4px 4px 0 rgba(26,26,26,.9) !important;
+  background: #fff !important;
+}
+body.h38-auth-authorized #mainContent .card.h38-action-card.h38-action-urgent {
+  border-color: #dc2626 !important;
+  background: #fef2f2 !important;
+  box-shadow: 4px 4px 0 #dc2626 !important;
+}
+body.h38-auth-authorized #mainContent button.h38-kit-feed-ask {
+  border: 2px solid #fff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
+  border: 2px solid #4ade80 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #4ade80 !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
