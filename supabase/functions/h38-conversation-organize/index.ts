@@ -3,7 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
-const ANTHROPIC_API_KEY=<redacted>;
+const ANTHROPIC_API_KEY=Deno.env.get("ANTHROPIC_API_KEY")||"";
 const MODEL=Deno.env.get("ANTHROPIC_MODEL")||"claude-sonnet-4-20250514";
 const BUILD="20261011-conversation-organize-claude-1";
 type J=Record<string,unknown>;
