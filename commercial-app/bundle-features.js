@@ -7828,7 +7828,7 @@ const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&
 const state=()=>window.state||{};
 const snapshot=()=>state().snapshot||{};
 const rows=name=>window.H38_EXAMPLE_DATA_MANAGER?.rowsFor?.(snapshot(),name)||(Array.isArray(snapshot()[name])?snapshot()[name]:[]);
-const pageNames={today:'Today',customers:'Customers',work:'Jobs',quotes:'Quote Builder',measure:'Measure',schedule:'Schedule',messages:'Messages',field:'Site Visit',inventory:'Inventory',fleet:'Fleet & Maintenance',money:'Money',documents:'Files',social:'Social',ai:'H38 AI',settings:'Settings',assistant:'Personal Assistant',meetings:'Meetings'};
+const pageNames={today:'Today',customers:'Customers',work:'Jobs',quotes:'Quotes',measure:'Measure',schedule:'Schedule',messages:'Messages',field:'Site Visits',inventory:'Inventory',fleet:'Fleet & Maintenance',money:'Money',documents:'Files',social:'Social',ai:'H38 AI',settings:'Settings',assistant:'Personal Assistant',meetings:'Meetings'};
 const pageAliases=[
   [/(?:today|dashboard|home)/,'today'],[/(?:customer|client)/,'customers'],[/(?:job|work|task)/,'work'],[/(?:quote|estimate|pricing)/,'quotes'],[/(?:measure|measurement|scanner)/,'measure'],[/(?:schedule|calendar|appointment)/,'schedule'],[/(?:message|communication|email|text|sms|portal)/,'messages'],[/(?:site\s*visit|field|walkthrough)/,'field'],[/(?:inventory|stock|material)/,'inventory'],[/(?:fleet|maintenance|equipment|asset|vehicle|trailer|tool)/,'fleet'],[/(?:money|invoice|payment|expense|mileage|accounting)/,'money'],[/(?:file|document|photo)/,'documents'],[/(?:social|facebook|instagram|post)/,'social'],[/(?:settings?|configuration|example data|demo data)/,'settings'],[/(?:assistant|personal assistant)/,'assistant'],[/(?:meeting|conversation|call)/,'meetings'],[/(?:h38 ai|ai)/,'ai']
 ];
@@ -11817,7 +11817,7 @@ window.H38_QUOTE_PHOTO_RESTORE=Object.freeze({enabled:true,build:'20260816-expli
   }
 
   function pageHeader() {
-    const backTarget = scanner.returnPage === 'quotes' ? 'Quote Builder' : 'Measure';
+    const backTarget = scanner.returnPage === 'quotes' ? 'Quotes' : 'Measure';
     return `<section class="page-head"><div><h1>H38 Site Scanner</h1><p>Capture the project once, confirm important measurements, and create quote-ready drawings without claiming false certainty.</p></div><div class="page-tools"><button id="scannerBack" class="secondary" type="button">← ${html(backTarget)}</button></div></section>`;
   }
 
@@ -20145,7 +20145,7 @@ function persist(value){current=safeContext(value);try{if(current)sessionStorage
 function restore(){try{return persist(JSON.parse(sessionStorage.getItem(KEY)||'null'));}catch(_){return persist(null);}}
 function selectedCustomer(){return text(window.H38_CUSTOMER_360?.selectedCustomerId);}
 function selectedJob(){return text(window.H38_JOB_LIFECYCLE?.selectedJobId?.()||state().activeJobId);}
-function pageLabel(page){return text(window.PAGE_DEFS?.[page]?.[1])||({work:'Jobs',field:'Site Visit'}[page])||'Back';}
+function pageLabel(page){return text(window.PAGE_DEFS?.[page]?.[1])||({work:'Jobs',field:'Site Visits'}[page])||'Back';}
 function capture(overrides={}){const page=text(state().page)||'today';return persist({originPage:page,originLabel:overrides.originLabel||document.querySelector('#mainContent h1,#mainContent h2')?.textContent||pageLabel(page),originTab:overrides.originTab||document.querySelector('[role="tab"][aria-selected="true"]')?.dataset?.h38CustomerTab||'',originScroll:Math.round(scrollY||0),customerId:overrides.customerId||selectedCustomer(),jobId:overrides.jobId||selectedJob(),quoteId:overrides.quoteId||text(state().quote?.quoteId),siteVisitId:overrides.siteVisitId||'',searchQuery:overrides.searchQuery||document.getElementById('h38OfficeSearchInput')?.value||'',createdAt:Date.now()});}
 function applyRecordSelection(ctx){if(ctx.customerId&&window.H38_CUSTOMER_360)window.H38_CUSTOMER_360.selectedCustomerId=ctx.customerId;if(ctx.jobId)window.H38_JOB_LIFECYCLE?.selectJob?.(ctx.jobId);if(ctx.quoteId&&state().quote)state().quote.quoteId=ctx.quoteId;}
 function restoreSurface(ctx){if(!ctx)return;if(ctx.originPage==='customers'&&ctx.originTab)setTimeout(()=>document.querySelector(`[data-h38-customer-tab="${CSS.escape(ctx.originTab)}"]`)?.click(),30);if(ctx.searchQuery)setTimeout(()=>{window.H38_JOB_LIFECYCLE?.openSearch?.();const input=document.getElementById('h38OfficeSearchInput');if(input){input.value=ctx.searchQuery;input.dispatchEvent(new Event('input',{bubbles:true}));}},40);requestAnimationFrame(()=>requestAnimationFrame(()=>scrollTo({top:ctx.originScroll,behavior:'auto'})));}

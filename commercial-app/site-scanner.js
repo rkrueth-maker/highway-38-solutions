@@ -251,7 +251,7 @@
   }
 
   function pageHeader() {
-    const backTarget = scanner.returnPage === 'quotes' ? 'Quote Builder' : 'Measure';
+    const backTarget = scanner.returnPage === 'quotes' ? 'Quotes' : 'Measure';
     return `<section class="page-head"><div><h1>H38 Site Scanner</h1><p>Capture the project once, confirm important measurements, and create quote-ready drawings without claiming false certainty.</p></div><div class="page-tools"><button id="scannerBack" class="secondary" type="button">← ${html(backTarget)}</button></div></section>`;
   }
 
