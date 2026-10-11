@@ -21,6 +21,15 @@ function start(){try{document.activeElement?.blur?.();}catch(_){}if(window.H38_F
 function revealCustomerForm(){
   const form=document.getElementById('customerForm');
   if(!form)return false;
+  const dialog=form.closest('dialog');
+  if(dialog){
+    try{
+      if(!dialog.open)dialog.showModal();
+      const field=form.querySelector('[name="customerName"],input:not([type="hidden"]),select,textarea');
+      if(field){try{field.focus({preventScroll:true});}catch(_){try{field.focus?.();}catch(__){}}}
+      return true;
+    }catch(_){return false;}
+  }
   const details=form.closest('details');
   if(details)details.open=true;
   const target=details||form.closest('.card')||form;
