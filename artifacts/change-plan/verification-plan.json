@@ -1,20 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-08T07:51:41.417Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-07T08:01:45.794Z",
+  "base": null,
   "head": "HEAD",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "commercial-app/crew-phone-location.js",
-    "commercial-app/index.html",
-    "commercial-app/supabase-data.js",
-    "commercial-app/supabase-operation-coverage.js"
+    "commercial-app/app-19.js",
+    "commercial-app/payroll-print.css"
   ],
-  "fileCount": 7,
+  "fileCount": 2,
   "scopes": {
-    "publicWebsite": true,
+    "publicWebsite": false,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
@@ -26,28 +21,26 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
+    "publicRendering": false,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
     "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
