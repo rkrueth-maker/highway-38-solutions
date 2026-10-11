@@ -12,7 +12,7 @@ const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SUPABASE_SERVICE_ROLE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const MUSE_SPARK_API_KEY=Deno.env.get("MUSE_SPARK_API_KEY")||"";
 const OPENAI_MODEL=Deno.env.get("MUSE_SPARK_MODEL")||"muse-spark-1.1";
-const BUILD="261011-quote-options-directions-2-muse-1";
+const BUILD="20261011-quote-options-modelfix-1";
 // --- AI usage tracking & per-tenant monthly caps (Muse Spark: $1.25/1M in, $4.25/1M out) ---
 const AI_MONTHLY_CAP_USD=20,AI_ALERT_USD=15,AI_COST_IN_PER_M=1.25,AI_COST_OUT_PER_M=4.25;
 async function aiCapCheck(svc:any,businessId:string):Promise<{spend:number;alert:boolean}>{const m=new Date();m.setUTCDate(1);m.setUTCHours(0,0,0,0);const r=await svc.from("ai_usage_log").select("cost_estimate").eq("business_id",businessId).gte("created_at",m.toISOString());if(r.error)throw r.error;const spend=(r.data||[]).reduce((t:number,x:any)=>t+Number(x.cost_estimate||0),0);const ov=await svc.from("business_records").select("payload").eq("business_id",businessId).eq("collection","ai_config").eq("record_key","ai_cap_override").eq("record_status","active").maybeSingle();const override=!ov.error&&ov.data&&(ov.data.payload as any)?.enabled===true;if(spend>=AI_MONTHLY_CAP_USD&&!override)throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}). Usage resets on the 1st.`);return{spend,alert:spend>=AI_ALERT_USD};}
