@@ -4,8 +4,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const ANTHROPIC_API_KEY=<redacted>
-const MODEL=Deno.env.get("ANTHROPIC_SITE_SCANNER_MODEL")||Deno.env.get("ANTHROPIC_QUOTE_MODEL")||"claude-sonnet-4-20250514";
-const BUILD="261011-conversation-organize-claude-1-claude-1";
+const MODEL=Deno.env.get("ANTHROPIC_MODEL")||"claude-sonnet-4-20250514";
+const BUILD="20261011-conversation-organize-claude-1";
 type J=Record<string,unknown>;
 type Client=ReturnType<typeof createClient>;
 const text=(v:unknown,n=12000)=>String(v??"").replace(/Bearer\s+[A-Za-z0-9._-]+/gi,"Bearer [REDACTED]").trim().slice(0,n);
