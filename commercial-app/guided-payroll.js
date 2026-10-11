@@ -236,7 +236,7 @@
     }).join('') : empty('No active employees found.', { page: 'people', label: 'Add employees first' });
     var advice = h38GP.kitAdvice
       ? '<div class="notice"><strong>Kit’s review:</strong> ' + esc(h38GP.kitAdvice) + '</div>' : '';
-    $('mainContent').innerHTML = pageHead('Run Payroll — Review', 'Hours are pre-filled from time entries. Review, fix anything, then continue.',
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Run Payroll — Review', 'Hours are pre-filled from time entries. Review, fix anything, then continue.',
       '<button class="secondary" id="h38GPAskKit">Ask Kit to review</button>') +
       '<div class="grid"><section class="card span8"><h2>Payroll — ' + esc(periodLabel) + '</h2>' +
       advice +
@@ -251,7 +251,7 @@
       '</div></section>' +
       '<section class="card span4"><h2>Pay date</h2><input type="date" id="h38GPPayDate" value="' + esc(h38GP.payDate) + '">' +
       '<p class="muted small">The pay period is the 14 days ending on the pay date. Tax figures are not estimated here — use the full Payroll page for tax worksheets.</p>' +
-      '<div class="actions"><button type="button" class="secondary" data-open-page="today">Cancel</button></div></section></div>';
+      '<div class="actions"><button type="button" class="secondary" data-open-page="today">Cancel</button></div></section></div>' + '</div>';
     var ask = $('h38GPAskKit'); if (ask) ask.onclick = h38GPAskKit;
     var pd = $('h38GPPayDate');
     if (pd) pd.onchange = function () { h38GP.payDate = pd.value || h38GP.payDate; h38GPRenderStep1(); };
@@ -335,7 +335,7 @@
     var totals = lines.reduce(function (s, l) {
       return { hours: s.hours + l.regularHours + l.overtimeHours, gross: s.gross + l.gross, count: s.count + 1 };
     }, { hours: 0, gross: 0, count: 0 });
-    $('mainContent').innerHTML = pageHead('Run Payroll — Confirm', 'Last check before the stubs are created.') +
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Run Payroll — Confirm', 'Last check before the stubs are created.') +
       '<div class="grid"><section class="card span8"><h2>Ready to finalize?</h2>' +
       '<div class="stats"><div class="stat"><strong>' + totals.count + '</strong><span>Paychecks</span></div>' +
       '<div class="stat"><strong>' + money(totals.gross) + '</strong><span>Gross total</span></div>' +
@@ -350,7 +350,7 @@
       '<button type="button" class="secondary" id="h38GPBack">← Back</button>' +
       '<button type="button" class="secondary" data-open-page="today">Cancel</button></div></section>' +
       '<section class="card span4"><h2>What happens next</h2>' +
-      '<p class="muted small">Finalizing saves one payroll period and one line per person. Nothing moves money, nothing is sent, and your full Payroll page can still export everything for your accountant.</p></section></div>';
+      '<p class="muted small">Finalizing saves one payroll period and one line per person. Nothing moves money, nothing is sent, and your full Payroll page can still export everything for your accountant.</p></section></div>' + '</div>';
     $('h38GPBack').onclick = function () { h38GP.step = 1; h38GPRenderStep1(); };
     $('h38GPFinalize').onclick = h38GPFinalize;
   }
@@ -402,7 +402,7 @@
 
   function h38GPRenderStep3() {
     var lines = h38GP.lines;
-    $('mainContent').innerHTML = pageHead('Run Payroll — Done', 'Payroll finalized.') +
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Run Payroll — Done', 'Payroll finalized.') +
       '<div class="grid"><section class="card span8"><h2>✅ Payroll finalized</h2>' +
       '<p>' + lines.length + ' pay stub' + (lines.length === 1 ? '' : 's') + ' created for ' +
       dateOnly(h38GP.periodStart) + ' – ' + dateOnly(h38GP.periodEnd) + ', pay date ' + dateOnly(h38GP.payDate) + '.</p>' +
@@ -410,7 +410,7 @@
       '<div class="actions"><button id="h38GPStubs">Download Stubs</button>' +
       '<button class="secondary" id="h38GPExport">Export for accountant</button></div>' +
       '<div class="actions" style="margin-top:10px"><button class="secondary" id="h38GPDone">Done → Home</button></div>' +
-      '</section></div>';
+      '</section></div>' + '</div>';
     $('h38GPStubs').onclick = h38GPDownloadStubs;
     $('h38GPExport').onclick = h38GPExportCSV;
     $('h38GPDone').onclick = function () { openPage('today'); };

@@ -83,7 +83,9 @@ function conflictFor(userId,dateStr,start,end){
 }
 
 function stepHeader(step,of,title){
-  return '<p class="muted small">Step '+step+' of '+of+'</p><h2>'+esc(title)+'</h2>';
+  var bars='';
+  for(var i=1;i<=of;i++){bars+='<span class="'+(i<step?'done':(i===step?'now':''))+'"></span>';}
+  return '<div class="h38-steps">'+bars+'</div><p class="h38-step-label">Step '+step+' of '+of+'</p><h2>'+esc(title)+'</h2>';
 }
 
 /* ================= STEP 1: WHAT JOB ================= */
@@ -104,7 +106,7 @@ function renderStep1(){
     '<div class="actions"><button type="button" class="secondary" id="schedQuickCreate">＋ Create &amp; select</button></div>';
   html+='<div class="actions"><button type="button" id="schedToStep2" '+(sched.jobId?'':'disabled')+'>Continue →</button>'+
     '<button type="button" class="secondary" id="schedBackHome">← Home</button></div></section>';
-  $('mainContent').innerHTML=html;
+  $('mainContent').innerHTML='<div class="h38-flow-view">'+html+'</div>';
   $('mainContent').querySelectorAll('[data-sched-job]').forEach(function(b){
     b.onclick=function(){sched.jobId=b.getAttribute('data-sched-job');renderStep1();};
   });
@@ -153,7 +155,7 @@ function renderStep2(){
   html+='</div>';
   html+='<div class="actions"><button type="button" id="schedToStep3" '+(sched.crewIds.length?'':'disabled')+'>Continue →</button>'+
     '<button type="button" class="secondary" id="schedBack1">← Back</button></div></section>';
-  $('mainContent').innerHTML=html;
+  $('mainContent').innerHTML='<div class="h38-flow-view">'+html+'</div>';
   $('mainContent').querySelectorAll('[data-sched-crew]').forEach(function(cb){
     cb.onchange=function(){
       var id=cb.getAttribute('data-sched-crew');
@@ -184,7 +186,7 @@ function renderStep3(){
   html+='<div id="schedConflictBox"></div>';
   html+='<div class="actions"><button type="button" id="schedConfirmBtn">Schedule →</button>'+
     '<button type="button" class="secondary" id="schedBack2">← Back</button></div></section>';
-  $('mainContent').innerHTML=html;
+  $('mainContent').innerHTML='<div class="h38-flow-view">'+html+'</div>';
 
   $('mainContent').querySelectorAll('[data-sched-day]').forEach(function(b){
     b.onclick=function(){
@@ -310,7 +312,7 @@ function renderStep4(){
   }
   html+='<div class="actions"><button type="button" id="schedDoneHome">Done → Home</button>'+
     '<button type="button" class="secondary" id="schedDoneSchedule">View Schedule</button></div></section>';
-  $('mainContent').innerHTML=html;
+  $('mainContent').innerHTML='<div class="h38-flow-view">'+html+'</div>';
   $('schedDoneHome').onclick=function(){openPage('today');};
   $('schedDoneSchedule').onclick=function(){openPage('schedule');};
 }

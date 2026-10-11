@@ -115,7 +115,7 @@ function renderStep1(){
   }
   html+='<div class="actions"><button type="button" class="secondary" id="nudgeStep1Back">← Back to Home</button></div>';
   html+='</section>';
-  $('mainContent').innerHTML=html;
+  $('mainContent').innerHTML='<div class="h38-flow-view">'+html+'</div>';
   wireStep1();
 }
 
@@ -270,7 +270,7 @@ function renderStep2(){
   html+='<p class="muted small">Polite nudge, queued with care. If a balance is still unpaid in a week, come back and nudge again — or give them a call.</p>';
   html+='<div class="actions"><button type="button" id="nudgeDoneHome">Done → Home</button><button type="button" class="secondary" id="nudgeDoneMsgs">Review in 💬 Messages</button></div>';
   html+='</section>';
-  $('mainContent').innerHTML=html;
+  $('mainContent').innerHTML='<div class="h38-flow-view">'+html+'</div>';
   $('nudgeDoneHome').onclick=function(){openPage('today');};
   $('nudgeDoneMsgs').onclick=function(){openPage('messages');};
 }
