@@ -77,7 +77,7 @@
       const totalHours = Object.values(employees).reduce((s, h) => s + h, 0);
       return {
         count: empCount,
-        summary: `${empCount} employee${empCount === 1 ? '' : 's'} · ${Math.round(totalHours)} hours this period`,
+        summary: `${Math.round(totalHours)} hours this period`,
         action: 'Review & Run →',
         actionFn: () => {
           if (window.H38GuidedPayroll && typeof window.H38GuidedPayroll.start === 'function') window.H38GuidedPayroll.start();
@@ -103,7 +103,7 @@
       const total = due.reduce((s, b) => s + num(v(b, 'Total') || v(b, 'Amount') || 0), 0);
       return {
         count: due.length,
-        summary: `${due.length} bill${due.length === 1 ? '' : 's'} · $${total.toFixed(0)} total${overdue ? ` · ${overdue} overdue` : ''}`,
+        summary: `$${total.toFixed(0)} total${overdue ? ` · ${overdue} overdue` : ''}`,
         urgent: overdue > 0,
         action: 'Review & Pay →',
         actionFn: () => {
@@ -422,7 +422,7 @@
       const total = waiting.reduce((s, q) => s + num(v(q, 'Total') || 0), 0);
       return {
         count: waiting.length,
-        summary: `${waiting.length} quote${waiting.length === 1 ? '' : 's'} · $${total.toFixed(0)} waiting on customer`,
+        summary: `$${total.toFixed(0)} waiting on customer`,
         action: 'Follow Up →',
         actionFn: () => openPage('quotes'),
         aiPrompt: 'Draft follow-ups for quotes awaiting approval'
@@ -445,15 +445,19 @@
       <button type="button" class="h38-action-ai" data-ai-prompt="${esc(data.aiPrompt)}" aria-label="Ask Kit about this">
         <span aria-hidden="true">✨</span> Ask Kit
       </button>` : '';
+    /* Bold Numbers: the count dominates. Minimal text below it. */
+    const bigNum = (data.count !== undefined && data.count !== null)
+      ? `<div class="h38-action-number" aria-label="${esc(String(data.count))}">${esc(String(data.count))}</div>` : '';
     return `
       <section class="card h38-action-card${urgentClass}">
         <div class="h38-action-head">
           <span class="h38-action-icon" aria-hidden="true">${icon}</span>
           <div class="h38-action-text">
             <strong>${esc(title)}</strong>
-            <small>${esc(data.summary)}</small>
           </div>
         </div>
+        ${bigNum}
+        <p class="h38-action-sub">${esc(data.summary)}</p>
         <div class="h38-action-buttons">
           <button type="button" class="h38-action-main" data-action-idx="${actionIdx}">
             ${esc(data.action)}
@@ -557,6 +561,7 @@
           <div class="h38-schedule-top">
             <span class="h38-schedule-icon" aria-hidden="true">🛠️</span>
             <div><strong>Today's Schedule</strong><small>${sched.length ? `${sched.length} call${sched.length === 1 ? '' : 's'} booked` : 'No calls booked yet'}</small></div>
+            <span class="h38-hero-number" aria-label="${sched.length} calls">${sched.length}</span>
           </div>
           ${sched.length ? `
           <div class="h38-schedule-stops">
@@ -578,6 +583,7 @@
             <div class="h38-project-top">
               <span class="h38-project-icon" aria-hidden="true">🏗️</span>
               <div><strong>Active Projects</strong><small>${projects.length} project${projects.length === 1 ? '' : 's'} in the pipeline</small></div>
+              <span class="h38-hero-number" aria-label="${projects.length} projects">${projects.length}</span>
             </div>
             <div class="h38-project-list">
               ${projects.map(p => `
@@ -610,6 +616,7 @@
             <div class="h38-route-top">
               <span class="h38-route-icon" aria-hidden="true">🗺️</span>
               <div><strong>Today's Route</strong><small>${esc(route.summary)}</small></div>
+              <span class="h38-hero-number" aria-label="${route.count} stops">${route.count}</span>
             </div>
             <div class="h38-route-stops">
               ${route.stops.map(s => `<div class="h38-stop"><b>${esc(s.time)}</b><span>${esc(s.title)}</span></div>`).join('')}
@@ -665,7 +672,7 @@
     const tasksHtml = `
       <section class="h38-tasks-summary">
         <div class="h38-section-head">
-          <h2>📋 My Tasks${tasks.count ? ` (${tasks.count})` : ''}</h2>
+          <h2>📋 My Tasks <span class="h38-tasks-count" aria-label="${tasks.count} tasks">${tasks.count}</span></h2>
           <button type="button" class="secondary small" id="h38ViewAllTasks" style="min-height:44px">View all →</button>
         </div>
         ${tasks.items.length ? tasks.items.map(t => `
@@ -804,7 +811,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261011-owner-home-minimal-clean-1',
+    build: '20261011-owner-home-bold-numbers-1',
     detectBusinessType: detectBusinessType
   });
 
