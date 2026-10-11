@@ -1,16 +1,18 @@
 (function () {
   'use strict';
-  // Ask Kit: deep link from the Business Office to the owner's Muse assistant.
-  // Tenant-neutral by design (Kit serves both H38 and Northern Lakes).
-  var BUILD = '20261002-kit-link-1';
-  var KIT_URL = 'https://muse.ai/';
+  // Ask Kit: routes to the in-app AI assistant (tenant-aware).
+  // The in-app AI page has access to state.businessId and business data,
+  // so it knows which business the owner is asking about.
+  // This replaces the old hardcoded https://muse.ai/ external link which
+  // had no tenant/business context for customers.
+  var BUILD = '20261011-kit-link-tenant-aware-1';
 
   function injectStyle() {
     if (document.getElementById('h38KitLinkStyle')) return;
     var style = document.createElement('style');
     style.id = 'h38KitLinkStyle';
     style.textContent = [
-      '#askKitButton{text-decoration:none;}',
+      '#askKitButton{text-decoration:none;cursor:pointer;}',
       '@media(max-width:760px){',
       '  #askKitButton .ai-launcher-label{display:none;}',
       '  #askKitButton{padding-left:10px;padding-right:10px;}',
@@ -23,20 +25,24 @@
     var actions = document.querySelector('.top-actions');
     if (!actions || document.getElementById('askKitButton')) return;
     injectStyle();
-    var anchor = document.createElement('a');
-    anchor.id = 'askKitButton';
-    anchor.className = 'ai-launcher';
-    anchor.href = KIT_URL;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener';
-    anchor.setAttribute('aria-label', 'Open Muse (Kit is your assistant there)');
-    anchor.title = 'Open Muse in a new tab — Kit is your assistant';
-    anchor.innerHTML = '<span aria-hidden="true">🤖</span><span class="ai-launcher-label">Ask Kit</span>';
+    var button = document.createElement('button');
+    button.id = 'askKitButton';
+    button.type = 'button';
+    button.className = 'ai-launcher';
+    button.setAttribute('aria-label', 'Ask Kit — your business assistant');
+    button.title = 'Ask Kit about your business';
+    button.innerHTML = '<span aria-hidden="true">🤖</span><span class="ai-launcher-label">Ask Kit</span>';
+    button.onclick = function() {
+      // Tenant-aware: open the in-app AI page which has business context
+      if (typeof window.openPage === 'function') {
+        window.openPage('ai');
+      }
+    };
     var aiButton = document.getElementById('globalAiButton');
     if (aiButton && aiButton.parentNode === actions) {
-      aiButton.insertAdjacentElement('afterend', anchor);
+      aiButton.insertAdjacentElement('afterend', button);
     } else {
-      actions.appendChild(anchor);
+      actions.appendChild(button);
     }
   }
 
@@ -45,5 +51,5 @@
   } else {
     document.addEventListener('DOMContentLoaded', inject, { once: true });
   }
-  window.H38_KIT_LINK = Object.freeze({ build: BUILD, url: KIT_URL });
+  window.H38_KIT_LINK = Object.freeze({ build: BUILD, tenantAware: true });
 })();

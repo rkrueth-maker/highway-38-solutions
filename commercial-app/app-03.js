@@ -2,6 +2,20 @@ function requireValue(value,message){if(!String(value||'').trim())throw new Erro
 function pendingRows(actions){return all('operations').then(rows=>rows.filter(op=>op.businessId===state.businessId&&actions.includes(op.action)));}
 
 function renderToday(){
+  // Owner Ease rebuild (2026-10-11): Owner Home action center replaces stats dashboard.
+  // If Owner Home is available, use it. Otherwise fall back to legacy Today view.
+  if (window.H38OwnerHome && typeof window.H38OwnerHome.render === 'function') {
+    try {
+      window.H38OwnerHome.render();
+      // Wire the "Read my day" button if present (legacy compatibility)
+      const readBtn = $('readDayButton');
+      if (readBtn) readBtn.onclick = readMyDay;
+      return;
+    } catch (e) {
+      console.error('[H38 OwnerHome] render failed, falling back to legacy:', e);
+    }
+  }
+  // Legacy Today view (fallback)
   const openJobs=records('jobs').filter(row=>!['COMPLETE','CLOSED','CANCELLED'].includes(String(v(row,'Status')).toUpperCase())).length,draftQuotes=records('quotes').filter(row=>String(v(row,'Status')).toUpperCase().includes('DRAFT')).length,unread=records('messages').filter(row=>String(v(row,'Status')).toUpperCase()!=='READ').length,dueAssets=records('assets').filter(row=>dueSoon(v(row,'Next Service'))).length;
   const schedule=records('scheduleEvents').filter(row=>new Date(v(row,'Start Time')).getTime()>=Date.now()-4*3600000).sort((a,b)=>new Date(v(a,'Start Time'))-new Date(v(b,'Start Time'))).slice(0,8);
   const recommendations=records('aiRecommendations').filter(row=>['Open','Postponed'].includes(v(row,'Status'))).slice(0,5),quick=activeRows(records('quickActions')).slice(0,10);

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Task — Highway 38 Solutions</title>
+<meta name="description" content="View and complete a task sent to you. No sign-in needed.">
+<!--
+  H38 Task Completion page — Phase 4: Tasks & Delegation (2026-10-11)
+  Standalone (no app shell, no login). Auth is the per-task Completion Token
+  in the URL (?token=...), validated server-side by the h38-task-complete
+  edge function (verify_jwt=false). The token grants exactly one capability:
+  viewing and completing THAT task. Nothing else is readable or writable.
+
+  DEPLOYMENT NEEDED (coordinator): deploy supabase/functions/h38-task-complete
+  (index.ts in this repo) and add the [functions.h38-task-complete]
+  verify_jwt=false entry to supabase/config.toml. This page does nothing
+  until that function is live.
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f0f4f8;color:#16262f;line-height:1.5;min-height:100vh}
+.hero{background:linear-gradient(135deg,#0b2438,#123a5c);color:#fff;padding:34px 20px 46px;text-align:center}
+.hero p{opacity:.8;font-size:13px;margin-top:4px}
+.wrap{max-width:520px;margin:-26px auto 60px;padding:0 16px}
+.card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:14px}
+.card h1{font-size:21px;margin-bottom:4px;color:#0b2438}
+.card h2{font-size:17px;margin-bottom:8px;color:#0b2438}
+.muted{color:#687e8d;font-size:14px}
+.task-title{font-size:19px;font-weight:800;color:#0b2438;margin:14px 0}
+.linkrow{display:block;margin:12px 0;padding:12px;border:1.5px solid #cbd7df;border-radius:10px;color:#0b6aa2;font-weight:700;text-decoration:none;word-break:break-all}
+button.block{width:100%;padding:16px;background:#0b6aa2;color:#fff;border:0;border-radius:12px;font-size:17px;font-weight:800;cursor:pointer;margin-top:14px}
+button.block:hover{background:#095a8a}
+button.block:disabled{opacity:.6;cursor:wait}
+.ok{background:#e8f7ee;border:1px solid #b6dec4;color:#126132;padding:20px;border-radius:14px;text-align:center}
+.ok h2{color:#126132;margin-bottom:8px}
+.err{background:#ffe9e9;border:1px solid #efb4b4;color:#a83232;padding:14px;border-radius:10px}
+.center{text-align:center;padding:32px 12px;color:#687e8d}
+.spinner{width:28px;height:28px;border:3px solid #cbd7df;border-top-color:#0b6aa2;border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e8eef3;color:#3d5261}
+.pill.green{background:#e8f7ee;color:#126132}
+</style>
+</head>
+<body>
+<div class="hero"><h1 id="heroBiz">Task</h1><p>Sent to you — no sign-in needed</p></div>
+<div class="wrap">
+  <div class="card center" id="loadingCard"><div class="spinner"></div><p>Loading your task…</p></div>
+  <div class="card" id="taskCard" hidden>
+    <p class="muted">Task from <b id="tSender"></b></p>
+    <h1 id="tBiz"></h1>
+    <div class="task-title" id="tTitle"></div>
+    <div id="tDueWrap" class="muted" hidden></div>
+    <a class="linkrow" id="tLink" hidden target="_blank" rel="noopener">🔗 <span id="tLinkText"></span></a>
+    <button class="block" id="doneBtn">✓ Mark as Done</button>
+    <p class="muted" style="margin-top:10px;font-size:13px" id="tNote"></p>
+  </div>
+  <div class="card" id="doneCard" hidden>
+    <div class="ok"><h2>Done! 🎉</h2><p id="doneMsg"></p></div>
+  </div>
+  <div class="card" id="errCard" hidden><div class="err" id="errMsg"></div></div>
+</div>
+<script>
+(function(){
+'use strict';
+var FN_URL='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-task-complete';
+var params=new URLSearchParams(location.search);
+var token=params.get('token')||'';
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function show(id){['loadingCard','taskCard','doneCard','errCard'].forEach(function(x){$(x).hidden=(x!==id);});}
+function fail(msg){$('errMsg').textContent=msg;show('errCard');}
+function api(action,method,body){
+  var url=FN_URL+'?action='+encodeURIComponent(action)+'&token='+encodeURIComponent(token);
+  var opts={method:method||'GET',headers:{'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  return fetch(url,opts).then(function(r){return r.json().then(function(o){return{ok:r.ok,status:r.status,o:o};});});
+}
+function dueText(iso){
+  try{var d=new Date(iso);if(isNaN(d))return '';return 'Due '+d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});}catch(e){return '';}
+}
+if(!token){fail('This link is missing its task code. Ask the sender to re-send the task.');return;}
+api('view','GET').then(function(r){
+  if(!(r.ok&&r.o&&r.o.ok)){fail((r.o&&r.o.error)||'This task link is not valid. It may have been cancelled.');return;}
+  var t=r.o.task||{};
+  if(t.alreadyDone){$('doneMsg').textContent=(t.senderName||'The sender')+' already has this marked done. Thanks!';show('doneCard');return;}
+  $('heroBiz').textContent=t.businessName||'Task';
+  $('tSender').textContent=t.senderName||'your office';
+  $('tBiz').textContent=t.businessName||'';
+  $('tTitle').textContent=t.title||'Untitled task';
+  if(t.due){$('tDueWrap').hidden=false;$('tDueWrap').textContent=dueText(t.due);}
+  if(t.linkUrl){var a=$('tLink');a.hidden=false;$('tLinkText').textContent=t.linkUrl;a.href=t.linkUrl;}
+  $('tNote').textContent='Tap the button when the task is finished. '+(t.senderName||'The sender')+' will be notified.';
+  show('taskCard');
+  $('doneBtn').addEventListener('click',function(){
+    var btn=$('doneBtn');btn.disabled=true;btn.textContent='Marking done…';
+    api('complete','POST',{action:'complete'}).then(function(c){
+      if(!(c.ok&&c.o&&c.o.ok)){btn.disabled=false;btn.textContent='✓ Mark as Done';fail((c.o&&c.o.error)||'Could not mark the task done. Try again.');return;}
+      var name=(c.o.task&&c.o.task.senderName)||t.senderName||'The sender';
+      $('doneMsg').textContent='Done! '+name+' has been notified.';
+      show('doneCard');
+    }).catch(function(){btn.disabled=false;btn.textContent='✓ Mark as Done';fail('Could not reach the server. Check your connection and try again.');});
+  });
+}).catch(function(){fail('Could not reach the server. Check your connection and try again.');});
+})();
+</script>
+</body>
+</html>
