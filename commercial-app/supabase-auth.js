@@ -57,6 +57,15 @@
   function readPreferredBusiness(userId) {
     const queryValue = new URLSearchParams(location.search).get('businessId');
     if (queryValue) return queryValue.trim();
+    // URL businessKey is authoritative: never trust a stale stored selection
+    // when the URL names a business. Clear it so the bridge resolves fresh.
+    try {
+      const urlKey = String(new URLSearchParams(location.search).get('businessKey') || '').trim();
+      if (urlKey) {
+        try { localStorage.removeItem(selectedBusinessKey(userId)); } catch (e) {}
+        return '';
+      }
+    } catch (e) {}
     try { return localStorage.getItem(selectedBusinessKey(userId)) || ''; }
     catch (error) { return ''; }
   }

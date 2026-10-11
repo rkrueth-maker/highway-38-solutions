@@ -42,8 +42,11 @@ function bindStartupControls(){
 }
 async function hydrateLocalStartup(requestedBusinessId){
   try{const settings=await withStartupTimeout(get('meta','settings'),'loading local settings');if(settings)state.drivingMode=!!settings.drivingMode;}catch(error){console.warn(error.message);}
+  // URL businessKey wins: ignore cached selection when the URL names a business.
+  let urlBusinessKey='';
+  try{urlBusinessKey=String(new URLSearchParams(location.search).get('businessKey')||'').trim();}catch(e){}
   if(requestedBusinessId)persistBusinessSelection(requestedBusinessId);
-  else{
+  else if(!urlBusinessKey){
     try{const selected=await withStartupTimeout(get('meta','selectedBusiness'),'loading saved business');const cachedBusinessId=selected?.businessId||'';if(cachedBusinessId&&!state.businessId)setFastBusinessId(cachedBusinessId);}catch(error){console.warn(error.message);}
   }
   try{
@@ -57,7 +60,10 @@ async function init(){
   setBusinessSwitcherVisible(false);retireLegacyOfflineShell();
   const query=new URLSearchParams(location.search);state.shell=SHELL_PAGES[query.get('shell')]?query.get('shell'):'office';$('shellLabel').textContent=SHELL_LABELS[state.shell];
   const requestedBusinessId=(query.get('businessId')||'').trim();let fastBusinessId=requestedBusinessId;
-  if(!fastBusinessId){try{fastBusinessId=localStorage.getItem('h38-selected-business')||'';}catch(error){}}
+  // URL businessKey wins over any stale localStorage selection — never read the
+  // cached business when the URL names one (prevents cross-tenant data leaks).
+  const urlBusinessKey=(query.get('businessKey')||'').trim();
+  if(!fastBusinessId&&!urlBusinessKey){try{fastBusinessId=localStorage.getItem('h38-selected-business')||'';}catch(error){}}
   setFastBusinessId(fastBusinessId);
   state.bridge=new H38Bridge($('bridgeFrame'),' ',handleBridgeStatus,handleStartupBootstrap,handleFullSnapshot,handleBridgeError);window.H38_ACTIVE_BRIDGE=state.bridge;
   bindGlobal();bindStartupControls();renderNav();network();if(state.snapshot)openPage(state.page,false);else renderWelcome('connecting');
