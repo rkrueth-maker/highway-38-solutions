@@ -7,6 +7,7 @@
  */
 (function h38RepairStaleAuthCache(){
   const build='20260809-1848';
+  const h38ConfigPageLoad=Date.now();
   const marker='h38:auth-cache-repair';
   try{
     if(sessionStorage.getItem(marker)===build)return;
@@ -29,6 +30,7 @@
     // under the user (that bounce reset navigation back to Today); the repair
     // above still applies from the next cold start.
     try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}
+    if(Date.now()-h38ConfigPageLoad<15000)return;
     location.reload();
   })();
 })();

@@ -20,7 +20,8 @@ function h38RetireLegacyNavigationArtifacts(){
 function h38InstallCurrentOfficeWorker(){
   if(!('serviceWorker' in navigator))return;
   const desktop=()=>!!window.matchMedia?.('(min-width: 761px)').matches;let reloading=false;
-  const reloadOnControllerChange=()=>{if(reloading||!desktop())return;try{if(sessionStorage.getItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY)==='1')return;sessionStorage.setItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY,'1');}catch(_){}try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}reloading=true;location.reload();};
+  const h38PageLoadTime=Date.now();
+  const reloadOnControllerChange=()=>{if(reloading||!desktop())return;try{if(sessionStorage.getItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY)==='1')return;sessionStorage.setItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY,'1');}catch(_){}try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}if(Date.now()-h38PageLoadTime<15000)return;reloading=true;location.reload();};
   navigator.serviceWorker.addEventListener('controllerchange',reloadOnControllerChange);
   navigator.serviceWorker.register(`./service-worker.js?build=${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`,{scope:'./',updateViaCache:'none'}).then(registration=>registration.update().catch(()=>{})).catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
 }
