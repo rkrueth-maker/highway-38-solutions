@@ -154,9 +154,9 @@ function autoOpenInstallHelp(){
 function normalizeSharedToolLabels(){
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
-    if(launcher.getAttribute('aria-label')!=='Open Assistant')launcher.setAttribute('aria-label','Open Assistant');
-    if(launcher.getAttribute('title')!=='Assistant')launcher.setAttribute('title','Assistant');
-    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!=='Assistant')label.textContent='Assistant';});
+    if(launcher.getAttribute('aria-label')!=='Ask Hank')launcher.setAttribute('aria-label','Ask Hank');
+    if(launcher.getAttribute('title')!=='Ask Hank')launcher.setAttribute('title','Ask Hank');
+    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!=='Ask Hank')label.textContent='Ask Hank';});
   }
   const aiDialog=document.getElementById('globalAiDialog');if(aiDialog&&aiDialog.getAttribute('aria-label')!=='Assistant')aiDialog.setAttribute('aria-label','Assistant');
   const voice=document.getElementById('voiceButton');if(voice&&voice.getAttribute('aria-label')!=='Talk to Assistant')voice.setAttribute('aria-label','Talk to Assistant');
@@ -177,13 +177,19 @@ function normalizeSharedToolLabels(){
   autoOpenInstallHelp();
   return true;
 }
-let applyQueued=false;
+let applyQueued=false,applyMuted=false;
 function apply(){
-  applyQueued=false;
-  installStyle();patchQuickDialog();polishTimeDialog();normalizeSharedToolLabels();
+  if(applyMuted)return;
+  applyMuted=true;
+  try{
+    applyQueued=false;
+    installStyle();patchQuickDialog();polishTimeDialog();normalizeSharedToolLabels();
+  }finally{
+    setTimeout(()=>{applyMuted=false;},50);
+  }
 }
-function scheduleApply(){if(applyQueued)return;applyQueued=true;queueMicrotask(apply);}
-const observer=new MutationObserver(scheduleApply);observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
+function scheduleApply(){if(applyQueued||applyMuted)return;applyQueued=true;queueMicrotask(apply);}
+const observer=new MutationObserver(()=>{if(!applyMuted)scheduleApply();});observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','open']});
 window.addEventListener('pageshow',scheduleApply);window.addEventListener('h38:business-snapshot-updated',scheduleApply);window.addEventListener('h38:office-page-rendered',scheduleApply);window.addEventListener('resize',scheduleApply,{passive:true});
 scheduleApply();
 window.H38_OWNER_MOBILE_QUICK_ACTIONS=Object.freeze({enabled:true,build:BUILD,sharedOfficeEngine:true,plusLocationPreserved:true,clockInOutUnderPlus:true,clockInOutUnderPlusAllViewports:true,timeClockTodayCardHiddenAllViewports:true,timeDialogSeparatedFromErp:true,personalAssistantUnderPlus:false,globalAssistantCanonical:true,operationsIntelligenceUnderPlus:true,operationsIntelligenceAutoLoadsOnToday:false,operationsOpensWorkContext:true,ownerTodayClockCardHiddenOnMobile:true,staffTodayClockCardHiddenOnMobile:true,bottomNavGeometryLocked:true,idempotentMutationObserver:true,sharedToolLabelsNeutral:true,assistantLabelTenantNeutral:true,installLabelTenantNeutral:true,installPlatformLinks:true,installLinksTenantAware:true,installLinkAutoOpen:true,aiNavigationLabelTenantNeutral:true,openClock,openOperations,installLink,patchQuickDialog,polishTimeDialog,normalizeSharedToolLabels});

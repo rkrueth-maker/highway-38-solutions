@@ -118,16 +118,23 @@ function syncAssistantBadge(){
 }
 function polishAssistantLauncher(){
   const personal=document.getElementById('personalAssistantButton');
-  if(personal){personal.hidden=true;personal.tabIndex=-1;personal.setAttribute('aria-hidden','true');}
+  if(personal){
+    if(personal.hidden!==true)personal.hidden=true;
+    if(personal.tabIndex!==-1)personal.tabIndex=-1;
+    if(personal.getAttribute('aria-hidden')!=='true')personal.setAttribute('aria-hidden','true');
+  }
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
     launcher.classList.add('h38-floating-assistant','h38-polish-touch');
-    launcher.setAttribute('aria-label','Open My H38 Assistant');
-    launcher.setAttribute('title','My H38 Assistant');
+    if(launcher.getAttribute('aria-label')!=='Ask Hank')launcher.setAttribute('aria-label','Ask Hank');
+    if(launcher.getAttribute('title')!=='Ask Hank')launcher.setAttribute('title','Ask Hank');
     if(launcher.dataset.h38UnifiedAssistant!=='1'){
       launcher.dataset.h38UnifiedAssistant='1';
-      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">Ask H38</span>';
+      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">Ask Hank</span>';
       launcher.addEventListener('click',openUnifiedAssistant,true);
+    }else{
+      const label=launcher.querySelector('.h38-floating-assistant-label,.ai-launcher-label');
+      if(label&&text(label.textContent)!=='Ask Hank')label.textContent='Ask Hank';
     }
   }
   syncAssistantBadge();
@@ -213,22 +220,29 @@ function polishTouchTargets(){
   bindSearchTrigger(document.getElementById('h38OpenLifecycleSearch'));
   document.getElementById('h38OfficeSearchButton')?.classList.add('h38-polish-touch');
 }
+let applyMuted=false;
 function apply(){
-  installPlatformClasses();
-  polishSearch();
-  polishTouchTargets();
-  polishAssistantLauncher();
-  decorateAssistantPage();
-  syncShellTop();
+  if(applyMuted)return;
+  applyMuted=true;
+  try{
+    installPlatformClasses();
+    polishSearch();
+    polishTouchTargets();
+    polishAssistantLauncher();
+    decorateAssistantPage();
+    syncShellTop();
+  }finally{
+    setTimeout(()=>{applyMuted=false;},50);
+  }
 }
 function scheduleApply(){
-  if(applyScheduled)return;
+  if(applyScheduled||applyMuted)return;
   applyScheduled=true;
   const run=()=>{applyScheduled=false;apply();};
   if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0);
 }
 
-const observer=new MutationObserver(scheduleApply);
+const observer=new MutationObserver(()=>{if(!applyMuted)scheduleApply();});
 observer.observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&searchDialog()?.open){event.preventDefault();closeSearch('escape');}},true);
 window.addEventListener('resize',syncShellTop,{passive:true});
