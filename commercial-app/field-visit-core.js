@@ -47,7 +47,7 @@ async function camera(){
     await session();
     const d=device();
     if(!d.hasNative){
-      if(d.platform==='ios')throw Error('Apple camera photos work here now. LiDAR measuring needs the H38 iPhone/iPad app; use Take Photos or tape/laser entry until that app is installed.');
+      if(d.platform==='ios')throw Error('Apple camera photos work here now. For LiDAR measuring on iPhone, install Mozilla\'s free WebXR Viewer app from the App Store, then open this page in it. Or use Take Photos or tape/laser entry.');
       throw Error('AR measuring requires the installed H38 Android or Apple field app. Photos and tape/laser entry still work offline.');
     }
     const allowed=d.platform==='ios'?['LIDAR_ROOM','LIDAR_MESH','ARKIT_POINT_TO_POINT']:['ARCORE_DEPTH','ARCORE_POINT_TO_POINT'];
