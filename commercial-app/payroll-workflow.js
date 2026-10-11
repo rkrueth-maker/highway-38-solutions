@@ -171,6 +171,60 @@ function h38PayStubHTML(business, employee, period, line){
   </div>`;
 }
 
+/* ---------- Amount in words (check face) ---------- */
+function h38AmountToWords(amount){
+  const ones=['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const scales=['','Thousand','Million','Billion'];
+  const totalCents=Math.round(Math.abs(num(amount))*100);
+  let dollars=Math.floor(totalCents/100);
+  const centPart=totalCents%100;
+  function threeDigits(n){
+    const parts=[];
+    const hundreds=Math.floor(n/100), rest=n%100;
+    if(hundreds)parts.push(ones[hundreds]+' Hundred');
+    if(rest>=20){parts.push(tens[Math.floor(rest/10)]+(rest%10?' '+ones[rest%10]:''));}
+    else if(rest>0){parts.push(ones[rest]);}
+    return parts.join(' ');
+  }
+  let words='';
+  if(dollars===0)words='Zero';
+  else{
+    const chunks=[];
+    let d=dollars,scale=0;
+    while(d>0){chunks.push({n:d%1000,scale});d=Math.floor(d/1000);scale++;}
+    words=chunks.reverse().map(c=>c.n?threeDigits(c.n)+(scales[c.scale]?' '+scales[c.scale]:''):'').filter(Boolean).join(' ');
+  }
+  return `${words} and ${String(centPart).padStart(2,'0')}/100 Dollars`;
+}
+
+/* ---------- Paycheck sheet: check face (for bank-supplied check-on-top
+ * stock) + earnings stub below. The Office prints ONLY the variable fields.
+ * The MICR line, bank name, routing and account numbers are pre-printed on
+ * the business's bank stock — the Office never prints them. ---------- */
+function h38PaycheckSheetHTML(business, employee, period, line, check){
+  const empName=esc(v(employee,'Display Name')||v(check,'Payee Name')||'Employee');
+  const payDate=esc(dateOnly(v(period,'Pay Date')||v(check,'Check Date')));
+  const amount=num(v(line,'Net Pay'));
+  const amountFig='$'+amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const amountWords=esc(h38AmountToWords(amount))+' ****';
+  const memo=esc(`Payroll ${dateOnly(v(period,'Period Start'))} – ${dateOnly(v(period,'Period End'))}`);
+  const ox=Number(v(check,'Offset X Mm'))||0, oy=Number(v(check,'Offset Y Mm'))||0;
+  const stub=h38PayStubHTML(business,employee,period,line);
+  return `<section class="paycheck-sheet">
+    <div class="paycheck-face"><div class="paycheck-cal" style="transform:translate(${ox}mm,${oy}mm)">
+      <div class="paycheck-date"><span class="paycheck-flabel">Date</span> ${payDate}</div>
+      <div class="paycheck-payee">${empName}</div>
+      <div class="paycheck-amount"><strong>${amountFig}</strong></div>
+      <div class="paycheck-words">${amountWords}</div>
+      <div class="paycheck-memo"><span class="paycheck-flabel">Memo</span> ${memo}</div>
+      <div class="paycheck-sig"><div class="paycheck-sigline"></div><span class="paycheck-flabel">Authorized signature — sign by hand</span></div>
+    </div></div>
+    <div class="paycheck-stubhead"><span><strong>Pay stub</strong> · Check #${esc(v(check,'Check Number'))} · Pay date ${payDate}</span><span>Keep for your records</span></div>
+    ${stub}
+  </section>`;
+}
+
 /* ---------- CSV export (for bank / accountant) ---------- */
 function h38PayrollCSV(period, lines, employees){
   const head='Employee,Employee ID,Regular Hours,Overtime Hours,Gross Pay,Federal WH,Social Security,Medicare,State WH,Total Deductions,Net Pay,Pay Date';

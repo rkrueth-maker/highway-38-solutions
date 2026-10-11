@@ -74,6 +74,13 @@ async function applySelected(){const result=document.getElementById('h38Universa
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-h38-universal-analyze]')){e.preventDefault();analyze();}if(e.target.closest?.('[data-h38-universal-stage]')){e.preventDefault();stageSelected();}if(e.target.closest?.('[data-h38-universal-apply]')){e.preventDefault();applySelected();}},true);
 document.addEventListener('change',e=>{if(e.target?.matches?.('[data-h38-universal-select],[data-h38-universal-apply-select],#h38UniversalImportApprove'))refreshButtons();},true);
 const observer=new MutationObserver(()=>{if(observerQueued)return;observerQueued=true;queueMicrotask(()=>{observerQueued=false;decorate();});});observer.observe(document.documentElement,{childList:true,subtree:true});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate,{once:true});else decorate();
-const api=Object.freeze({build:BUILD,universal:true,csv:true,json:true,xls:true,xlsx:true,detectedCollections:Object.freeze(['customers','properties','jobs','quotes','invoices','timeEntries','expenses','payments','historicalRecords']),tenantIsolated:true,separateStagingRuns:true,duplicateMatching:true,customerReferenceResolution:true,confirmedInferredReview:true,ownerApprovalRequired:true,preservesExistingNonblankValues:true,preservesGenericDataUptake:true,automaticCustomerSending:false,automaticPayments:false,automaticScheduling:false,automaticApproval:false});
+/* Flow-redesign (2026-10-10): manual customer entry reuses the exact import
+ * dedupe scorer (M2) against local records instead of reimplementing it.
+ * mapped: canonical customer fields {'Customer Name','Email','Phone',...}.
+ * list: [{record_key, payload}] local customer rows. Returns best match or null. */
+function matchCustomerLocal(mapped,list){
+  return matchCustomer(mapped,Array.isArray(list)?list:[]);
+}
+const api=Object.freeze({build:BUILD,universal:true,csv:true,json:true,xls:true,xlsx:true,detectedCollections:Object.freeze(['customers','properties','jobs','quotes','invoices','timeEntries','expenses','payments','historicalRecords']),tenantIsolated:true,separateStagingRuns:true,duplicateMatching:true,customerReferenceResolution:true,confirmedInferredReview:true,ownerApprovalRequired:true,preservesExistingNonblankValues:true,preservesGenericDataUptake:true,automaticCustomerSending:false,automaticPayments:false,automaticScheduling:false,automaticApproval:false,matchCustomerLocal});
 window.H38_UNIVERSAL_SMART_IMPORT=api;window.H38_CUSTOMER_IMPORT_INTELLIGENCE=api;
 })();

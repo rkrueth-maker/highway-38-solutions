@@ -76,20 +76,84 @@ function canViewCustomerMoney(state){
   const u=state?.snapshot?.user||{},p=u.permissions||{},role=text(value(u,'roleName','Role Name','roleId','Role')).toLowerCase();
   return !!(u.owner||p.all||p.manageFinancial||p.viewFinancial||['owner','administrator','admin','bookkeeper'].includes(role));
 }
+/* ---- Flow redesign (2026-10-10): Pattern 2 empty states ----
+ * Every "No X saved" is now an inline add (M7 model via H38Flow.inlineAdder),
+ * never dead text. Wire via wireCustomerInlineAdds after the workspace renders. */
+const C360_CONTACT_FIELDS=[
+  {field:'Email',label:'Email',short:'email',inputType:'email',placeholder:'you@example.com',keys:['Email','email']},
+  {field:'Alternate Email',label:'Alternate email',short:'alt email',inputType:'email',placeholder:'you@example.com',keys:['Alternate Email']},
+  {field:'Phone',label:'Phone',short:'phone',inputType:'tel',placeholder:'(218) 555-0100',keys:['Phone','phone']},
+  {field:'Mobile Phone',label:'Mobile phone',short:'mobile',inputType:'tel',placeholder:'(218) 555-0100',keys:['Mobile Phone']},
+  {field:'Alternate Phone',label:'Alternate phone',short:'alt phone',inputType:'tel',placeholder:'(218) 555-0100',keys:['Alternate Phone']}
+];
+const C360_RATE_FIELDS=['Hourly Rate','Flat Rate','Recurring Service Rate','Mowing Rate','Plowing Rate','Property Maintenance Rate','Minimum Charge','Discount','Material Markup','Equipment Rate','Travel / Service Call Charge','Contract Pricing','Previous Quote Price','Previous Invoice Price'];
+function c360InlineSlot(esc,field,label,short,inputType,placeholder){
+  return `<div class="h38-c360-detail-line h38-inline-slot" data-h38-inline-field="${esc(field)}" data-h38-inline-empty="No ${esc(short)} saved." data-h38-inline-add="Add ${esc(short)}" data-h38-inline-type="${esc(inputType)}" data-h38-inline-placeholder="${esc(placeholder)}" data-h38-inline-label="${esc(label)}"></div>`;
+}
 function customerOverviewCard(c,esc){
   const join=(parts,separator=', ')=>parts.map(text).filter(Boolean).join(separator);
   const line=(label,content)=>content?`<div class="h38-c360-detail-line"><span>${esc(label)}</span><strong>${esc(content)}</strong></div>`:'';
   const billingStreet=join([value(c,'Billing Address'),value(c,'Billing Address 2')]);
   const billingLocality=join([value(c,'Billing City'),value(c,'Billing State'),value(c,'Billing ZIP')],' ');
-  const contact=[line('Email',value(c,'Email','email')),line('Alternate email',value(c,'Alternate Email')),line('Phone',value(c,'Phone','phone')),line('Mobile phone',value(c,'Mobile Phone')),line('Alternate phone',value(c,'Alternate Phone')),line('Preferred contact',value(c,'Preferred Contact Method'))].filter(Boolean).join('');
-  const addresses=[line('Service address',customerServiceAddress(c)),line('Billing address',join([billingStreet,billingLocality]))].filter(Boolean).join('');
-  return `<section class="card h38-c360-customer-details" data-h38-customer-details><h3>Customer details</h3><div class="h38-c360-detail-columns h38-c360-detail-columns-two"><div><h4>Contact</h4>${contact||'<p class="muted small">No email or phone saved.</p>'}</div><div><h4>Addresses</h4>${addresses||'<p class="muted small">No customer address saved.</p>'}</div></div></section>`;
+  const contact=C360_CONTACT_FIELDS.map(def=>{
+    const content=text(value(c,...def.keys));
+    return content?line(def.label,content):c360InlineSlot(esc,def.field,def.label,def.short,def.inputType,def.placeholder);
+  }).join('')+line('Preferred contact',value(c,'Preferred Contact Method'));
+  const serviceAddress=customerServiceAddress(c);
+  const addresses=(serviceAddress?line('Service address',serviceAddress):c360InlineSlot(esc,'Service Address','Service address','address','text','Street address, city, state ZIP'))+line('Billing address',join([billingStreet,billingLocality]));
+  return `<section class="card h38-c360-customer-details" data-h38-customer-details><h3>Customer details</h3><div class="h38-c360-detail-columns h38-c360-detail-columns-two"><div><h4>Contact</h4>${contact}</div><div><h4>Addresses</h4>${addresses}</div></div></section>`;
 }
 function customerRatesCard(c,esc){
   const line=(label,content)=>content?`<div class="h38-c360-detail-line"><span>${esc(label)}</span><strong>${esc(content)}</strong></div>`:'';
-  const rateFields=['Hourly Rate','Flat Rate','Recurring Service Rate','Mowing Rate','Plowing Rate','Property Maintenance Rate','Minimum Charge','Discount','Material Markup','Equipment Rate','Travel / Service Call Charge','Contract Pricing','Previous Quote Price','Previous Invoice Price'];
-  const rates=rateFields.map(field=>line(field,value(c,field))).filter(Boolean).join('');
-  return `<section class="card h38-c360-rates"><h3>Customer pricing</h3>${rates||'<p class="muted small">No customer-specific rates saved.</p>'}</section>`;
+  const rates=C360_RATE_FIELDS.map(field=>line(field,value(c,field))).filter(Boolean).join('');
+  return `<section class="card h38-c360-rates"><h3>Customer pricing</h3>${rates||'<div class="h38-inline-slot" data-h38-inline-rate></div>'}</section>`;
+}
+/* Save one customer field through the offline queue (M7/M10 model). */
+function saveCustomerField(snapshot,customerId,field,fieldValue){
+  const customer=rows(snapshot,'customers').find(row=>idFor('customers',row)===text(customerId));
+  if(!customer)return Promise.reject(new Error('The customer record could not be found.'));
+  const r={};for(const k in customer)r[k]=customer[k];
+  r[field]=fieldValue;
+  r['Updated Time']=new Date().toISOString();
+  r['Record Version']=Math.max(1,Number(value(r,'Record Version','recordVersion'))+1);
+  delete r.__localPending;
+  const q=window.queueOperation||(typeof queueOperation==='function'?queueOperation:null);
+  if(!q)return Promise.reject(new Error('Customer save is unavailable right now.'));
+  return q('SAVE_ENTITY','Customer',text(customerId),{entity:'customers',record:r},{collection:'customers',record:r,idKeys:['Customer ID']});
+}
+/* Wire the inline add slots rendered by customerOverviewCard/customerRatesCard. */
+function wireCustomerInlineAdds(root,workspace,snapshot,customerId){
+  const flow=window.H38Flow;
+  if(!flow||typeof flow.inlineAdder!=='function')return;
+  workspace.querySelectorAll('[data-h38-inline-field]').forEach(slot=>{
+    flow.inlineAdder(slot,{
+      emptyText:slot.dataset.h38InlineEmpty||'None saved.',
+      addLabel:slot.dataset.h38InlineAdd||'Add',
+      inputType:slot.dataset.h38InlineType||'text',
+      placeholder:slot.dataset.h38InlinePlaceholder||'',
+      saveLabel:'Save',
+      validate:slot.dataset.h38InlineType==='email'?(entered=>/^\S+@\S+\.\S+$/.test(entered)?null:'Enter a valid email address.'):null,
+      onSave:async entered=>{
+        await saveCustomerField(snapshot,customerId,slot.dataset.h38InlineField,entered);
+        window.toast?.(`${slot.dataset.h38InlineLabel||'Value'} saved.`);
+        renderCustomersNow(root);
+      }
+    });
+  });
+  const rateSlot=workspace.querySelector('[data-h38-inline-rate]');
+  if(rateSlot){
+    flow.inlineAdder(rateSlot,{
+      emptyText:'No customer-specific rates saved.',
+      addLabel:'Add a rate',
+      saveLabel:'Save rate',
+      selectOptions:C360_RATE_FIELDS.map(field=>({value:field,label:field})),
+      onSave:async picked=>{
+        await saveCustomerField(snapshot,customerId,picked.field,picked.value);
+        window.toast?.(`${picked.field} saved (${picked.value}).`);
+        renderCustomersNow(root);
+      }
+    });
+  }
 }
 function customerBalanceCard(groups,esc){
   const invoices=groups.invoices||[],payments=groups.payments||[];
@@ -119,9 +183,35 @@ function renderCustomer360(root){
   if(Number(root.innerWidth||0)>900){master.style.display='grid';master.style.gridTemplateColumns='minmax(230px,290px) minmax(0,1fr)';master.style.width='100%';master.style.minWidth='0';}
   const directory=root.document.createElement('aside');directory.className='card h38-c360-directory-rail';directory.dataset.h38CustomerDirectoryHost='1';directory.innerHTML='<div class="h38-customer-directory-head"><div><span class="h38-c360-kicker">CUSTOMERS</span><h2>Customer directory</h2></div><button type="button" class="secondary" data-h38-new-customer>+ Add</button></div><div class="h38-c360-search"><label for="h38Customer360Search">Find customer, address or job</label><input id="h38Customer360Search" autocomplete="off" placeholder="Name, address or job"><div id="h38Customer360Matches"></div></div><div data-h38-customer-directory-list></div>';
   const detail=root.document.createElement('div');detail.className='h38-c360-detail';detail.dataset.h38CustomerDetailHost='1';if(Number(root.innerWidth||0)>900){detail.style.display='block';detail.style.width='100%';detail.style.minWidth='0';}master.append(directory,detail);
+  /* Pattern 4: customer status is a transition, not a label. Active ⇄ Inactive
+   * both have a UI action; inactive records are kept, never deleted. */
+  const customerStatus=text(value(c,'Status','status'))||'Active';
   const top=root.document.createElement('section');top.className='card h38-c360 full';
-  top.innerHTML=`<div class="h38-c360-head"><div><span class="h38-c360-kicker">CUSTOMER 360</span><h2>${esc(customerName)}</h2><p>${c?esc([value(c,'Email'),phone,address].filter(Boolean).join(' · ')||'No customer details yet'):'Choose a customer to open the complete workspace.'}</p></div></div>${result?`<div class="h38-c360-stats"><div><strong>${counts.locations}</strong><span>Locations</span></div><div><strong>${counts.jobs}</strong><span>Jobs</span></div><div><strong>${counts.quotes}</strong><span>Quotes</span></div><div><strong>${counts.siteVisits}</strong><span>Site visits</span></div><div><strong>${counts.meetings}</strong><span>Meetings</span></div><div><strong>${counts.files}</strong><span>Files</span></div></div><div class="h38-c360-actions">${phone?'<button type="button" data-c360-action="call">Call</button>':''}${phone?'<button type="button" data-c360-action="text">Text</button>':''}<button type="button" data-c360-action="message">Communications</button>${address?'<button type="button" class="secondary" data-c360-action="navigate">Navigate</button>':''}<button type="button" class="secondary" data-c360-action="quote">Start quote</button><button type="button" class="secondary" data-c360-action="site">Site visit</button><button type="button" class="secondary" data-c360-action="meeting">Meeting</button></div>`:''}`;
+  top.innerHTML=`<div class="h38-c360-head"><div><span class="h38-c360-kicker">CUSTOMER 360</span><h2>${esc(customerName)}</h2>${c?`<div class="h38-c360-status-line"><span class="pill">${esc(customerStatus)}</span><button type="button" class="secondary" data-h38-customer-status>${customerStatus==='Active'?'Mark inactive':'Reactivate'}</button></div>`:''}<p>${c?esc([value(c,'Email'),phone,address].filter(Boolean).join(' · ')||'No customer details yet'):'Choose a customer to open the complete workspace.'}</p></div></div>${result?`<div class="h38-c360-stats"><div><strong>${counts.locations}</strong><span>Locations</span></div><div><strong>${counts.jobs}</strong><span>Jobs</span></div><div><strong>${counts.quotes}</strong><span>Quotes</span></div><div><strong>${counts.siteVisits}</strong><span>Site visits</span></div><div><strong>${counts.meetings}</strong><span>Meetings</span></div><div><strong>${counts.files}</strong><span>Files</span></div></div><div class="h38-c360-actions">${phone?'<button type="button" data-c360-action="call">Call</button>':''}${phone?'<button type="button" data-c360-action="text">Text</button>':''}<button type="button" data-c360-action="message">Communications</button>${address?'<button type="button" class="secondary" data-c360-action="navigate">Navigate</button>':''}<button type="button" class="secondary" data-c360-action="quote">Start quote</button><button type="button" class="secondary" data-c360-action="site">Site visit</button><button type="button" class="secondary" data-c360-action="meeting">Meeting</button></div>`:''}`;
   detail.appendChild(top);if(grid)grid.before(master);else main.appendChild(master);
+  const statusButton=top.querySelector('[data-h38-customer-status]');
+  if(statusButton&&c){
+    statusButton.addEventListener('click',()=>{
+      const toInactive=customerStatus==='Active',target=toInactive?'Inactive':'Active';
+      const flow=window.H38Flow;
+      if(!flow||typeof flow.ask!=='function'){window.toast?.('Customer status change is unavailable right now.',true);return;}
+      flow.ask({
+        id:'h38CustomerStatus',
+        signature:['customer-status',selected,customerStatus].join('|'),
+        title:toInactive?'Mark this customer inactive?':'Reactivate this customer?',
+        detail:toInactive?'Inactive customers stay in the system but leave the active list. Nothing is deleted.':'The customer returns to the active list.',
+        actions:[
+          {label:toInactive?'Mark inactive':'Reactivate',primary:true,handler:async()=>{
+            document.getElementById('h38CustomerStatus')?.remove();
+            await saveCustomerField(snapshot,selected,'Status',target);
+            window.toast?.(`Customer ${toInactive?'marked inactive':'reactivated'}.`);
+            renderCustomersNow(root);
+          }},
+          {label:'Keep as is',handler:()=>document.getElementById('h38CustomerStatus')?.remove()}
+        ]
+      });
+    });
+  }
   if(result){
     const section=(title,collection,limit=8,listOverride=null)=>{
       const list=Array.isArray(listOverride)?listOverride:(g[collection]||[]);
@@ -139,6 +229,7 @@ function renderCustomer360(root){
     const money=moneyAllowed?`<div class="h38-c360-panel" role="tabpanel" data-c360-panel="money" ${requested==='money'?'':'hidden'}>${customerBalanceCard(g,esc)}${customerRatesCard(c,esc)}${section('Quotes','quotes')}${section('Invoices','invoices')}${section('Payments','payments')}</div>`:'';
     const files=`<div class="h38-c360-panel" role="tabpanel" data-c360-panel="files" ${requested==='files'?'':'hidden'}>${section('Documents','documents')}${section('Photos','documents',8,photos)}${section('Meeting reports','documents',8,meetingReports)}${section('Visit reports','documents',8,visitReports)}${section('Meetings','meetings')}</div>`;
     workspace.innerHTML=tabs+overview+work+money+files;detail.appendChild(workspace);
+    wireCustomerInlineAdds(root,workspace,snapshot,selected);
     workspace.querySelectorAll('[data-c360-tab]').forEach(button=>button.onclick=()=>{const key=button.dataset.c360Tab;api.selectedTab=key;workspace.querySelectorAll('[data-c360-tab]').forEach(node=>node.setAttribute('aria-selected',String(node===button)));workspace.querySelectorAll('[data-c360-panel]').forEach(panel=>panel.hidden=panel.dataset.c360Panel!==key);});
   }
   if(setupCards.length){const dialog=root.document.createElement('dialog');dialog.className='h38-c360-setup-dialog';dialog.setAttribute('aria-label','Customer setup');dialog.innerHTML='<div class="h38-c360-setup-head"><div><span class="h38-c360-kicker">CUSTOMER SETUP</span><h2>Add or update</h2></div><button type="button" class="secondary" data-h38-close-customer-setup aria-label="Close customer setup">Close</button></div><div class="h38-c360-setup-grid"></div>';const holder=dialog.querySelector('.h38-c360-setup-grid');setupCards.forEach(card=>holder.appendChild(card));dialog.querySelector('[data-h38-close-customer-setup]').onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});main.appendChild(dialog);}

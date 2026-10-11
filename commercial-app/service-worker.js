@@ -26,7 +26,7 @@ const SHELL=[
   './app-01.js','./runtime-rowid-fix.js','./app-02.js','./app-03.js','./app-04.js','./app-05.js',
   './app-06.js','./app-07.js','./app-08.js','./app-09.js','./app-10.js',
   './app-11.js','./app-12.js','./app-13.js','./app-14.js','./smart-upload.js','./app-15.js',
-  './communications-native-receptionist.js','./app-16.js','./app-17.js','./app-18.js','./app-19.js','./app-20.js','./offline-mode.js',
+  './communications-native-receptionist.js','./app-16.js','./app-17.js','./app-18.js','./app-19.js','./app-20.js','./offline-mode.js','./h38-flow-helpers.js',
   '../assets/highway38-logo.png',SUPABASE_CDN
 ];
 function freshLiveRequest(request,file){
