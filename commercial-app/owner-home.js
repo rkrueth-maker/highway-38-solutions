@@ -499,7 +499,8 @@
         if (window.H38OrderInventory && typeof window.H38OrderInventory.start === 'function') window.H38OrderInventory.start();
         else openPage('inventory');
       } },
-      milestones: { icon: '🎯', label: 'Milestones', fn: () => openPage('work') }
+      milestones: { icon: '🎯', label: 'Milestones', fn: () => openPage('work') },
+      quickstart: { icon: '⚡', label: 'Photo→Quote', fn: () => launchQuickStart() }
     };
     switch (type) {
       case 'lawn-snow': return [all.trigger, all.route, all.sendtask, all.customer];
@@ -511,12 +512,24 @@
     }
   }
 
+  /* ---- Quick Start launcher (H38QuickStart loads separately; degrade gracefully) ---- */
+  function launchQuickStart() {
+    if (window.H38QuickStart && typeof window.H38QuickStart.start === 'function') window.H38QuickStart.start();
+    else toast('Quick Start is loading. Try again in a moment.', true);
+  }
+
   /* ================= Main renderer ================= */
 
   function renderOwnerHome() {
     actionHandlers.length = 0;
     const type = detectBusinessType();
     const cards = [];
+
+    /* ---- Quick Start: new business = zero quotes AND zero customers ---- */
+    let isNewBusiness = false;
+    try {
+      isNewBusiness = ((records('quotes') || []).length === 0) && ((records('customers') || []).length === 0);
+    } catch (e) { isNewBusiness = false; }
 
     /* ---- Shared money cards (all types) ---- */
     pushCard(cards, '💵', 'Invoices overdue', getOverdueInvoices());
@@ -673,6 +686,7 @@
 
     /* ---- Quick actions (PROMINENT, near top) ---- */
     const quicks = quickActionsFor(type);
+    if (!isNewBusiness) quicks.push({ icon: '⚡', label: 'Photo→Quote', fn: () => launchQuickStart() });
     const quickIdx = quicks.map(q => registerAction(q.fn));
     const quickHtml = `
       <section class="h38-quick-hero">
@@ -718,9 +732,20 @@
     /* ---- Kit AI activity feed ("While You Were Away") ---- */
     const kitFeedSlotHtml = '<div id="h38KitFeedSlot"></div>';
 
+    /* ---- Quick Start hero banner (new businesses: first value in 60 seconds) ---- */
+    const qsHero = isNewBusiness ? `
+      <section class="h38-qs-hero">
+        <button type="button" class="h38-qs-btn" data-action-idx="${registerAction(() => launchQuickStart())}">
+          <span class="h38-qs-emoji" aria-hidden="true">⚡</span>
+          <span class="h38-qs-text"><strong>Quick Start: Photo → Quote</strong><small>Your first quote in 60 seconds. No setup needed.</small></span>
+          <span class="h38-qs-arrow" aria-hidden="true">→</span>
+        </button>
+      </section>` : '';
+
     /* ---- Assemble: hero → quick actions → needs-you-now → kit feed → type extras → tasks → schedule ---- */
     $('mainContent').innerHTML = headerHtml + `
       <div class="h38-owner-home h38-type-${type}">
+        ${qsHero}
         ${quickHtml}
         ${heroHtml}
         ${routeHtml}
