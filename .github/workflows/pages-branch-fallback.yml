@@ -147,16 +147,13 @@ jobs:
           node --check commercial-app/quote-drift-control.js
           node --check commercial-app/quote-delivery-final-fix.js
           node --check commercial-app/service-worker.js
+          node --check commercial-app/bundle-core.js
+          node --check commercial-app/bundle-pages.js
+          node --check commercial-app/bundle-features.js
 
-          grep -Fq "runtime-rowid-fix.js" commercial-app/index.html
-          grep -Fq "field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158" commercial-app/index.html
-          grep -Fq "field-visit-guided-controller.js?build=20260811-guided-ar-advance-1" commercial-app/index.html
-          grep -Fq "field-visit-video-measurements.js?build=20260811-video-headless-stable-1154" commercial-app/index.html
-          grep -Fq "site-scanner-cad-save-guard.js?build=20260811-cad-save-guard-1156" commercial-app/index.html
-          grep -Fq "quote-ai-live-fix.js" commercial-app/index.html
-          grep -Fq "quote-total-lock.js" commercial-app/index.html
-          grep -Fq "quote-drift-control.js" commercial-app/index.html
-          grep -Fq "quote-delivery-final-fix.js" commercial-app/index.html
+          grep -Fq "bundle-core.js" commercial-app/index.html
+          grep -Fq "bundle-pages.js" commercial-app/index.html
+          grep -Fq "bundle-features.js" commercial-app/index.html
 
           index_build="$(sed -n "s/.*window.H38_ASSET_BUILD='\([^']*\)'.*/\1/p" commercial-app/index.html | head -1)"
           cache_build="$(sed -n "s/^const CACHE_NAME='h38-business-office-\([^']*\)'.*/\1/p" commercial-app/service-worker.js | head -1)"
