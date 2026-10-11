@@ -15,6 +15,10 @@
   }catch(_){return;}
   if(!('serviceWorker' in navigator)&&!('caches' in window))return;
   try{document.documentElement.style.visibility='hidden';}catch(_){}
+  // Safety: never leave the page invisible. Restore visibility on a hard
+  // timeout even if the cache repair below hangs (service worker / caches
+  // promises have been observed to never settle in some environments).
+  setTimeout(function(){try{document.documentElement.style.visibility='';}catch(_){}},3000);
   (async()=>{
     try{
       if('serviceWorker' in navigator){
@@ -26,11 +30,12 @@
         await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(key=>caches.delete(key)));
       }
     }catch(_){}
+    finally{try{document.documentElement.style.visibility='';}catch(_){}}
     // If the Office already painted business records, do not reload out from
     // under the user (that bounce reset navigation back to Today); the repair
     // above still applies from the next cold start.
-    try{if(typeof state!=='undefined'&&state&&state.snapshot){try{document.documentElement.style.visibility='';}catch(_){}return;}}catch(_){}
-    if(Date.now()-h38ConfigPageLoad<15000){try{document.documentElement.style.visibility='';}catch(_){}return;}
+    try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}
+    if(Date.now()-h38ConfigPageLoad<15000)return;
     location.reload();
   })();
 })();
