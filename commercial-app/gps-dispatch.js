@@ -594,7 +594,7 @@ function renderDispatch(dateStr){
   }).join('');
   main.innerHTML=
     '<header class="page-head"><div><h1>Dispatch board</h1><p>'+esc(stops.length)+' stop'+(stops.length===1?'':'s')+' · '+esc(board.date)+'</p></div>'+
-    '<div class="page-tools"><button type="button" class="secondary" id="h38DispatchBack">← Fleet</button></div></header>'+
+    '<div class="page-tools"><button type="button" class="secondary" id="h38DispatchBack">← Fleet</button><button type="button" class="secondary" id="h38DispatchOptimize">🗺 Optimize route</button></div></header>'+
     '<div class="grid"><section class="card span12 h38-dispatch-card"><div class="row-top" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
     '<label style="margin:0">Date '+dateInput+'</label>'+
     '<button type="button" id="h38DispatchShare" class="secondary" style="min-height:44px">📍 Share my location (on shift)</button>'+
@@ -606,6 +606,30 @@ function renderDispatch(dateStr){
     '</div></section></div>';
   // wire
   document.getElementById('h38DispatchBack').onclick=function(){closeDispatch();if(typeof w.openPage==='function')w.openPage('fleet');};
+  /* Redesign IA: route optimizer is built but buried — link it from the dispatch board (M6 deep-link tier). */
+  document.getElementById('h38DispatchOptimize').onclick=function(){
+    var enabled=false;
+    try{enabled=!!(w.H38OwnerControls&&w.H38OwnerControls.isEnabled('route_optimization'));}catch(_){}
+    closeDispatch();
+    if(typeof w.openPage==='function')w.openPage('schedule');
+    if(enabled){
+      w.toast?.('Route planner is below the dispatch board. Pick the date and build the stop list.');
+    }else{
+      if(w.H38Flow){
+        w.H38Flow.ask({
+          id:'h38RouteTogglePrompt',
+          title:'Route optimization is turned off.',
+          detail:'Enable it in Settings → Owner Controls to optimize stop order from the Schedule page.',
+          actions:[
+            {label:'Open Owner Controls',primary:true,handler:function(){if(typeof w.openPage==='function')w.openPage('settings');}},
+            {label:'Not now',handler:function(){}}
+          ]
+        });
+      }else{
+        w.toast?.('Route optimization is off. Enable it in Settings → Owner Controls.',true);
+      }
+    }
+  };
   document.getElementById('h38DispatchDate').onchange=function(e){stopWatch();simulate(false);renderDispatch(e.target.value);};
   document.getElementById('h38DispatchShare').onclick=function(){watchCrewPositions();};
   document.getElementById('h38DispatchSim').onclick=function(){simulate(!sim.on);renderDispatch(board.date);};
