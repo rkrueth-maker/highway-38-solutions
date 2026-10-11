@@ -465,7 +465,7 @@
       '<div class="kw-workspace">' +
       '<section class="kw-hero">' +
         '<div><h1>Kit\u2019s Workspace</h1><p>Your AI office worker — what got done, what needs you.</p></div>' +
-        '<div class="kw-hero-num"><span>' + todayCount + '</span><small>actions' + (todayCount === 1 ? '' : 's') + ' today</small></div>' +
+        '<div class="kw-hero-num"><span>' + todayCount + '</span><small>action' + (todayCount === 1 ? '' : 's') + ' today</small></div>' +
       '</section>' +
 
       (reviewCount ? sectionLabel('✋', 'Needs your review', reviewCount, 'kw-count-red') +
