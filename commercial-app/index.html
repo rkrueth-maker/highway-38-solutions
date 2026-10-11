@@ -2,6 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>
+  /* H38 Auto-Update: checks version.json on every load. If the server has a
+     newer version than what this device last ran, force a cache-busting reload
+     so updates reach customers without manual cache clears. */
+  (function(){
+    try{
+      var KEY='h38-app-version';
+      var last=localStorage.getItem(KEY);
+      var xhr=new XMLHttpRequest();
+      xhr.open('GET','./version.json?_='+Date.now(),true);
+      xhr.timeout=8000;
+      xhr.onreadystatechange=function(){
+        if(xhr.readyState!==4)return;
+        try{
+          if(xhr.status!==200)return;
+          var v=JSON.parse(xhr.responseText).version;
+          if(!v)return;
+          if(last&&last!==v){
+            localStorage.setItem(KEY,v);
+            var u=window.location.href.split('#')[0];
+            u+=(u.indexOf('?')>=0?'&':'?')+'_refresh='+Date.now();
+            window.location.replace(u);
+          }else if(!last){
+            localStorage.setItem(KEY,v);
+          }
+        }catch(e){}
+      };
+      xhr.send();
+    }catch(e){}
+  })();
+  </script>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b2438">
   <meta name="referrer" content="no-referrer">
@@ -196,7 +227,7 @@
   <script src="./quote-final-phone-fix.js?build=20260807-1905"></script>
   <script src="./quote-live-customer-options.js?build=20260815-2055"></script>
   <script src="./quote-manual-image-controls.js?build=20260807-1450"></script>
-  <script src="./supabase-no-legacy-office.js?build=20260917-lifecycle-startup-stable-1"></script>
+  <script src="./supabase-no-legacy-office.js?build=20261011-lifecycle-startup-stable-2"></script>
   <script src="./flow-tightening.js?build=20260918-1448"></script>
   <script src="./job-centered-flow.js?build=20260816-job-centered-flow-1"></script>
   <script src="./android-native-walkthrough-guard.js?build=20260809-1725"></script>
