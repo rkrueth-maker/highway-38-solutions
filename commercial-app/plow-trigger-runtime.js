@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260912-plow-trigger-runtime-1';
+const BUILD='20261010-plow-trigger-runtime-2';
 const text=v=>String(v==null?'':v).trim();
 const state=()=>window.state||{};
 const rows=n=>Array.isArray(state()?.snapshot?.[n])?state().snapshot[n]:[];
@@ -17,8 +17,65 @@ async function savePreference(customer,enabled){const id=customerId(customer),re
 function alreadyToday(customer){return rows('jobs').some(job=>customerId(job)===customerId(customer)&&text(val(job,'Service Date','Created Time')).slice(0,10)===today()&&/snow plowing/i.test(text(val(job,'Service Type','Project Title')))&&!/cancel|archive/i.test(text(val(job,'Status'))));}
 async function createJob(customer){if(alreadyToday(customer))return false;const id=uid('JOB'),rate=text(val(customer,'Plowing Rate')),record={'Job ID':id,'Business ID':state()?.businessId||val(customer,'Business ID'),'Customer ID':customerId(customer),'Project Title':`Snow plowing visit — ${text(val(customer,'Customer Name'))||'Customer'}`,'Service Type':'Snow plowing','Service Date':today(),'Subscribed Service':true,'Recurring Service Visit':true,'Lifecycle Mode':'Recurring service','Site Visit Required':false,'Quote Required':false,'Billing Method':'Per visit','Service Rate':rate,'Status':'Scheduled','Created Time':now(),'Updated Time':now(),'Record Version':1};await save('jobs','Job',id,record,['Job ID']);return true;}
 async function triggerAll(){const customers=rows('customers').filter(row=>customerId(row)&&text(val(row,'Plowing Rate'))&&automatic(row));let created=0,skipped=0;for(const customer of customers)(await createJob(customer))?created++:skipped++;window.toast?.(`${created} snow plow job${created===1?'':'s'} created${skipped?`; ${skipped} already existed today`:''}.`);window.renderToday?.();}
-function patchCustomer(){if(state()?.page!=='customers')return;const customer=selectedCustomer(),card=document.querySelector('[data-h38-service-operations]');if(!customer||!card||!text(val(customer,'Plowing Rate'))||card.querySelector('[data-h38-auto-plowing-setting]'))return;const label=document.createElement('label');label.className='h38-auto-plowing-setting';label.dataset.h38AutoPlowingSetting='1';label.innerHTML=`<span><strong>Automatic snow plowing</strong><small>Include this customer when all automatic plow jobs are triggered.</small></span><input type="checkbox" ${automatic(customer)?'checked':''}>`;card.querySelector('.h38-customer-service-list')?.appendChild(label);const input=label.querySelector('input');input.onchange=async()=>{try{await savePreference(customer,input.checked);window.toast?.('Automatic plowing setting saved.');window.renderCustomers?.();}catch(error){input.checked=!input.checked;window.toast?.(error.message||String(error),true);}};}
-function patchToday(){if(state()?.page!=='today')return;const panel=document.querySelector('.h38-life-today');if(!panel||panel.querySelector('[data-h38-auto-plow-bulk]'))return;const count=rows('customers').filter(row=>customerId(row)&&text(val(row,'Plowing Rate'))&&automatic(row)).length,box=document.createElement('div');box.className='h38-auto-plow-bulk';box.dataset.h38AutoPlowBulk='1';const countText=count===0?'No customers set to automatic.':`${count} customer${count===1?'':'s'} set to automatic.`;const disabledNote=count===0?'Add a plowing rate and enable automatic plowing for customers to use this.':'';box.innerHTML=`<div><strong>Automatic snow plowing</strong><small>${countText} ${disabledNote}</small></div><button type="button" ${count?'':'disabled title="No customers are set to automatic plowing yet."'}>Trigger all automatic snow plow jobs</button>`;panel.querySelector('.h38-life-head')?.insertAdjacentElement('afterend',box);box.querySelector('button').onclick=()=>triggerAll().catch(error=>window.toast?.(error.message||String(error),true));}
+async function savePlowingRate(customer,rate){
+  const id=customerId(customer);
+  const record={...customer,'Plowing Rate':rate,'Updated Time':now(),'Record Version':Math.max(1,Number(val(customer,'Record Version')||0)+1)};
+  delete record.__localPending;
+  await save('customers','Customer',id,record,['Customer ID']);
+}
+function patchCustomer(){
+  if(state()?.page!=='customers')return;
+  const customer=selectedCustomer(),card=document.querySelector('[data-h38-service-operations]');
+  if(!customer||!card||card.querySelector('[data-h38-auto-plowing-setting]'))return;
+  const hasRate=!!text(val(customer,'Plowing Rate'));
+  const label=document.createElement('label');
+  label.className='h38-auto-plowing-setting';
+  label.dataset.h38AutoPlowingSetting='1';
+  if(hasRate){
+    label.innerHTML=`<span><strong>Automatic snow plowing</strong><small>Include this customer when all automatic plow jobs are triggered. Rate: ${text(val(customer,'Plowing Rate'))} per visit.</small></span><input type="checkbox" ${automatic(customer)?'checked':''}>`;
+    card.querySelector('.h38-customer-service-list')?.appendChild(label);
+    const input=label.querySelector('input');
+    input.onchange=async()=>{
+      try{
+        await savePreference(customer,input.checked);
+        window.toast?.('Automatic plowing setting saved.');
+        window.renderCustomers?.();
+      }catch(error){
+        input.checked=!input.checked;
+        window.toast?.(error.message||String(error),true);
+      }
+    };
+  }else{
+    // No plowing rate yet — show an inline rate setter so the user
+    // can add one right here instead of hunting for it.
+    label.innerHTML=`<span><strong>Snow plowing rate</strong><small>Add this customer's per-visit plowing rate to enable automatic snow plowing.</small></span><span style="display:flex;gap:.4rem;align-items:center;"><input type="text" inputmode="decimal" placeholder="$ per visit" style="width:7rem;" data-h38-plow-rate-input><button type="button" data-h38-plow-rate-save>Save rate</button></span>`;
+    card.querySelector('.h38-customer-service-list')?.appendChild(label);
+    const rateInput=label.querySelector('[data-h38-plow-rate-input]');
+    const saveBtn=label.querySelector('[data-h38-plow-rate-save]');
+    const doSave=async()=>{
+      const rate=text(rateInput.value);
+      if(!rate){
+        window.toast?.('Enter a plowing rate first (e.g. 45 or $45).',true);
+        rateInput.focus();
+        return;
+      }
+      saveBtn.disabled=true;
+      try{
+        await savePlowingRate(customer,rate);
+        window.toast?.(`Plowing rate saved (${rate} per visit). You can now enable automatic snow plowing.`);
+        window.renderCustomers?.();
+      }catch(error){
+        window.toast?.(error.message||String(error),true);
+        saveBtn.disabled=false;
+      }
+    };
+    saveBtn.onclick=()=>void doSave();
+    rateInput.addEventListener('keydown',event=>{
+      if(event.key==='Enter'){event.preventDefault();void doSave();}
+    });
+  }
+}
+function patchToday(){if(state()?.page!=='today')return;const panel=document.querySelector('.h38-life-today');if(!panel||panel.querySelector('[data-h38-auto-plow-bulk]'))return;const count=rows('customers').filter(row=>customerId(row)&&text(val(row,'Plowing Rate'))&&automatic(row)).length,box=document.createElement('div');box.className='h38-auto-plow-bulk';box.dataset.h38AutoPlowBulk='1';const countText=count===0?'No customers set to automatic.':`${count} customer${count===1?'':'s'} set to automatic.`;const disabledNote=count===0?'Open a customer, then add their per-visit plowing rate under Service Operations to use this.':'';box.innerHTML=`<div><strong>Automatic snow plowing</strong><small>${countText} ${disabledNote}</small></div><button type="button" ${count?'':'disabled title="No customers are set to automatic plowing yet."'}>Trigger all automatic snow plow jobs</button>`;panel.querySelector('.h38-life-head')?.insertAdjacentElement('afterend',box);box.querySelector('button').onclick=()=>triggerAll().catch(error=>window.toast?.(error.message||String(error),true));}
 let pending=false;function patch(){if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;patchCustomer();patchToday();});}
 function start(){new MutationObserver(patch).observe(document.documentElement,{childList:true,subtree:true});patch();window.H38_PLOW_TRIGGER_RUNTIME=Object.freeze({build:BUILD,triggerAll});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
