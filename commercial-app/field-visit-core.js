@@ -22,13 +22,14 @@ function device(){
   let native={};
   try{native=window.H38NativeScanner?.getCapabilities?.()||{}}catch(_){}
   const ua=navigator.userAgent||'',ios=/iPad|iPhone|iPod/.test(ua)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1,android=/Android|H38SiteScannerAndroid/.test(ua);
+  const webxrViewer=/WebXRViewer/i.test(ua); // Mozilla's free iOS app that enables WebXR via ARKit
   const platform=t(native.platform)||(ios?'ios':android?'android':'web');
   const hasNative=typeof window.H38NativeScanner?.start==='function';
   const lidar=!!native.lidar,roomPlan=!!native.roomPlan,depth=!!native.depth,arcore=!!native.arcore;
   let label='Browser capture';
   if(platform==='android')label=hasNative?(depth?'Android ARCore Depth':'Android ARCore'):('xr' in navigator?'Android browser · WebXR AR':'Android browser');
-  if(platform==='ios')label=hasNative?(lidar||roomPlan?'Apple LiDAR / RoomPlan':'Apple ARKit'):'iPhone / iPad browser';
-  return{platform,hasNative,lidar,roomPlan,depth,arcore,label,ios,android};
+  if(platform==='ios')label=hasNative?(lidar||roomPlan?'Apple LiDAR / RoomPlan':'Apple ARKit'):(webxrViewer?'iPhone · WebXR Viewer AR':'iPhone / iPad browser');
+  return{platform,hasNative,lidar,roomPlan,depth,arcore,webxrViewer,label,ios,android};
 }
 function optimistic(c,key,record,keys){if(!window.state?.snapshot)return;if(!Array.isArray(window.state.snapshot[c]))window.state.snapshot[c]=[];const i=window.state.snapshot[c].findIndex(r=>keys.some(k=>t(r?.[k])===t(key)));if(i>=0)window.state.snapshot[c][i]=record;else window.state.snapshot[c].unshift(record)}
 async function queue(c,type,key,record,keys){if(!business())throw Error('Open an active business first.');if(typeof window.queueOperation!=='function')throw Error('Offline save queue is unavailable.');await window.queueOperation('SAVE_ENTITY',type,key,{entity:c,record},{collection:c,record,idKeys:keys},false);optimistic(c,key,record,keys);await pending();if(navigator.onLine)syncSoon();return record}
@@ -47,19 +48,23 @@ async function camera(){
     await session();
     const d=device();
     if(!d.hasNative){
-      if(d.platform==='ios')throw Error('Apple camera photos work here now. For LiDAR measuring on iPhone, install Mozilla\'s free WebXR Viewer app from the App Store, then open this page in it. Or use Take Photos or tape/laser entry.');
-      if(d.platform==='android'&&window.H38WebXRMeasure){
+      if(window.H38WebXRMeasure){
         try{
           const xrOk=await window.H38WebXRMeasure.supported();
           if(xrOk){
             toast('Opening AR measuring…');
             const m=await window.H38WebXRMeasure.measure();
-            if(m&&m.inches>0)await ingest({captureSessionId:state.visit.sessionId,measurements:[{label:'AR point-to-point',type:'Length',value:m.inches,unit:'in',source:'ARCORE_POINT_TO_POINT',confidence:.75,notes:'WebXR AR measured. Check critical work with tape or laser.'}]});
+            if(m&&m.inches>0){
+              const src=d.platform==='ios'?'ARKIT_POINT_TO_POINT':'ARCORE_POINT_TO_POINT';
+              const note=d.platform==='ios'?'WebXR Viewer AR measured (ARKit). Check critical work with tape or laser.':'WebXR AR measured. Check critical work with tape or laser.';
+              await ingest({captureSessionId:state.visit.sessionId,measurements:[{label:'AR point-to-point',type:'Length',value:m.inches,unit:'in',source:src,confidence:.75,notes:note}]});
+            }
             else if(m)toast('Measurement was zero — nothing saved.',true);
             return;
           }
-        }catch(xrErr){ /* fall through to native-app message */ }
+        }catch(xrErr){ /* fall through to platform message */ }
       }
+      if(d.platform==='ios')throw Error('Apple camera photos work here now. For LiDAR measuring on iPhone, install Mozilla\'s free WebXR Viewer app from the App Store, then open this page in it. Or use Take Photos or tape/laser entry.');
       throw Error('AR measuring requires the installed H38 Android or Apple field app. Photos and tape/laser entry still work offline.');
     }
     const allowed=d.platform==='ios'?['LIDAR_ROOM','LIDAR_MESH','ARKIT_POINT_TO_POINT']:['ARCORE_DEPTH','ARCORE_POINT_TO_POINT'];

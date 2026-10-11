@@ -1,7 +1,10 @@
-/* H38 WebXR point-to-point AR measuring (Android Chrome, no native app needed).
+/* H38 WebXR point-to-point AR measuring (Android Chrome and iOS via Mozilla
+ * WebXR Viewer — no native app needed).
  * Fallback path used by field-visit-core.js camera() when window.H38NativeScanner
- * is unavailable on Android. Point-to-point distance only: user aims the
+ * is unavailable. Point-to-point distance only: user aims the
  * crosshair, taps "Place point" twice, gets a distance, saves it.
+ * On iPhone, Safari has no WebXR: users open the Office in Mozilla's free
+ * WebXR Viewer app (UA contains "WebXRViewer"), which implements WebXR via ARKit.
  * Exposes: window.H38WebXRMeasure = { supported(), measure() }
  */
 (function(){
