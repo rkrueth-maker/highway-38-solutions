@@ -5,9 +5,12 @@
  *
  * - H38Flow.showNextStep  → Pattern 1 post-save panel (what happened + next + one-tap actions)
  * - H38Flow.ask            → Pattern 3 confirmation-needed outcome (non-blocking question panel)
+ * - H38Flow.confirm        → Pattern 3 blocking confirm for status transitions (modal dialog)
  * - H38Flow.fail           → Pattern 3 failure panel (what failed + why + fix actions)
  * - H38Flow.inlineAdder    → Pattern 2 inline tier (M7 model: inline input + Save, Enter support)
  * - H38Flow.startQuoteForCustomer → Pattern 2 deep-link tier (M6 model: context + openPage + toast)
+ * - H38Flow.startInvoiceFromJob   → Pattern 2 deep-link tier (M6 model: job → prefilled invoice draft)
+ * - H38Flow.pushStatusHistory / formatStatusHistory → Pattern 4 status history log
  * - H38Flow.openCustomerSetup     → open the customer/property setup dialog with context
  *
  * Rules:
@@ -18,10 +21,14 @@
  */
 (function(){
 'use strict';
-const BUILD='20261010-customer-onboarding-redesign-1';
+const BUILD='20261010-money-flow-1';
 const STYLE_ID='h38FlowHelpersStyle';
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const h38Val=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return '';};
+const h38Rid=(row,...keys)=>text(h38Val(row,...keys));
+const h38Num=value=>{const n=Number(value||0);return Number.isFinite(n)?n:0;};
+const h38Now=()=>new Date().toISOString();
 
 function installStyle(){
   if(document.getElementById(STYLE_ID))return;
@@ -46,7 +53,8 @@ function installStyle(){
     '.h38-inline-slot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:2px 0}',
     '.h38-c360-inline-slot .muted,.h38-inline-slot .muted{font-size:.85rem}',
     '.h38-c360-status-line{display:flex;gap:8px;align-items:center;margin:6px 0 4px}',
-    '.h38-c360-status-line .pill{font-size:.75rem}'
+    '.h38-c360-status-line .pill{font-size:.75rem}',
+    '.h38-flash{outline:2px solid #1d6fbf;outline-offset:2px;border-radius:8px}'
   ].join('\n');
   document.head.appendChild(s);
 }
@@ -319,13 +327,128 @@ function customerDisplayName(customerId){
   return text(record&&(record['Customer Name']||record.name))||'Customer';
 }
 
+/* Pattern 3, blocking confirmation: a modal confirm for status transitions
+ * (draft→presented, draft→sent). Resolves true when the user confirms.
+ * opts: {title, message, okLabel, cancelLabel}. Copies the app's existing
+ * dialog confirm structure (one canonical confirm for the redesign). */
+function confirmFlow(opts){
+  opts=opts||{};
+  return new Promise(resolve=>{
+    let dialog=document.getElementById('h38FlowConfirmDialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');
+      dialog.id='h38FlowConfirmDialog';
+      dialog.innerHTML='<form method="dialog"><h2 id="h38FlowConfirmTitle">Confirm</h2><p id="h38FlowConfirmMessage"></p><div class="actions"><button value="cancel" class="secondary" id="h38FlowConfirmCancel">Cancel</button><button value="ok" class="primary" id="h38FlowConfirmOk">Confirm</button></div></form>';
+      document.body.appendChild(dialog);
+    }
+    dialog.querySelector('#h38FlowConfirmTitle').textContent=text(opts.title)||'Confirm';
+    dialog.querySelector('#h38FlowConfirmMessage').textContent=text(opts.message)||'Are you sure?';
+    dialog.querySelector('#h38FlowConfirmOk').textContent=text(opts.okLabel)||'Confirm';
+    dialog.querySelector('#h38FlowConfirmCancel').textContent=text(opts.cancelLabel)||'Cancel';
+    const onClose=()=>{dialog.removeEventListener('close',onClose);resolve(dialog.returnValue==='ok');};
+    dialog.addEventListener('close',onClose);
+    try{dialog.showModal();}
+    catch(_){resolve(typeof window.confirm==='function'?window.confirm(text(opts.message)||'Are you sure?'):false);}
+  });
+}
+
+/* Pattern 4: append a status transition to the record's Status History log.
+ * Returns the JSON string to store in 'Status History'. Offline-safe: the
+ * write goes through queueOperation like any other field. */
+function pushStatusHistory(record,from,to){
+  let history=[];
+  try{const raw=record?record['Status History']:'';history=raw?JSON.parse(raw):[];}catch(_){history=[];}
+  if(!Array.isArray(history))history=[];
+  let by='owner';
+  try{const user=window.state&&window.state.snapshot&&window.state.snapshot.user;by=text((user&&(user.email||user.userId))||'owner');}catch(_){}
+  history.push({from:text(from),to:text(to),at:h38Now(),by});
+  return JSON.stringify(history.slice(-20));
+}
+
+/* Compact one-line rendering of the history: "Draft → Sent · Oct 10". */
+function formatStatusHistory(record){
+  let history=[];
+  try{history=JSON.parse((record&&record['Status History'])||'[]');}catch(_){history=[];}
+  if(!Array.isArray(history)||!history.length)return '';
+  const chain=[text(history[0].from),...history.map(entry=>text(entry.to))].filter(Boolean);
+  let date='';
+  try{const t=new Date(history[history.length-1].at);if(!isNaN(t))date=t.toLocaleDateString([],{month:'short',day:'numeric'});}catch(_){}
+  return chain.join(' → ')+(date?' · '+date:'');
+}
+
+/* Pattern 2, deep-link tier (M6 model: recurring-service-runtime openBilling):
+ * open the Money page with the invoice draft form prefilled from a job —
+ * customer, job, description, and price from the accepted quote when one
+ * exists. Never sends the user to a blank form. Works offline (local data). */
+function startInvoiceFromJob(jobId){
+  const jid=text(jobId);
+  if(!jid){window.toast?.('Pick a job first, then create the invoice.',true);return;}
+  const snap=(window.state&&window.state.snapshot)||{};
+  const jobs=Array.isArray(snap.jobs)?snap.jobs:[];
+  const job=jobs.find(row=>h38Rid(row,'Job ID','jobId')===jid);
+  if(!job){window.toast?.('That job is not in the current business pack.',true);return;}
+  const customerId=h38Rid(job,'Customer ID','customerId');
+  const title=h38Val(job,'Project Title','projectTitle')||'Job';
+  const quotes=Array.isArray(snap.quotes)?snap.quotes:[];
+  const qid=h38Rid(job,'Quote ID','quoteId','Source Quote ID');
+  let quote=qid?quotes.find(row=>h38Rid(row,'Quote ID','quoteId')===qid):null;
+  if(!quote){
+    const clean=value=>text(value).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+    const cands=quotes.filter(row=>h38Rid(row,'Customer ID','customerId')===customerId&&clean(h38Val(row,'Project Title','projectTitle'))===clean(title));
+    quote=cands.find(row=>/ACCEPT|APPROV/i.test(text(h38Val(row,'Status','status'))+' '+text(h38Val(row,'Customer Decision','customerDecision'))))||cands[0]||null;
+  }
+  const qTotal=quote?h38Num(h38Val(quote,'Total','total')):0;
+  const qNum=quote?h38Val(quote,'Quote Number','quoteNumber'):'';
+  window.__h38InvoicePrefill={
+    jobId:jid,
+    customerId,
+    description:qNum?`${title} — per accepted quote ${qNum}`:title,
+    quantity:1,
+    unitPrice:qTotal>0?qTotal.toFixed(2):''
+  };
+  const opener=typeof window.openPage==='function'?window.openPage:(typeof openPage==='function'?openPage:null);
+  if(!opener){window.toast?.('Open the Money page to create the invoice.',true);return;}
+  opener('money');
+  let tries=0;
+  const ready=()=>{
+    const form=document.getElementById('invoiceForm');
+    if(!form){if(++tries<40)setTimeout(ready,100);else window.toast?.('The invoice draft form did not finish loading. Open Money and review the draft.',true);return;}
+    const prefill=window.__h38InvoicePrefill||{};
+    const fill=(name,value)=>{
+      if(value===undefined||value===null||value==='')return;
+      const el=form.querySelector(`[name="${name}"]`);
+      if(!el)return;
+      if(el.tagName==='SELECT'){
+        const opt=Array.from(el.options||[]).find(o=>text(o.value)===text(value));
+        if(opt){el.value=opt.value;el.dispatchEvent(new Event('change',{bubbles:true}));}
+      }else el.value=value;
+    };
+    fill('customerId',prefill.customerId);
+    fill('jobId',prefill.jobId);
+    fill('description',prefill.description);
+    fill('quantity',prefill.quantity);
+    fill('unitPrice',prefill.unitPrice);
+    delete window.__h38InvoicePrefill;
+    form.scrollIntoView?.({block:'center'});
+    (form.querySelector('[name="description"]')||form.querySelector('input,select,textarea,button'))?.focus?.();
+    window.toast?.(qTotal>0
+      ?'Invoice draft opened from the job, priced from the accepted quote. Confirm customer, price and due date before saving.'
+      :'Invoice draft opened from the job. Enter the price and due date before saving.');
+  };
+  setTimeout(ready,120);
+}
+
 window.H38Flow=Object.freeze({
   build:BUILD,
   showNextStep,
   ask,
+  confirm:confirmFlow,
   fail,
   inlineAdder,
   startQuoteForCustomer,
+  startInvoiceFromJob,
+  pushStatusHistory,
+  formatStatusHistory,
   selectCustomer,
   openCustomerSetup
 });

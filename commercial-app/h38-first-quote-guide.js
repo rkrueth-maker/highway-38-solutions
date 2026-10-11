@@ -160,6 +160,7 @@ function h38WireGuide(){
 /* Call after saveQuote completes: toast the next step when the draft is thin. */
 function h38AfterSave(total,lineCount){
   if(!h38IsNewQuoter()) return;
+  if(document.getElementById('h38FlowNextStep')) return; /* Phase 3 post-save panel already guides. */
   const next=h38NextStep();
   if(!lineCount||!total){
     // The save toast already fired; add guidance as a second toast.
