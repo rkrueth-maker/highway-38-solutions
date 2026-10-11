@@ -13,8 +13,8 @@
   const email=byId('email-summary');
   const note=byId('offer-note');
   const offerById=id=>pricing.offers.find(item=>item.id===id);
-  const outcomeDefault={quote:'byo-claude',business:'byo-claude',configured:'custom-scope',unsure:'business-snapshot'};
-  const outcomeByOffer={'byo-claude':'business','ai-backend':'business','custom-scope':'configured','business-snapshot':'unsure'};
+  const outcomeDefault={quote:'ai-backend',business:'ai-backend',configured:'custom-scope',unsure:'business-snapshot'};
+  const outcomeByOffer={'ai-backend':'business','custom-scope':'configured','business-snapshot':'unsure'};
   const isCustomDigital=()=>outcome?.value==='custom-digital';
   function offerLabel(item){if(!item)return '';return `${item.name} — ${item.priceLabel}${item.setupLabel?` · ${item.setupLabel}`:''}`;}
   function renderOffers(){if(!offerSelect)return;const current=offerSelect.value;offerSelect.innerHTML='<option value="">Recommend the right path</option>'+pricing.offers.map(item=>`<option value="${item.id}">${offerLabel(item)}</option>`).join('');if(offerById(current))offerSelect.value=current;}
