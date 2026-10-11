@@ -25,12 +25,12 @@ window.PAGE_DEFS=PAGE_DEFS;
 window.H38_OFFICE_PAGES=OFFICE_PAGES;
 
 async function init(){
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).then(function(r){if(r&&r.update)r.update().catch(function(){})}).catch(function(){});
   const query=new URLSearchParams(location.search);state.shell=SHELL_PAGES[query.get('shell')]?query.get('shell'):'office';$('shellLabel').textContent=SHELL_LABELS[state.shell];
   const settings=await get('meta','settings')||{id:'settings',bridgeUrl:BRIDGE_URL,drivingMode:false};state.drivingMode=!!settings.drivingMode;
   const requestedBusinessId=(query.get('businessId')||'').trim(),cachedBusinessId=(await get('meta','selectedBusiness'))?.businessId||'';state.businessId=requestedBusinessId||cachedBusinessId;
   if(requestedBusinessId)await put('meta',{id:'selectedBusiness',businessId:requestedBusinessId});
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).then(function(r){if(r&&r.update)r.update().catch(function(){})}).catch(function(){});
   bindGlobal();network();await loadCached();await updatePending();
   state.bridge=new H38Bridge($('bridgeFrame'),BRIDGE_URL,handleBridgeStatus);state.bridge.connect();
   addEventListener('online',()=>{network();if(!state.bridgeReady)state.bridge?.connect();});addEventListener('offline',network);
