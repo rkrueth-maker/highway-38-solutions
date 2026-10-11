@@ -226,14 +226,15 @@ function templatesCard(){
 }
 function queueCard(){
   try{
-    var rows=threads().filter(function(r){ return /queued/i.test(String(v(r,'Status')||'')); }).slice(0,50);
+    var rows=threads().filter(function(r){ return /queued/i.test(String(v(r,'Status')||''))||String(v(r,'Status')||'')==='Failed'||String(v(r,'Status')||'')==='Approved — Queued to Send'; }).slice(0,50);
     var list=rows.length?rows.map(function(r){
+      var actions=(window.H38SmsApproval&&window.H38SmsApproval.queueRowActions)?window.H38SmsApproval.queueRowActions(r):'';
       return '<div class="row"><div class="row-top"><strong>'+esc(v(r,'Customer Number'))+'</strong>'+pill(v(r,'Status'))+'</div>'
         +'<small>'+esc(v(r,'Purpose')||'')+' · '+esc(v(r,'Category')||'')+' · '+esc(String(v(r,'Pending Body')||'').slice(0,90))+'…'
-        +(v(r,'Deliver After')?' · <em>after '+esc(v(r,'Deliver After'))+'</em>':'')+'</small></div>';
+        +(v(r,'Deliver After')?' · <em>after '+esc(v(r,'Deliver After'))+'</em>':'')+'</small>'+actions+'</div>';
     }).join(''):'<p class="muted">Nothing waiting. Kit\'s drafts and your send requests land here.</p>';
-    return '<section class="card span7"><h2>Approval queue</h2>'+'<div class="list">'+list+'</div>'
-      +'<p class="muted small">Nothing here has been sent. Sending happens only after owner approval.</p></section>';
+    return '<section class="card span7"><h2>Approval queue</h2>'+'<div class="list" id="h38SmsQueueList">'+list+'</div>'
+      +'<p class="muted small">Approved texts send through your connected SMS provider. Denied texts stay in history and never send.</p></section>';
   }catch(e){ return ''; }
 }
 function threads(){
@@ -252,6 +253,10 @@ function bindTemplatesUI(){
     ap.forEach(function(b){ b.onclick=function(){ setTemplateStatus(b.getAttribute('data-approve-template'),'Approved').then(function(){ toast('Template approved. Kit can now use it.'); renderMessages(); }).catch(function(e){ toast(e.message||String(e),true); }); }; });
     var ar=document.querySelectorAll('[data-archive-template]');
     ar.forEach(function(b){ b.onclick=function(){ setTemplateStatus(b.getAttribute('data-archive-template'),'Archived').then(function(){ renderMessages(); }).catch(function(e){ toast(e.message||String(e),true); }); }; });
+    if(window.H38SmsApproval&&window.H38SmsApproval.bindQueueActions){
+      var ql=document.getElementById('h38SmsQueueList')||document;
+      window.H38SmsApproval.bindQueueActions(ql);
+    }
   }catch(e){}
 }
 
