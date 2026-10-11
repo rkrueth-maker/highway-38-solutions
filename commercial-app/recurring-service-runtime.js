@@ -50,7 +50,16 @@ async function setVisitState(job,mode){
     await save('scheduleEvents','Schedule Event',id2,updated,['Schedule Event ID']);
   }
   if(navigator.onLine&&state()?.bridgeReady&&typeof window.sync==='function')await window.sync(false);
-  window.toast?.(start?'Recurring service started.':finish?'Recurring service finished. Opening invoice draft review…':'Recurring service visit removed from the active work list.');
+  var offline=typeof navigator!=='undefined'&&!navigator.onLine;
+  var jobTitle=text(val(job,'Service Type','serviceType','Project Title'))||'Recurring service';
+  var cname=customerName(jobById(id)||job);
+  if(window.H38Flow){
+    if(start)window.H38Flow.showNextStep({title:'Visit started for '+cname+'.',next:'Do the work, then tap Finish visit.',offline:offline,actions:[{label:'View work',primary:true,handler:function(){ selectWork(jobById(id)||job); }}],id:'h38RecurStart',signature:'recur-start-'+id});
+    else if(finish)window.H38Flow.showNextStep({title:'Visit finished for '+cname+'.',next:'Review the invoice draft in Money.',offline:offline,actions:[{label:'Open billing',primary:true,handler:function(){ openBilling(jobById(id)||job); }},{label:'View work',handler:function(){ selectWork(jobById(id)||job); }}],id:'h38RecurFinish',signature:'recur-finish-'+id});
+    else window.H38Flow.showNextStep({title:'Visit removed from the active work list.',next:'Nothing further needed.',offline:offline,actions:[],id:'h38RecurRemove',signature:'recur-remove-'+id});
+  }else{
+    window.toast?.(start?'Recurring service started.':finish?'Recurring service finished. Opening invoice draft review…':'Recurring service visit removed from the active work list.');
+  }
   window.renderToday?.();window.renderWork?.();
   if(finish&&financialAllowed())openBilling(jobById(id)||record);
   window.dispatchEvent(new CustomEvent('h38:recurring-service-state-changed',{detail:{jobId:id,mode}}));
@@ -129,8 +138,12 @@ function patchWork(){
   const desc=panel.querySelector('.h38-life-head p');setText(desc,'Recurring service · start a new visit below. No site visit or quote required.');
   const sig=workSignature(job);if(prior?.dataset?.signature===sig)return;prior?.remove();
   const rates=rateLines(job),box=document.createElement('div');box.className='h38-recurring-service-simple';box.dataset.h38RecurringSimple='1';box.dataset.signature=sig;
-  box.innerHTML=`<div><span class="h38-service-status">${esc(text(val(job,'Status'))||'Scheduled')}</span><strong>${esc(text(val(job,'Service Type'))||'Recurring service')}</strong><small>${esc(customerName(job))}</small>${rates.length?`<div class="h38-service-rate-lines">${rates.map(rate=>`<span>${esc(rate)}</span>`).join('')}</div>`:'<small>Saved customer rate</small>'}<p>Use Start visit when work begins. Finish visit closes this service visit and opens Money for invoice draft review. Nothing is created, sent, or charged automatically.</p></div>`;
+  box.innerHTML=`<div><span class="h38-service-status">${esc(text(val(job,'Status'))||'Scheduled')}</span><strong>${esc(text(val(job,'Service Type'))||'Recurring service')}</strong><small>${esc(customerName(job))}</small>${rates.length?`<div class="h38-service-rate-lines">${rates.map(rate=>`<span>${esc(rate)}</span>`).join('')}</div>`:'<small class="muted">No rate set — <button type="button" class="secondary" data-h38-set-rate>Set rate</button></small>'}<p>Use Start visit when work begins. Finish visit closes this service visit and opens Money for invoice draft review.</p></div>`;
   box.appendChild(buttons(job));panel.querySelector('.h38-life-head')?.insertAdjacentElement('afterend',box);
+  box.querySelector('[data-h38-set-rate]')?.addEventListener('click',function(){
+    if(window.H38Flow)window.H38Flow.openCustomerSetup('customer',cid(job));
+    else window.toast?.('Open the customer to set the service rate.',true);
+  });
 }
 function queueSignature(jobs){return `${financialAllowed()?'finance':'no-finance'}::${jobs.map(job=>[jid(job),val(job,'Status'),val(job,'Updated Time'),rateLines(job).join('~')].join('|')).join('::')}`;}
 function renderQueue(){

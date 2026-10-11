@@ -196,7 +196,18 @@ async function saveItem(e){
       saved=res.data;
     }
     spliceSnapshot(saved);
-    toast(editingId?'Item saved.':'Item added.');
+    var offline=typeof navigator!=='undefined'&&!navigator.onLine;
+    if(window.H38Flow)window.H38Flow.showNextStep({
+      title:'Item "'+name+'" '+(editingId?'saved.':'added.'),
+      next:editingId?'The updated details are live.':'Add stock levels or advertise it next.',
+      offline:offline,
+      actions:[
+        {label:'Add another item',primary:true,handler:function(){ resetForm(); var f=document.getElementById('inventoryForm'); if(f)f.scrollIntoView({block:'center'}); }},
+        {label:'View inventory',handler:function(){ if(typeof renderInventory==='function')renderInventory(); }}
+      ],
+      id:'h38InvSaved',signature:'inv-'+(saved&&saved.id||code)
+    });
+    else toast(editingId?'Item saved.':'Item added.');
     if(typeof renderInventory==='function')renderInventory();
   }catch(err){
     const msg=String(err&&err.message||err);
