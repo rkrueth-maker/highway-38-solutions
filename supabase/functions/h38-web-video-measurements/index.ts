@@ -2,8 +2,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL=Deno.env.get('SUPABASE_URL')||'';
+// --- AI usage tracking & per-tenant monthly caps (Muse Spark: $1.25/1M in, $4.25/1M out) ---
+const AI_MONTHLY_CAP_USD=20,AI_ALERT_USD=15,AI_COST_IN_PER_M=1.25,AI_COST_OUT_PER_M=4.25;
+async function aiCapCheck(svc:any,businessId:string):Promise<{spend:number;alert:boolean}>{const m=new Date();m.setUTCDate(1);m.setUTCHours(0,0,0,0);const r=await svc.from("ai_usage_log").select("cost_estimate").eq("business_id",businessId).gte("created_at",m.toISOString());if(r.error)throw r.error;const spend=(r.data||[]).reduce((t:number,x:any)=>t+Number(x.cost_estimate||0),0);const ov=await svc.from("business_records").select("payload").eq("business_id",businessId).eq("collection","ai_config").eq("record_key","ai_cap_override").eq("record_status","active").maybeSingle();const override=!ov.error&&ov.data&&(ov.data.payload as any)?.enabled===true;if(spend>=AI_MONTHLY_CAP_USD&&!override)throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}). Usage resets on the 1st.`);return{spend,alert:spend>=AI_ALERT_USD};}
+async function aiLogUsage(svc:any,businessId:string,fn:string,usage:any,model:string):Promise<void>{try{const ti=Number(usage?.prompt_tokens??0),to=Number(usage?.completion_tokens??0);const cost=(ti/1e6)*AI_COST_IN_PER_M+(to/1e6)*AI_COST_OUT_PER_M;const r=await svc.from("ai_usage_log").insert({business_id:businessId,function_name:fn,tokens_in:ti,tokens_out:to,cost_estimate:Number(cost.toFixed(6)),model:model||"muse-spark-1.1"});if(r.error)console.warn("ai_usage_log insert failed:",r.error.message);}catch(e){console.warn("aiLogUsage failed:",e instanceof Error?e.message:e);}}
+
 const SERVICE_KEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
-const ANTHROPIC_API_KEY=Deno.env.get('ANTHROPIC_API_KEY')||'';
+const MUSE_SPARK_API_KEY=Deno.env.get('MUSE_SPARK_API_KEY')||'';
 const MODEL=Deno.env.get('OPENAI_SITE_SCANNER_MODEL')||Deno.env.get('OPENAI_QUOTE_MODEL')||'claude-sonnet-4-20250514';
 const BUCKET='business-office-files';
 const ENGINE='web-video-reference-scale-v1';
@@ -119,6 +124,7 @@ function schema():J{
   return{type:'object',additionalProperties:false,required:['observations'],properties:{observations:{type:'array',maxItems:24,items:{type:'object',additionalProperties:false,required:['frameIndex','targetLabel','targetDimension','referenceId','samePlane','referenceStart','referenceEnd','targetStart','targetEnd','confidence','evidenceNote'],properties:{frameIndex:{type:'integer',minimum:0,maximum:5},targetLabel:{type:'string'},targetDimension:{type:'string',enum:['width','height','length','depth']},referenceId:{type:'string'},samePlane:{type:'boolean'},referenceStart:point,referenceEnd:point,targetStart:point,targetEnd:point,confidence:{type:'number',minimum:0,maximum:1},evidenceNote:{type:'string'}}}}}};
 }
 function outputText(p:J){
+  const _ch=(p.choices as J[]|undefined)?.[0];const _m=_ch?(_ch as J).message as J|undefined:undefined;if(_m&&typeof _m.content==="string"&&_m.content)return _m.content as string;
   if(typeof p.output_text==='string')return p.output_text;
   for(const o of Array.isArray(p.output)?p.output:[]){
     if(!o||typeof o!=='object')continue;
@@ -181,7 +187,8 @@ Deno.serve(async r=>{
     const refs=await references(c,b,sid),reviewFrames=await frames(c,b,sid);
     if(!refs.length)return reply(r,200,{status:'PASS',engine:ENGINE,outcome:'NO_VERIFIED_REFERENCE',message:'Confirm one accurate reference dimension that is visible in the uploaded video before running distance estimates.',references:[],estimates:[],fieldVerificationRequired:true,measurementsVerified:false});
     if(!reviewFrames.length)return reply(r,200,{status:'PASS',engine:ENGINE,outcome:'NO_REVIEW_FRAMES',message:'No saved review frames are available for this uploaded video.',references:refs,estimates:[],fieldVerificationRequired:true,measurementsVerified:false});
-    if(!ANTHROPIC_API_KEY)throw Error('OpenAI API key is not configured.');
+    if(!MUSE_SPARK_API_KEY)throw Error('Muse Spark API key is not configured.');
+    await aiCapCheck(c,b);
     const instructions=[
       'You are H38 internal web-video endpoint locator.',
       'Use only supplied owner-confirmed reference dimensions that are clearly visible in the SAME FRAME and on the SAME PHYSICAL PLANE as a requested target.',
@@ -190,15 +197,16 @@ Deno.serve(async r=>{
       'If perspective, occlusion, reference identity, or geometry is unreliable, omit the observation.',
       'Every result remains CAMERA_ESTIMATE and UNVERIFIED until field checked.',
     ].join(' ');
-    const content:any[]=[{type:'input_text',text:JSON.stringify({targets,references:refs,policy:{sameFrameOnly:true,samePlaneOnly:true,serverComputesScale:true,fieldVerificationRequired:true}})}];
-    reviewFrames.forEach((f,i)=>{content.push({type:'input_text',text:`FRAME ${i}, ${f.time}s, ${f.id}`});content.push({type:'input_image',image_url:f.url,detail:'high'});});
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{"x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01",'content-type':'application/json'},
-      body:JSON.stringify({model:MODEL,system:instructions,messages:[{role:'user',content}],text:{format:{type:'json_schema',name:'h38_web_video_measurement_observations',strict:true,schema:schema()}}}),
+    const content:any[]=[{type:'text',text:JSON.stringify({targets,references:refs,policy:{sameFrameOnly:true,samePlaneOnly:true,serverComputesScale:true,fieldVerificationRequired:true}})}];
+    reviewFrames.forEach((f,i)=>{content.push({type:'text',text:`FRAME ${i}, ${f.time}s, ${f.id}`});content.push({type:'image_url',image_url:{url:f.url}});});
+    const res=await fetch('https://api.meta.ai/v1/chat/completions',{
+      method:'POST',headers:{authorization:`Bearer ${MUSE_SPARK_API_KEY}`,'content-type':'application/json'},
+      body:JSON.stringify({model:MODEL,max_tokens:4000,messages:[{role:'system',content:instructions},{role:'user',content}],response_format:{type:'json_schema',json_schema:{name:'h38_web_video_measurement_observations',strict:true,schema:schema()}}}),
       signal:AbortSignal.timeout(120000),
     });
     const payload=await readJson(res);
-    if(!res.ok)throw Error(clean((payload.error as J|undefined)?.message||payload.message||`OpenAI returned ${res.status}.`,1200));
+    await aiLogUsage(c,b,'h38-web-video-measurements',(payload as J).usage,MODEL);
+    if(!res.ok)throw Error(clean((payload.error as J|undefined)?.message||payload.message||`Muse Spark returned ${res.status}.`,1200));
     const parsed=JSON.parse(outputText(payload)||'{"observations":[]}') as J;
     const estimates=calculate(parsed,refs,reviewFrames);
     for(const e of estimates){

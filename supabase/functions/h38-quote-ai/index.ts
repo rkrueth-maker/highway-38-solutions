@@ -9,9 +9,15 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:8000",
 ]);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+// --- AI usage tracking & per-tenant monthly caps (Muse Spark: $1.25/1M in, $4.25/1M out) ---
+const AI_MONTHLY_CAP_USD=20,AI_ALERT_USD=15,AI_COST_IN_PER_M=1.25,AI_COST_OUT_PER_M=4.25;
+async function aiCapCheck(svc:any,businessId:string):Promise<{spend:number;alert:boolean}>{const m=new Date();m.setUTCDate(1);m.setUTCHours(0,0,0,0);const r=await svc.from("ai_usage_log").select("cost_estimate").eq("business_id",businessId).gte("created_at",m.toISOString());if(r.error)throw r.error;const spend=(r.data||[]).reduce((t:number,x:any)=>t+Number(x.cost_estimate||0),0);const ov=await svc.from("business_records").select("payload").eq("business_id",businessId).eq("collection","ai_config").eq("record_key","ai_cap_override").eq("record_status","active").maybeSingle();const override=!ov.error&&ov.data&&(ov.data.payload as any)?.enabled===true;if(spend>=AI_MONTHLY_CAP_USD&&!override)throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}). Usage resets on the 1st.`);return{spend,alert:spend>=AI_ALERT_USD};}
+async function aiLogUsage(svc:any,businessId:string,fn:string,usage:any,model:string):Promise<void>{try{const ti=Number(usage?.prompt_tokens??0),to=Number(usage?.completion_tokens??0);const cost=(ti/1e6)*AI_COST_IN_PER_M+(to/1e6)*AI_COST_OUT_PER_M;const r=await svc.from("ai_usage_log").insert({business_id:businessId,function_name:fn,tokens_in:ti,tokens_out:to,cost_estimate:Number(cost.toFixed(6)),model:model||"muse-spark-1.1"});if(r.error)console.warn("ai_usage_log insert failed:",r.error.message);}catch(e){console.warn("aiLogUsage failed:",e instanceof Error?e.message:e);}}
+
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
-const OPENAI_MODEL = Deno.env.get("OPENAI_QUOTE_MODEL") || "claude-sonnet-4-20250514";
+const MUSE_SPARK_API_KEY = Deno.env.get("MUSE_SPARK_API_KEY") || "";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const OPENAI_MODEL = Deno.env.get("MUSE_SPARK_MODEL") || "muse-spark-1.1";
 const OPENAI_IMAGE_MODEL = Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2";
 const STORAGE_BUCKET = "business-office-files";
 const MAX_PHOTOS = 6;
@@ -239,6 +245,7 @@ function quoteSchema() {
   };
 }
 function outputText(payload: JsonObject): string {
+  const _ch=(payload.choices as JsonObject[]|undefined)?.[0];const _m=_ch?(_ch as JsonObject).message as JsonObject|undefined:undefined;if(_m){const _tc=(_m.tool_calls as JsonObject[]|undefined)?.[0];const _fn=_tc?(_tc as JsonObject).function as JsonObject|undefined:undefined;const _a=_fn?_fn.arguments:undefined;if(typeof _a==="string"&&_a)return _a;if(_a&&typeof _a==="object")return JSON.stringify(_a);if(typeof _m.content==="string"&&_m.content)return _m.content as string;}
   if (typeof payload.output_text === "string") return payload.output_text;
   for (const item of Array.isArray(payload.output) ? payload.output : []) {
     if (!item || typeof item !== "object") continue;
@@ -642,35 +649,36 @@ function baseInstructions(): string {
     "Everything remains Owner-review required. Never approve, send, charge, purchase, pay, schedule, or authorize work.",
   ].join(" ");
 }
-async function callQuoteModel(context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+async function callQuoteModel(svc:any,businessId:string,context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {await aiCapCheck(svc,businessId);
+  const visionPhotos = photos.map((ph) => ({ type: "image_url", image_url: { url: ph.image_url } }));
+  const response = await fetch("https://api.meta.ai/v1/chat/completions", {
     method: "POST",
-    headers: { authorization: `Bearer ${ANTHROPIC_API_KEY}`, "content-type": "application/json" },
+    headers: { authorization: `Bearer ${MUSE_SPARK_API_KEY}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: OPENAI_MODEL,
-      store: false,
-      tools: [{ type: "web_search" }],
-      input: [
-        { role: "developer", content: [{ type: "input_text", text: baseInstructions() }] },
-        { role: "user", content: [{ type: "input_text", text: JSON.stringify(context) }, ...photos] },
+      max_tokens: 8000,
+      messages: [
+        { role: "system", content: baseInstructions() },
+        { role: "user", content: [{ type: "text", text: JSON.stringify(context) }, ...visionPhotos] },
       ],
-      text: { format: { type: "json_schema", name: "h38_quote_draft", strict: true, schema: quoteSchema() }, verbosity: "low" },
+      tools: [{ type: "function", function: { name: "h38_quote_draft", description: "Structured quote draft", parameters: quoteSchema() } }],
+      tool_choice: { type: "function", function: { name: "h38_quote_draft" } },
     }),
     signal: AbortSignal.timeout(QUOTE_MODEL_TIMEOUT_MS),
   });
   const provider = await readJson(response);
   if (!response.ok) {
     const errorObject = provider.error && typeof provider.error === "object" ? provider.error as JsonObject : {};
-    throw new Error(clean(errorObject.message || `OpenAI quote request failed (${response.status}).`, 1200));
+    throw new Error(clean(errorObject.message || `Muse Spark quote request failed (${response.status}).`, 1200));
   }
-  const structured = outputText(provider);
-  if (!structured) throw new Error("OpenAI returned no structured quote draft.");
+  await aiLogUsage(svc,businessId,"h38-quote-ai",(provider as JsonObject).usage,OPENAI_MODEL);const structured = outputText(provider);
+  if (!structured) throw new Error("Muse Spark returned no structured quote draft.");
   try {
     const draft = JSON.parse(structured);
     if (!draft || typeof draft !== "object") throw new Error("invalid object");
     return draft as JsonObject;
   } catch (_) {
-    throw new Error("OpenAI returned an unreadable quote draft.");
+    throw new Error("Muse Spark returned an unreadable quote draft.");
   }
 }
 function isQuoteModelTimeout(error: unknown): boolean {
@@ -678,11 +686,11 @@ function isQuoteModelTimeout(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /timed out|timeout|abort/i.test(message);
 }
-async function callQuoteModelWithRetry(context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {
+async function callQuoteModelWithRetry(svc:any,businessId:string,context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= QUOTE_MODEL_MAX_ATTEMPTS; attempt++) {
     try {
-      return await callQuoteModel(context, photos);
+      return await callQuoteModel(svc,businessId,context, photos);
     } catch (error) {
       lastError = error;
       if (attempt < QUOTE_MODEL_MAX_ATTEMPTS && isQuoteModelTimeout(error)) {
@@ -727,7 +735,7 @@ async function createRenderConcept(service: ReturnType<typeof serviceClient>, bu
   form.append("output_format", "jpeg");
   const response = await fetch("https://api.openai.com/v1/images/edits", {
     method: "POST",
-    headers: { authorization: `Bearer ${ANTHROPIC_API_KEY}` },
+    headers: { authorization: `Bearer ${OPENAI_API_KEY}` },
     body: form,
     signal: AbortSignal.timeout(135000),
   });
@@ -805,7 +813,7 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
     userId = user.id;
     if (!businessId || !quoteId) throw new Error("Business and saved quote are required before AI drafting.");
     await membership(service, user.id, businessId);
-    if (!ANTHROPIC_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
+    if (!MUSE_SPARK_API_KEY) throw new Error("The Muse Spark API key is not configured in Supabase Edge Function secrets.");
     console.log(JSON.stringify({ event: "quote-ai-post", origin, businessId, quoteId, userId: user.id, authentication: "direct-supabase-auth-rest-v2", serverBuild: QUOTE_AI_BUILD, ...trace }));
 
     const [{ data: quoteRow, error: quoteError }, photos, prices, assemblies] = await Promise.all([
@@ -842,7 +850,7 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
       photoCount: photos.length,
     };
 
-    let draft = await callQuoteModelWithRetry(context, photos);
+    let draft = await callQuoteModelWithRetry(service, businessId, context, photos);
     const beforeRepair = breakoutProblems(draft, context);
     const repairApplied = false;
     const afterRepair = beforeRepair;
@@ -945,7 +953,7 @@ async function renderQuote(request: Request, body: JsonObject): Promise<Response
     userId = user.id;
     if (!businessId || !quoteId) throw new Error("Business and saved quote are required before rendering.");
     await membership(service, user.id, businessId);
-    if (!ANTHROPIC_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
+    if (!MUSE_SPARK_API_KEY) throw new Error("The Muse Spark API key is not configured in Supabase Edge Function secrets.");
     const projectTitle = clean(body.projectTitle, 300);
     const projectScope = clean(body.scope, 8000);
     const context: JsonObject = {
@@ -1011,7 +1019,7 @@ Deno.serve(async (request: Request) => {
       status: "PASS",
       service: "h38-quote-ai",
       serverBuild: QUOTE_AI_BUILD,
-      providerConfigured: Boolean(ANTHROPIC_API_KEY),
+      providerConfigured: Boolean(MUSE_SPARK_API_KEY),
       model: OPENAI_MODEL,
       imageModel: OPENAI_IMAGE_MODEL,
       authentication: "direct Supabase Auth REST validation",
