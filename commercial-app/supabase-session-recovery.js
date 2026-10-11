@@ -9,6 +9,7 @@
   let checking = false;
   let redirecting = false;
   let lastValidatedAt = 0;
+  const h38RecoveryPageLoad = Date.now();
 
   function text(value) {
     return String(value == null ? '' : value);
@@ -105,6 +106,7 @@
       // already painted, the new worker simply takes over on the next cold
       // start instead of reloading mid-session.
       try { if (typeof state !== 'undefined' && state && state.snapshot) return; } catch (ignore) {}
+      if (Date.now() - h38RecoveryPageLoad < 15000) return;
       location.reload();
     });
     navigator.serviceWorker.register(`./service-worker.js?build=${build}`, {
