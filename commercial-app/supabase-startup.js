@@ -91,10 +91,16 @@ hydrateLocalStartup=async function(options={}){
   const allowOnline=options?.allowOnline===true;
   if(!h38AuthUserId()||(navigator.onLine&&!allowOnline))return false;
   try{const settings=await withStartupTimeout(get('meta','settings'),'loading local settings');if(settings)state.drivingMode=!!settings.drivingMode;}catch(error){console.warn(error.message);}
-  try{
-    const selected=await withStartupTimeout(get('meta','selectedBusiness'),'loading user-scoped business');
-    setFastBusinessId(selected?.businessId||'');
-  }catch(error){console.warn(error.message);}
+  // URL businessKey is authoritative: never adopt a cached business selection
+  // when the URL names a business — the auth bridge resolves it fresh.
+  let urlBusinessKey='';
+  try{urlBusinessKey=String(new URLSearchParams(location.search).get('businessKey')||'').trim();}catch(e){}
+  if(!urlBusinessKey){
+    try{
+      const selected=await withStartupTimeout(get('meta','selectedBusiness'),'loading user-scoped business');
+      setFastBusinessId(selected?.businessId||'');
+    }catch(error){console.warn(error.message);}
+  }
   // Online startup may use cached preferences/selection, but never paints cached business records.
   // Keep the startup cover up until the secure gateway returns the authoritative snapshot.
   if(navigator.onLine&&allowOnline)return false;
