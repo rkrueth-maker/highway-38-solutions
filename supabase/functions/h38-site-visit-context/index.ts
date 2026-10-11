@@ -3,9 +3,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
-const OPENAI_API_KEY=Deno.env.get("OPENAI_API_KEY")||"";
-const MODEL=Deno.env.get("OPENAI_SITE_SCANNER_MODEL")||Deno.env.get("OPENAI_QUOTE_MODEL")||"gpt-5-mini-2025-08-07";
-const BUILD="20260915-meeting-site-seed-2";
+const ANTHROPIC_API_KEY=Deno.env.get("ANTHROPIC_API_KEY")||"";
+const MODEL=Deno.env.get("OPENAI_SITE_SCANNER_MODEL")||Deno.env.get("OPENAI_QUOTE_MODEL")||"claude-sonnet-4-20250514";
+const BUILD="261011-meeting-site-seed-2-claude-1";
 const ALLOWED_ORIGINS=new Set(["https://highway38solutions.com","https://www.highway38solutions.com","https://rkrueth-maker.github.io","http://localhost:8000","http://127.0.0.1:8000"]);
 type Json=Record<string,unknown>;
 const clean=(v:unknown,n=12000)=>String(v??"").replace(/Bearer\s+[A-Za-z0-9._-]+/gi,"Bearer [REDACTED]").trim().slice(0,n);
@@ -43,7 +43,7 @@ async function extract(session:Json,meeting:Json|null,meetingId:string){
     "Nothing in this step approves, sends, schedules, purchases, charges, accepts, or authorizes work."
   ].join(" ");
   const input={meetingId,meetingType:clean(meeting?.meetingType||meeting?.["Meeting Type"],120),meetingTitle:clean(meeting?.title||meeting?.["Title"],300),currentProjectTitle:clean(session["Project Title"]||session.projectTitle,300),currentScope:clean(session["Scope"]||session.scope,4000),meetingEvidence:evidence,meetingSummary:clean(meeting?.summary,6000),customerRequests:simpleList(meeting?.customerRequests),decisions:simpleList(meeting?.decisions),siteConditions:simpleList(meeting?.siteConditions),unknowns:simpleList(meeting?.unknowns),questionsToAsk:simpleList(meeting?.questionsToAsk),measurements:meetingMeasurements(meeting),walkthroughTranscript:transcript,walkthroughNotes:notes,walkthroughCustomerRequests:requests};
-  const res=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{authorization:`Bearer ${OPENAI_API_KEY}`,"content-type":"application/json"},body:JSON.stringify({model:MODEL,instructions,input:[{role:"user",content:[{type:"input_text",text:JSON.stringify(input)}]}],text:{format:{type:"json_schema",name:"h38_site_visit_meeting_seed",strict:true,schema}}}),signal:AbortSignal.timeout(120000)});
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","content-type":"application/json"},body:JSON.stringify({model:MODEL,system:instructions,messages:[{role:"user",content:[{type:"input_text",text:JSON.stringify(input)}]}],text:{format:{type:"json_schema",name:"h38_site_visit_meeting_seed",strict:true,schema}}}),signal:AbortSignal.timeout(120000)});
   const p=await json(res);if(!res.ok)throw Error(clean(p?.error?.message||p?.message||`Context extraction failed (${res.status}).`,4000));const raw=outputText(p);if(!raw)throw Error("No Site Visit context was returned.");const parsed=JSON.parse(raw) as Json;
   const customer=(parsed.customer&&typeof parsed.customer==="object"?parsed.customer:{}) as Json,property=(parsed.property&&typeof parsed.property==="object"?parsed.property:{}) as Json;
   return{meetingId,customer:{name:clean(customer.name,300),email:clean(customer.email,300),phone:clean(customer.phone,120)},property:{name:clean(property.name,300),address:clean(property.address,500),address2:clean(property.address2,300),city:clean(property.city,200),state:clean(property.state,100),zip:clean(property.zip,40)},projectTitle:clean(parsed.projectTitle,300),scopeDraft:clean(parsed.scopeDraft,5000),summary:clean(parsed.summary,6000),captureItems:(Array.isArray(parsed.captureItems)?parsed.captureItems:[]).slice(0,12).map((item:any)=>({type:["PHOTO","MEASUREMENT","CONFIRMATION"].includes(clean(item?.type,40).toUpperCase())?clean(item?.type,40).toUpperCase():"CONFIRMATION",label:clean(item?.label,600),reason:clean(item?.reason,1000)})).filter((item:any)=>item.label),quoteInputs:(Array.isArray(parsed.quoteInputs)?parsed.quoteInputs:[]).slice(0,12).map((x:any)=>clean(x,1200)).filter(Boolean),measurements:meetingMeasurements(meeting)};

@@ -10,8 +10,8 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
-const OPENAI_MODEL = Deno.env.get("OPENAI_QUOTE_MODEL") || "gpt-5-mini-2025-08-07";
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
+const OPENAI_MODEL = Deno.env.get("OPENAI_QUOTE_MODEL") || "claude-sonnet-4-20250514";
 const OPENAI_IMAGE_MODEL = Deno.env.get("OPENAI_IMAGE_MODEL") || "gpt-image-2";
 const STORAGE_BUCKET = "business-office-files";
 const MAX_PHOTOS = 6;
@@ -643,9 +643,9 @@ function baseInstructions(): string {
   ].join(" ");
 }
 async function callQuoteModel(context: JsonObject, photos: Array<{ type: string; image_url: string; detail: string }>): Promise<JsonObject> {
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { authorization: `Bearer ${OPENAI_API_KEY}`, "content-type": "application/json" },
+    headers: { authorization: `Bearer ${ANTHROPIC_API_KEY}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: OPENAI_MODEL,
       store: false,
@@ -727,7 +727,7 @@ async function createRenderConcept(service: ReturnType<typeof serviceClient>, bu
   form.append("output_format", "jpeg");
   const response = await fetch("https://api.openai.com/v1/images/edits", {
     method: "POST",
-    headers: { authorization: `Bearer ${OPENAI_API_KEY}` },
+    headers: { authorization: `Bearer ${ANTHROPIC_API_KEY}` },
     body: form,
     signal: AbortSignal.timeout(135000),
   });
@@ -805,7 +805,7 @@ async function buildQuote(request: Request, body: JsonObject): Promise<Response>
     userId = user.id;
     if (!businessId || !quoteId) throw new Error("Business and saved quote are required before AI drafting.");
     await membership(service, user.id, businessId);
-    if (!OPENAI_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
+    if (!ANTHROPIC_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
     console.log(JSON.stringify({ event: "quote-ai-post", origin, businessId, quoteId, userId: user.id, authentication: "direct-supabase-auth-rest-v2", serverBuild: QUOTE_AI_BUILD, ...trace }));
 
     const [{ data: quoteRow, error: quoteError }, photos, prices, assemblies] = await Promise.all([
@@ -945,7 +945,7 @@ async function renderQuote(request: Request, body: JsonObject): Promise<Response
     userId = user.id;
     if (!businessId || !quoteId) throw new Error("Business and saved quote are required before rendering.");
     await membership(service, user.id, businessId);
-    if (!OPENAI_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
+    if (!ANTHROPIC_API_KEY) throw new Error("The OpenAI API key is not configured in Supabase Edge Function secrets.");
     const projectTitle = clean(body.projectTitle, 300);
     const projectScope = clean(body.scope, 8000);
     const context: JsonObject = {
@@ -1011,7 +1011,7 @@ Deno.serve(async (request: Request) => {
       status: "PASS",
       service: "h38-quote-ai",
       serverBuild: QUOTE_AI_BUILD,
-      providerConfigured: Boolean(OPENAI_API_KEY),
+      providerConfigured: Boolean(ANTHROPIC_API_KEY),
       model: OPENAI_MODEL,
       imageModel: OPENAI_IMAGE_MODEL,
       authentication: "direct Supabase Auth REST validation",
