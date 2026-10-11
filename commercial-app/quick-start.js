@@ -135,12 +135,12 @@ function mergeSuggestions(list,source){
 }
 function fireAiSuggest(){
   if(D.aiDone) return;
-  D.aiStatus='Kit is looking at the photo…';
+  D.aiStatus='Hank is looking at the photo…';
   renderSuggestions();
   var api=null;
   try{ api=window.H38_AI_HANDOFF; }catch(e){}
   if(!api||typeof api.runTask!=='function'){
-    D.aiStatus='Kit is offline right now — tap the common jobs below.';
+    D.aiStatus='Hank is offline right now — tap the common jobs below.';
     D.aiDone=true; renderSuggestions(); return;
   }
   var btype=businessType()||'contractor';
@@ -160,12 +160,12 @@ function fireAiSuggest(){
     if(lines.length){
       D.suggestions=D.suggestions.filter(function(s){return s.source!=='static';});
       mergeSuggestions(lines,'ai');
-      D.aiStatus='Kit drafted lines from the photo — tap to add:';
+      D.aiStatus='Hank drafted lines from the photo — tap to add:';
     }else{
-      D.aiStatus='Kit came up empty — the common jobs below work great.';
+      D.aiStatus='Hank came up empty — the common jobs below work great.';
     }
   }).catch(function(){
-    D.aiStatus='Kit could not reach the photo — the common jobs below work great.';
+    D.aiStatus='Hank could not reach the photo — the common jobs below work great.';
   }).finally(function(){
     D.aiDone=true;
     if(D.step===1) renderSuggestions();
@@ -273,7 +273,7 @@ function viewPhoto(){
     '<div class="h38-qs-camera" id="qsDrop" role="button" tabindex="0" aria-label="Take or upload a photo of the job">'+
       '<span class="h38-qs-camera-emoji" aria-hidden="true">📸</span>'+
       '<strong>Take a photo of the job</strong>'+
-      '<p class="muted">Kit will build your first quote from it.</p>'+
+      '<p class="muted">Hank will build your first quote from it.</p>'+
     '</div>'+
     '<input type="file" id="qsFileTake" accept="image/*" capture="environment" hidden>'+
     '<input type="file" id="qsFilePick" accept="image/*" hidden>'+
@@ -292,7 +292,7 @@ function viewPhoto(){
 
 function suggestionRow(s,idx,added){
   return '<button type="button" class="h38-qs-sug'+(added?' added':'')+'" data-sug="'+idx+'" '+(added?'disabled':'')+'>'+
-    '<span class="h38-qs-sug-desc">'+esc(s.description)+(s.source==='ai'?'<span class="h38-qs-ai-tag">Kit</span>':'')+'</span>'+
+    '<span class="h38-qs-sug-desc">'+esc(s.description)+(s.source==='ai'?'<span class="h38-qs-ai-tag">Hank</span>':'')+'</span>'+
     '<span class="h38-qs-sug-meta">'+num(s.quantity)+' × '+esc(s.unit)+' · '+money(s.unitPrice)+'</span>'+
     '<span class="h38-qs-sug-add" aria-hidden="true">'+(added?'✓':'＋')+'</span></button>';
 }

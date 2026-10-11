@@ -265,16 +265,16 @@
       </div>`).join('');
 
     const emptyHtml = `
-      <p class="h38-kit-feed-empty">Kit hasn't taken any actions yet. Ask Kit to draft a quote or send a follow-up to see it here.</p>`;
+      <p class="h38-kit-feed-empty">Hank hasn't taken any actions yet. Ask Hank to draft a quote or send a follow-up to see it here.</p>`;
 
     return `
-      <section class="card h38-kit-feed" aria-label="Kit's recent activity">
+      <section class="card h38-kit-feed" aria-label="Hank's recent activity">
         <div class="h38-kit-feed-head">
           <div class="h38-kit-feed-title">
             <span class="h38-kit-feed-count" aria-label="${items.length} AI actions">${items.length}</span>
-            <h2>While You Were Away<small>Kit's activity</small></h2>
+            <h2>While You Were Away<small>Hank's activity</small></h2>
           </div>
-          <button type="button" class="h38-kit-feed-ask" data-kit-ask="1">Ask Kit</button>
+          <button type="button" class="h38-kit-feed-ask" data-kit-ask="1">Ask Hank</button>
         </div>
         ${items.length ? `<div class="h38-kit-feed-list">${rowsHtml}</div>` : emptyHtml}
       </section>`;

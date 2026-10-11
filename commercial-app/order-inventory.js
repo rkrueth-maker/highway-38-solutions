@@ -106,10 +106,10 @@
 
   async function h38OIAskKit() {
     var btn = $('h38OIAskKit');
-    if (btn) { btn.disabled = true; btn.textContent = 'Kit is reviewing…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Hank is reviewing…'; }
     try {
       if (!window.H38_AI_HANDOFF || typeof window.H38_AI_HANDOFF.runTask !== 'function')
-        throw new Error('Kit review is not available right now.');
+        throw new Error('Hank review is not available right now.');
       var summary = h38OI.items.map(function (x) {
         return { description: v(x.item, 'Description'), sku: v(x.item, 'SKU'), onHand: x.onHand, reorderPoint: x.reorderPoint, suggested: h38OISuggestedQty(x) };
       });
@@ -117,9 +117,9 @@
         businessId: state.businessId, items: summary
       });
       var text = (result && (result.advice || result.summary || result.review)) || '';
-      h38OI.kitAdvice = String(text).trim() || 'Kit reviewed the order and the suggested quantities look reasonable.';
+      h38OI.kitAdvice = String(text).trim() || 'Hank reviewed the order and the suggested quantities look reasonable.';
     } catch (e) {
-      h38OI.kitAdvice = 'Kit could not review this time (' + (e && e.message || e) + '). The suggested quantities are still fine to use — nothing is blocked.';
+      h38OI.kitAdvice = 'Hank could not review this time (' + (e && e.message || e) + '). The suggested quantities are still fine to use — nothing is blocked.';
     }
     h38OIRenderStep1();
   }
@@ -133,7 +133,7 @@
       if (!(x.itemId in h38OI.qty)) h38OI.qty[x.itemId] = h38OISuggestedQty(x);
     });
     var advice = h38OI.kitAdvice
-      ? '<div class="notice"><strong>Kit’s review:</strong> ' + esc(h38OI.kitAdvice) + '</div>' : '';
+      ? '<div class="notice"><strong>Hank’s review:</strong> ' + esc(h38OI.kitAdvice) + '</div>' : '';
     var body;
     if (!h38OI.items.length) {
       body = '<section class="card span12"><h2>✅ Stock looks good</h2><p class="muted">Nothing is at or below its reorder point right now. You can still place a general supply order.</p>' +
@@ -172,7 +172,7 @@
         '<p class="muted small">Quantities are suggestions from your reorder points. Change anything — nothing is sent yet.</p></section>';
     }
     $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Order Inventory — Review', 'Confirm what to order and from whom.',
-      h38OI.items.length ? '<button class="secondary" id="h38OIAskKit">Ask Kit to check quantities</button>' : '') +
+      h38OI.items.length ? '<button class="secondary" id="h38OIAskKit">Ask Hank to check quantities</button>' : '') +
       '<div class="grid">' + body + '</div>' + '</div>';
     var ask = $('h38OIAskKit'); if (ask) ask.onclick = h38OIAskKit;
     var gen = $('h38OIGeneral'); if (gen) gen.onclick = function () { toast('Add reorder points on the Inventory page to enable restock suggestions.', false); openPage('inventory'); };

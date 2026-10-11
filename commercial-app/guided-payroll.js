@@ -160,10 +160,10 @@
 
   async function h38GPAskKit() {
     var btn = $('h38GPAskKit');
-    if (btn) { btn.disabled = true; btn.textContent = 'Kit is reviewing…'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Hank is reviewing…'; }
     try {
       if (!window.H38_AI_HANDOFF || typeof window.H38_AI_HANDOFF.runTask !== 'function')
-        throw new Error('Kit review is not available right now.');
+        throw new Error('Hank review is not available right now.');
       var summary = h38GP.lines.map(function (l) {
         return { name: l.name, regularHours: l.regularHours, overtimeHours: l.overtimeHours, gross: l.gross, payType: l.payType };
       });
@@ -174,9 +174,9 @@
         lines: summary
       });
       var text = (result && (result.advice || result.summary || result.review)) || '';
-      h38GP.kitAdvice = String(text).trim() || 'Kit reviewed the hours and found nothing unusual.';
+      h38GP.kitAdvice = String(text).trim() || 'Hank reviewed the hours and found nothing unusual.';
     } catch (e) {
-      h38GP.kitAdvice = 'Kit could not review this time (' + (e && e.message || e) + '). Your hours are still fine to continue — nothing is blocked.';
+      h38GP.kitAdvice = 'Hank could not review this time (' + (e && e.message || e) + '). Your hours are still fine to continue — nothing is blocked.';
     }
     h38GPRenderStep1();
   }
@@ -235,9 +235,9 @@
       return h38GP.manualEntryFor === l.employeeId ? h38GPManualEntryForm(l) : h38GPLineRow(l);
     }).join('') : empty('No active employees found.', { page: 'people', label: 'Add employees first' });
     var advice = h38GP.kitAdvice
-      ? '<div class="notice"><strong>Kit’s review:</strong> ' + esc(h38GP.kitAdvice) + '</div>' : '';
+      ? '<div class="notice"><strong>Hank’s review:</strong> ' + esc(h38GP.kitAdvice) + '</div>' : '';
     $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Run Payroll — Review', 'Hours are pre-filled from time entries. Review, fix anything, then continue.',
-      '<button class="secondary" id="h38GPAskKit">Ask Kit to review</button>') +
+      '<button class="secondary" id="h38GPAskKit">Ask Hank to review</button>') +
       '<div class="grid"><section class="card span8"><h2>Payroll — ' + esc(periodLabel) + '</h2>' +
       advice +
       '<div class="list">' + rows + '</div>' +

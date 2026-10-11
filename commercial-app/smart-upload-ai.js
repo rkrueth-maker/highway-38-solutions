@@ -96,12 +96,12 @@ async function runAiScan(storagePath,fileName,mimeType,onStatus){
   if(!api||typeof api.runTask!=='function'){
     throw Object.assign(new Error('AI handoff is not available right now.'),{code:'HANDOFF_UNAVAILABLE'});
   }
-  if(typeof onStatus==='function') onStatus('Kit is reading the document…');
+  if(typeof onStatus==='function') onStatus('Hank is reading the document…');
   var result=await api.runTask('document_scan',{
     businessId:bizId(),
     scanId:'SMARTUPLOAD-'+Date.now(),
     photo:{bucket:BUCKET,path:storagePath,mimeType:mimeType||'image/jpeg',fileName:fileName||'scan.jpg'}
-  },{onQueued:function(){ if(typeof onStatus==='function') onStatus('Queued for Kit…'); }});
+  },{onQueued:function(){ if(typeof onStatus==='function') onStatus('Queued for Hank…'); }});
   return result||{};
 }
 
@@ -114,7 +114,7 @@ function confirmReceiptDialog(parsed,aiResult,fileName){
       return '<div class="h38-inline-slot"><input data-li-desc="'+ix+'" value="'+esc(it.description)+'" placeholder="Item"><input data-li-amt="'+ix+'" value="'+esc(it.amount)+'" placeholder="0.00" inputmode="decimal" style="width:7em"></div>';
     }).join('');
     dialog.innerHTML='<form method="dialog"><header><div><span>SMART UPLOAD · AI EXTRACT</span><h2>Confirm receipt details</h2><p>'+esc(fileName||'')+'</p></div><button value="cancel" aria-label="Cancel">×</button></header>'
-      +'<p class="muted small">Kit read the receipt. Fix anything wrong — nothing saves until you confirm.</p>'
+      +'<p class="muted small">Hank read the receipt. Fix anything wrong — nothing saves until you confirm.</p>'
       +'<label>Vendor<input name="vendor" value="'+esc(parsed.vendor)+'"></label>'
       +'<div class="h38-inline-slot"><label style="flex:1">Date<input name="date" value="'+esc(parsed.date)+'" placeholder="MM/DD/YYYY"></label>'
       +'<label>Amount<input name="amount" value="'+esc(parsed.amount)+'" inputmode="decimal" style="width:8em"></label></div>'
@@ -180,12 +180,12 @@ async function extractReceipt(file,onStatus){
     aiResult=await runAiScan(path,file.name,file.type,setStatus);
   }catch(err){
     if(window.H38Flow)window.H38Flow.fail({
-      what:'Kit could not read the receipt.',
+      what:'Hank could not read the receipt.',
       why:(err&&err.message)||'The AI read failed.',
       fixes:[{label:'Retry',primary:true,handler:function(){ extractReceipt(file,onStatus).catch(function(e2){ window.toast&&(window.toast(e2.message||String(e2),true)); }); }},{label:'Enter manually',handler:function(){ confirmReceiptDialog({vendor:'',date:'',amount:'',lineItems:[]},{},file.name).then(function(c){ if(c)saveExpense(c,path).then(showSaved); }); }}],
       id:'h38ReceiptAiFail'
     });
-    else if(window.toast)window.toast('Kit could not read the receipt: '+((err&&err.message)||err),true);
+    else if(window.toast)window.toast('Hank could not read the receipt: '+((err&&err.message)||err),true);
     throw err;
   }
   var parsed=parseReceiptFields(aiResult.extractedText||'');
@@ -224,8 +224,8 @@ async function enhanceDecisionWithAi(file,decision){
   var useAi=await new Promise(function(resolve){
     if(!window.H38Flow){ resolve(true); return; }
     window.H38Flow.ask({
-      title:isReceipt?'Extract receipt details with AI?':'Have Kit read this document?',
-      detail:isReceipt?'Kit pulls vendor, date, amount, and line items. You confirm before anything saves.':'Kit transcribes and classifies it. You confirm before anything saves.',
+      title:isReceipt?'Extract receipt details with AI?':'Have Hank read this document?',
+      detail:isReceipt?'Hank pulls vendor, date, amount, and line items. You confirm before anything saves.':'Hank transcribes and classifies it. You confirm before anything saves.',
       actions:[
         {label:isReceipt?'Extract with AI':'Read with AI',primary:true,handler:function(){ resolve(true); }},
         {label:'Keep as file only',handler:function(){ resolve(false); }}
@@ -250,7 +250,7 @@ async function enhanceDecisionWithAi(file,decision){
     var path=await uploadToBucket(file,'documents');
     var result=await runAiScan(path,file.name,file.type,function(){});
     var ok=window.H38Flow?await window.H38Flow.confirm({
-      title:'Kit read the document.',
+      title:'Hank read the document.',
       message:(result.summary||'Transcription complete.')+' Save the transcription with this file?',
       okLabel:'Save transcription',cancelLabel:'Skip'
     }):true;
@@ -259,7 +259,7 @@ async function enhanceDecisionWithAi(file,decision){
       decision.aiClassification=text(result.classification||'');
     }
   }catch(err){
-    if(window.toast)window.toast('Kit could not read the document: '+((err&&err.message)||err),true);
+    if(window.toast)window.toast('Hank could not read the document: '+((err&&err.message)||err),true);
   }
   return decision;
 }

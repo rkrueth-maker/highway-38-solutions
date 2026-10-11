@@ -29,9 +29,9 @@
     button.id = 'askKitButton';
     button.type = 'button';
     button.className = 'ai-launcher';
-    button.setAttribute('aria-label', 'Ask Kit — your business assistant');
-    button.title = 'Ask Kit about your business';
-    button.innerHTML = '<span aria-hidden="true">🤖</span><span class="ai-launcher-label">Ask Kit</span>';
+    button.setAttribute('aria-label', 'Ask Hank — your business assistant');
+    button.title = 'Ask Hank about your business';
+    button.innerHTML = '<span aria-hidden="true">🤖</span><span class="ai-launcher-label">Ask Hank</span>';
     button.onclick = function() {
       // Tenant-aware: open the in-app AI page which has business context
       if (typeof window.openPage === 'function') {

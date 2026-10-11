@@ -107,7 +107,7 @@ function renderCustomers(){
       <div id="h38AiCustomers"></div>
     </div>`:''}
     <div class="actions" style="margin-top:8px"><button type="button" class="secondary" data-onboard-scan-customers>📷 Scan a paper list</button></div>
-    <p class="muted small">Got your customers on paper? Scan the page (or pick a photo of it). Kit reads it, you check the rows, and they land in this list — nothing is saved until you finish setup.</p>
+    <p class="muted small">Got your customers on paper? Scan the page (or pick a photo of it). Hank reads it, you check the rows, and they land in this list — nothing is saved until you finish setup.</p>
     <div id="h38CustomerList">${d.customers.map((c,i)=>customerRow(c,i)).join('')||'<p class="muted">No customers yet.</p>'}</div>
     <div class="actions" style="margin-top:8px"><button type="button" class="secondary" data-onboard-add-customer>+ Add customer</button></div>
     <div class="actions"><button type="button" class="secondary" data-onboard-nav="back">Back</button><button data-onboard-nav="next">Continue</button></div>

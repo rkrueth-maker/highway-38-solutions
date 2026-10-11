@@ -60,7 +60,7 @@ function styles(){if(el('h38DocScannerStyles'))return;const s=document.createEle
 
 function dialog(){let d=el('h38DocScannerDialog');if(d)return d;styles();d=document.createElement('dialog');d.id='h38DocScannerDialog';d.className='h38-scan-dialog';d.innerHTML=`
 <div class="h38-scan-shell">
-  <div class="h38-scan-head"><div><span class="h38-eyebrow">DOCUMENT SCANNER</span><h2>Scan a document</h2><p class="muted">Point at a page, clean it up, and let Kit read it — or just save the page. Nothing saves until you confirm.</p></div><button type="button" class="icon-button" data-scan-close aria-label="Close">×</button></div>
+  <div class="h38-scan-head"><div><span class="h38-eyebrow">DOCUMENT SCANNER</span><h2>Scan a document</h2><p class="muted">Point at a page, clean it up, and let Hank read it — or just save the page. Nothing saves until you confirm.</p></div><button type="button" class="icon-button" data-scan-close aria-label="Close">×</button></div>
   <div id="h38ScanCapture">
     <label>Document name</label><input id="h38ScanName" type="text" maxlength="120">
     <div class="h38-scan-actions">
@@ -75,7 +75,7 @@ function dialog(){let d=el('h38DocScannerDialog');if(d)return d;styles();d=docum
         <canvas id="h38ScanCanvas"></canvas>
         <canvas id="h38ScanOverlay" class="h38-scan-overlay"></canvas>
       </div>
-      <p class="muted small">Drag the four corners to the edges of the page. Rotate if the page is sideways. “Enhance” makes a crisp black-and-white page that Kit reads best.</p>
+      <p class="muted small">Drag the four corners to the edges of the page. Rotate if the page is sideways. “Enhance” makes a crisp black-and-white page that Hank reads best.</p>
       <div class="h38-scan-actions">
         <button type="button" class="secondary" id="h38ScanRotL">⟲ Rotate left</button>
         <button type="button" class="secondary" id="h38ScanRotR">⟳ Rotate right</button>
@@ -86,7 +86,7 @@ function dialog(){let d=el('h38DocScannerDialog');if(d)return d;styles();d=docum
     </div>
     <div class="h38-scan-status" id="h38ScanStatus"></div>
     <div class="h38-scan-actions">
-      <button type="button" class="primary" id="h38ScanRead" disabled>✨ Read with Kit</button>
+      <button type="button" class="primary" id="h38ScanRead" disabled>✨ Read with Hank</button>
       <button type="button" id="h38ScanSavePlain" disabled>Save without AI read</button>
       <button type="button" class="secondary" data-scan-close>Cancel</button>
     </div>
@@ -98,7 +98,7 @@ function dialog(){let d=el('h38DocScannerDialog');if(d)return d;styles();d=docum
     <input id="h38ScanNameConfirm" type="text" maxlength="120">
     <label>What kind of document is this?</label>
     <select id="h38ScanClass">${Object.keys(LABEL_TO_KEY).map(l=>`<option>${l}</option>`).join('')}</select>
-    <label>Text Kit read (edit anything that looks wrong)</label>
+    <label>Text Hank read (edit anything that looks wrong)</label>
     <textarea id="h38ScanText" rows="9" placeholder="The words on the page will appear here. You can also type or paste them yourself."></textarea>
     <div id="h38ScanRowsWrap" hidden>
       <h3>Customers found</h3>
@@ -141,7 +141,7 @@ async function loadFile(file){
     setStatus('Loading photo…');
     const canvas=await fileToCanvas(file);
     setSource(canvas);
-    setStatus('Photo loaded. Line up the corners, then read it with Kit or save it as-is.');
+    setStatus('Photo loaded. Line up the corners, then read it with Hank or save it as-is.');
   }catch(e){setStatus('That file could not be opened as a photo: '+(e.message||e),true);}
 }
 async function fileToCanvas(file){
@@ -283,7 +283,7 @@ function capturePhoto(){
   const c=document.createElement('canvas');c.width=Math.round(v.videoWidth*scale);c.height=Math.round(v.videoHeight*scale);
   c.getContext('2d').drawImage(v,0,0,c.width,c.height);
   stopCamera();setSource(c);
-  setStatus('Photo captured. Line up the corners, then read it with Kit or save it as-is.');
+  setStatus('Photo captured. Line up the corners, then read it with Hank or save it as-is.');
 }
 
 /* ---------- storage + records ---------- */
@@ -403,14 +403,14 @@ async function createCustomers(rows){
 async function readWithKit(){
   if(S.busy)return;
   if(!window.H38_AI_HANDOFF||typeof window.H38_AI_HANDOFF.runTask!=='function'){
-    showConfirm({extractedText:'',classification:'other',confidence:'',summary:''},'Kit is not available in this session. You can still type the text yourself and save — the scan is saved as a document either way.');
+    showConfirm({extractedText:'',classification:'other',confidence:'',summary:''},'Hank is not available in this session. You can still type the text yourself and save — the scan is saved as a document either way.');
     return;
   }
   S.busy=true;el('h38ScanRead').disabled=true;
   try{
-    setStatus('Uploading the cleaned page for Kit…');
+    setStatus('Uploading the cleaned page for Hank…');
     const path=await uploadClean();
-    setStatus('Kit is reading your scan. This usually takes a minute or two — keep this open.');
+    setStatus('Hank is reading your scan. This usually takes a minute or two — keep this open.');
     const result=await window.H38_AI_HANDOFF.runTask('document_scan',{businessId:bid(),scanId:S.scanId,fileName:text(el('h38ScanName').value)||'Scanned document',photo:{bucket:BUCKET,path,mimeType:'image/jpeg',fileName:'scan-page.jpg'}});
     S.result=result||{};
     const rows=Array.isArray(S.result.customerRows)?S.result.customerRows:[];
@@ -423,7 +423,7 @@ async function readWithKit(){
     onClassChange();
     meterScan({scanId:S.scanId,fileBytes:S.blobSize||0,aiRead:true,classification:clsKey});
   }catch(e){
-    showConfirm({extractedText:'',classification:'other',confidence:'',summary:''},'Kit could not read this scan: '+(e.message||e)+' You can type or paste the text yourself and save — nothing is lost.');
+    showConfirm({extractedText:'',classification:'other',confidence:'',summary:''},'Hank could not read this scan: '+(e.message||e)+' You can type or paste the text yourself and save — nothing is lost.');
     S.result=null;S.rows=[];
     el('h38ScanClass').value='Other';el('h38ScanText').value='';onClassChange();
   }finally{S.busy=false;el('h38ScanRead').disabled=false;}
@@ -440,7 +440,7 @@ function showConfirm(result,aiError){
   if(aiError){note.innerHTML=`<p class="notice warn">${esc(aiError)}</p>`;return;}
   const conf=text(result&&result.confidence);
   const summary=text(result&&result.summary);
-  note.innerHTML=`<p class="notice">✨ Kit read this page${conf?' ('+esc(conf)+' confidence)':''}. ${esc(summary)} Review the text below — edit anything that looks wrong — then save. Nothing has been saved yet.</p>`;
+  note.innerHTML=`<p class="notice">✨ Hank read this page${conf?' ('+esc(conf)+' confidence)':''}. ${esc(summary)} Review the text below — edit anything that looks wrong — then save. Nothing has been saved yet.</p>`;
 }
 
 /* ---------- saves ---------- */

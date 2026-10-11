@@ -118,7 +118,7 @@ async function requestSeed(row=linkedMeeting()){
     seed=kitResult&&kitResult.siteVisitSeed;
   }catch(kitError){
     const kitMsg=String(kitError?.message||kitError||'');
-    const kitUnavailable=kitError?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|Kit could not complete|handoff/i.test(kitMsg);
+    const kitUnavailable=kitError?.code==='HANDOFF_NOT_DEPLOYED'||/timed out|(?:Kit|Hank) could not complete|handoff/i.test(kitMsg);
     if(!kitUnavailable)throw kitError;
     const a=await auth();
     const response=await fetch(`${cfg.url}/functions/v1/h38-site-visit-context`,{

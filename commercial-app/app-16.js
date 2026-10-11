@@ -10,14 +10,14 @@ function renderAi(){
   /* Fallback if the workspace module failed to load: simple chat. */
   const chat = (window.state && window.state.aiChat) || [];
   document.getElementById('mainContent').innerHTML =
-    '<div class="kw-workspace"><section class="card kw-chat"><h2>Ask Kit</h2>' +
+    '<div class="kw-workspace"><section class="card kw-chat"><h2>Ask Hank</h2>' +
     '<div id="kwAiChat" class="ai-chat">' +
     (chat.length ? chat.map(function (m) {
       return '<div class="ai-bubble ' + esc(m.role) + '">' + esc(m.body) + '</div>';
-    }).join('') : '<div class="ai-bubble assistant">Ask Kit anything about your business.</div>') +
+    }).join('') : '<div class="ai-bubble assistant">Ask Hank anything about your business.</div>') +
     '</div><form id="kwAiForm"><label>Question</label>' +
     '<textarea name="question" required placeholder="What should I work on next?"></textarea>' +
-    '<div class="actions"><button>Ask Kit</button></div></form></section></div>';
+    '<div class="actions"><button>Ask Hank</button></div></form></section></div>';
   var form = document.getElementById('kwAiForm');
   if (form) bindForm(form, askAi);
 }

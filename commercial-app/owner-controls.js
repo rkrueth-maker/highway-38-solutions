@@ -26,7 +26,7 @@ const FEATURE_TOGGLES=[
   {id:'card_on_file',title:'Card on file + card charges',desc:'Save customer cards as processor tokens and charge invoices with one tap. Test mode moves no real money. Auto-charge always needs owner approval — never silent.',icon:'',default:false,category:'Money'},
   {id:'online_payments_enabled',title:'Online payments (cards & bank debit)',desc:'Let customers pay invoices online through YOUR OWN Stripe account — money settles straight to your bank; the Office never holds it. Stripe charges 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit; no other fees. Connect Stripe below first, then turn this on. Off by default; manual payments keep working either way.',icon:'💳',default:false,category:'Money'},
   {id:'recurring_jobs_enabled',title:'Recurring jobs & service plans',desc:'Set repeat visits (lawn, snow, maintenance plans) on a customer once, then generate the upcoming jobs from Today. You tap to generate — nothing is created or charged automatically. Off by default.',icon:'🔁',default:false,category:'Jobs'},
-  {id:'ai_lead_responder',title:'AI lead responder',desc:'When a new online booking comes in, Kit queues a personal follow-up draft for your one-tap review and send — after hours too, so no lead sits cold. You approve every message; nothing sends itself. Needs Online Booking on. Off by default.',icon:'📞',default:false,category:'AI'},
+  {id:'ai_lead_responder',title:'AI lead responder',desc:'When a new online booking comes in, Hank queues a personal follow-up draft for your one-tap review and send — after hours too, so no lead sits cold. You approve every message; nothing sends itself. Needs Online Booking on. Off by default.',icon:'📞',default:false,category:'AI'},
 ];
 
 // Repair Guide module setting (server-side mirror).
@@ -247,7 +247,7 @@ function bindLeadResponder(){
   if(!rowEl||rowEl.querySelector('[data-lead-template]')) return;
   const box=document.createElement('div');
   box.dataset.leadTemplate='1';
-  box.innerHTML=`<label style="display:block;margin-top:8px"><small>Your instant-reply wording (Kit drafts the follow-up from it):</small><textarea data-lead-template-text rows="2" style="width:100%" placeholder="Thanks for reaching out! We got your request and will confirm shortly. — the team">${esc(leadResponderTemplate())}</textarea></label><button type="button" class="secondary" data-lead-template-save>Save wording</button>`;
+  box.innerHTML=`<label style="display:block;margin-top:8px"><small>Your instant-reply wording (Hank drafts the follow-up from it):</small><textarea data-lead-template-text rows="2" style="width:100%" placeholder="Thanks for reaching out! We got your request and will confirm shortly. — the team">${esc(leadResponderTemplate())}</textarea></label><button type="button" class="secondary" data-lead-template-save>Save wording</button>`;
   rowEl.appendChild(box);
   box.querySelector('[data-lead-template-save]').onclick=async()=>{
     try{
@@ -809,13 +809,13 @@ function bindOwnerControls(){
       if(id==='ai_lead_responder'){
         const want=checkbox.checked;
         if(want){
-          const ok=window.confirm('Turn ON the AI lead responder? Every new online booking will queue a follow-up draft from Kit for your one-tap review and send. Nothing is ever sent to a customer without your tap.');
+          const ok=window.confirm('Turn ON the AI lead responder? Every new online booking will queue a follow-up draft from Hank for your one-tap review and send. Nothing is ever sent to a customer without your tap.');
           if(!ok){checkbox.checked=false;return;}
         }
         checkbox.disabled=true;
         try{
           await setLeadResponderEnabled(want,leadResponderTemplate());
-          if(typeof toast==='function') toast('AI lead responder '+(want?'turned ON. Kit will draft follow-ups for new bookings.':'turned OFF.'));
+          if(typeof toast==='function') toast('AI lead responder '+(want?'turned ON. Hank will draft follow-ups for new bookings.':'turned OFF.'));
         }catch(e){
           checkbox.checked=!want;
           if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);

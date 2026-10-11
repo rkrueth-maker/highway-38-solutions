@@ -214,7 +214,7 @@ function templatesCard(){
       return '<div class="row"><div class="row-top"><strong>'+nm+'</strong>'+pill(st)+'</div><small>'+cat+' · '+esc(String(v(r,'Body')||'').slice(0,90))+'…</small><div class="row-actions">'+btns+'</div></div>';
     }).join(''):'<p class="muted">No templates yet. Load the defaults below, edit them, then approve.</p>';
     return '<section class="card span5"><h2>Message templates</h2>'
-      +'<p class="muted small">Kit drafts texts from <strong>Approved</strong> templates only. Approve a template when the wording is right.</p>'
+      +'<p class="muted small">Hank drafts texts from <strong>Approved</strong> templates only. Approve a template when the wording is right.</p>'
       +'<div class="list">'+list+'</div>'
       +'<div class="actions"><button type="button" class="secondary" id="smsLoadDefaults">Load default templates</button></div>'
       +'<form id="smsTemplateForm"><label>Template name</label><input name="tplName" required maxlength="80">'
@@ -232,7 +232,7 @@ function queueCard(){
       return '<div class="row"><div class="row-top"><strong>'+esc(v(r,'Customer Number'))+'</strong>'+pill(v(r,'Status'))+'</div>'
         +'<small>'+esc(v(r,'Purpose')||'')+' · '+esc(v(r,'Category')||'')+' · '+esc(String(v(r,'Pending Body')||'').slice(0,90))+'…'
         +(v(r,'Deliver After')?' · <em>after '+esc(v(r,'Deliver After'))+'</em>':'')+'</small>'+actions+'</div>';
-    }).join(''):'<p class="muted">Nothing waiting. Kit\'s drafts and your send requests land here.</p>';
+    }).join(''):'<p class="muted">Nothing waiting. Hank\'s drafts and your send requests land here.</p>';
     return '<section class="card span7"><h2>Approval queue</h2>'+'<div class="list" id="h38SmsQueueList">'+list+'</div>'
       +'<p class="muted small">Approved texts send through your connected SMS provider. Denied texts stay in history and never send.</p></section>';
   }catch(e){ return ''; }
@@ -250,7 +250,7 @@ function bindTemplatesUI(){
         .then(function(){ toast('Template saved as draft.'); renderMessages(); })
         .catch(function(e){ toast(e.message||String(e),true); }); };
     var ap=document.querySelectorAll('[data-approve-template]');
-    ap.forEach(function(b){ b.onclick=function(){ setTemplateStatus(b.getAttribute('data-approve-template'),'Approved').then(function(){ toast('Template approved. Kit can now use it.'); renderMessages(); }).catch(function(e){ toast(e.message||String(e),true); }); }; });
+    ap.forEach(function(b){ b.onclick=function(){ setTemplateStatus(b.getAttribute('data-approve-template'),'Approved').then(function(){ toast('Template approved. Hank can now use it.'); renderMessages(); }).catch(function(e){ toast(e.message||String(e),true); }); }; });
     var ar=document.querySelectorAll('[data-archive-template]');
     ar.forEach(function(b){ b.onclick=function(){ setTemplateStatus(b.getAttribute('data-archive-template'),'Archived').then(function(){ renderMessages(); }).catch(function(e){ toast(e.message||String(e),true); }); }; });
     if(window.H38SmsApproval&&window.H38SmsApproval.bindQueueActions){
@@ -398,7 +398,7 @@ async function sendSms(opts){
   }
 
   if(sender!=='phone-bridge'&&!cfg.connected){
-    throw new Error('SMS provider is not connected. Ask Kit to connect '+sender+' before sending.');
+    throw new Error('SMS provider is not connected. Ask Hank to connect '+sender+' before sending.');
   }
   var deliverProvider=sender==='phone-bridge'?'phone-bridge':cfg.provider;
   var segments=smsSegmentCount(body);

@@ -94,7 +94,7 @@ function renderStep1(){
           '<label>Reminder message (tap to edit)</label>'+
           '<textarea id="nudgeMsg-'+esc(item.id)+'" rows="3">'+esc(msg)+'</textarea>'+
           '<div class="row-actions">'+
-            '<button type="button" class="secondary" id="nudgeKitBtn-'+esc(item.id)+'">🤖 Ask Kit to draft it</button>'+
+            '<button type="button" class="secondary" id="nudgeKitBtn-'+esc(item.id)+'">🤖 Ask Hank to draft it</button>'+
             '<button type="button" data-nudge-queue="'+esc(item.id)+'">Queue '+(ch==='sms'?'text':'email')+' for approval →</button>'+
             '<button type="button" class="secondary" data-nudge-cancel="'+esc(item.id)+'">Cancel</button>'+
           '</div>'+
@@ -162,10 +162,10 @@ async function askKit(id){
   var ta=$('nudgeMsg-'+id); if(ta)nudge.message[id]=ta.value;
   var btn=$('nudgeKitBtn-'+id);
   if(!window.H38_AI_HANDOFF||typeof window.H38_AI_HANDOFF.runTask!=='function'){
-    toast('Kit is not available right now — the pre-written message above works fine.',true); return;
+    toast('Hank is not available right now — the pre-written message above works fine.',true); return;
   }
   var item=itemById(id), c=customerFor(item.row);
-  if(btn){btn.disabled=true;btn.textContent='Kit is drafting…';}
+  if(btn){btn.disabled=true;btn.textContent='Hank is drafting…';}
   try{
     var result=await Promise.race([
       window.H38_AI_HANDOFF.runTask('message_draft',{
@@ -176,18 +176,18 @@ async function askKit(id){
         daysLate:item.daysLate,
         businessName:bizName(),
         currentDraft:nudge.message[id]||''
-      },{onQueued:function(){toast('Kit is drafting a reminder…');}}),
-      new Promise(function(_,reject){setTimeout(function(){reject(new Error('Kit took too long.'));},45000);})
+      },{onQueued:function(){toast('Hank is drafting a reminder…');}}),
+      new Promise(function(_,reject){setTimeout(function(){reject(new Error('Hank took too long.'));},45000);})
     ]);
     var msg=(result&&(result.message||(result.draft&&result.draft.message)))||'';
-    if(!String(msg).trim()) throw new Error('Kit returned no text.');
+    if(!String(msg).trim()) throw new Error('Hank returned no text.');
     nudge.message[id]=String(msg).slice(0,300);
     if(ta)ta.value=nudge.message[id];
-    toast('Kit drafted a version — review it above before queuing.');
+    toast('Hank drafted a version — review it above before queuing.');
   }catch(err){
-    toast('Kit could not draft one ('+(err&&err.message||'unavailable')+'). Use the pre-written message.',true);
+    toast('Hank could not draft one ('+(err&&err.message||'unavailable')+'). Use the pre-written message.',true);
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='🤖 Ask Kit to draft it';}
+    if(btn){btn.disabled=false;btn.textContent='🤖 Ask Hank to draft it';}
   }
 }
 
