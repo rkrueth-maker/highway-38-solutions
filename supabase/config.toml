@@ -45,3 +45,10 @@ verify_jwt = false
 # review are enforced inside the function (JWT + membership checks).
 [functions.h38-vendor-directory]
 verify_jwt = false
+
+# Task completion for external recipients. Anonymous access is intentional:
+# recipients have no H38 login. The per-task Completion Token (a high-entropy
+# secret sent only to the recipient) grants exactly one capability: viewing
+# and completing that one task. Rate-limited per IP inside the function.
+[functions.h38-task-complete]
+verify_jwt = false
