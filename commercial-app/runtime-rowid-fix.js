@@ -3,7 +3,7 @@
 const CUSTOMER_WORKSPACE_BUILD='20260922-customer-master-detail-4';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
 const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-2';
-const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20260926-shared-tool-labels-6';
+const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261011-e2e-mutation-fix-1';
 const PHONE_FIRST_BUILD='20261007-visual-run2-a-2';
 const OWNER_PHONE_MODE_BUILD='20260918-owner-one-shell-authority-1';
 const INSTALL_OFFICE_BUILD='20260915-install-office-2';
