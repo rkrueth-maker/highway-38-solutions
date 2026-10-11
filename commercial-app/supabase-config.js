@@ -29,8 +29,8 @@
     // If the Office already painted business records, do not reload out from
     // under the user (that bounce reset navigation back to Today); the repair
     // above still applies from the next cold start.
-    try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}
-    if(Date.now()-h38ConfigPageLoad<15000)return;
+    try{if(typeof state!=='undefined'&&state&&state.snapshot){try{document.documentElement.style.visibility='';}catch(_){}return;}}catch(_){}
+    if(Date.now()-h38ConfigPageLoad<15000){try{document.documentElement.style.visibility='';}catch(_){}return;}
     location.reload();
   })();
 })();
