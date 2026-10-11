@@ -1,18 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-09T09:51:09.889Z",
+  "generatedAt": "2026-10-11T03:23:41.974Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "assets/js/uqb-public-examples.js",
-    "contractor-quote-complete.html",
-    "quote-builder.html",
-    "sample-library-now.html"
+    "commercial-app/customer-workspace-documents.js",
+    "commercial-app/field-visit-finish-build.js",
+    "commercial-app/plow-trigger-runtime.js"
   ],
-  "fileCount": 4,
+  "fileCount": 3,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": false,
+    "publicWebsite": false,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -23,24 +22,24 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": false,
+    "publicRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+    "Public browser and image evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
