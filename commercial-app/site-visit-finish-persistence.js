@@ -70,13 +70,56 @@ async function prepareReport(v){
   if(row&&navigator.onLine&&assistant?.organizeMeeting&&text(value(row,'Structured Status','structuredStatus')).toUpperCase()!=='COMPLETE')try{await assistant.organizeMeeting(meetingId(row));row=linkedMeeting(v)||row;}catch(error){organizationError=error?.message||String(error);}
   const status=reportStatus(v,row,organizationError);await persistReport(v,row,status,organizationError);return{row,status,error:organizationError};
 }
+/* ---- Redesign Tier 2 (2026-10-11): Pattern 1 post-save panel ----
+ * Replaces the "Visit Report is ready" toast (which praised empty visits)
+ * with what happened + what's next + one-tap actions. Evidence counts are
+ * named; offline saves say "on this device" with a sync-pending line. */
+function visitEvidenceCounts(v){
+  const photos=(Array.isArray(v?.attachmentIds)?v.attachmentIds.length:0)
+    +(Array.isArray(v?.walkthroughFrameIds)?v.walkthroughFrameIds.length:0)
+    +(Array.isArray(v?.videoAttachmentIds)?v.videoAttachmentIds.length:0);
+  const measurements=Array.isArray(v?.measurementIds)?v.measurementIds.length:0;
+  return{photos,measurements};
+}
+function showVisitSavedPanel(v,reportStatus){
+  const C=core();
+  const {photos,measurements}=visitEvidenceCounts(v);
+  const bits=[];
+  if(photos)bits.push(`${photos} photo${photos===1?'':'s'}`);
+  if(measurements)bits.push(`${measurements} measurement${measurements===1?'':'s'}`);
+  const evidence=bits.length?bits.join(', '):'no photos or measurements';
+  const offline=!navigator.onLine;
+  const title=`✓ Visit saved${offline?' on this device':''}: ${evidence}.`;
+  const reportNote=reportStatus==='NOTES_PROCESSING'?' Visit report is still processing notes.'
+    :reportStatus==='NOTES_RETRY_REQUIRED'?' Visit report needs a retry — notes can be retried from the visit.':'';
+  if(!window.H38Flow){
+    C.toast?.(title+reportNote,reportStatus==='NOTES_RETRY_REQUIRED');
+    return;
+  }
+  window.H38Flow.showNextStep({
+    id:'h38VisitSavedPanel',
+    title,
+    heading:reportNote?reportNote.trim():undefined,
+    next:'build the quote from this visit.',
+    offline,
+    actions:[
+      {label:'Build quote',primary:true,handler:()=>{
+        const qid=(v&&v.quoteId)||'';
+        if(qid&&window.H38_FIELD_VISIT_QUOTE_HANDOFF?.handoff){window.H38_FIELD_VISIT_QUOTE_HANDOFF.handoff();}
+        else if(window.openPage){window.openPage('quotes');window.toast?.('Open or create the quote for this visit.');}
+      }},
+      {label:'Back to work',handler:()=>{setTimeout(()=>window.H38_CONTEXT_CONTINUITY?.back?.(),0);}}
+    ]
+  });
+}
 async function finish(button){
   if(busy)return;const C=core(),authority=window.H38_SITE_VISIT_MEETING_SEED,v=C?.state?.visit;if(!C||!v||C.state?.open!==true||typeof authority?.finishVisit!=='function')return;busy=true;if(button)button.disabled=true;
   try{
     if(document.getElementById('h38MeetingRecordingDock')){const ctl=window.H38_CONVERSATION_AUDIO_CONTROLLER;if(ctl?.finish)await ctl.finish('meeting-finish');}
     const prepared=await prepareReport(v);await persistVisit(v,{reportStatus:prepared.status});
     await authority.finishVisit();v.status='CLOSED';v.updatedAt=now();await C.saveDraft?.();if(navigator.onLine)C.syncSoon?.();
-    C.toast?.(prepared.status==='NOTES_READY'?'Site Visit saved. Visit Report is ready.':prepared.status==='NOTES_PROCESSING'?'Site Visit saved. Visit Report is processing notes.':'Site Visit saved. Visit Report is available and notes can be retried.',prepared.status==='NOTES_RETRY_REQUIRED');
+    /* Redesign: Pattern 1 panel replaces the praise-toast. */
+    showVisitSavedPanel(v,prepared.status);
     setTimeout(()=>window.H38_CONTEXT_CONTINUITY?.back?.(),0);
   }catch(error){
     try{const row=linkedMeeting(v);await persistReport(v,row,'NOTES_RETRY_REQUIRED',error?.message||String(error));await persistVisit(v,{reportStatus:'NOTES_RETRY_REQUIRED'});v.status='COMPLETE';v.updatedAt=now();await C.saveDraft?.();}catch(_){}
