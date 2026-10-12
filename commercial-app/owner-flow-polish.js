@@ -231,7 +231,7 @@ function signalOwnerStartupReady(){
 }
 function loadOwnerCustomerWorkflow(){
   if(customerWorkflowStarted)return;customerWorkflowStarted=true;
-  if(!document.querySelector('link[data-h38-owner-customer-workflow]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./owner-customer-workflow-polish.css?build=20260824-owner-customer-workflow-polish-1';link.dataset.h38OwnerCustomerWorkflow='1';document.head.appendChild(link);}
+  if(!document.querySelector('link[data-h38-owner-customer-workflow]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./owner-customer-workflow-polish.css?build=20261012-mobile-polish-1';link.dataset.h38OwnerCustomerWorkflow='1';document.head.appendChild(link);}
   const start=Date.now();
   const ready=()=>{
     if(document.querySelector('script[data-h38-owner-customer-workflow]'))return true;
