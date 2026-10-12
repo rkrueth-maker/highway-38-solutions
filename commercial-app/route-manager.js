@@ -523,10 +523,126 @@ function bindCard(card) {
 
 /* ---------- route builder (owner) ---------- */
 var builderStops = [];
+/* ---------- route-builder optimization state ---------- */
+var builderOptSnapshot = null; // pre-optimize copy of builderStops (for Revert)
+var builderOptResult = null;   // last optimize result {totalMiles,totalMinutes,provider,optimized,skipped}
+
+function clearBuilderOptimization() {
+  builderOptSnapshot = null;
+  builderOptResult = null;
+}
+
+function haversineMi(aLat, aLng, bLat, bLng) {
+  var R = 3958.8, toRad = function(d) { return d * Math.PI / 180; };
+  var dLat = toRad(bLat - aLat), dLng = toRad(bLng - aLng);
+  var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+// Local fallback: nearest-neighbor on haversine miles. Only used when
+// window.H38Route (route-optimization.js) is unavailable.
+function localOptimize(stops) {
+  var n = stops.length;
+  if (n <= 1) return { order: stops.map(function(s) { return s.id; }), totalMiles: 0, totalMinutes: 0, legs: [], provider: 'offline-fallback' };
+  var seen = new Array(n).fill(false), idx = [0], total = 0;
+  seen[0] = true;
+  while (idx.length < n) {
+    var last = idx[idx.length - 1], best = -1, bd = Infinity;
+    for (var j = 0; j < n; j++) {
+      if (seen[j]) continue;
+      var d = haversineMi(stops[last].lat, stops[last].lng, stops[j].lat, stops[j].lng);
+      if (d < bd) { bd = d; best = j; }
+    }
+    total += bd; seen[best] = true; idx.push(best);
+  }
+  return {
+    order: idx.map(function(i) { return stops[i].id; }),
+    totalMiles: total, totalMinutes: total / 35 * 60, legs: [], provider: 'offline-fallback'
+  };
+}
+
+function validLatLng(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng) &&
+    lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0);
+}
+
+// Optimize the builder's stop order. Starts from the owner's first stop,
+// then nearest-neighbor (via window.H38Route when available). Stops without
+// coordinates keep their relative position at the end — never dropped.
+async function optimizeBuilderStops(btn) {
+  if (!builderStops.length) return;
+  if (!builderOptSnapshot) builderOptSnapshot = builderStops.slice();
+  if (btn) { btn.disabled = true; btn.textContent = 'Optimizing…'; }
+  try {
+    toast('Optimizing stop order…');
+    // Best-effort geocoding for stops that have an address but no coords yet.
+    for (var i = 0; i < builderStops.length; i++) {
+      var s = builderStops[i];
+      if ((s.lat == null || s.lng == null) && s.address) {
+        var c = await geocode(s.address);
+        if (c) { s.lat = c.lat; s.lng = c.lng; }
+      }
+    }
+    var withCoords = [], missing = [];
+    builderStops.forEach(function(st, idx) {
+      if (validLatLng(num(st.lat), num(st.lng))) withCoords.push({ stop: st, idx: idx });
+      else missing.push({ stop: st, idx: idx });
+    });
+    if (withCoords.length < 2) {
+      toast('Need at least 2 stops with a mappable address to optimize. Stops without coordinates keep their position.', true);
+      renderBuilderStops();
+      return;
+    }
+    var input = [], inputStops = [];
+    withCoords.forEach(function(wc, k) {
+      input.push({ id: 's' + k, lat: num(wc.stop.lat), lng: num(wc.stop.lng), label: wc.stop.customerName });
+      inputStops.push(wc);
+    });
+    var res = (w.H38Route && typeof w.H38Route.optimize === 'function')
+      ? w.H38Route.optimize(input)
+      : localOptimize(input);
+    var byId = {};
+    input.forEach(function(inp, k) { byId[inp.id] = inputStops[k]; });
+    var newOrder = [];
+    res.order.forEach(function(id) {
+      var wc = byId[id];
+      if (wc) newOrder.push(builderStops[wc.idx]);
+    });
+    // Safety: if the engine dropped anything, append the leftovers in original order.
+    builderStops.forEach(function(st) {
+      if (newOrder.indexOf(st) === -1) newOrder.push(st);
+    });
+    missing.sort(function(a, b) { return a.idx - b.idx; });
+    missing.forEach(function(m) { newOrder.push(m.stop); });
+    builderStops = newOrder;
+    builderOptResult = {
+      totalMiles: res.totalMiles, totalMinutes: res.totalMinutes,
+      provider: res.provider, optimized: withCoords.length, skipped: missing.length
+    };
+    renderBuilderStops();
+    toast('Optimized ' + withCoords.length + ' stop(s): ' +
+      builderOptResult.totalMiles.toFixed(1) + ' miles, ~' +
+      Math.round(builderOptResult.totalMinutes) + ' min driving' +
+      (missing.length ? ' (' + missing.length + ' without coordinates kept in place)' : '') + '.');
+  } catch (err) {
+    toast('Optimization failed: ' + text(err && err.message || err), true);
+    renderBuilderStops();
+  }
+}
+
+function revertBuilderOrder() {
+  if (!builderOptSnapshot) return;
+  builderStops = builderOptSnapshot;
+  clearBuilderOptimization();
+  renderBuilderStops();
+  toast('Restored your original stop order.');
+}
 function openRouteBuilder(routeId) {
   if (!isOwner()) { toast('Only owners can create routes.', true); return; }
   ensureStyle();
   builderStops = [];
+  clearBuilderOptimization();
   var existing = routeId ? routeById(routeId) : null;
   if (existing) {
     builderStops = stopsForRoute(text(v(existing, 'Route ID'))).map(function(s) {
@@ -576,14 +692,19 @@ function openRouteBuilder(routeId) {
       } else {
         builderStops = builderStops.filter(function(s) { return s.customerId !== customerIdOf(c); });
       }
+      clearBuilderOptimization();
       renderBuilderStops();
     });
   });
   overlay.querySelector('[data-rb-cancel]').addEventListener('click', function() { overlay.remove(); });
   overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
   overlay.querySelector('[data-rb-save]').addEventListener('click', function() { saveBuilderRoute(overlay, existing); });
-  // Stop reorder buttons (event delegation)
+  // Stop reorder buttons + optimize/revert (event delegation)
   overlay.querySelector('#rbStopList').addEventListener('click', function(e) {
+    var optBtn = e.target.closest('[data-rb-optimize]');
+    if (optBtn) { optimizeBuilderStops(optBtn); return; }
+    var revBtn = e.target.closest('[data-rb-revert]');
+    if (revBtn) { revertBuilderOrder(); return; }
     var btn = e.target.closest('[data-stop-move],[data-stop-del]');
     if (!btn) return;
     var i = num(btn.getAttribute('data-idx'));
@@ -594,6 +715,7 @@ function openRouteBuilder(routeId) {
       if (j < 0 || j >= builderStops.length) return;
       var tmp = builderStops[i]; builderStops[i] = builderStops[j]; builderStops[j] = tmp;
     }
+    clearBuilderOptimization();
     renderBuilderStops();
   });
 }
@@ -602,7 +724,23 @@ function renderBuilderStops() {
   var node = document.getElementById('rbStopList');
   if (!node) return;
   if (!builderStops.length) { node.innerHTML = '<p class="muted small">No stops yet — pick customers above.</p>'; return; }
-  node.innerHTML = '<strong>Stops in order (' + builderStops.length + '):</strong>' +
+  var resultHtml = '';
+  if (builderOptResult) {
+    var road = builderOptResult.provider === 'osrm';
+    resultHtml = '<p class="h38-route-note" style="margin:8px 0 0">⚡ Optimized: ' +
+      builderOptResult.totalMiles.toFixed(1) + ' miles · ~' +
+      Math.round(builderOptResult.totalMinutes) + ' min driving' +
+      (road ? ' (road data)' : ' (straight-line estimate)') +
+      (builderOptResult.skipped ? ' · ' + builderOptResult.skipped + ' without coordinates kept in place' : '') +
+      ' <button type="button" class="secondary" data-rb-revert style="min-height:36px;margin-left:6px">Revert to my order</button></p>';
+  }
+  node.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">' +
+    '<strong>Stops in order (' + builderStops.length + '):</strong>' +
+    (builderStops.length >= 2
+      ? '<button type="button" class="secondary" data-rb-optimize style="min-height:40px">⚡ Optimize route</button>'
+      : '') +
+    '</div>' + resultHtml +
     builderStops.map(function(s, i) {
       return '<div class="h38-stop" style="margin-top:6px"><div class="h38-stop-dot pending">' + (i + 1) + '</div>' +
         '<div class="h38-stop-body"><strong>' + esc(s.customerName) + '</strong><br><small class="muted">' + esc(s.address) + '</small></div>' +
