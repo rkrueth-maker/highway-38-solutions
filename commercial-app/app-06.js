@@ -257,7 +257,10 @@ function h38StartQuote(mode){
     if(mode==='hank'&&typeof h38BuildAiQuoteDraft==='function'){
       setTimeout(()=>h38BuildAiQuoteDraft(),300);
     }else if(mode==='photos'){
-      setTimeout(()=>{document.getElementById('quotePhotoInput')?.click();},300);
+      // #quotePhotoInput is removed by quote-mobile-stabilization, whose
+      // gallery/camera buttons are the canonical photo intake. Use them;
+      // fall back to the raw input when stabilization is not active.
+      setTimeout(()=>{const target=document.getElementById('h38ChooseQuotePhotosAction')||document.getElementById('quotePhotoButton')||document.getElementById('quotePhotoInput');target?.click();},300);
     }else if(mode==='measure'&&typeof renderMeasure==='function'){
       setTimeout(()=>renderMeasure(),300);
     }else{
