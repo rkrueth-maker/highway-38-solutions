@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261006-offline-field-1';
+const BUILD='20261012-offline-polish-1';
 function register(){
   if(!('serviceWorker' in navigator))return;
   if(!/^https:$/.test(location.protocol)&&location.hostname!=='localhost')return;
@@ -9,20 +9,11 @@ function register(){
     if(reg&&reg.update)reg.update().catch(function(){});
   }).catch(function(){});
 }
-function pill(){
-  let el=document.querySelector('[data-h38-offline-pill]');
-  if(!el){
-    el=document.createElement('div');
-    el.dataset.h38OfflinePill='1';
-    el.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9999;padding:6px 10px;border-radius:999px;font:600 12px system-ui;color:#fff;background:#b3261e;box-shadow:0 2px 8px rgba(0,0,0,.25);display:none';
-    document.body.appendChild(el);
-  }
-  if(navigator.onLine){el.style.display='none';return;}
-  el.textContent='📴 Offline — the Office stays open. Anything you save stays on this device until you are back online.';
-  el.style.display='block';
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){register();pill();},{once:true});else{register();pill();}
-window.addEventListener('online',pill);
-window.addEventListener('offline',pill);
+// The offline status banner is owned by offline-mode.js (single offline UX:
+// banner + queue counts + sync panel). This runtime previously painted its own
+// fixed bottom pill, which sat on top of the phone bottom navigation and ate
+// taps while offline; it was removed in the 2026-10-12 offline polish. Only the
+// service-worker registration remains here.
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){register();},{once:true});else{register();}
 window.H38_OFFLINE_RUNTIME=Object.freeze({build:BUILD});
 })();

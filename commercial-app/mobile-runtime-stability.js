@@ -242,7 +242,7 @@ function polishCustomers(main){
   const start=byName('Start work'),customers=byName('Customers'),properties=byName('Properties');
   [start,customers,properties].forEach(card=>card?.classList.add('h38-mobile-record-card'));
   moveCardsFirst(grid,[start,customers,properties]);
-  wrapToolCard(byName('Add or update customer'),'Add or edit customer',true);
+  wrapToolCard(byName('Add customer')||byName('Add or update customer'),'Add or edit customer',true);
   wrapToolCard(byName('Add property'),'Add property',true);
 }
 function polishSchedule(main){
