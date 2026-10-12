@@ -4,7 +4,7 @@
 // Extends the existing offline queue in app-02.js (queueOperation/sync/syncPass). Builds no second queue.
 // Parse-time work is trivial (toggle registration + event listeners); nothing here runs at startup
 // beyond that, so the authenticated shell startup budget is untouched.
-const BUILD='20261004-offline-1';
+const BUILD='20261012-offline-polish-1';
 const FEATURE_ID='offline_mode';
 
 // --- Owner Controls toggle (id-guarded push; owner-controls.js is never edited) ---
@@ -106,13 +106,22 @@ async function handleOnline(){
   if(nowMs-lastOnlineHandled<2000)return 'debounced';
   lastOnlineHandled=nowMs;
   clearRetry();retryAttempt=0;
-  if(office().bridgeReady)await callGlobal('sync',false);
+  if(office().bridgeReady){await callGlobal('sync',false);}
+  else{
+    // The bridge may still be reconnecting when 'online' fires (listener order
+    // is not guaranteed), so retry briefly — queued work must drain on its own
+    // without the user tapping anything.
+    [1500,4000,9000].forEach(delay=>setTimeout(()=>{if(isOnline()&&enabled()&&office().bridgeReady)callGlobal('sync',false);},delay));
+  }
+  updateBanner();
   return 'synced';
 }
 function onSyncPassComplete(detail){
   const d=detail||{};
+  lastSyncSummary={done:num(d.done),failed:num(d.failed),conflicts:num(d.conflicts)};
   writeStatus({lastSyncAt:new Date().toISOString(),lastSyncResult:{done:num(d.done),failed:num(d.failed),conflicts:num(d.conflicts)},businessId:office().businessId||''});
   refreshPanel();
+  updateBanner();
   if(!enabled()){clearRetry();return;}
   if(d.error||num(d.failed)>0){
     if(!isOnline())return;
@@ -121,6 +130,70 @@ function onSyncPassComplete(detail){
     const delay=BACKOFF_MS[retryAttempt];retryAttempt++;
     retryTimer=setTimeout(()=>{retryTimer=null;if(!isOnline()||!enabled())return;if(office().bridgeReady)callGlobal('sync',false);},delay);
   }else{clearRetry();retryAttempt=0;}
+}
+
+// ---------- offline banner (the one status banner; it can never block taps) ----------
+// pointer-events:none + positioned above the fixed phone bottom nav, so being
+// offline never makes navigation unreachable. Owned here with the queue counts.
+let bannerEl=null,bannerHideTimer=null,lastSyncSummary=null;
+function bannerBottomOffset(){
+  try{
+    const nav=document.getElementById('mainNav');
+    if(nav){
+      const rect=nav.getBoundingClientRect(),style=getComputedStyle(nav);
+      if(style.position==='fixed'&&rect.height>0&&Math.abs(window.innerHeight-rect.bottom)<2)return Math.round(rect.height)+10;
+    }
+  }catch(e){}
+  return 12;
+}
+function ensureBanner(){
+  if(bannerEl&&document.body&&document.body.contains(bannerEl))return bannerEl;
+  if(!document.body)return null;
+  bannerEl=document.createElement('div');
+  bannerEl.id='h38OfflineBanner';
+  bannerEl.setAttribute('data-h38-offline-banner','1');
+  bannerEl.setAttribute('role','status');
+  bannerEl.style.cssText='position:fixed;left:10px;right:10px;z-index:9998;padding:10px 14px;border-radius:12px;font:600 13px/1.35 system-ui,sans-serif;color:#fff;background:#b3261e;box-shadow:0 4px 16px rgba(0,0,0,.3);display:none;pointer-events:none;text-align:center';
+  document.body.appendChild(bannerEl);
+  return bannerEl;
+}
+function showBanner(message,background,sticky){
+  const el=ensureBanner();if(!el)return;
+  if(bannerHideTimer){clearTimeout(bannerHideTimer);bannerHideTimer=null;}
+  el.textContent=message;
+  el.style.background=background;
+  el.style.bottom=bannerBottomOffset()+'px';
+  el.style.display='block';
+  if(!sticky)bannerHideTimer=setTimeout(()=>{el.style.display='none';bannerHideTimer=null;},6000);
+}
+function hideBanner(){if(bannerHideTimer){clearTimeout(bannerHideTimer);bannerHideTimer=null;}if(bannerEl)bannerEl.style.display='none';}
+async function pendingCounts(){
+  const ops=await businessOps();
+  // Match the badge semantics (app-19): usage telemetry is not user work and
+  // never inflates the waiting count.
+  const pending=ops.filter(o=>o.syncStatus==='PENDING'&&String(o.action||'').toUpperCase()!=='RECORD_USAGE_EVENT');
+  return{pending:pending.length,failed:pending.filter(o=>num(o.retryCount)>0).length,conflicts:ops.filter(o=>o.syncStatus==='CONFLICT').length};
+}
+async function updateBanner(){
+  if(!enabled()){hideBanner();return;}
+  let counts={pending:0,failed:0,conflicts:0};
+  try{counts=await pendingCounts();}catch(e){}
+  if(!isOnline()){
+    showBanner(`📴 You're offline — the Office stays open. Anything you save stays on this device.${counts.pending?` ${counts.pending} waiting to sync.`:''}`,'#b3261e',true);
+    return;
+  }
+  if(counts.conflicts>0||counts.failed>0){
+    const stuck=counts.failed+counts.conflicts;
+    showBanner(`⚠️ Back online — ${stuck} change${stuck===1?'':'s'} still need${stuck===1?'s':''} attention. Your work is safe on this device; open Settings for Offline mode to review.`,'#b3261e',true);
+    return;
+  }
+  if(counts.pending>0){showBanner(`Back online — syncing ${counts.pending} change${counts.pending===1?'':'s'}…`,'#8a6d00',true);return;}
+  if(lastSyncSummary&&num(lastSyncSummary.done)>0){
+    const done=num(lastSyncSummary.done);lastSyncSummary=null;
+    showBanner(`✅ Back online — ${done} change${done===1?'':'s'} synced. Everything is saved.`,'#1d6631',false);
+    return;
+  }
+  hideBanner();
 }
 
 // ---------- readiness panel ----------
@@ -161,19 +234,24 @@ async function renderPanel(){
   mount.querySelectorAll('[data-offline-merge-op]').forEach(b=>{b.onclick=()=>{if(confirm('Merge: keep the server text and append your offline text to this field?'))mergeText(b.dataset.offlineMergeOp,b.dataset.offlineMergeKey).catch(err=>callGlobal('toast',err&&err.message||String(err),true));};});
   autoRefreshPack().catch(()=>{});
 }
-function refreshPanel(){if($('offlineReadinessPanel'))renderPanel();}
+function refreshPanel(){if($('offlineReadinessPanel'))renderPanel();updateBanner();}
 
 // ---------- wiring (installed once; never re-registers) ----------
 if(!window.__h38OfflineModeInstalled){
   window.__h38OfflineModeInstalled=true;
   window.addEventListener('online',()=>{handleOnline();});
+  window.addEventListener('offline',()=>{updateBanner();});
   window.addEventListener('h38:sync-pass-complete',event=>{onSyncPassComplete(event&&event.detail);});
+  window.addEventListener('h38:pending-updated',()=>{updateBanner();});
+  window.addEventListener('resize',()=>{if(bannerEl&&bannerEl.style.display!=='none')updateBanner();});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{updateBanner();},{once:true});
+  else updateBanner();
 }
 
 window.H38OfflineMode=Object.freeze({
   BUILD,FEATURE_ID,
   isEnabled:enabled,
-  renderPanel,refreshPanel,
+  renderPanel,refreshPanel,updateBanner,
   syncNow:()=>callGlobal('sync',true),
   refreshPack,autoRefreshPack,
   handleOnline,onSyncPassComplete,

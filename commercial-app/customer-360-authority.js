@@ -173,7 +173,7 @@ function renderCustomer360(root){
   const result=selected?customerBundle(snapshot,selected):null,c=result?.customer||null,g=result?.groups||{},esc=v=>safeEsc(root,v),counts=result?summaryCounts(result):null,customerName=text(value(c,'Customer Name','name'))||'Select a customer';
   main.querySelectorAll(':scope > .h38-c360,:scope > .h38-c360-grid,:scope > .h38-c360-workspace,:scope > .h38-c360-master-detail,:scope > .h38-c360-setup-dialog').forEach(node=>node.remove());
   const oldCards=Array.from(main.querySelectorAll('.grid > .card'));
-  const setupCards=oldCards.filter(card=>['Add or update customer','Add property'].includes(text(card.querySelector('h2')?.textContent)));
+  const setupCards=oldCards.filter(card=>['Add customer','Add or update customer','Add property'].includes(text(card.querySelector('h2')?.textContent)));
   oldCards.forEach(card=>card.remove());
   const grid=main.querySelector('.grid');
   const head=main.querySelector('.page-head');
