@@ -3,11 +3,11 @@
 const BUILD='20260918-one-shell-role-nav-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
-const OWNER_PRIMARY=[['today','⌂','Home'],['money','💵','Money'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
+const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
 const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
 const OWNER_MORE_GROUPS=[
-  ['Work & Sales',['work','quotes','field','meetings']],
-  ['Money',['accounting','payroll','tax']],
+  ['Work',['work','quotes','field','meetings']],
+  ['Money',['money','accounting','payroll','tax']],
   ['Records & Equipment',['documents','inventory','fleet','people']],
   ['Office',['reports','social','controls','ai','assistant','settings']]
 ];
