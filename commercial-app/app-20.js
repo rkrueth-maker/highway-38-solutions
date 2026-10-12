@@ -175,7 +175,7 @@ async function h38BuildAiQuoteDraft(){
     const costCount=state.quote.possibleMissingCosts.filter(item=>!item?.decision||item.decision==='PENDING').length;
     toast(`${result.provider||'AI'} draft loaded with current pricing.${costCount?` ${costCount} possible missing cost${costCount===1?'':'s'} flagged for owner review.`:''}; nothing approved or sent.`);
     renderQuotes();
-  }catch(error){toast(error.message||String(error),true);if(button){button.disabled=false;button.textContent='Build with H38 AI';}}
+  }catch(error){toast(error.message||String(error),true);if(button){button.disabled=false;button.textContent='Build with Hank';}}
 }
 function h38CadUpload(){
   const quoteId=state.quote?.quoteId||'';
@@ -200,7 +200,7 @@ async function h38RunAiMeasurement(){
 }
 function h38AddQuoteAiTools(){
   const tools=document.querySelector('.page-tools');if(!tools)return;
-  if(!$('h38AiQuoteDraftButton')){const ai=document.createElement('button');ai.id='h38AiQuoteDraftButton';ai.type='button';ai.textContent='Build with H38 AI';ai.onclick=h38BuildAiQuoteDraft;tools.prepend(ai);}
+  if(!$('h38AiQuoteDraftButton')){const ai=document.createElement('button');ai.id='h38AiQuoteDraftButton';ai.type='button';ai.textContent='Build with Hank';ai.onclick=h38BuildAiQuoteDraft;tools.prepend(ai);}
   if(!$('h38CadButton')){const cad=document.createElement('button');cad.id='h38CadButton';cad.type='button';cad.className='secondary';cad.textContent='Add CAD';cad.onclick=h38CadUpload;tools.appendChild(cad);const input=document.createElement('input');input.id='h38CadInput';input.type='file';input.className='hidden';input.accept='.dxf,.dwg,.dwt,.dws,application/dxf,application/acad,image/vnd.dxf';input.onchange=event=>handleAttachmentFiles(event.target.files,'Quote',state.quote?.quoteId||'LOCAL-QUOTE','Internal');tools.appendChild(input);}
 }
 function h38AddMeasureAiPanel(){

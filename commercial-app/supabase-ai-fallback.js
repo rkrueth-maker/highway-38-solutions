@@ -31,7 +31,7 @@
     if(/schedule|calendar|appointment/.test(q)){
       return 'Open Schedule, link the job, choose the assigned user, set start and end times, and save. This creates an internal schedule record only.';
     }
-    return `H38 AI cloud service is unavailable right now. I can still guide the ${page} workflow from the installed app. Use the page forms to save internal work; every external action remains disabled or owner-controlled.`;
+    return `Hank cloud service is unavailable right now. I can still guide the ${page} workflow from the installed app. Use the page forms to save internal work; every external action remains disabled or owner-controlled.`;
   }
 
   function safeContext(args){
@@ -61,7 +61,7 @@
 
   // Kit single-AI (Phase 1): route assistant Q&A to Kit via ai_handoff_tasks
   // before falling back to the OpenAI edge function. Read-only advisory only.
-  function notify(message,bad){if(typeof window.toast==='function')window.toast(message,!!bad);else console[bad?'error':'log']('[H38 AI]',message);}
+  function notify(message,bad){if(typeof window.toast==='function')window.toast(message,!!bad);else console[bad?'error':'log']('[Hank]',message);}
   function kitSafeContext(args){
     const c=safeContext(args||{});
     delete c.experienceMode;delete c.receptionistProfile; // receptionist test never goes to Kit
@@ -98,10 +98,10 @@
     const sessionResult=await api.auth.getSession();
     if(sessionResult.error)throw sessionResult.error;
     const session=sessionResult.data?.session;
-    if(!session?.access_token)throw new Error('Sign in again before using H38 AI.');
+    if(!session?.access_token)throw new Error('Sign in again before using Hank.');
     if(api.functions&&typeof api.functions.setAuth==='function')api.functions.setAuth(session.access_token);
     const businessId=text(args?.businessId||window.state?.businessId).trim();
-    if(!businessId)throw new Error('Open an authorized business before using H38 AI.');
+    if(!businessId)throw new Error('Open an authorized business before using Hank.');
     const timeoutMs=Math.max(15000,Math.min(Number(timeout)||50000,65000));
     // Kit-first: try Kit via the handoff table; fall back to the OpenAI edge
     // function when Kit is unavailable. Receptionist test mode always uses the
@@ -136,11 +136,11 @@
         body:{businessId,question:text(args?.question).trim(),context:safeContext(args||{})},
         headers:{authorization:`Bearer ${session.access_token}`,'x-client-info':'h38-assistant-router-v1'}
       });
-      const timed=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('H38 AI timed out.')),timeoutMs);});
+      const timed=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('Hank timed out.')),timeoutMs);});
       const result=await Promise.race([invoke,timed]);
       if(result?.error)throw new Error(text(result.error.message||result.error));
       const payload=result?.data||{};
-      if(payload.status!=='PASS'||!text(payload.answer).trim())throw new Error(text(payload.message||'H38 AI did not return an answer.'));
+      if(payload.status!=='PASS'||!text(payload.answer).trim())throw new Error(text(payload.message||'Hank did not return an answer.'));
       return payload;
     }finally{if(timer)clearTimeout(timer);}
   }
