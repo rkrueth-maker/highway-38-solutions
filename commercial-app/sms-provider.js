@@ -405,7 +405,12 @@ async function sendSms(opts){
   if(segments>MAX_SEGMENTS){
     throw new Error('Message is too long ('+segments+' segments). Keep it under '+MAX_SEGMENTS+' segments.');
   }
-  var deliverAfter=deliveryAllowed(new Date())?'':nextDeliveryTime().toISOString();
+  var deliverAfter=text(opts.deliverAfter)||(deliveryAllowed(new Date())?'':nextDeliveryTime().toISOString());
+  // Pre-approved sends: the owner pre-approved this message category by enabling
+  // its auto-send toggle (e.g. auto review requests). The thread skips the
+  // per-message approval queue; consent, STOP, quiet-hours and category rules
+  // above still apply.
+  var preApproved=opts.preApproved===true;
 
   var msgId=newId('SMS-MESSAGE');
   var threadId=opts.threadId||newId('SMS-THREAD');
@@ -416,7 +421,9 @@ async function sendSms(opts){
     'Provider':deliverProvider,
     'Customer Number':to,
     'Consent Status':'Consented',
-    'Status':'Queued — Owner Approval Required',
+    'Status':preApproved?'Approved — Queued to Send':'Queued — Owner Approval Required',
+    'Approved By':preApproved?'auto-send:'+purpose:'',
+    'Approved At':preApproved?now():'',
     'Pending Body':body,
     'Segments':segments,
     'Purpose':purpose,
@@ -438,8 +445,8 @@ async function sendSms(opts){
     consentStatus:'Consented',
     queuedBy:(state.snapshot&&state.snapshot.user&&state.snapshot.user.userId)||''
   },{collection:'smsThreads',record:thread,idKeys:['SMS Thread ID']});
-  if(typeof toast==='function') toast('Text queued for owner approval. Nothing sent yet.');
-  return {queued:true,threadId:threadId,segments:segments,provider:deliverProvider,status:'Queued — Owner Approval Required'};
+  if(typeof toast==='function') toast(preApproved?'Text queued to send automatically (pre-approved).':'Text queued for owner approval. Nothing sent yet.');
+  return {queued:true,threadId:threadId,segments:segments,provider:deliverProvider,status:preApproved?'Approved — Queued to Send':'Queued — Owner Approval Required'};
 }
 
 // Convenience for the reminders engine: is an SMS send even possible right now?
