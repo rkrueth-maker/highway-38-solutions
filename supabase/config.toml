@@ -56,6 +56,8 @@ verify_jwt = false
 # Proactive Kit engine. Runs on schedule (cron), monitors each business for
 # overdue quotes, late invoices, schedule gaps. Creates DRAFT follow-ups and
 # approval tasks — never sends customer messages, never moves money.
-# Requires service_role (internal only, not public).
+# Self-authenticating: callers must present the x-h38-nightly-key header
+# matching the 'kit-proactive-engine' row in h38_internal_job_secrets
+# (401 without it), so verify_jwt stays false for the cron runner.
 [functions.kit-proactive-engine]
 verify_jwt = false
