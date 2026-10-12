@@ -16,6 +16,8 @@
  *   - Bouncie integration is the live vehicle path.
  *
  * Owner Controls: id-guarded registration of 'route_management' (default OFF).
+ * Tenant switch is server-backed: a business_module_settings row for
+ * 'route_management' wins over the per-browser Owner Controls toggle.
  * Data: business_records collections 'routes' and 'routeStops' via queueOperation.
  * Map: Leaflet + OpenStreetMap, loaded on demand (same pattern as gps-dispatch).
  * ========================================================================== */
@@ -23,7 +25,7 @@
 'use strict';
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261011-route-manager-1';
+var BUILD = '20261012-route-server-flag-1';
 var ROUTES_COLLECTION = 'routes';
 var STOPS_COLLECTION = 'routeStops';
 var FEATURE_ID = 'route_management';
@@ -110,7 +112,27 @@ function ocEnabled(id) {
   try { if (oc && typeof oc.isEnabled === 'function') return oc.isEnabled(id) === true; } catch (_) {}
   return false;
 }
-function enabled() { return registerFeature() && ocEnabled(FEATURE_ID) && !!businessId(); }
+/* Server-backed tenant switch (business_module_settings, loaded into the
+ * snapshot as moduleSettings — same source crew-phone-location reads).
+ * A server row for this tenant WINS over the per-browser Owner Controls
+ * toggle, so an owner turning Route Manager on server-side lights it up in
+ * every browser. With no server row, fall back to the existing local
+ * toggle/default behavior (default OFF). */
+function serverSetting() {
+  var snapshot = (w.state && w.state.snapshot) || {};
+  var list = Array.isArray(snapshot.moduleSettings) ? snapshot.moduleSettings : [];
+  for (var i = 0; i < list.length; i++) {
+    var row = list[i] || {};
+    if (text(row.moduleKey || row.module_key) === FEATURE_ID) return row;
+  }
+  return null;
+}
+function enabled() {
+  if (!registerFeature() || !businessId()) return false;
+  var row = serverSetting();
+  if (row) return row.enabled === true;
+  return ocEnabled(FEATURE_ID);
+}
 
 /* ---------- styles ---------- */
 var styleInjected = false;
