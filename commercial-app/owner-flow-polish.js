@@ -47,10 +47,10 @@ function setRebuildStatus(status){
 function rebuildStatusMessage(status){
   if(!status)return'';
   if(status.phase==='working')return 'Rebuilding quote… H38 is checking the current Site Visit, measurements and Price Book. Your saved revision remains untouched until you save.';
-  if(status.phase==='error')return `Rebuild failed — ${status.message||'H38 AI did not complete.'} The saved quote was preserved.`;
+  if(status.phase==='error')return `Rebuild failed — ${status.message||'Hank did not complete.'} The saved quote was preserved.`;
   const checked=number(status.linesChecked),errors=number(status.pricingErrors),changed=number(status.linesChanged);
   if(changed>0)return `Rebuild complete — ${checked} line${checked===1?'':'s'} checked · ${errors} pricing error${errors===1?'':'s'} · ${changed} line${changed===1?'':'s'} changed. Review the updated draft, then save the next revision when ready.`;
-  return `Rebuild complete — ${checked} line${checked===1?'':'s'} checked · ${errors} pricing error${errors===1?'':'s'} · no quote changes. The current draft already matches H38 AI.`;
+  return `Rebuild complete — ${checked} line${checked===1?'':'s'} checked · ${errors} pricing error${errors===1?'':'s'} · no quote changes. The current draft already matches Hank.`;
 }
 function renderRebuildStatus(){
   const more=document.getElementById('h38QuoteMoreTools');
@@ -77,7 +77,7 @@ function installRebuildFeedback(){
     try{
       const result=await previous(action,args,timeout);
       if(result?.status!=='PASS'){
-        setRebuildStatus({phase:'error',startedAt,finishedAt:new Date().toISOString(),message:text(result?.message)||'H38 AI did not complete.'});
+        setRebuildStatus({phase:'error',startedAt,finishedAt:new Date().toISOString(),message:text(result?.message)||'Hank did not complete.'});
         return result;
       }
       const suggested=Array.isArray(result?.draft?.suggestedLines)?result.draft.suggestedLines:[];
@@ -94,7 +94,7 @@ function installRebuildFeedback(){
       });
       return result;
     }catch(error){
-      setRebuildStatus({phase:'error',startedAt,finishedAt:new Date().toISOString(),message:text(error?.message||error)||'H38 AI did not complete.'});
+      setRebuildStatus({phase:'error',startedAt,finishedAt:new Date().toISOString(),message:text(error?.message||error)||'Hank did not complete.'});
       throw error;
     }
   };
@@ -147,7 +147,7 @@ function ensureMoreTools(main,tools){
   let {ai,cad}=ensureBaseQuoteAiTools();
   let more=document.getElementById('h38QuoteMoreTools');
   if(!quoteHasLines()){
-    if(ai){ai.textContent='Build with H38 AI';ai.classList.remove('h38-rebuild-tool');if(ai.parentElement!==tools)tools.prepend(ai);}
+    if(ai){ai.textContent='Build with Hank';ai.classList.remove('h38-rebuild-tool');if(ai.parentElement!==tools)tools.prepend(ai);}
     if(cad&&cad.closest('#h38QuoteMoreTools'))tools.appendChild(cad);
     more?.remove();
     return;
@@ -160,12 +160,12 @@ function ensureMoreTools(main,tools){
     more=document.createElement('details');
     more.id='h38QuoteMoreTools';
     more.className='h38-quote-more-tools';
-    more.innerHTML='<summary>More quote tools</summary><div class="h38-quote-more-actions"></div><p>Use Rebuild only when you want H38 AI to recalculate the current draft. Existing Site Visit quote lines do not need to be rebuilt just to preview or print them.</p>';
+    more.innerHTML='<summary>More quote tools</summary><div class="h38-quote-more-actions"></div><p>Use Rebuild only when you want Hank to recalculate the current draft. Existing Site Visit quote lines do not need to be rebuilt just to preview or print them.</p>';
     tools.insertAdjacentElement('afterend',more);
   }
   const actions=more.querySelector('.h38-quote-more-actions');
   if(ai){
-    ai.textContent='↻ Rebuild quote with H38 AI';
+    ai.textContent='↻ Rebuild quote with Hank';
     ai.classList.add('secondary','h38-rebuild-tool');
     ai.hidden=false;
     ai.removeAttribute('aria-hidden');
