@@ -15,7 +15,7 @@
 .h38-tour-nav .primary{background:#0b2438;color:#fff;border:0}
 .h38-tour-nav .secondary{background:#eef3f7;color:#0b2438;border:1px solid #d5dee6}
 @media(max-width:640px){
-  .h38-tour-card{padding:16px}
+  .h38-tour-card{padding:16px;position:fixed!important;top:auto!important;bottom:0!important;left:0!important;right:0!important;transform:none!important;max-width:100%!important;border-radius:18px 18px 0 0;max-height:62vh;overflow-y:auto}
   .h38-tour-card h2{font-size:1.1rem}
   .h38-tour-actions{flex-direction:column;align-items:stretch}
   .h38-tour-nav{justify-content:space-between}
