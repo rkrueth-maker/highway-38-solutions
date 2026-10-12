@@ -77,6 +77,44 @@ async function saveThreadStatus(thread,status,extra){
   await queueOperation('SMS_STATUS','SMS Thread',id,{threadId:id},{collection:'smsThreads',record:record,idKeys:['SMS Thread ID']});
 }
 
+/* Send a pre-approved thread immediately: no confirm dialog. Used by auto-send
+ * flows (e.g. auto review requests) where the owner pre-approved the category
+ * by enabling its toggle. Same delivery path and status updates as approveThread. */
+async function sendApprovedThread(threadId){
+  var thread=findThread(threadId);
+  if(!thread){ if(window.toast)window.toast('That text is no longer in the queue.',true); return {sent:false,error:'not-found'}; }
+  return sendThreadNow(thread);
+}
+/* Core delivery: send one thread via the edge function (or hold offline).
+ * Shared by approveThread (after confirm) and sendApprovedThread (pre-approved). */
+async function sendThreadNow(thread){
+  var to=text(thread['Customer Number']);
+  var body=text(thread['Pending Body']);
+  var threadId=threadIdOf(thread);
+  // Offline: hold for reconnect; never show failure for a queued action.
+  if(typeof navigator!=='undefined'&&!navigator.onLine){
+    await saveThreadStatus(thread,'Approved — Queued to Send',{});
+    return {sent:false,queued:true,offline:true};
+  }
+  try{
+    var r=await authedFetch('h38-send-sms',{
+      to:to,body:body,businessId:bizId(),threadId:threadId,
+      ownerApproved:true,approvedBy:approvedBy(),
+      purpose:text(thread['Purpose'])||'Customer text'
+    });
+    if(!r.ok){
+      var msg=(r.payload&&r.payload.error)||('Send failed ('+r.status+').');
+      await saveThreadStatus(thread,'Failed',{'Send Error':msg});
+      return {sent:false,error:msg};
+    }
+    await saveThreadStatus(thread,'Sent',{'Sent Time':new Date().toISOString(),'Approved By':text(thread['Approved By'])||approvedBy(),'Provider Message ID':text((r.payload||{}).providerMessageId)});
+    return {sent:true};
+  }catch(err){
+    var em=err&&err.message?err.message:String(err);
+    await saveThreadStatus(thread,'Failed',{'Send Error':em});
+    return {sent:false,error:em};
+  }
+}
 /* Approve a queued thread: confirm → send via edge function (or queue offline). */
 async function approveThread(threadId){
   var thread=findThread(threadId);
@@ -90,9 +128,9 @@ async function approveThread(threadId){
   }):Promise.resolve(true));
   if(!ok) return;
 
-  // Offline: queue the approval; the send fires on reconnect.
-  if(typeof navigator!=='undefined'&&!navigator.onLine){
-    await saveThreadStatus(thread,'Approved — Queued to Send',{});
+  if(window.toast)window.toast('Sending…');
+  var result=await sendThreadNow(thread);
+  if(result.queued&&result.offline){
     if(window.H38Flow)window.H38Flow.showNextStep({
       title:'Text approved. It will send when you are back online.',
       next:'Nothing else needed — the send fires automatically on reconnect.',
@@ -101,31 +139,7 @@ async function approveThread(threadId){
       id:'h38SmsApprovedOffline',signature:'sms-approved-offline-'+threadId
     });
     else if(window.toast)window.toast('Text approved. Will send when back online.');
-    if(typeof renderMessages==='function')renderMessages();
-    return;
-  }
-
-  if(window.toast)window.toast('Sending…');
-  try{
-    var r=await authedFetch('h38-send-sms',{
-      to:to,body:body,businessId:bizId(),threadId:threadId,
-      ownerApproved:true,approvedBy:approvedBy(),
-      purpose:text(thread['Purpose'])||'Customer text'
-    });
-    if(!r.ok){
-      var msg=(r.payload&&r.payload.error)||('Send failed ('+r.status+').');
-      await saveThreadStatus(thread,'Failed',{'Send Error':msg});
-      if(window.H38Flow)window.H38Flow.fail({
-        what:'Could not send the text.',
-        why:msg,
-        fixes:[{label:'Retry send',primary:true,handler:function(){ approveThread(threadId); }},{label:'Keep as queued',handler:function(){ saveThreadStatus(findThread(threadId)||thread,'Queued — Owner Approval Required',{}).then(function(){ if(typeof renderMessages==='function')renderMessages(); }); }}],
-        id:'h38SmsSendFail'
-      });
-      else if(window.toast)window.toast(msg,true);
-      if(typeof renderMessages==='function')renderMessages();
-      return;
-    }
-    await saveThreadStatus(thread,'Sent',{'Sent Time':new Date().toISOString(),'Approved By':approvedBy(),'Provider Message ID':text((r.payload||{}).providerMessageId)});
+  }else if(result.sent){
     if(window.H38Flow)window.H38Flow.showNextStep({
       title:'Text sent to '+to+'.',
       next:'The thread is closed. Nothing further needed.',
@@ -133,15 +147,15 @@ async function approveThread(threadId){
       id:'h38SmsSent',signature:'sms-sent-'+threadId
     });
     else if(window.toast)window.toast('Text sent to '+to+'.');
-  }catch(err){
-    var em=err&&err.message?err.message:String(err);
-    await saveThreadStatus(thread,'Failed',{'Send Error':em});
+  }else{
+    var sendErr=result.error||'Send failed.';
     if(window.H38Flow)window.H38Flow.fail({
-      what:'Could not send the text.',why:em,
-      fixes:[{label:'Retry send',primary:true,handler:function(){ approveThread(threadId); }}],
-      id:'h38SmsSendFail2'
+      what:'Could not send the text.',
+      why:sendErr,
+      fixes:[{label:'Retry send',primary:true,handler:function(){ approveThread(threadId); }},{label:'Keep as queued',handler:function(){ saveThreadStatus(findThread(threadId)||thread,'Queued — Owner Approval Required',{}).then(function(){ if(typeof renderMessages==='function')renderMessages(); }); }}],
+      id:'h38SmsSendFail'
     });
-    else if(window.toast)window.toast(em,true);
+    else if(window.toast)window.toast(sendErr,true);
   }
   if(typeof renderMessages==='function')renderMessages();
 }
@@ -201,6 +215,7 @@ function bindQueueActions(root){
 window.H38SmsApproval={
   approveThread:approveThread,
   denyThread:denyThread,
+  sendApprovedThread:sendApprovedThread,
   queueRowActions:queueRowActions,
   bindQueueActions:bindQueueActions,
   BUILD:BUILD
