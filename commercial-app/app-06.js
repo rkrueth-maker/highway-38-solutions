@@ -55,10 +55,10 @@ async function quoteFromPhotos(){
 function renderQuotes(){if(!state.quote||typeof state.quote!=='object')state.quote={quoteId:'',lines:[],hydrationComplete:true};const customers=records('customers'),allQuotes=records('quotes'),priceBook=records('priceBook');
 // In demo tenant, hide broken DEMO-Q quotes (missing line items) — show only working LOCAL- quotes
 const isDemoTenant=(typeof businessKey==='function'&&businessKey()==='demo');
-const quotes=isDemoTenant?allQuotes.filter(row=>!/^DEMO-Q-/i.test(String(row['Quote ID']||row['quoteId']||''))):allQuotes;const q=state.quote,linkedQuote=q.quoteId?quotes.find(row=>rowId(row,'Quote ID','quoteId')===q.quoteId):null;const h38ContextCid=(window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH&&typeof window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH.deriveContext==='function')?String(window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH.deriveContext().customerId||''):'';const resolvedCustomerId=v(linkedQuote,'Customer ID','customerId')||q.customerId||h38ContextCid||'';if(resolvedCustomerId&&q.customerId!==resolvedCustomerId)q.customerId=resolvedCustomerId;$('mainContent').innerHTML=pageHead('Quotes','Build, measure, photograph, price, save and reopen one shared quote online or offline. Cached prices always require owner review.',`<button id="newQuoteButton">New quote</button><button id="quoteMeasureButton" class="secondary">📐 Photos & Measure</button>`)+`<div class="grid"><section class="card span7"><h2>Quote draft</h2>${q.quoteId?`<div class="notice"><strong>Saved revision ${esc(q.revision||1)} loaded.</strong> Adjust quantities or prices below, then save as the next revision. AI updates cannot replace this saved revision.</div>`:''}<div class="two"><div><label>Customer</label><select id="quoteCustomer">${optionRows(customers,['Customer ID'],row=>v(row,'Customer Name'),'Generic Quote Customer')}</select></div><div><label>Project title</label><input id="quoteTitle" value="${esc(q.projectTitle||'')}"></div></div><label>Scope</label><textarea id="quoteScope">${esc(q.scope||'')}</textarea><label>Measurements and site notes</label><textarea id="quoteMeasurements">${esc(q.measurementNotes||'')}</textarea><div class="h38-tier-toggle" role="group" aria-label="Quote pricing mode"><button type="button" id="tierModeSingle" aria-pressed="${q.tierMode?'false':'true'}">Single price</button><button type="button" id="tierModeTiers" aria-pressed="${q.tierMode?'true':'false'}">Good / Better / Best</button></div><div id="singlePriceEditor" class="${q.tierMode?'hidden':''}"><h3>Line items</h3><div class="quote-line"><div><label>Description</label><input id="lineDescription"></div><div><label>Qty</label><input id="lineQuantity" type="number" step="0.01" value="1"></div><div><label>Unit</label><input id="lineUnit" value="each"></div><div><label>Unit price</label><input id="linePrice" type="number" step="0.01"></div><button id="addQuoteLine" type="button">Add</button></div><div id="quoteLines" class="list"></div><div class="row-top"><strong>Total</strong><strong id="quoteTotal">${money(0)}</strong></div></div><div id="tierEditor" class="${q.tierMode?'':'hidden'}"></div><div class="actions"><button id="saveQuoteButton">Save draft</button><button class="secondary" id="quotePhotoButton">Add photo</button><button class="secondary" id="quoteFromPhotosButton">Quote from photos</button><input id="quotePhotoInput" type="file" accept="image/*" capture="environment" class="hidden"></div></section>${(window.H38FirstQuoteGuide?window.H38FirstQuoteGuide.render():"")}<section class="card span5"><h2>Cached Price Book</h2><input id="priceSearch" placeholder="Search prices"><p class="muted small">${priceBook.length} cached items · no live research while offline · owner review required</p><div id="priceResults" class="list"></div></section><section class="card"><h2>Saved quotes</h2><div class="list">${quotes.length?quotes.slice(0,100).map(row=>{
+const quotes=isDemoTenant?allQuotes.filter(row=>!/^DEMO-Q-/i.test(String(row['Quote ID']||row['quoteId']||''))):allQuotes;const q=state.quote,linkedQuote=q.quoteId?quotes.find(row=>rowId(row,'Quote ID','quoteId')===q.quoteId):null;const h38ContextCid=(window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH&&typeof window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH.deriveContext==='function')?String(window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH.deriveContext().customerId||''):'';const resolvedCustomerId=v(linkedQuote,'Customer ID','customerId')||q.customerId||h38ContextCid||'';if(resolvedCustomerId&&q.customerId!==resolvedCustomerId)q.customerId=resolvedCustomerId;$('mainContent').innerHTML=pageHead('Quotes','Build, measure, photograph, price, save and reopen one shared quote online or offline. Cached prices always require owner review.',`<button id="newQuoteButton" class="primary">＋ New quote</button>`)+`<div class="grid"><section class="card span7"><h2>Quote draft</h2>${q.quoteId?`<div class="notice"><strong>Saved revision ${esc(q.revision||1)} loaded.</strong> Adjust quantities or prices below, then save as the next revision. AI updates cannot replace this saved revision.</div>`:''}<div class="two"><div><label>Customer</label><select id="quoteCustomer">${optionRows(customers,['Customer ID'],row=>v(row,'Customer Name'),'Generic Quote Customer')}</select></div><div><label>Project title</label><input id="quoteTitle" value="${esc(q.projectTitle||'')}"></div></div><label>Scope</label><textarea id="quoteScope">${esc(q.scope||'')}</textarea><label>Measurements and site notes</label><textarea id="quoteMeasurements">${esc(q.measurementNotes||'')}</textarea><div class="h38-tier-toggle" role="group" aria-label="Quote pricing mode"><button type="button" id="tierModeSingle" aria-pressed="${q.tierMode?'false':'true'}">Single price</button><button type="button" id="tierModeTiers" aria-pressed="${q.tierMode?'true':'false'}">Good / Better / Best</button></div><div id="singlePriceEditor" class="${q.tierMode?'hidden':''}"><h3>Line items</h3><div class="quote-line"><div><label>Description</label><input id="lineDescription"></div><div><label>Qty</label><input id="lineQuantity" type="number" step="0.01" value="1"></div><div><label>Unit</label><input id="lineUnit" value="each"></div><div><label>Unit price</label><input id="linePrice" type="number" step="0.01"></div><button id="addQuoteLine" type="button">Add</button></div><div id="quoteLines" class="list"></div><div class="row-top"><strong>Total</strong><strong id="quoteTotal">${money(0)}</strong></div></div><div id="tierEditor" class="${q.tierMode?'':'hidden'}"></div><div class="actions"><button id="saveQuoteButton">Save draft</button><button class="secondary" id="quotePhotoButton">Add photo</button><button class="secondary" id="quoteFromPhotosButton">Quote from photos</button><input id="quotePhotoInput" type="file" accept="image/*" capture="environment" class="hidden"></div></section>${(window.H38FirstQuoteGuide?window.H38FirstQuoteGuide.render():"")}<section class="card span5"><h2>Cached Price Book</h2><input id="priceSearch" placeholder="Search prices"><p class="muted small">${priceBook.length} cached items · no live research while offline · owner review required</p><div id="priceResults" class="list"></div></section><section class="card"><h2>Saved quotes</h2><div class="list">${quotes.length?quotes.slice(0,100).map(row=>{
 const h38Qid=rowId(row,'Quote ID','quoteId'),h38QStatus=String(v(row,'Status')||''),h38QHist=(window.H38Flow&&window.H38Flow.formatStatusHistory)?window.H38Flow.formatStatusHistory(row):'';
 return `<div class="row"><div class="row-top"><strong>${esc(v(row,'Project Title','projectTitle'))}</strong>${pill(h38QStatus||'Draft',row.__localPending?'pending':'')}</div><small>${esc(v(row,'Quote Number','quoteNumber')||'Local draft')} · ${money(v(row,'Total','total'))}${/good-better-best/i.test(v(row,'Tier Mode','tierMode')||'')?' · 3 tiers':''} · revision ${esc(v(row,'Revision','revision')||1)}</small>${h38QHist?`<small class="muted">${esc(h38QHist)}</small>`:''}<div class="row-actions"><button data-open-quote="${esc(h38Qid)}">Open draft</button>${/^(draft)?$/i.test(h38QStatus)?`<button class="secondary" data-mark-quote-sent="${esc(h38Qid)}">Mark as sent</button>`:''}${/presented|sent/i.test(h38QStatus)?`<button class="secondary" data-log-followup="${esc(h38Qid)}">📞 Log follow-up</button>`:''}</div></div>`;
-}).join(''):empty('No quotes yet.')}</div></section></div>`;const customer=$('quoteCustomer');if(resolvedCustomerId&&!Array.from(customer.options).some(option=>option.value===resolvedCustomerId)){const row=customers.find(item=>rowId(item,'Customer ID','customerId')===resolvedCustomerId),option=document.createElement('option');option.value=resolvedCustomerId;option.textContent=v(row,'Customer Name','name')||'Saved quote customer';customer.appendChild(option);}customer.value=resolvedCustomerId;$('quoteMeasureButton').onclick=renderMeasure;$('newQuoteButton').onclick=()=>{state.quote={quoteId:'',lines:[],tierMode:false,tiers:null,hydrationComplete:true};renderQuotes();try{window.toast?.('Started a new quote.');}catch(_){}try{document.getElementById('quoteCustomer')?.focus?.({preventScroll:true});}catch(_){}};$('addQuoteLine').onclick=()=>{try{addQuoteLine();}catch(error){toast(error?.message||String(error),true);}};$('saveQuoteButton').onclick=saveQuote;$('tierModeSingle').onclick=()=>h38ToggleTierMode(false);$('tierModeTiers').onclick=()=>h38ToggleTierMode(true);renderTierEditor();$('priceSearch').oninput=renderPriceResults;$('quotePhotoButton').onclick=()=>$('quotePhotoInput').click();
+}).join(''):empty('No quotes yet.')}</div></section></div>`;const customer=$('quoteCustomer');if(resolvedCustomerId&&!Array.from(customer.options).some(option=>option.value===resolvedCustomerId)){const row=customers.find(item=>rowId(item,'Customer ID','customerId')===resolvedCustomerId),option=document.createElement('option');option.value=resolvedCustomerId;option.textContent=v(row,'Customer Name','name')||'Saved quote customer';customer.appendChild(option);}customer.value=resolvedCustomerId;$('newQuoteButton').onclick=()=>{h38ShowQuoteEntryChooser();};$('addQuoteLine').onclick=()=>{try{addQuoteLine();}catch(error){toast(error?.message||String(error),true);}};$('saveQuoteButton').onclick=saveQuote;$('tierModeSingle').onclick=()=>h38ToggleTierMode(false);$('tierModeTiers').onclick=()=>h38ToggleTierMode(true);renderTierEditor();$('priceSearch').oninput=renderPriceResults;$('quotePhotoButton').onclick=()=>$('quotePhotoInput').click();
 $('quoteFromPhotosButton').onclick=()=>quoteFromPhotos();$('quotePhotoInput').onchange=event=>handleAttachmentFiles(event.target.files,'Quote',state.quote.quoteId||'LOCAL-QUOTE');document.querySelectorAll('[data-open-quote]').forEach(button=>button.onclick=()=>openQuote(button.dataset.openQuote));
 document.querySelectorAll('[data-mark-quote-sent]').forEach(button=>button.onclick=()=>markQuoteSent(button.dataset.markQuoteSent).catch(error=>toast(error?.message||String(error),true)));
 document.querySelectorAll('[data-log-followup]').forEach(button=>button.onclick=()=>logQuoteFollowup(button.dataset.logFollowup));renderQuoteLines();renderPriceResults();if(window.H38FirstQuoteGuide)window.H38FirstQuoteGuide.wire();}
@@ -207,4 +207,62 @@ async function h38SuggestTiers(){
   }catch(error){
     toast('Tier suggestions are not available from Hank right now ('+((error&&error.message)||'no result')+'). The manual tier editor works without AI.',true);
   }finally{if(button){button.disabled=false;button.textContent='Suggest tiers with Hank';}}
+}
+
+// Unified quote entry chooser - one button, clear choices
+function h38ShowQuoteEntryChooser(){
+  let d=document.getElementById('h38QuoteEntryDialog');
+  if(!d){
+    d=document.createElement('dialog');
+    d.id='h38QuoteEntryDialog';
+    d.className='h38-quote-entry-dialog';
+    d.innerHTML=`<div class="h38-quote-entry-shell">
+      <div class="h38-quote-entry-head">
+        <div><h2>New quote</h2><p>How do you want to start? Nothing is sent until you approve it.</p></div>
+        <button type="button" class="icon-button" data-h38-close aria-label="Close">×</button>
+      </div>
+      <div class="h38-quote-entry-grid">
+        <button type="button" data-qe="blank"><span>📝</span><strong>Start blank</strong><small>Type it up yourself</small></button>
+        <button type="button" data-qe="hank"><span>🤖</span><strong>Build with Hank</strong><small>AI drafts from your price book</small></button>
+        <button type="button" data-qe="photos"><span>📷</span><strong>From photos</strong><small>Snap the job, build the quote</small></button>
+        <button type="button" data-qe="measure"><span>📐</span><strong>Photos & Measure</strong><small>Walkthrough with measurements</small></button>
+      </div>
+    </div>
+    <style>
+    .h38-quote-entry-dialog{width:min(480px,calc(100vw - 20px));border:0;border-radius:18px;padding:0}
+    .h38-quote-entry-dialog::backdrop{background:rgba(0,0,0,.5)}
+    .h38-quote-entry-shell{padding:20px;display:grid;gap:16px}
+    .h38-quote-entry-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .h38-quote-entry-head h2{margin:0}
+    .h38-quote-entry-head p{margin:4px 0 0;color:#607285;font-size:.9rem}
+    .h38-quote-entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .h38-quote-entry-grid button{display:grid;gap:4px;padding:16px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;text-align:left}
+    .h38-quote-entry-grid button:hover{border-color:#0b2438;background:#f8fafc}
+    .h38-quote-entry-grid button span{font-size:28px}
+    .h38-quote-entry-grid button strong{font-size:1rem}
+    .h38-quote-entry-grid button small{color:#607285;font-size:.82rem}
+    </style>`;
+    d.querySelector('[data-h38-close]').onclick=()=>d.close();
+    d.querySelectorAll('[data-qe]').forEach(b=>b.onclick=()=>{d.close();h38StartQuote(b.dataset.qe);});
+    document.body.appendChild(d);
+  }
+  if(!d.open)d.showModal();
+}
+
+function h38StartQuote(mode){
+  // Reset to blank quote first
+  state.quote={quoteId:'',lines:[],tierMode:false,tiers:null,hydrationComplete:true};
+  renderQuotes();
+  try{
+    if(mode==='hank'&&typeof h38BuildAiQuoteDraft==='function'){
+      setTimeout(()=>h38BuildAiQuoteDraft(),300);
+    }else if(mode==='photos'){
+      setTimeout(()=>{document.getElementById('quotePhotoInput')?.click();},300);
+    }else if(mode==='measure'&&typeof renderMeasure==='function'){
+      setTimeout(()=>renderMeasure(),300);
+    }else{
+      try{document.getElementById('quoteCustomer')?.focus?.({preventScroll:true});}catch(_){}
+    }
+    window.toast?.('Started a new quote.');
+  }catch(e){}
 }
