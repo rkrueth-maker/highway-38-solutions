@@ -200,8 +200,8 @@ async function h38RunAiMeasurement(){
 }
 function h38AddQuoteAiTools(){
   const tools=document.querySelector('.page-tools');if(!tools)return;
-  if(!$('h38AiQuoteDraftButton')){const ai=document.createElement('button');ai.id='h38AiQuoteDraftButton';ai.type='button';ai.textContent='Build with Hank';ai.onclick=h38BuildAiQuoteDraft;tools.prepend(ai);}
-  if(!$('h38CadButton')){const cad=document.createElement('button');cad.id='h38CadButton';cad.type='button';cad.className='secondary';cad.textContent='Add CAD';cad.onclick=h38CadUpload;tools.appendChild(cad);const input=document.createElement('input');input.id='h38CadInput';input.type='file';input.className='hidden';input.accept='.dxf,.dwg,.dwt,.dws,application/dxf,application/acad,image/vnd.dxf';input.onchange=event=>handleAttachmentFiles(event.target.files,'Quote',state.quote?.quoteId||'LOCAL-QUOTE','Internal');tools.appendChild(input);}
+  /* Consolidated into h38ShowQuoteEntryChooser - Build with Hank is now a chooser option */
+  /* Consolidated into h38ShowQuoteEntryChooser - CAD upload available in quote form actions */
 }
 function h38AddMeasureAiPanel(){
   const main=$('mainContent');if(!main||$('h38AiMeasurePanel'))return;

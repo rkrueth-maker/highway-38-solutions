@@ -188,7 +188,7 @@ function decorateAssistantPage(){
   const form=document.getElementById('paCommandForm');
   if(!main||!form)return;
   const heading=main.querySelector('.page-head h1');
-  setText(heading,'My H38 Assistant');
+  setText(heading,'Ask Hank');
   const intro=main.querySelector('.page-head p');
   setText(intro,'Private to your sign-in. Ask questions, manage personal reminders, or give H38 Business Office commands.');
   const label=form.querySelector('label');
