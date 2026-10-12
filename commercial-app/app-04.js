@@ -54,7 +54,7 @@ function afterCustomerSaved(id,name,beforeCount,usedExisting,wasEdit){
 function renderCustomers(){
   const customers=records('customers'),properties=records('properties');
   $('mainContent').innerHTML=pageHead('Customers','Customers, contacts and properties shared by every installed product shell.')+`<div class="grid">
-    <section class="card span4"><h2>Add or update customer</h2><form id="customerForm"><input name="customerId" type="hidden"><label>Name</label><input name="customerName" required placeholder="Customer or company"><label>Email</label><input name="email" type="email"><label>Phone</label><input name="phone" type="tel">
+    <section class="card span4"><h2>Add customer</h2><form id="customerForm"><input name="customerId" type="hidden"><label>Name</label><input name="customerName" required placeholder="Customer or company"><label>Email</label><input name="email" type="email"><label>Phone</label><input name="phone" type="tel">
 <details class="snow-fields"><summary>Snow service options</summary>
 <label><input type="checkbox" name="snowService" value="yes"> Snow removal customer</label>
 <label>Equipment</label><select name="snowEquipment"><option value="">Select equipment…</option>${equipmentOptions()}</select>

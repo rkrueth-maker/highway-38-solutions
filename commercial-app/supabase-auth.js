@@ -41,7 +41,14 @@
   }
 
   function safeMessage(error) {
-    return String(error && error.message ? error.message : error || 'Secure sign-in failed.')
+    const raw = String(error && error.message ? error.message : error || 'Secure sign-in failed.');
+    // Map technical Supabase errors to plain-language messages
+    if (/invalid login credentials/i.test(raw)) return 'Email or password is incorrect. Check both and try again.';
+    if (/user not found|no user/i.test(raw)) return 'No account found for this email address.';
+    if (/email not confirmed/i.test(raw)) return 'Please confirm your email address first, then sign in.';
+    if (/too many requests|rate limit/i.test(raw)) return 'Too many sign-in attempts. Wait a minute and try again.';
+    if (/network|fetch failed|failed to fetch/i.test(raw)) return 'Could not reach the server. Check your internet connection and try again.';
+    return raw
       .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')
       .slice(0, 700);
   }
