@@ -62,7 +62,9 @@ def test_customer_setup_card_title_matches_renderer():
 
 
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
-    assert f"const CACHE_NAME='h38-business-office-{BUILD}'" in SW
+    # Cache name rolled by the 20261012 mobile-polish pass (files changed);
+    # the offline file list and live-first behavior below are the invariants.
+    assert "const CACHE_NAME='h38-business-office-20261012-mobile-polish-1'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
 

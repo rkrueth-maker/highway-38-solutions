@@ -6,7 +6,7 @@ RUNTIME = (ROOT / "commercial-app" / "mobile-runtime-stability.js").read_text(en
 
 
 def test_cosmetic_mobile_polish_delegates_scroll_authority():
-    assert "20260819-wide-mobile-flow-polish-4-scroll-delegated" in POLISH
+    assert "20261012-mobile-polish-1" in POLISH
     assert "scrollAuthorityDelegated:true" in POLISH
     assert "duplicateScrollAuthorityRetired:true" in POLISH
     assert "H38_OFFICE_SCROLL_AUTHORITY" not in POLISH
