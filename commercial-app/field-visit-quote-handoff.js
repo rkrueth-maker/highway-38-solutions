@@ -107,12 +107,12 @@ async function buildDraftFromContext(button){
   const office=window.state,quote=quoteContextRecord(),context=quoteContext();
   if(!quote||!context){C.toast('The linked Site Visit context could not be loaded.',true);return}
   if(array(office?.quote?.lines).length){C.toast('Existing quote lines were preserved. Edit or review them instead of rebuilding.',true);return}
-  if(!navigator.onLine||!office?.bridgeReady||!office?.bridge?.request){C.toast('H38 AI quote drafting needs an online secure Office connection.',true);return}
+  if(!navigator.onLine||!office?.bridgeReady||!office?.bridge?.request){C.toast('Hank quote drafting needs an online secure Office connection.',true);return}
   buildBusy=true;if(button){button.disabled=true;button.textContent='Building draft…'}
   try{
     const scopeSeed=text(value(quote,'Scope','scope')||context.ownerScopeRequest),measurementSummary=array(context.measurements).map(item=>`${text(item.label)}: ${number(item.value)} ${text(item.unit)}; ${text(item.verificationStatus)}; ${text(item.source)}`).join('\n');
     const result=await office.bridge.request('aiBuildQuoteDraft',{businessId:office.businessId,customerId:text(value(quote,'Customer ID','customerId')),quoteId:text(value(quote,'Quote ID','quoteId')),projectTitle:text(value(quote,'Project Title','projectTitle')),scope:scopeSeed,measurementNotes:measurementSummary,notes:aiContextText(context)},180000);
-    if(result?.status!=='PASS')throw Error(result?.message||'H38 AI quote draft did not complete.');
+    if(result?.status!=='PASS')throw Error(result?.message||'Hank quote draft did not complete.');
     const draft=result.draft||{},suggested=array(draft.suggestedLines);
     office.quote.projectTitle=text(value(quote,'Project Title','projectTitle')||draft.projectTitle||office.quote.projectTitle);
     office.quote.customerId=text(value(quote,'Customer ID','customerId')||office.quote.customerId);
@@ -120,7 +120,7 @@ async function buildDraftFromContext(button){
     office.quote.lines=suggested.map(line=>({quoteLineId:newLineId(),description:text(line.description||'Suggested work item'),quantity:Math.max(.01,number(line.quantity||1)),unit:text(line.unit||'each'),unitPrice:number(line.rate||line.unitPrice),priceSource:line.catalogId?'Price Catalog + Site Visit AI assistance':'Site Visit AI suggestion — manual price required',priceStatus:'Owner review required'}));
     office.quote.siteVisitDraftLoaded=true;office.quote.ownerEdited=false;
     if(typeof window.renderQuotes==='function')window.renderQuotes();
-    C.toast(`${result.provider||'H38 AI'} Site Visit draft loaded. Review quantities and pricing, then save the quote. Nothing approved or sent.`)
+    C.toast(`${result.provider||'Hank'} Site Visit draft loaded. Review quantities and pricing, then save the quote. Nothing approved or sent.`)
   }catch(error){C.toast(error?.message||String(error),true);if(button){button.disabled=false;button.textContent='✨ Build draft from this Site Visit'}}finally{buildBusy=false}
 }
 async function prepareExistingVisit(quote){

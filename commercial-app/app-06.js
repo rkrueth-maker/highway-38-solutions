@@ -172,7 +172,7 @@ function renderTierEditor(){
       '</div>'+
       '<div class="h38-tier-foot"><strong>'+esc(tier.name)+' total</strong><strong>'+money(h38TierTotal(tier))+'</strong></div>'+
     '</section>').join('')+'</div>'+
-  '<div class="actions" style="margin-top:10px"><button type="button" class="secondary" id="suggestTiersButton">Suggest tiers with H38 AI</button></div>'+
+  '<div class="actions" style="margin-top:10px"><button type="button" class="secondary" id="suggestTiersButton">Suggest tiers with Hank</button></div>'+
   '<p class="muted small">All three tiers save with the quote. The customer presentation highlights <strong>Better</strong> as Most Popular.</p>';
   host.querySelectorAll('[data-tier-name]').forEach(input=>input.oninput=()=>{const t=tiers[num(input.dataset.tierName)];if(t){t.name=String(input.value||'').slice(0,24);state.quote.ownerEdited=true;}});
   host.querySelectorAll('[data-tier-desc]').forEach(input=>input.oninput=()=>{const t=tiers[num(input.dataset.tierDesc)];if(t){t.description=input.value;state.quote.ownerEdited=true;}});
@@ -182,13 +182,13 @@ function renderTierEditor(){
 }
 async function h38SuggestTiers(){
   if(!window.H38_AI_HANDOFF||typeof window.H38_AI_HANDOFF.runTask!=='function'){
-    toast('H38 AI is not available in this session. Build the tiers manually — the editor above works without AI.',true);return;
+    toast('Hank is not available in this session. Build the tiers manually — the editor above works without AI.',true);return;
   }
   const tiers=h38EnsureTiers();
   const sourceLines=[...(state.quote.lines||[]),...tiers.reduce((all,t)=>all.concat(t.items||[]),[])];
-  if(!sourceLines.length){toast('Add some line items first (single price or any tier), then ask H38 AI to suggest a split.',true);return;}
-  if(!confirm('Ask H38 AI to suggest a Good / Better / Best split from your '+sourceLines.length+' line item(s)? Nothing changes until you review and approve.'))return;
-  const button=$('suggestTiersButton');if(button){button.disabled=true;button.textContent='Asking H38 AI…';}
+  if(!sourceLines.length){toast('Add some line items first (single price or any tier), then ask Hank to suggest a split.',true);return;}
+  if(!confirm('Ask Hank to suggest a Good / Better / Best split from your '+sourceLines.length+' line item(s)? Nothing changes until you review and approve.'))return;
+  const button=$('suggestTiersButton');if(button){button.disabled=true;button.textContent='Asking Hank…';}
   try{
     const result=await window.H38_AI_HANDOFF.runTask('suggest_quote_tiers',{
       businessId:state.businessId,
@@ -197,14 +197,14 @@ async function h38SuggestTiers(){
       lines:sourceLines.map(l=>({description:l.description,quantity:num(l.quantity),unit:l.unit,unitPrice:num(l.unitPrice)}))
     },{timeoutMs:120000});
     const suggested=result&&result.tiers;
-    if(!Array.isArray(suggested)||suggested.length!==3)throw new Error('H38 AI did not return three tiers.');
-    if(!confirm('H38 AI suggested a tier split. Apply it? Your current tier contents will be replaced — this is still a draft, nothing is sent.'))return;
+    if(!Array.isArray(suggested)||suggested.length!==3)throw new Error('Hank did not return three tiers.');
+    if(!confirm('Hank suggested a tier split. Apply it? Your current tier contents will be replaced — this is still a draft, nothing is sent.'))return;
     const names=['Good','Better','Best'];
-    state.quote.tiers=suggested.map((t,ti)=>({name:String((t&&t.name)||names[ti]).slice(0,24),description:String((t&&t.description)||''),items:Array.isArray(t&&t.items)?t.items.map(l=>({quoteLineId:newId('QUOTE-LINE'),description:String(l.description||'Suggested work'),quantity:Math.max(0.01,num(l.quantity||1)),unit:String(l.unit||'each'),unitPrice:num(l.unitPrice||0),priceSource:'H38 AI tier suggestion',priceStatus:'Owner review required'})):[]}));
+    state.quote.tiers=suggested.map((t,ti)=>({name:String((t&&t.name)||names[ti]).slice(0,24),description:String((t&&t.description)||''),items:Array.isArray(t&&t.items)?t.items.map(l=>({quoteLineId:newId('QUOTE-LINE'),description:String(l.description||'Suggested work'),quantity:Math.max(0.01,num(l.quantity||1)),unit:String(l.unit||'each'),unitPrice:num(l.unitPrice||0),priceSource:'Hank tier suggestion',priceStatus:'Owner review required'})):[]}));
     state.quote.tierMode=true;state.quote.ownerEdited=true;
     toast('AI tier suggestion applied. Review every line before saving — prices need owner review.');
     renderQuotes();
   }catch(error){
-    toast('Tier suggestions are not available from H38 AI right now ('+((error&&error.message)||'no result')+'). The manual tier editor works without AI.',true);
-  }finally{if(button){button.disabled=false;button.textContent='Suggest tiers with H38 AI';}}
+    toast('Tier suggestions are not available from Hank right now ('+((error&&error.message)||'no result')+'). The manual tier editor works without AI.',true);
+  }finally{if(button){button.disabled=false;button.textContent='Suggest tiers with Hank';}}
 }
