@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260819-wide-mobile-flow-polish-4-scroll-delegated';
+const BUILD='20261012-mobile-polish-1';
 const GROUPS=[
   ['Work',['quotes','field','schedule','documents']],
   ['Money',['money','accounting','reports','payroll','tax']],
@@ -14,6 +14,7 @@ function allowed(){try{return new Set(typeof window.allowedPages==='function'?wi
 function heading(node){return text(node?.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > .row-top h2,:scope > .row-top h3')?.textContent||'');}
 function style(){if(document.getElementById('h38WideMobilePolishStyle'))return;const s=document.createElement('style');s.id='h38WideMobilePolishStyle';s.textContent=`
 .h38-more-sections{display:grid;gap:14px}.h38-more-section{display:grid;gap:8px}.h38-more-section>strong{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.h38-more-section-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.h38-more-section-grid button{min-height:58px}
+.h38-primary-more-dialog .h38-more-section>strong{display:none}
 .h38-polish-details{margin:8px 0;border:1px solid var(--border,#d6dde3);border-radius:12px;background:var(--card,#fff)}.h38-polish-details>summary{cursor:pointer;padding:12px 14px;font-weight:800}.h38-polish-details-body{padding:0 12px 12px}.h38-polish-details-body>.card{margin:0;border:0;box-shadow:none;padding:0}.h38-polish-details-body>.field-offline-card{margin:0;border:0;box-shadow:none}
 .h38-history-details{margin-top:10px}.h38-history-details>summary{cursor:pointer;font-weight:800;padding:10px 2px}.h38-history-list{display:grid;gap:8px;margin-top:8px}
 .h38-life-today.h38-polished-today .h38-life-kicker{display:none}.h38-life-today.h38-polished-today .h38-life-head p{display:none}.h38-life-today.h38-polished-today .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.h38-life-today.h38-polished-today .stat{padding:8px 4px}.h38-life-today.h38-polished-today .stat span{font-size:.68rem}.h38-life-today.h38-polished-today .h38-life-columns{gap:10px}
