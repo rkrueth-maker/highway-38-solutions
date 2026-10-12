@@ -123,14 +123,20 @@ function positionSpotlight(step){
     spot.style.left = left+'px';
     spot.style.width = w+'px';
     spot.style.height = h+'px';
-    // Position card below the spotlight, or centered if no room
-    var cardTop = top + h + 16;
-    if(cardTop + 280 > window.innerHeight + window.scrollY){
-      cardTop = Math.max(16, top - 300);
+    // Position card below the spotlight, or centered if no room.
+    // On phone, CSS makes it a bottom sheet — skip JS positioning.
+    if(window.innerWidth > 640){
+      var cardTop = top + h + 16;
+      if(cardTop + 280 > window.innerHeight + window.scrollY){
+        cardTop = Math.max(16, top - 300);
+      }
+      card.style.top = cardTop+'px';
+      card.style.left = '50%';
+      card.style.transform = 'translateX(-50%)';
+    } else {
+      // Clear any inline positioning so the bottom-sheet CSS takes over
+      card.style.top=''; card.style.left=''; card.style.transform='';
     }
-    card.style.top = cardTop+'px';
-    card.style.left = '50%';
-    card.style.transform = 'translateX(-50%)';
   }catch(e){
     spot.style.display='none';
     positionCardCenter(card);
@@ -138,6 +144,7 @@ function positionSpotlight(step){
 }
 
 function positionCardCenter(card){
+  if(window.innerWidth <= 640){ card.style.top=''; card.style.left=''; card.style.transform=''; return; }
   card.style.top = '50%';
   card.style.left = '50%';
   card.style.transform = 'translate(-50%,-50%)';
