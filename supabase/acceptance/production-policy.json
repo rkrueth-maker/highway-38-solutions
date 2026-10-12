@@ -79,6 +79,7 @@
     "h38-video-measurements",
     "h38-voice-receptionist",
     "h38-walkthrough-transcription",
+    "kit-proactive-engine",
     "nl-bouncie-fleet",
     "reseller-owner-maintenance-v240"
   ],
@@ -193,6 +194,7 @@
     "h38-stripe-webhook": "Stripe webhook receiver; verifies Stripe HMAC signatures in code (timing-safe compare, 5-minute tolerance); stays dark until the Stripe secrets are set.",
     "h38-vendor-directory": "Validates the caller's Supabase user JWT in code via auth.getUser before serving directory data; returns 401 without a valid token.",
     "h38-voice-receptionist": "Twilio/Telnyx voice webhook receiver (providers cannot send Supabase JWTs); answers live only when the tenant enabled the receptionist and the dialed number matches its live DID, otherwise returns the voicemail fallback.",
+    "kit-proactive-engine": "Internal proactive back-office engine; self-authenticating via x-h38-nightly-key gate (checked against h38_internal_job_secrets, 401 without it); its workspace cron runner sends no user JWT, so verify_jwt must stay false.",
     "nl-bouncie-fleet": "Validates the caller's Supabase user JWT in code via auth.getUser; the Bouncie OAuth callback path is public by OAuth design."
   },
   "reviewed_deployed_only_functions": {

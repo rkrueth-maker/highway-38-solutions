@@ -21,7 +21,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD = "20261011-proactive-ai-drafts-1";
+const BUILD = "20261012-proactive-auth-gate-1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -561,8 +561,27 @@ async function processDailyDigest(
   return { done: true, source };
 }
 
+// ---- Internal caller gate ----
+// Same pattern as the other internal workers (h38-penny-nightly etc.):
+// the caller must present the x-h38-nightly-key header matching the
+// 'kit-proactive-engine' row in h38_internal_job_secrets. verify_jwt
+// stays false because the scheduler (workspace cron runner) sends no
+// user JWT — this header check is the authentication.
+const JOB_SECRET_NAME = "kit-proactive-engine";
+
+async function validSecret(req: Request, supabase: any): Promise<boolean> {
+  const got = String(req.headers.get("x-h38-nightly-key") ?? "").trim();
+  if (!got) return false;
+  const { data } = await supabase
+    .from("h38_internal_job_secrets")
+    .select("secret_value")
+    .eq("name", JOB_SECRET_NAME)
+    .maybeSingle();
+  return !!data?.secret_value && got === data.secret_value;
+}
+
 Deno.serve(async (req: Request) => {
-  // Only allow POST (from cron) or GET with secret
+  // Only allow POST (from cron) or GET, and only with the internal job key
   if (req.method !== "POST" && req.method !== "GET") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -571,6 +590,13 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!await validSecret(req, supabase)) {
+    return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   const results: Record<string, any> = {
     build: BUILD,
