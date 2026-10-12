@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261010-customer-master-detail-5';
+const BUILD='20261012-mobile-polish-1';
 const MULTI_EQUIPMENT_BUILD='20260912-multi-equipment-invoicing-1';
 const BUCKET='business-office-files';
 const LARGE_FILE_THRESHOLD=3000000;
