@@ -21,7 +21,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD = "20261012-proactive-auth-gate-1";
+const BUILD = "20261012-proactive-proof-fix-1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -81,6 +81,20 @@ function money(n: number): string {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
+// business_proof_log.entity_id is a uuid column, but callers pass entity
+// references of varying shapes (a quote/invoice row uuid, or the digest's
+// date string). A non-uuid value makes Postgres reject the whole insert
+// (22P02 invalid input syntax for type uuid) — that is why digest proof
+// rows silently never landed. Keep the raw reference in details.entityRef
+// and leave entity_id null instead of losing the proof row entirely.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Proof logging must never crash a run, but it must never fail silently
+// either: failures are collected here and surfaced in the run response.
+// The handler drains this at the start of each invocation.
+const proofLogFailures: Array<Record<string, any>> = [];
+
 async function logProof(
   supabase: any,
   businessId: string,
@@ -89,15 +103,17 @@ async function logProof(
   entityId: string,
   details: Record<string, any>,
 ): Promise<void> {
-  await supabase.from("business_proof_log").insert({
+  const isUuid = UUID_RE.test(entityId);
+  const { error } = await supabase.from("business_proof_log").insert({
     business_id: businessId,
     actor_user_id: KIT_ACTOR_ID,
     action_type: actionType,
     entity_type: entityType,
-    entity_id: entityId,
+    entity_id: isUuid ? entityId : null,
     result: "PASS",
     details: {
       ...details,
+      ...(isUuid ? {} : { entityRef: entityId }),
       aiActor: KIT_TAG,
       ownerReviewRequired: true,
       automaticSend: false,
@@ -105,6 +121,17 @@ async function logProof(
     },
     external_action_occurred: false,
   });
+  if (error) {
+    console.error(
+      `logProof failed (${actionType}/${entityType}/${entityId}): ${error.message}`,
+    );
+    proofLogFailures.push({
+      actionType,
+      entityType,
+      entityId,
+      error: String(error.message || error).substring(0, 200),
+    });
+  }
 }
 
 // ---- AI usage accounting (per-tenant $20/month cap) ----
@@ -598,6 +625,9 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Fresh slate for this invocation's proof-log failure tracking.
+  proofLogFailures.length = 0;
+
   const results: Record<string, any> = {
     build: BUILD,
     businesses_processed: 0,
@@ -606,6 +636,8 @@ Deno.serve(async (req: Request) => {
     digests: 0,
     ai_drafts: 0,
     template_drafts: 0,
+    proof_log_warnings: 0,
+    proof_log_failures: [],
     skipped: [],
     errors: [],
   };
@@ -653,6 +685,9 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    results.proof_log_warnings = proofLogFailures.length;
+    results.proof_log_failures = proofLogFailures.slice(0, 10);
+
     return new Response(JSON.stringify(results), {
       headers: { "Content-Type": "application/json" },
     });
@@ -660,6 +695,8 @@ Deno.serve(async (req: Request) => {
     // vs the template fallback (cap hit, key missing, or API error).
 
   } catch (err) {
+    results.proof_log_warnings = proofLogFailures.length;
+    results.proof_log_failures = proofLogFailures.slice(0, 10);
     return new Response(JSON.stringify({
       ...results,
       error: String(err).substring(0, 500),
