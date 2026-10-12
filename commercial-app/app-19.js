@@ -60,6 +60,7 @@ updatePending=async function(){
   const operations=(await all('operations')).filter(op=>op.businessId===state.businessId&&op.syncStatus==='PENDING');
   const real=operations.filter(op=>!isUsageOperation(op)),telemetry=operations.length-real.length,node=$('syncBadge');
   node.textContent=real.length?`${real.length} unsynced`:'All saved';node.className=`badge ${real.length?'warn':'neutral'}`;node.title=telemetry?`${telemetry} internal activity records will sync quietly.`:'No business records are waiting.';updateGatewayBadge();
+  try{window.dispatchEvent(new CustomEvent('h38:pending-updated',{detail:{pending:real.length,failed:real.filter(op=>num(op.retryCount)>0).length,online:navigator.onLine!==false}}));}catch(error){}
 };
 recordUsage=async function(pageKey,actionKey,metadata={}){
   if(!state.businessId||!navigator.onLine||!state.bridgeReady)return false;
