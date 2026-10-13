@@ -26,6 +26,40 @@ def test_version_json_advances_in_lockstep_with_sw_cache_name():
     assert f"const CACHE_NAME='h38-business-office-{version}';" in SW
 
 
+def test_shell_precache_has_no_duplicate_entries():
+    # Round-2 root cause (2026-10-13, proven in Chromium): SHELL carried
+    # './job-lifecycle.css', './personal-assistant.css' and
+    # './office-polish.css' twice each since ~2026-09-30. cache.addAll
+    # rejects the whole batch on a duplicate, so the canonical worker's
+    # install failed on every Chromium client and it never activated —
+    # the version.json heal had no working worker to land on.
+    import re
+    shell = SW.split('const SHELL=[', 1)[1].split('];', 1)[0]
+    entries = re.findall(r"'([^']+)'", shell)
+    assert len(entries) >= 100
+    dupes = sorted({e for e in entries if entries.count(e) > 1})
+    assert not dupes, f'duplicate SHELL entries: {dupes}'
+
+
+def test_shell_entries_exist_on_disk():
+    import re
+    shell = SW.split('const SHELL=[', 1)[1].split('];', 1)[0]
+    entries = re.findall(r"'([^']+)'", shell)
+    missing = [e for e in entries
+               if (e.startswith('./') or e.startswith('../'))
+               and not (APP / e).resolve().exists()]
+    assert not missing, f'SHELL entries missing on disk: {missing}'
+
+
+def test_install_precache_cannot_be_killed_by_one_bad_entry():
+    # The precache must dedupe and cache entries independently; a single
+    # atomic cache.addAll(SHELL) lets one duplicate/404 entry brick the
+    # worker's install for every client.
+    assert 'addAll(SHELL)' not in SW
+    assert 'new Set(SHELL)' in SW
+    assert 'cache.add(url)' in SW
+
+
 def test_version_probe_is_never_served_from_sw_cache():
     # If version.json is not LIVE_FIRST, the SW answers the timestamped
     # probe from cache (ignoreSearch) and the check can never fire.

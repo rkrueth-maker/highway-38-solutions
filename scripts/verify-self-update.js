@@ -19,7 +19,18 @@
  *      inline (never deferred), and still carries the load-time check, the
  *      foreground re-check (pageshow + visibilitychange), the _refresh
  *      cache-busting reload via location.replace, and the per-session heal
- *      marker that caps it at one reload per version (no loop). */
+ *      marker that caps it at one reload per version (no loop).
+ *   5. The SW precache can never silently kill the install again (the
+ *      2026-10-13 round-2 root cause, proven in Chromium): SHELL carried
+ *      duplicate './job-lifecycle.css', './personal-assistant.css' and
+ *      './office-polish.css' entries since ~2026-09-30, and the install
+ *      handler's single atomic cache.addAll(SHELL) rejects the WHOLE batch
+ *      on a duplicate — so the canonical worker never activated on any
+ *      Chromium client, the #1328 heal had no worker to land on, and only
+ *      the legacy offline-sw (stale-while-revalidate) kept serving old
+ *      app files. SHELL must have no duplicate entries, every entry must
+ *      exist on disk, and the install handler must dedupe + cache entries
+ *      independently instead of one atomic addAll over the raw list. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -48,6 +59,27 @@ check('SW CACHE_NAME is exactly h38-business-office- + version.json version',
 const liveFirstMatch = sw.match(/const LIVE_FIRST=new Set\(\[([^\]]*)\]\)/);
 check('SW LIVE_FIRST includes version.json (version probe is never cache-served)',
   !!liveFirstMatch && liveFirstMatch[1].includes("'version.json'"));
+
+/* ---- precache integrity: an uninstallable worker heals nobody ---- */
+const shellMatch = sw.match(/const SHELL=\[([\s\S]*?)\];/);
+const shellEntries = shellMatch ? [...shellMatch[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : [];
+check('SW SHELL precache list is parseable and non-trivial', shellEntries.length >= 100,
+  'entries=' + shellEntries.length);
+const seenShell = new Set();
+const dupeShell = [];
+for (const entry of shellEntries) { if (seenShell.has(entry)) dupeShell.push(entry); seenShell.add(entry); }
+check('SW SHELL has no duplicate entries (a duplicate makes cache.addAll reject the whole precache and the install fails)',
+  dupeShell.length === 0, 'duplicates: ' + dupeShell.join(', '));
+const missingShell = shellEntries.filter(entry => {
+  if (!entry.startsWith('./') && !entry.startsWith('../')) return false;
+  return !fs.existsSync(path.resolve(ROOT, 'commercial-app', entry));
+});
+check('every SHELL entry exists on disk (a 404 entry must never be able to kill the install)',
+  missingShell.length === 0, 'missing: ' + missingShell.join(', '));
+check('install handler does not precache with one atomic cache.addAll(SHELL)',
+  !sw.includes('addAll(SHELL)'));
+check('install handler dedupes SHELL and caches entries independently (new Set(SHELL) + per-entry cache.add)',
+  sw.includes('new Set(SHELL)') && sw.includes('cache.add(url)'));
 
 /* ---- index.html startup check ---- */
 const index = read('commercial-app/index.html');
