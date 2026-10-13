@@ -45,12 +45,14 @@ function h38SetAuthorizedChrome(authorized){
   document.body?.classList.toggle('h38-auth-locked',!allowed);
   document.body?.classList.toggle('h38-auth-authorized',allowed);
   const nav=$('mainNav');
-  // Nav-flash guard (2026-10-13 fix sweep): never wipe an already-rendered nav
-  // while a snapshot for this session exists — a mid-startup chrome toggle was
-  // clearing #mainNav (5 controls → 0) and forcing a full re-render. Real
-  // lockouts clear state.snapshot BEFORE calling this setter, so they still
-  // clear the nav.
-  if(nav&&!allowed&&!state.snapshot)nav.innerHTML='';
+  // Nav-flash guard (2026-10-13 fix sweep): never wipe an already-rendered
+  // nav for this session. A mid-startup chrome toggle (init / re-verification
+  // after the cache-painted first render) was clearing #mainNav (controls →
+  // 0) and forcing a full re-render seconds later. The setter still applies
+  // the locked body classes and disables the AI/voice/sync controls; a nav
+  // that was never rendered (fresh sign-in, cleared cache) is empty anyway,
+  // and no data can render without an authoritative snapshot.
+  if(nav&&!allowed&&!nav.querySelector('button,a'))nav.innerHTML='';
   ['globalAiButton','voiceButton'].forEach(id=>{const node=$(id);if(node)node.disabled=!allowed;});
   const sync=$('syncButton');if(sync)sync.disabled=!allowed&&!state.bridge;
 }
