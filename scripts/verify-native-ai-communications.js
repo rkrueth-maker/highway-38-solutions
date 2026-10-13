@@ -25,9 +25,9 @@ check('AI route parses structured receptionist profile and account status',aiSer
 check('H38 test replies use generated OpenAI speech with quality voices',aiServer.includes('gpt-4o-mini-tts')&&aiServer.includes('voice = requestedVoice === "cedar" ? "cedar" : "marin"')&&aiServer.includes('natural American English'));
 check('test offers Marin and Cedar with a disclosed temporary audio player',app.includes('option value="marin"')&&app.includes('option value="cedar"')&&app.includes('AI-generated voice preview')&&app.includes('Temporary test audio only'));
 check('test uses generated audio and avoids synthetic browser default voices',app.includes('speechAudioBase64')&&app.includes('new Blob([bytes],{type:\'audio/mpeg\'})')&&!app.includes('speechSynthesis.speak'));
-check('versioned receptionist asset and fresh app cache are updated',index.includes('20261001-natural-receptionist-3')&&sw.includes('20261013-sw-precache-fix-1'));
+check('versioned receptionist asset and fresh app cache are updated',index.includes('20261001-natural-receptionist-3')&&sw.includes('20261013-owner-view-1'));
 check('global quick action opens the receptionist test tab directly',quick.includes("action==='receptionist'){window.H38_COMMUNICATIONS?.open({tab:'receptionist'})")&&messages.includes("'receptionist'")&&app.includes("state().messageTab=tab==='receptionist'?'receptionist':'internal'"));
-check('new client is delivered fresh and precached',sw.includes("'communications-native-receptionist.js'")&&sw.includes('20261013-sw-precache-fix-1'));
+check('new client is delivered fresh and precached',sw.includes("'communications-native-receptionist.js'")&&sw.includes('20261013-owner-view-1'));
 const total=31,result={status:failures.length?'HOLD':'PASS',checks:total,failures};
 console.log(`\nRESULT: ${result.status} (${total-failures.length}/${total} checks passed)`);
 if(failures.length)process.exit(1);

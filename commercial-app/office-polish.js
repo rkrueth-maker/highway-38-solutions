@@ -266,14 +266,32 @@ function cardBandPillTone(pill){
     :/\b(draft|pending|awaiting|review)\b/.test(label)?'pending':'';
   if(tone)pill.classList.add(tone);
 }
+function cardBandKicker(wrapper,heading){
+  // The kicker/eyebrow line that introduces a heading inside a designed head
+  // wrapper: class-marked (kicker/eyebrow), or a bare short span/p directly
+  // before the heading. It moves into the band so the card keeps its context.
+  const marked=wrapper.querySelector('.eyebrow,[class*="kicker" i]');
+  if(marked&&marked!==heading&&!marked.classList.contains('pill')&&(marked.compareDocumentPosition(heading)&Node.DOCUMENT_POSITION_FOLLOWING))return marked;
+  const prev=heading.previousElementSibling;
+  if(prev&&(prev.tagName==='SPAN'||prev.tagName==='P')&&!prev.querySelector('*')&&!prev.classList.contains('pill')&&text(prev.textContent)&&text(prev.textContent).length<=48)return prev;
+  return null;
+}
 function polishCardBands(){
   const main=document.getElementById('mainContent');
   if(!main)return;
-  main.querySelectorAll('.card:not([data-h38-card-band])').forEach(card=>{
+  main.querySelectorAll('.card,.h38-platform-card').forEach(card=>{
+    // Presence of the band itself is the guard (not the data attribute): a
+    // renderer that rewrites a card's innerHTML — platform-next does this on
+    // every render — drops the band, and the next pass must restore it.
+    if(card.querySelector(':scope > .card-band'))return;
     if(card.classList.contains('h38-action-card')||card.classList.contains('h38-profit-card')){card.dataset.h38CardBand='skip';return;}
+    if(card.id==='h38CustomerReadyHero'||card.id==='h38CustomerReadyCards')return;
     const first=card.firstElementChild;
     if(!first)return;
-    let heading=null,pill=null,rowHost=null;
+    // Today's readiness sections, the kit feed and the lifecycle cards keep
+    // their own designed heads (treatment-B implementation decision).
+    if(first.classList.contains('h38-ready-section-head')||first.classList.contains('h38-kit-feed-head')||first.classList.contains('h38-life-head')){card.dataset.h38CardBand='skip';return;}
+    let heading=null,pill=null,rowHost=null,rowHostOnly=false,kicker=null,headWrap=null;
     if(first.matches('h2,h3')){
       heading=first;
       const sibling=heading.nextElementSibling;
@@ -281,7 +299,23 @@ function polishCardBands(){
     }else if(first.classList.contains('row-top')){
       const head=first.querySelector(':scope > h2,:scope > h3');
       const headPill=first.querySelector(':scope > .pill');
-      if(head&&[...first.children].every(el=>el===head||el===headPill)){heading=head;pill=headPill;rowHost=first;}
+      if(head){heading=head;pill=headPill;rowHost=first;rowHostOnly=[...first.children].every(el=>el===head||el===headPill);}
+    }else if(first.tagName==='DIV'||first.tagName==='HEADER'||first.tagName==='SECTION'){
+      // Designed head wrapper (h38-customer-directory-head, h38-c360-head,
+      // h38-photo-quote-head, h38-platform-head, …): the heading lives inside
+      // it next to a kicker, a note and/or actions. Band the heading (plus
+      // kicker and a loose status pill/badge); notes, buttons and counts stay
+      // in the wrapper below the band. Wrappers holding form controls or
+      // content lists are not heads and are left alone.
+      const cls=String(first.className||'');
+      if(/(^|[-_ ])head($|[-_ ])/.test(cls)){
+        const head=first.querySelector('h2,h3');
+        if(head&&(head.parentElement===first||head.parentElement.parentElement===first)&&!first.querySelector('input,select,textarea,form,.card,.list,table')){
+          heading=head;headWrap=first;
+          kicker=cardBandKicker(first,head);
+          pill=first.querySelector('.pill')||first.querySelector('.h38-platform-badge');
+        }
+      }
     }
     if(!heading||heading.hidden||heading.classList.contains('hidden')||!text(heading.textContent))return;
     card.dataset.h38CardBand='1';
@@ -294,10 +328,12 @@ function polishCardBands(){
     chip.textContent=glyph||CARD_PAGE_ICONS[text(window.state&&window.state.page)]||'▦';
     const titleWrap=document.createElement('div');
     titleWrap.className='card-band-title';
+    if(kicker){kicker.classList.add('card-band-kicker');titleWrap.appendChild(kicker);}
     titleWrap.appendChild(heading);
     band.append(chip,titleWrap);
-    if(pill){cardBandPillTone(pill);band.appendChild(pill);}
-    if(rowHost)rowHost.remove();
+    if(pill){if(pill.classList.contains('pill'))cardBandPillTone(pill);band.appendChild(pill);}
+    if(rowHost&&rowHostOnly)rowHost.remove();
+    if(headWrap&&!headWrap.querySelector('*')&&!text(headWrap.textContent))headWrap.remove();
     card.insertBefore(band,card.firstChild);
   });
 }

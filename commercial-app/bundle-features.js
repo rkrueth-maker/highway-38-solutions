@@ -19459,13 +19459,13 @@ window.H38_MANUAL_IMAGE_CONTROLS=Object.freeze({enabled:true,build:BUILD,manualS
     if (!document.querySelector('link[data-h38-office-polish]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = './office-polish.css?build=20261013-card-band-1';
+      link.href = './office-polish.css?build=20261013-owner-view-1';
       link.dataset.h38OfficePolish = '1';
       document.head.appendChild(link);
     }
     if (!window.H38_OFFICE_POLISH && !document.querySelector('script[data-h38-office-polish]')) {
       const script = document.createElement('script');
-      script.src = './office-polish.js?build=20261013-card-band-1';
+      script.src = './office-polish.js?build=20261013-owner-view-1';
       script.dataset.h38OfficePolish = '1';
       document.body.appendChild(script);
     }
