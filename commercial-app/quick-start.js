@@ -27,9 +27,9 @@
  */
 (function(){
 'use strict';
-var BUILD='20261011-quick-start-1';
+var BUILD='20261013-onboarding-team-1';
 var BUCKET='business-office-files';
-var ONBOARDING_BUILD='20261012-onboarding-wiring-3';
+var ONBOARDING_BUILD='20261013-onboarding-team-1';
 
 var text=function(v){ return String(v==null?'':v).trim(); };
 var esc=function(v){ return text(v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
