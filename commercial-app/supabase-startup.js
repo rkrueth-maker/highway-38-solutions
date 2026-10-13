@@ -52,7 +52,11 @@ function h38SetAuthorizedChrome(authorized){
   // the locked body classes and disables the AI/voice/sync controls; a nav
   // that was never rendered (fresh sign-in, cleared cache) is empty anyway,
   // and no data can render without an authoritative snapshot.
-  if(nav&&!allowed&&!nav.querySelector('button,a'))nav.innerHTML='';
+  // A nav node without querySelector (non-DOM stub/partial node) cannot hold
+  // rendered controls, so it falls back to the pre-guard clear instead of
+  // throwing — a throw here would abort loadBusiness before it records the
+  // new businessId, leaving a stale tenant id that late responses match.
+  if(nav&&!allowed&&!(typeof nav.querySelector==='function'&&nav.querySelector('button,a')))nav.innerHTML='';
   ['globalAiButton','voiceButton'].forEach(id=>{const node=$(id);if(node)node.disabled=!allowed;});
   const sync=$('syncButton');if(sync)sync.disabled=!allowed&&!state.bridge;
 }
