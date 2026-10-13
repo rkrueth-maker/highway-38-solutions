@@ -1,6 +1,7 @@
 name: Verify Northern Lakes Commercial Office Package
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'businesses/northern-lakes/**'
@@ -8,6 +9,7 @@ on:
       - 'scripts/verify-northern-lakes-commercial-package.js'
       - 'scripts/verify-northern-lakes-business-office.js'
       - 'commercial-app/supabase-auth.js'
+      - 'commercial-app/supabase-startup.js'
       - 'commercial-app/supabase-client-branding.js'
       - '.github/workflows/pages-branch-fallback.yml'
       - 'supabase/functions/nlpm-office-gateway/**'
@@ -24,12 +26,15 @@ on:
       - 'scripts/verify-northern-lakes-commercial-package.js'
       - 'scripts/verify-northern-lakes-business-office.js'
       - 'commercial-app/supabase-auth.js'
+      - 'commercial-app/supabase-startup.js'
       - 'commercial-app/supabase-client-branding.js'
       - '.github/workflows/pages-branch-fallback.yml'
       - 'supabase/functions/nlpm-office-gateway/**'
       - 'supabase/config.toml'
       - 'portal.html'
       - 'sign-in.html'
+      - '.github/workflows/verify-northern-lakes-commercial-package.yml'
+      - '.github/workflows/deploy-northern-lakes-commercial-office.yml'
 
 permissions:
   contents: read
