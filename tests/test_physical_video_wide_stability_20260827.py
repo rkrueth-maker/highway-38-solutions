@@ -9,7 +9,7 @@ SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 
 
 def test_online_startup_does_not_paint_cached_counts_before_authoritative_snapshot():
-    assert "20261013-owner-notify-2" in STARTUP
+    assert "20261013-owner-notify-3" in STARTUP
     assert "if(navigator.onLine&&allowOnline)return false;" in STARTUP
     online_gate = STARTUP.index("if(navigator.onLine&&allowOnline)return false;")
     cache_load = STARTUP.index("loadCached({allowOnline})")
