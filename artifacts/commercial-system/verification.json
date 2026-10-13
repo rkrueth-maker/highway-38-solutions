@@ -1,8 +1,8 @@
 {
-  "status": "HOLD",
-  "generatedAt": "2026-10-09T09:52:54.512Z",
-  "passed": 69,
-  "failed": 9,
+  "status": "PASS",
+  "generatedAt": "2026-10-13T05:27:21.864Z",
+  "passed": 78,
+  "failed": 0,
   "architecture": "competitive-readiness-split-buyer-paths-with-interactive-quote-proof",
   "pricingProducts": 3,
   "existingProjectExamples": 30,
@@ -139,11 +139,19 @@
       "detail": ""
     },
     {
+      "name": "competitive-readiness route manifest owns the fifteen current gateways",
+      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"project-services.html\",\"pricing.html\",\"business-in-a-box.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\"]"
+    },
+    {
       "name": "Universal Quote Builder compatibility route is public and canonical",
       "detail": ""
     },
     {
       "name": "retired catalog routes point to current project-first pages",
+      "detail": ""
+    },
+    {
+      "name": "one canonical public shell owns balanced navigation and Project Examples",
       "detail": ""
     },
     {
@@ -156,6 +164,14 @@
     },
     {
       "name": "homepage is problem first",
+      "detail": ""
+    },
+    {
+      "name": "homepage routes through balanced discovery",
+      "detail": ""
+    },
+    {
+      "name": "homepage presents both buyer choices",
       "detail": ""
     },
     {
@@ -175,6 +191,10 @@
       "detail": ""
     },
     {
+      "name": "implementation and security pages explain commercial delivery controls",
+      "detail": ""
+    },
+    {
       "name": "What We Do exposes five accepted capabilities",
       "detail": ""
     },
@@ -184,6 +204,22 @@
     },
     {
       "name": "What We Do does not restore fixed-price product cards",
+      "detail": ""
+    },
+    {
+      "name": "pricing page has final single-tier structure",
+      "detail": ""
+    },
+    {
+      "name": "pricing preserves Snapshot and approval boundaries",
+      "detail": ""
+    },
+    {
+      "name": "pricing marks the AI backend plan as the featured offer",
+      "detail": ""
+    },
+    {
+      "name": "pricing explains implementation value without changing prices",
       "detail": ""
     },
     {
@@ -291,42 +327,5 @@
       "detail": ""
     }
   ],
-  "failures": [
-    {
-      "name": "competitive-readiness route manifest owns the thirteen current gateways",
-      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"project-services.html\",\"pricing.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\"]"
-    },
-    {
-      "name": "one canonical public shell owns balanced navigation and Project Examples",
-      "detail": ""
-    },
-    {
-      "name": "homepage routes through balanced discovery",
-      "detail": ""
-    },
-    {
-      "name": "homepage presents both buyer choices",
-      "detail": ""
-    },
-    {
-      "name": "implementation and security pages explain commercial delivery controls",
-      "detail": ""
-    },
-    {
-      "name": "pricing page has final three-product structure",
-      "detail": ""
-    },
-    {
-      "name": "pricing preserves Snapshot and approval boundaries",
-      "detail": ""
-    },
-    {
-      "name": "pricing marks Business Office Most Popular",
-      "detail": ""
-    },
-    {
-      "name": "pricing explains implementation value without changing prices",
-      "detail": ""
-    }
-  ]
+  "failures": []
 }

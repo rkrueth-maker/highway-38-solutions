@@ -1,11 +1,11 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-09T09:52:29.073Z",
+  "generatedAt": "2026-10-13T05:27:24.265Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
   "imagePlacementsLocked": true,
-  "pricingProducts": 2,
+  "pricingProducts": 1,
   "whatWeDoCapabilities": [
     "Automation & Robotics",
     "CNC Machining & Process Planning",
@@ -16,7 +16,7 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 195,
+  "passed": 208,
   "failed": 0,
   "warnings": [],
   "passes": [
@@ -78,7 +78,7 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "9496 bytes"
+      "detail": "10037 bytes"
     },
     {
       "name": "canonical shell CSS budget",
@@ -201,6 +201,10 @@
       "detail": "assets/js/h38-site-v2.js"
     },
     {
+      "name": "solutions.html canonical URL",
+      "detail": "https://highway38solutions.com/solutions.html"
+    },
+    {
       "name": "solutions.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
     },
@@ -238,7 +242,7 @@
     },
     {
       "name": "software.html canonical URL",
-      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/software.html"
+      "detail": "https://highway38solutions.com/software.html"
     },
     {
       "name": "software.html public script budget",
@@ -318,10 +322,50 @@
     },
     {
       "name": "pricing.html canonical URL",
-      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/pricing.html"
+      "detail": "https://highway38solutions.com/pricing.html"
     },
     {
       "name": "pricing.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "business-in-a-box.html exists",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "business-in-a-box.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "business-in-a-box.html canonical URL",
+      "detail": "https://highway38solutions.com/business-in-a-box.html"
+    },
+    {
+      "name": "business-in-a-box.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
     },
     {
@@ -477,6 +521,10 @@
       "detail": "assets/js/h38-site-v2.js"
     },
     {
+      "name": "about.html canonical URL",
+      "detail": "https://highway38solutions.com/about.html"
+    },
+    {
       "name": "about.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
     },
@@ -511,6 +559,10 @@
     {
       "name": "contact.html excludes legacy global runtimes",
       "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "contact.html canonical URL",
+      "detail": "https://highway38solutions.com/contact.html"
     },
     {
       "name": "contact.html public script budget",
@@ -590,7 +642,7 @@
     },
     {
       "name": "start-request.html canonical URL",
-      "detail": "https://rkrueth-maker.github.io/highway-38-solutions/start-request.html"
+      "detail": "https://highway38solutions.com/start-request.html"
     },
     {
       "name": "request page uses focused startup scripts",
@@ -637,7 +689,7 @@
       "detail": ""
     },
     {
-      "name": "final pricing source exposes two software offers",
+      "name": "final pricing source exposes one software offer",
       "detail": ""
     },
     {
@@ -658,7 +710,7 @@
     },
     {
       "name": "request controller JavaScript budget",
-      "detail": "6394 bytes"
+      "detail": "6370 bytes"
     },
     {
       "name": "secure request flow owns one submit handler",
