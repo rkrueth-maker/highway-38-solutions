@@ -1,24 +1,29 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T04:18:05.005Z",
+  "generatedAt": "2026-10-13T04:20:39.809Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
+    "commercial-app/ai-onboarding.js",
+    "commercial-app/desktop-navigation-authority.js",
     "commercial-app/index.html",
-    "commercial-app/route-manager.js",
-    "supabase/acceptance/production-policy.json",
-    "supabase/migrations/20261013020000_route_proof_public_rpc.sql"
+    "commercial-app/quick-start.js",
+    "commercial-app/service-worker.js",
+    "tests/test_live_customer_navigation_guard_20260910.py",
+    "tests/test_offline_mode_polish_20261012.py",
+    "tests/test_platform_push_deepening.py",
+    "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 7,
+  "fileCount": 12,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -29,7 +34,7 @@
     "publicRendering": true,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
@@ -37,13 +42,11 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
     "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml",
