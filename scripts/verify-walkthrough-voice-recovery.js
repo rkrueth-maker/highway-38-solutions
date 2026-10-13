@@ -34,7 +34,7 @@ check('CameraX walkthrough allows five minutes',nativeCapture.includes('MAX_DURA
 check('voice upload refreshes auth',capture.includes('refreshAuthBeforeAudioSync:true'));
 check('Site Visit sync refreshes auth before queue processing',voice.includes('refreshAuthBeforeSiteVisitSync:true'));
 check('edge preserves original video authority',edge.includes('Video Walkthrough')&&compactEdge.includes('attachmentId:videoId'));
-check('edge uses derived audio when provided and original video otherwise',compactEdge.includes('letsource=video;if(audioId)source=awaitrequireEvidence'));
+check('edge uses derived audio when provided and original video otherwise',compactEdge.includes('letsource=video;if(audioId)source=awaitwithStorageRetry(()=>requireEvidence'));
 check('edge does not reject a large original video before selecting derived audio',compactEdge.includes('if(expectedType!=="VideoWalkthrough"&&fileSize>MAX_BYTES)')&&compactEdge.includes('if(blob.size>MAX_BYTES)'));
 check('edge returns explicit no usable audio code',edge.includes('NO_USABLE_AUDIO'));
 check('edge keeps unverified speech unverified but preserves explicit operator verification',edge.includes('UNVERIFIED_SPOKEN')&&edge.includes('OPERATOR_VERIFIED')&&edge.includes('normalizeSpokenMeasurements')&&edge.includes('isOperatorVerified')&&edge.includes('isMaterialSpecification')&&edge.includes('Do not put product or material specifications into spokenMeasurements'));

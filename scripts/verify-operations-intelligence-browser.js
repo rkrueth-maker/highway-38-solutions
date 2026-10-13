@@ -57,7 +57,8 @@ function assert(condition,message){if(!condition)throw new Error(message);consol
       const saved=await page.evaluate(()=>({ops:window.__ops.map(x=>x.slice(0,4)),quotes:window.state.snapshot.quotes.length}));
       assert(saved.ops.some(x=>x[0]==='SAVE_ENTITY'&&x[1]==='Work Opportunity'),`Opportunity save uses internal SAVE_ENTITY at ${viewport.width}px`);
       assert(saved.quotes===quoteCountBefore,`Opportunity review does not auto-create a quote at ${viewport.width}px`);
-      await page.locator('#h38OpportunityFinderDialog button[value="cancel"]').first().click();
+      await page.locator('#h38OpportunityFinderDialog [data-dialog-cancel]').first().click();
+      assert(await page.locator('#h38OpportunityFinderDialog[open]').count()===0,`Opportunity review closes at ${viewport.width}px`);
       await page.locator('[data-h38-ops="new-asset"]').first().click();
       assert(await page.locator('#h38AssetPassportDialog[open]').count()===1,`Asset passport dialog opens at ${viewport.width}px`);
       await page.selectOption('#h38AssetPassportDialog select[name="customerId"]','C-1');

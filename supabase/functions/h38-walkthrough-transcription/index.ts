@@ -19,8 +19,8 @@ async function aiLogUsage(svc:any,businessId:string,fn:string,usage:any,model:st
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const MUSE_SPARK_API_KEY=Deno.env.get("MUSE_SPARK_API_KEY")||""
 const OPENAI_API_KEY=Deno.env.get("OPENAI_API_KEY")||""
-const TRANSCRIBE_MODEL = Deno.env.get("OPENAI_WALKTHROUGH_TRANSCRIBE_MODEL") || "claude-sonnet-4-20250514";
-const NOTES_MODEL = Deno.env.get("OPENAI_SITE_SCANNER_MODEL") || Deno.env.get("OPENAI_QUOTE_MODEL") || "claude-sonnet-4-20250514";
+const TRANSCRIBE_MODEL = Deno.env.get("OPENAI_WALKTHROUGH_TRANSCRIBE_MODEL") || "gpt-4o-mini-transcribe";
+const NOTES_MODEL = Deno.env.get("MUSE_SPARK_MODEL") || "muse-spark-1.1";
 const BUCKET = "business-office-files";
 const MAX_BYTES = 24 * 1024 * 1024;
 const MEASUREMENT_CLASSIFICATION_VERSION = "2";

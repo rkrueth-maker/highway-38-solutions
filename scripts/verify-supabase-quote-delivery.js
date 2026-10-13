@@ -15,7 +15,7 @@ const currentCache=/CACHE_NAME='h38-business-office-20\d{6}-\d{4}'/.test(sw);
 const deliveryNetworkFirst=/LIVE_FIRST=new Set\(\[[^\]]*'supabase-quote-delivery\.js'/s.test(sw);
 const portalDeliveryBuild=(portal.match(/const BUILD='([^']+)'/)||[])[1]||'';
 const checks=[
- ['Approve & Send button is explicit',client.includes("textContent='✉️ Approve & Send Quote'")],
+ ['Approve & Send button is explicit',client.includes("textContent='Approve & Send Quote'")],
  ['quote delivery action is page-scoped',client.includes("function quotePage()")&&client.includes("if(!quotePage()){clearPageArtifacts();return;}")&&client.includes('quotePageOnly:true')],
  ['non-quote pages clear delivery controls',client.includes("document.getElementById('h38ApproveSendQuoteButton')?.remove()")&&client.includes("document.getElementById('h38QuoteDeliveryStatus')?.remove()")],
  ['owner checkbox gates confirmation',client.includes('confirmOwnerReview:true')&&client.includes('h38QuoteDeliveryConfirm')],

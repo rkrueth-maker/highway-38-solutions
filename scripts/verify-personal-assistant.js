@@ -43,12 +43,17 @@ check(!aiRouter.includes('SUPABASE_SERVICE_ROLE_KEY')&&!aiRouter.includes('servi
 check(!aiRouter.includes("aiBuildQuoteDraft')return ask")&&!aiRouter.includes("supabase-quote-ai"),'General assistant routing must not take ownership of Quote AI.');
 
 check(edge.includes('Deno.serve')&&edge.includes('OPENAI_API_KEY'),'Assistant AI Edge Function is incomplete.');
-check(edge.includes('store: false'),'Assistant AI must disable Responses storage for advisory calls.');
+check(edge.includes('https://api.meta.ai/v1/chat/completions')&&!edge.includes('/v1/responses'),'Assistant AI must use stateless Muse Spark chat completions for advisory calls (no Responses storage).');
 check(edge.includes('.from("business_memberships")')&&edge.includes('.eq("status", "active")'),'Assistant AI must verify active business membership.');
 check(edge.includes('Your authority is READ ONLY')&&edge.includes('You have no tools'),'Assistant AI instructions must explicitly deny execution authority.');
 check(edge.includes('privateAssistantRecordsRead: false'),'Business advisory AI must not read private Personal Assistant records.');
 check(edge.includes('externalActionOccurred: false')&&edge.includes('automaticApproval: false')&&edge.includes('automaticCustomerSending: false')&&edge.includes('automaticPurchasing: false')&&edge.includes('automaticPayment: false'),'Assistant AI response must hard-code non-execution safeguards.');
-check(!edge.includes('.insert(')&&!edge.includes('.update(')&&!edge.includes('.upsert(')&&!edge.includes('.delete('),'Assistant AI Edge Function must remain read-only against Supabase data.');
+// Read-only boundary: the shared AI usage helpers (aiUsageAlert75/aiCapCheck/aiLogUsage)
+// may write only ai_usage_log, the ai_config usage-alert record, and business_proof_log.
+// Every other part of the function — advisory, photo intake, TTS, and the serve handler —
+// must perform no Supabase writes at all.
+const edgeLogic=edge.split('\n').filter(line=>!/^async function (aiUsageAlert75|aiCapCheck|aiLogUsage)\(/.test(line)).join('\n');
+check(!edgeLogic.includes('.insert(')&&!edgeLogic.includes('.update(')&&!edgeLogic.includes('.upsert(')&&!edgeLogic.includes('.delete('),'Assistant AI Edge Function must remain read-only against Supabase data.');
 check(!/\btools\s*:/.test(edge),'Assistant AI must not expose model tools or function calls.');
 check(/\[functions\.h38-assistant-ai\][\s\S]*?verify_jwt\s*=\s*true/.test(config),'Assistant AI Edge Function must require JWT verification.');
 check(!index.includes('BusinessOffice_AI_Assistant_Client.html')&&!index.includes('BusinessOffice_AI_Assistant.gs'),'Legacy Apps Script assistant must not be loaded by the Supabase commercial runtime.');

@@ -14,7 +14,10 @@ function verifySingleOwnerSource(){
   const globals=fs.readFileSync(path.join(officeRoot,'supabase-runtime-globals.js'),'utf8');
   assert(/function renderSettings\s*\(/.test(canonical),'canonical Settings renderer is missing');
   assert(globals.includes('window.renderSettings = renderSettings;'),'canonical Settings global export is missing');
-  for(const name of fs.readdirSync(officeRoot).filter(name=>name.endsWith('.js')&&!['app-17.js','supabase-runtime-globals.js'].includes(name))){
+  // Generated bundles (scripts/bundle-office-scripts.js) are concatenations of the
+  // checked sources — including the canonical supabase-runtime-globals.js export —
+  // and are not loaded by index.html; scanning them double-counts their sources.
+  for(const name of fs.readdirSync(officeRoot).filter(name=>name.endsWith('.js')&&!['app-17.js','supabase-runtime-globals.js'].includes(name)&&!name.startsWith('bundle-'))){
     const source=fs.readFileSync(path.join(officeRoot,name),'utf8');
     assert(!/wrapRenderer\(['"]renderSettings['"]|wrap\(['"]renderSettings['"]|window\.renderSettings\s*=|['"]renderSettings['"]\s*\]\s*\.forEach\(wrap\)/.test(source),`${name} attempts to own or wrap renderSettings`);
   }

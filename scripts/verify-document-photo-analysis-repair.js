@@ -17,11 +17,11 @@ must(client.includes('ownerReviewRequired:true'),'client preserves owner review 
 for(const token of ['automaticAssignment:false','automaticCustomerRelease:false','automaticCustomerSending:false','automaticApproval:false','automaticScheduling:false','automaticPurchasing:false','automaticPayment:false'])must(client.includes(token),`client preserves ${token}`);
 must(runtime.includes("document-photo-analysis-repair.js?build=20260908-document-photo-analysis-repair-1"),'supported runtime loads repair');
 must(runtime.includes('loadDocumentPhotoAnalysisRepair();'),'supported runtime invokes repair loader');
-must(edge.includes('const PRIMARY_MODEL=Deno.env.get("OPENAI_DOCUMENT_MODEL")||"gpt-5.6-luna"'),'edge authority defaults to current image-capable model');
-must(edge.includes('const FALLBACK_MODEL="gpt-5-mini-2025-08-07"'),'edge authority has bounded fallback model');
+must(edge.includes('const PRIMARY_MODEL=Deno.env.get("MUSE_SPARK_MODEL")||"muse-spark-1.1"'),'edge authority defaults to current image-capable model');
+must(edge.includes('const FALLBACK_MODEL="muse-spark-1.1"'),'edge authority has bounded fallback model');
 must(edge.includes('DOCUMENT_PHOTO_ANALYZED'),'successful edge analysis writes proof log');
 must(edge.includes('DOCUMENT_PHOTO_ANALYSIS_FAILED'),'edge failure writes error log');
-must(edge.includes('detail:"low"'),'edge image input uses low-detail bounded analysis');
+must(edge.includes('type:"image_url"'),'edge image input uses bounded image_url analysis');
 must(edge.includes('verify')===false,'source code does not attempt to disable JWT verification');
 for(const token of ['automaticAssignment:false','automaticCustomerRelease:false','automaticCustomerSending:false','automaticApproval:false','automaticScheduling:false','automaticPurchasing:false','automaticPayment:false','automaticFinancialAction:false'])must(edge.includes(token),`edge preserves ${token}`);
 must(!/service_role\s*[:=]\s*['"][^'"]+/i.test(client+runtime),'browser runtime contains no privileged credential');

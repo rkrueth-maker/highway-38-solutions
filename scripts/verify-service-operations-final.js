@@ -24,7 +24,7 @@ assert.equal(pack.ai?.credentialSource,'shared-server-openai-api-key');
 assert.equal(pack.ai?.billingOwner,'Highway 38 Solutions');
 assert.equal(pack.ai?.tenantMaySupplySeparateKey,false);
 assert.equal(pack.ai?.browserKeyExposure,false);
-for(const source of [assistant,quote]) assert(source.includes('Deno.env.get("OPENAI_API_KEY")'),'Shared Supabase AI must use server OPENAI_API_KEY.');
+for(const source of [assistant,quote]) assert(source.includes('Deno.env.get("MUSE_SPARK_API_KEY")'),'Shared Supabase AI must use server MUSE_SPARK_API_KEY.');
 assert.equal(pack.safeguards?.automaticCustomerSending,false);
 assert.equal(pack.safeguards?.automaticFinancialActions,false);
 assert.equal(pack.safeguards?.ownerApprovalRequired,true);
