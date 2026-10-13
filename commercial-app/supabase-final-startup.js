@@ -276,6 +276,11 @@
       || businesses[0];
   }
 
+  // Single-flight auto-open (2026-10-13 fix sweep): a second bootstrap for the
+  // same business (auth listener re-entry, reconnect) must not start a second
+  // loadBusiness while one is in flight or after one already opened it.
+  let autoOpenInFlightKey='';
+  let autoOpenDoneKey='';
   handleStartupBootstrap=async function(startup){
     const businesses=Array.isArray(startup?.businesses)?startup.businesses:[];
     if(startup?.snapshot){
@@ -304,10 +309,19 @@
     if(status)status.textContent=`Opening ${text(chosen.businessName)||'authorized business'}…`;
     renderWelcome('connecting');
 
-    const opened=await loadBusiness(text(chosen.businessId),true);
+    const openKey=text(chosen.businessId);
+    if(autoOpenDoneKey===openKey||autoOpenInFlightKey===openKey)return;
+    autoOpenInFlightKey=openKey;
+    let opened=false;
+    try{
+      opened=await loadBusiness(openKey,true);
+    }finally{
+      if(autoOpenInFlightKey===openKey)autoOpenInFlightKey='';
+    }
     if(!opened){
       throw new Error(`Could not open ${text(chosen.businessName)||'the authorized business'} after Supabase membership verification.`);
     }
+    autoOpenDoneKey=openKey;
   };
 
   handleFullSnapshot=async function(snapshot,businessId){

@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20260918-post-login-operational-authority-1';
+const H38_SUPABASE_STARTUP_BUILD='20261013-fix-sweep-1';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -45,7 +45,12 @@ function h38SetAuthorizedChrome(authorized){
   document.body?.classList.toggle('h38-auth-locked',!allowed);
   document.body?.classList.toggle('h38-auth-authorized',allowed);
   const nav=$('mainNav');
-  if(nav&&!allowed)nav.innerHTML='';
+  // Nav-flash guard (2026-10-13 fix sweep): never wipe an already-rendered nav
+  // while a snapshot for this session exists — a mid-startup chrome toggle was
+  // clearing #mainNav (5 controls → 0) and forcing a full re-render. Real
+  // lockouts clear state.snapshot BEFORE calling this setter, so they still
+  // clear the nav.
+  if(nav&&!allowed&&!state.snapshot)nav.innerHTML='';
   ['globalAiButton','voiceButton'].forEach(id=>{const node=$(id);if(node)node.disabled=!allowed;});
   const sync=$('syncButton');if(sync)sync.disabled=!allowed&&!state.bridge;
 }
