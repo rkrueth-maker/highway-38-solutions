@@ -12,5 +12,5 @@ def test_office_shell_never_renders_literal_newline_escape_between_scripts():
 
 
 def test_assistant_runtime_scripts_remain_real_script_elements():
-    assert '<script src="./assistant-tenant-actions.js' in INDEX
-    assert '<script src="./assistant-command-runtime.js' in INDEX
+    assert '<script defer src="./assistant-tenant-actions.js?build=20260929-readable-action-preview-8' in INDEX
+    assert '<script defer src="./assistant-command-runtime.js?build=20260824-assistant-command-runtime-1' in INDEX

@@ -135,10 +135,10 @@ def test_every_quote_uses_one_bounded_automatic_repair_machine():
 
 
 def test_quote_ai_is_one_bounded_model_pass_and_proof_ids_are_uuid_safe():
-    assert '20260822-owner-bounded-draft-21' in QUOTE_AI
+    assert 'const QUOTE_AI_BUILD = "20261002-timeout-retry-23"' in QUOTE_AI
     assert 'const QUOTE_MODEL_TIMEOUT_MS = 120000;' in QUOTE_AI
     assert 'detail: "low"' in QUOTE_AI
-    assert QUOTE_AI.count('draft = await callQuoteModelWithRetry(context, photos)') == 1
+    assert QUOTE_AI.count('draft = await callQuoteModelWithRetry(service, businessId, context, photos)') == 1
     assert 'previousDraft' not in QUOTE_AI
     assert 'SERVER REPAIR REQUEST' not in QUOTE_AI
     assert 'serverBreakoutSecondPass: false' in QUOTE_AI
@@ -148,7 +148,7 @@ def test_quote_ai_is_one_bounded_model_pass_and_proof_ids_are_uuid_safe():
 
 
 def test_quote_options_are_bounded_and_non_uuid_quote_id_stays_in_details_only():
-    assert '20260822-quote-options-directions-2' in OPTIONS
+    assert '20261011-quote-options-modelfix-1' in OPTIONS
     assert 'AbortSignal.timeout(80000)' in OPTIONS
     assert 'entity_id:null' in OPTIONS
     assert 'entity_id:quoteId' not in OPTIONS

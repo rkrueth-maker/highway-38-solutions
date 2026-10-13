@@ -23,7 +23,7 @@ const ownerPolish=path.join(root,'commercial-app/owner-customer-workflow-polish.
   await page.evaluate(()=>openPage('documents'));await page.waitForSelector('#h38OwnerCustomerContext');assert.equal((await page.locator('.page-head h1').textContent()).trim(),'Files');assert((await page.locator('#h38OwnerCustomerContext').textContent()).includes('Johnson'));
   await page.evaluate(()=>openPage('money'));await page.waitForTimeout(80);assert.equal(await page.locator('#h38OwnerCustomerContext').count(),0,'internal Money should not render customer context');
   await page.evaluate(()=>openPage('today'));await page.waitForTimeout(80);const labels=await page.locator('#mainNav button span:last-child').allTextContents();assert.deepEqual(labels.slice(0,4),['Today','Customers','Schedule','Messages'],'mobile/operator nav should preserve canonical customer-first Schedule primary order');
-  assert.equal(await page.evaluate(()=>PAGE_DEFS.field[1]),'Site Visit');assert.equal(await page.evaluate(()=>PAGE_DEFS.documents[1]),'Files');assert.equal(await page.evaluate(()=>PAGE_DEFS.work[1]),'Jobs');assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({status:'PASS',checks:['customer context persists quotes→jobs→files','finance page hides customer context','Today→Customers→Schedule→Messages nav order','Work/Field/Documents renamed Jobs/Site Visit/Files']},null,2));
+  assert.equal(await page.evaluate(()=>PAGE_DEFS.field[1]),'Site Visits');assert.equal(await page.evaluate(()=>PAGE_DEFS.documents[1]),'Files');assert.equal(await page.evaluate(()=>PAGE_DEFS.work[1]),'Jobs');assert.deepEqual(errors,[]);
+  console.log(JSON.stringify({status:'PASS',checks:['customer context persists quotes→jobs→files','finance page hides customer context','Today→Customers→Schedule→Messages nav order','Work/Field/Documents renamed Jobs/Site Visits/Files']},null,2));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

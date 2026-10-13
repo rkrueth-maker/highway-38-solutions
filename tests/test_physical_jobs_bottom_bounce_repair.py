@@ -93,7 +93,7 @@ def test_mobile_primary_navigation_has_one_last_loaded_role_aware_authority():
     assert "fieldRoleUsesOfficeShell:true" in MOBILE
     assert "siteVisitContextualNotPrimary:true" in MOBILE
     assert "groupedMore:true" in MOBILE
-    assert "OWNER_PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']]" in MOBILE
+    assert "OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']]" in MOBILE
     assert "FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']]" in MOBILE
     assert "nav.classList.remove('h38-operator-scroll-nav')" in MOBILE
     assert 'aria-current="page"' in MOBILE
@@ -123,7 +123,7 @@ def test_visible_mobile_cleanup_from_physical_video_is_preserved():
 def test_mobile_collapsed_tools_span_full_grid_width_and_cannot_become_vertical_strips():
     assert ".h38-mobile-tool-details,.h38-mobile-entry-details{grid-column:1/-1!important;width:100%!important;min-width:0!important" in MOBILE
     assert ".h38-mobile-tool-details>.card,.h38-mobile-entry-details>.card{width:100%!important;min-width:0!important" in MOBILE
-    assert "wrapToolCard(byName('Add or update customer'),'Add or edit customer',true)" in MOBILE
+    assert "wrapToolCard(byName('Add customer')||byName('Add or update customer'),'Add or edit customer',true)" in MOBILE
     assert "wrapToolCard(byName('Add property'),'Add property',true)" in MOBILE
 
 

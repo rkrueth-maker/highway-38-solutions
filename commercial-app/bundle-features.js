@@ -24588,7 +24588,7 @@ function renderShop(){
     :empty('Select a winning supplier quote first.'))+
   '</section>'+
 
-  '+renderSuppliersCard()+'
+  renderSuppliersCard()+
   '<section class="card span6"><h2>Purchase orders</h2><div class="list">'+
     (pos.length?pos.map(p=>{const id=String(v(p,'id','Purchase Order ID'));return '<div class="row"><div class="row-top"><strong>'+esc(v(p,'Order Number'))+'</strong>'+pill(v(p,'Approval Status')||v(p,'Status'))+'</div><small>'+money(v(p,'Total'))+' · '+esc(v(p,'Description'))+'</small><div class="actions"><button type="button" data-shop-po="'+esc(id)+'">QC / Ship</button></div></div>';}).join(''):empty('No shop purchase orders.'))+
   '</div></section>'+

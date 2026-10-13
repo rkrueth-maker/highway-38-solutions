@@ -33,7 +33,7 @@ need('index.html','Your truck is not','homepage presents current problem-first p
 need('index.html','filing cabinet','homepage states the current practical outcome');
 need('index.html','Business in a box','homepage explains the project-first workflow');
 check('homepage exposes the three accepted discovery steps',['Three problems','One fix','Business in a box'].every(marker=>home.includes(marker)));
-check('homepage separates software and project-service buyer paths',home.includes('Business in a box')&&home.includes('Pick the one that fits'));
+check('homepage separates software and project-service buyer paths',home.includes('Business in a box')&&home.includes('Try the Live Demo')&&home.includes('See the Plans'));
 check('homepage exposes connected deliverables',['Plans and visual concepts','Detailed quotes','Job-ready instructions','Connected Business Office'].every(marker=>home.includes(marker)));
 check('homepage preserves neutral request solutions pricing and contact routes',['start-request.html','pricing.html'].every(marker=>home.includes(marker))&&publicShell.includes("['Contact','contact.html']"));
 check('homepage does not directly sell one authenticated software product',!/href=["']business-systems\.html/i.test(home)&&!/href=["']quote-builder\.html["']/i.test(home));
@@ -56,7 +56,7 @@ check('request has three primary choices',(request.match(/class="h38-choice-card
 check('request has three secondary choices',(request.match(/class="h38-choice-link"/g)||[]).length===3);
 check('first Continue is disabled until selection',/data-request-next disabled aria-disabled="true"/.test(request)&&requestFlow.includes('updateFirstContinue'));
 check('request uses the approved offer selector',request.includes('id="offer"')&&request.includes('pricing-data.js')&&!request.includes('id="bundle"')&&!request.includes('id="product"'));
-check('request exposes final four customer choices',['byo-claude','ai-backend','custom-scope','business-snapshot'].every(id=>requestOptions.includes(id)));
+check('request exposes final three customer choices',['ai-backend','custom-scope','business-snapshot'].every(id=>requestOptions.includes(id))&&!requestOptions.includes('byo-claude'));
 check('request preserves buying-term truth',['price','payment','turnaround','revisions','exclusions'].every(term=>request.toLowerCase().includes(term)));
 check('request no-charge control',/No charge|no-charge/i.test(request));
 check('secure submission remains owner reviewed',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&publicIntake.includes('Owner Approval Required'));
