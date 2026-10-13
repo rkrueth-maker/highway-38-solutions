@@ -4,7 +4,7 @@
 // Every step works manually. AI assist is optional and results are always
 // reviewable before saving. H38 AI (Kit) remains as fallback.
 // Nothing executes automatically.
-const BUILD='20261012-ai-onboarding-4';
+const BUILD='20261013-onboarding-team-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -393,15 +393,55 @@ async function finish(){
       }
       for(const member of onboardingData.team){
         if(!text(member.name)&&!text(member.email))continue;total++;
-        // Team invites use the exact SAVE_USER shape the Settings "Add
-        // business user" form uses ({email, displayName, roleId}); the
-        // server turns it into a business_memberships invite. Email is
-        // required for that invite — a name-only entry cannot be saved
+        // Team members must land exactly the way the People page's manual
+        // flows create them. The old SAVE_USER queue op could not do that:
+        // it inserts directly into business_memberships, whose insert
+        // policy only allows owners — an administrator's sync failed with
+        // a row-level-security error (business_error_log, 2026-10-13)
+        // while queueOperation had already resolved, so the failure was
+        // counted as saved and nothing persisted. Even when that insert
+        // lands, it creates no employees record and no employee profile,
+        // so the person never shows on the People page.
+        // Manual flow 1 — People → Employment record: an employees
+        // collection record carrying that form's exact field defaults.
+        // Manual flow 2 — People → Team Access: the audited
+        // business_office_invite_employee RPC, which creates the invited
+        // Staff membership + business_employee_profiles row server-side
+        // (owner/administrator enforced there). Email is required for
+        // the membership half — a name-only entry cannot be saved
         // through it, so count it honestly instead of queueing a dead op.
-        if(!text(member.email)){failed.push(`Team member "${member.name}" — an email is required to send their invite. Add them later in Settings → Add business user.`);continue;}
-        member._saveId=member._saveId||nextId('USER');
-        try{await window.queueOperation('SAVE_USER','User',member._saveId,{email:text(member.email),displayName:text(member.name),roleId:'staff'});saved++;}
-        catch(e){failed.push(`Team member "${member.name}" — ${e&&e.message||e}`);}
+        if(!text(member.email)){failed.push(`Team member "${member.name}" — an email is required to add them to your team. Add them later on the People page.`);continue;}
+        const name=text(member.name)||text(member.email),email=text(member.email).toLowerCase();
+        member._saveId=member._saveId||nextId('EMPLOYEE');
+        const problems=[];
+        // 1) employees collection record (Employment record defaults:
+        // Employee / Hourly / Biweekly / Single / Checking, 1.5x overtime,
+        // zero rates until the owner fills them in on the People page).
+        const employeeRecord={'Employee ID':member._saveId,'Business ID':bid,'Display Name':name,'Email':email,'User ID':'','Employment Type':'Employee','Pay Type':'Hourly','Hourly Rate':0,'Salary Rate':0,'Overtime Multiplier':1.5,'Pay Frequency':'Biweekly','Filing Status':'Single','Withholding Allowances':0,'Extra Withholding':0,'Account Type':'Checking','Bank Routing':'','Bank Account':'','Crew':'','Start Date':'','Notes':'','Status':'Active','Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+        try{
+          const op=await window.queueOperation('SAVE_PARITY_ENTITY','Employee',member._saveId,{entityKey:'employees',record:employeeRecord},{collection:'employees',record:employeeRecord,idKeys:['Employee ID']},false);
+          if(typeof window.sync==='function')await window.sync(false);
+          // queueOperation resolves when the op is queued, not when it is
+          // saved — count the record only once this op has actually left
+          // the local queue (a synced op is removed; a failed one stays).
+          let stillPending=false;
+          try{stillPending=!!(window.H38DB&&await window.H38DB.get('operations',op.id));}catch(_){}
+          if(stillPending)problems.push('the employee record is still waiting to sync on this device');
+        }catch(e){problems.push(`employee record — ${e&&e.message||e}`);}
+        // 2) Invited Staff membership + employee profile via the Team
+        // Access RPC (job title 'Employee' is that form's default when no
+        // title is entered). The RPC is idempotent by email, so a retry
+        // converges instead of duplicating. No activation email is sent
+        // from the wizard — the member claims the invite by signing in
+        // with this exact email, and no access beyond Staff is granted.
+        try{
+          const client=window.H38_SUPABASE_SHARED_CLIENT&&typeof window.H38_SUPABASE_SHARED_CLIENT.ensure==='function'?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+          if(!client||typeof client.rpc!=='function')throw new Error('Secure Business Office connection is not ready.');
+          const {error}=await client.rpc('business_office_invite_employee',{p_business_id:bid,p_email:email,p_display_name:name,p_job_title:'Employee'});
+          if(error)throw error;
+        }catch(e){problems.push(`team access invite — ${e&&e.message||e}`);}
+        if(problems.length)failed.push(`Team member "${name}" — ${problems.join('; ')}`);
+        else saved++;
       }
     }
     if(failed.length){showSaveResult({saved,total,failed});return;}
