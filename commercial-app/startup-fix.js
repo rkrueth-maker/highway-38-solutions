@@ -21,9 +21,17 @@ function armStartupWatchdog(){
   h38StartupWatchdog=setTimeout(()=>{if(!state.snapshot)renderWelcome('unavailable');},12000);
 }
 async function retireLegacyOfflineShell(){
+  // Scoped to the legacy offline shell ONLY (2026-10-13 fix sweep 2): the
+  // previous version unregistered EVERY registration in the /commercial-app/
+  // scope and deleted every 'h38-business-office-*' cache, which killed the
+  // canonical service-worker.js registration and its shell cache on the
+  // legacy-init path. Unregister only registrations whose worker script is
+  // offline-sw.js, and delete only legacy 'h38-office-shell-*' caches. The
+  // canonical service-worker.js registration and 'h38-business-office-*'
+  // caches must never be touched here.
   try{
-    if('serviceWorker' in navigator){const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.filter(registration=>registration.scope.includes('/commercial-app/')).map(registration=>registration.unregister()));}
-    if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')).map(key=>caches.delete(key)));}
+    if('serviceWorker' in navigator){const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.filter(registration=>[registration.active,registration.waiting,registration.installing].some(worker=>worker&&typeof worker.scriptURL==='string'&&worker.scriptURL.endsWith('/offline-sw.js'))).map(registration=>registration.unregister()));}
+    if('caches' in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('h38-office-shell-')).map(key=>caches.delete(key)));}
   }catch(error){console.warn(error.message||String(error));}
 }
 function secureOfficeUrl(){return `/open-business-office.html?officeBuild=${encodeURIComponent(H38_STARTUP_BUILD)}`;}
