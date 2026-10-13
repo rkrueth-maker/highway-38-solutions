@@ -156,3 +156,10 @@ body.h38-auth-authorized #mainContent .pill.neutral{background:var(--h38-neutral
   .h38-job-command-head{display:grid!important;grid-template-columns:1fr!important}.h38-job-next{width:100%;min-height:48px}.h38-job-secondary-grid{grid-template-columns:1fr 1fr}
 }
 @media(max-width:420px){.h38-job-secondary-grid{grid-template-columns:1fr}.h38-customer-ready-actions{grid-template-columns:1fr}}
+
+/* Card-top band (treatment B, Rick-approved 2026-10-13) — authorized refinement of
+   the base .card-band component in styles.css. Band structure is added by the
+   office-polish.js polishCardBands pass; keep tenant-neutral (no business branding
+   in the band — chip glyphs come from the card/page icon vocabulary only). */
+body.h38-auth-authorized #mainContent .card-band{background:#edf4f9;border-bottom:1px solid var(--h38-ui-border);border-radius:calc(var(--h38-ui-radius) - 1px) calc(var(--h38-ui-radius) - 1px) 0 0}
+body.h38-auth-authorized #mainContent .pill.info{background:#e9f2fc!important;color:var(--h38-accent)!important}
