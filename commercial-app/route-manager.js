@@ -25,7 +25,7 @@
 'use strict';
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261013-route-proof-fix-1';
+var BUILD = '20261013-route-fleet-loop-1';
 var ROUTES_COLLECTION = 'routes';
 var STOPS_COLLECTION = 'routeStops';
 var FEATURE_ID = 'route_management';
@@ -527,6 +527,14 @@ function renderCard(card) {
     }).join('') + '</div>';
   }
 
+  // Render-signature guard: fleetHook() is driven by a document-wide
+  // MutationObserver, and writing innerHTML is itself a mutation. Without
+  // this guard the observer re-fires fleetHook -> renderCard -> innerHTML
+  // forever, starving the main thread until the renderer crashes. When the
+  // computed HTML is unchanged, skip the DOM write entirely so the
+  // observer cycle terminates.
+  if (card.__h38RenderedHtml === html) return;
+  card.__h38RenderedHtml = html;
   card.innerHTML = html;
   bindCard(card);
 }
