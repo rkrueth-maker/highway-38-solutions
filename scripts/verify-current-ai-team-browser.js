@@ -163,12 +163,17 @@ const polishPath=path.join(ROOT,'commercial-app','ai-team-owner-polish.js');
 
     await page.evaluate(()=>{window.state.page='today';document.querySelector('#mainContent').innerHTML='<div class="grid"></div>';window.dispatchEvent(new CustomEvent('h38:office-page-rendered'));});
     await page.waitForSelector('#h38OwnerCommandCenter');
-    await page.waitForSelector('#h38OfflineFieldStatus');
     const ownerCenter=await page.locator('#h38OwnerCommandCenter').innerText();
     assert.match(ownerCenter,/What needs attention now/);
     assert.match(ownerCenter,/Cash due/);
     assert.match(ownerCenter,/Crew utilization today/);
     assert.match(ownerCenter,/Resolve 2 dispatch conflicts/);
+    // Field Continuity card is field-page-only by design (b3781b3d: platform-next
+    // renderOffline removes #h38OfflineFieldStatus on every non-field page), so
+    // the queued-changes assertion runs on the Field page, not on Today.
+    assert.equal(await page.locator('#h38OfflineFieldStatus').count(),0,'Field Continuity card must not render on Today');
+    await page.evaluate(()=>{window.state.page='field';document.querySelector('#mainContent').innerHTML='<div class="grid"></div>';window.dispatchEvent(new CustomEvent('h38:office-page-rendered'));});
+    await page.waitForSelector('#h38OfflineFieldStatus');
     assert.match(await page.locator('#h38OfflineFieldStatus').innerText(),/Queued changes\s+1/i);
 
     await page.evaluate(()=>{window.state.page='schedule';document.querySelector('#mainContent').innerHTML='<div class="grid"></div>';window.dispatchEvent(new CustomEvent('h38:office-page-rendered'));});

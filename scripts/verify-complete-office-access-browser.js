@@ -77,7 +77,12 @@ check(!access.includes('user.permissions='),'Access helper must never mutate use
     await page.evaluate(()=>{window.state.snapshot.user={owner:true,roleName:'Owner',roleId:'owner',permissions:{all:true}};window.H38_DESKTOP_NAVIGATION_AUTHORITY.reconcile();window.renderMoney();});
     await page.waitForTimeout(20);
     const financeButtons=await page.locator('#h38FinanceAccessStrip button').allTextContents();
-    for(const name of ['Invoices','Payments','Expenses','Accounting','Payroll Prep','Tax Prep','Reports'])check(financeButtons.includes(name),`Money access missing ${name}.`);
+    // Canonical Money strip labels after deliberate renames: ceb3be6f (usability
+    // audit M4: 'Payroll Prep'->'Payroll', 'Tax Prep'->'Taxes' in financeStrip)
+    // and 2a58e95a (Today shortcut 'Invoices & Money'->'Invoices'). The payroll
+    // and tax PAGES remain reachable via these buttons; accounting/people
+    // strips still use the 'Payroll Prep'/'Tax Prep' labels.
+    for(const name of ['Invoices','Payments','Expenses','Accounting','Payroll','Taxes','Reports'])check(financeButtons.includes(name),`Money access missing ${name}.`);
 
     await page.evaluate(()=>window.renderPeople());await page.waitForTimeout(20);
     const peopleButtons=await page.locator('#h38PeopleAccessStrip button').allTextContents();
@@ -94,7 +99,7 @@ check(!access.includes('user.permissions='),'Access helper must never mutate use
     const full=await page.locator('#h38AccessRoleContext').innerText();
     const fullButtons=await page.locator('#h38AccessRoleContext button').allTextContents();
     check(/Full Office access/.test(full),'Owner Today must identify full Office access.');
-    for(const name of ['Invoices & Money','Employees','Reports','Office Settings'])check(fullButtons.includes(name),`Owner Today shortcut missing ${name}.`);
+    for(const name of ['Invoices','Employees','Reports','Office Settings'])check(fullButtons.includes(name),`Owner Today shortcut missing ${name}.`);
 
     // Both businesses use these exact runtime bytes; only accepted membership and
     // business configuration differ. No production credentials or records are used.
