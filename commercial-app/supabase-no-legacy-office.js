@@ -178,7 +178,7 @@
     }
     if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
       const script = document.createElement('script');
-      script.src = './job-lifecycle.js?build=20261007-mark-complete-fix-2';
+      script.src = './job-lifecycle.js?build=20261013-complete-scan-fixes-1';
       script.dataset.h38JobLifecycle = '1';
       document.body.appendChild(script);
     }
@@ -222,7 +222,7 @@
     }
     if (!window.H38_OFFICE_POLISH && !document.querySelector('script[data-h38-office-polish]')) {
       const script = document.createElement('script');
-      script.src = './office-polish.js?build=20261013-my-hank-rename-1';
+      script.src = './office-polish.js?build=20261013-complete-scan-fixes-1';
       script.dataset.h38OfficePolish = '1';
       document.body.appendChild(script);
     }
