@@ -80,7 +80,7 @@ def test_customer_setup_card_title_matches_renderer():
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     # Cache name rolled by the 20261012 mobile-polish pass (files changed);
     # the offline file list and live-first behavior below are the invariants.
-    assert "const CACHE_NAME='h38-business-office-20261013-recordings-polish-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261013-rescan-fixes-1'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
     # Logo consolidation: the 2.93MB approved logo is NOT in the shell
@@ -124,8 +124,11 @@ def test_supabase_config_auth_cache_repair_is_removed():
 
 def test_index_build_tags_match_polish_build():
     for name in ('app-02.js', 'app-19.js', 'offline-mode.js',
-                 'customer-360-authority.js', 'mobile-runtime-stability.js'):
+                 'customer-360-authority.js'):
         assert f'./{name}?build={BUILD}' in INDEX, name
     # offline-status-runtime.js rolled with the 2026-10-13 fix sweep (SW
     # consolidation); the other polish-pass files keep the polish build.
     assert './offline-status-runtime.js?build=20261013-fix-sweep-1' in INDEX
+    # mobile-runtime-stability.js rolled with the 2026-10-13 rescan fixes
+    # (F2 brand-flicker guard in polishChrome).
+    assert './mobile-runtime-stability.js?build=20261013-rescan-fixes-1' in INDEX
