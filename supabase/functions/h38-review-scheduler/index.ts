@@ -5,7 +5,9 @@
 // category by enabling the 'Auto-send review requests' owner control) and a
 // 'Deliver After' timestamp. The in-app processor only runs while the Office
 // is open in a browser; this scheduler is the always-on equivalent, invoked
-// on a 15-minute cron by a workspace runner.
+// every 10 minutes by pg_cron job 'h38-review-scheduler-10m' via pg_net
+// (net.http_post with the x-h38-nightly-key header) — fully server-side, no
+// Office session and no agent runner involved.
 //
 // Per due row, in order:
 //   (i)   owner control auto_send_review_requests must be ON for the business
@@ -37,7 +39,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD = "20261012-review-scheduler-1";
+const BUILD = "20261012-review-scheduler-2";
 const KIT_TAG = "[ai:kit]";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
@@ -153,38 +155,25 @@ async function validSecret(req: Request, supabase: any): Promise<boolean> {
 
 const text = (v: unknown, n = 2000): string => String(v ?? "").trim().slice(0, n);
 
-// The toggle lives in Owner Controls (commercial-app/owner-controls.js):
-// localStorage + a SAVE_FEATURE_TOGGLES queueOperation. Server-side mirrors
-// checked in order: business_module_settings, business_records
-// ownerControls / feature toggles records, businesses.module_config.
-// Default is OFF (matches the client default) when no source enables it.
-async function autoSendEnabled(sb: any, businessId: string, moduleConfig: any): Promise<boolean> {
-  try {
-    const ms = await sb.from("business_module_settings")
-      .select("enabled")
-      .eq("business_id", businessId)
-      .eq("module_key", "auto_send_review_requests")
-      .maybeSingle();
-    if (!ms.error && ms.data && ms.data.enabled === true) return true;
-  } catch { /* fall through to record sources */ }
-  try {
-    const recs = await sb.from("business_records")
-      .select("collection,payload")
-      .eq("business_id", businessId)
-      .eq("record_status", "active")
-      .in("collection", ["ownerControls", "featureToggles", "FeatureToggles", "settings"])
-      .limit(20);
-    for (const row of recs.data || []) {
-      const p = row.payload || {};
-      const toggles = (p.toggles && typeof p.toggles === "object") ? p.toggles : p;
-      if (toggles.auto_send_review_requests === true) return true;
-      if (toggles["Auto Send Review Requests"] === true) return true;
-    }
-  } catch { /* fall through */ }
-  const mc = moduleConfig || {};
-  if (mc.auto_send_review_requests === true) return true;
-  if (mc.featureToggles && mc.featureToggles.auto_send_review_requests === true) return true;
-  return false;
+// CANONICAL toggle — one shape, read by both sides: the
+// business_module_settings row with module_key='auto_send_review_requests'
+// (enabled boolean). Owner Controls (commercial-app/owner-controls.js)
+// writes exactly this row when the owner flips "Auto-send review requests"
+// (setAutoSendReviewEnabled) and reads it back server-first
+// (isAutoSendReviewEnabled); this scheduler reads the same row and nothing
+// else. No row, or enabled!==true, means OFF — the absolute default.
+// (The legacy nested business_records ownerControls payload
+// {toggles:{auto_send_review_requests}} is NOT read here: the app never
+// read that shape either, which is why a stale record once disagreed with
+// the Settings switch.)
+async function autoSendEnabled(sb: any, businessId: string): Promise<boolean> {
+  const ms = await sb.from("business_module_settings")
+    .select("enabled")
+    .eq("business_id", businessId)
+    .eq("module_key", "auto_send_review_requests")
+    .maybeSingle();
+  if (ms.error) throw ms.error;
+  return !!ms.data && ms.data.enabled === true;
 }
 
 function localHour(timeZone: string, at: Date): number {
@@ -331,7 +320,7 @@ Deno.serve(async (req: Request) => {
 
         // (i) owner controls
         if (!enabledCache.has(businessId)) {
-          enabledCache.set(businessId, await autoSendEnabled(supabase, businessId, biz.module_config));
+          enabledCache.set(businessId, await autoSendEnabled(supabase, businessId));
         }
         if (!enabledCache.get(businessId)) {
           summary.skipped.owner_controls_off++;

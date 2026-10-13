@@ -262,6 +262,49 @@ function bindLeadResponder(){
   };
 }
 
+// Auto-send review requests (server-side mirror — CANONICAL toggle shape).
+// Stored in business_module_settings (module_key='auto_send_review_requests',
+// enabled boolean) — the same shape as the other server-enforced toggles.
+// The h38-review-scheduler edge function (pg_cron, every 10 minutes) reads
+// THIS row and nothing else before it claims a due review request, so the
+// owner's intent is enforced even when the Office is closed. Missing row or
+// enabled!==true means OFF. The local feature toggle is kept in sync only
+// as a display fallback for a browser that has not loaded the snapshot yet.
+const AUTO_SEND_REVIEW_KEY='auto_send_review_requests';
+function autoSendReviewSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===AUTO_SEND_REVIEW_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isAutoSendReviewEnabled(){
+  const row=autoSendReviewSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('auto_send_review_requests');
+}
+// Owner/admin only. Mirrors the toggle to business_module_settings and keeps
+// the local toggle in sync. Throws when the server write fails.
+async function setAutoSendReviewEnabled(enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can turn Auto-send review requests on or off.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const cfg={updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:AUTO_SEND_REVIEW_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===AUTO_SEND_REVIEW_KEY);
+    const snap={moduleKey:AUTO_SEND_REVIEW_KEY,module_key:AUTO_SEND_REVIEW_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['auto_send_review_requests']=!!enabled;
+  saveToggles(toggles);
+}
+
 // Recommended Vendors (server-side mirror).
 // The vendor directory edge function reads this row before it returns the
 // curated partner list or lights up the tenant-website block, so the owner's
@@ -686,7 +729,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -807,6 +850,27 @@ function bindOwnerControls(){
         }
         return;
       }
+      // Auto-send review requests is server-backed: the h38-review-scheduler
+      // edge function reads ONLY the mirrored business_module_settings row
+      // before claiming due review texts. Revert locally if the write fails.
+      if(id==='auto_send_review_requests'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON auto-send review requests? When a job is marked complete, the Office will automatically text the customer your review-request message — no per-job prompt. It uses your template, send delay and review links from Settings, and still respects quiet hours (9pm–8am), consent and STOP.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setAutoSendReviewEnabled(want);
+          if(typeof toast==='function') toast('Auto-send review requests '+(want?'turned ON.':'turned OFF.'));
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       // AI Lead Responder is server-backed too (the booking function reads
       // the mirrored row). Revert locally if the write fails.
       if(id==='ai_lead_responder'){
@@ -884,6 +948,8 @@ window.H38OwnerControls={
   setInventoryEnabled:setInventoryEnabled,
   setLeadResponderEnabled:setLeadResponderEnabled,
   isLeadResponderEnabled:isLeadResponderEnabled,
+  isAutoSendReviewEnabled:isAutoSendReviewEnabled,
+  setAutoSendReviewEnabled:setAutoSendReviewEnabled,
   isModuleVisible:isModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,
