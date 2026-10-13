@@ -125,6 +125,11 @@ function platformByKey(key){
 // ---------- Feature toggles ----------
 function commsFeatureEnabled(id){
   try{
+    // Canonical auto-send toggle: the business_module_settings row the
+    // h38-review-scheduler edge function reads (server snapshot wins).
+    if(id==='auto_send_review_requests'&&window.H38OwnerControls&&typeof window.H38OwnerControls.isAutoSendReviewEnabled==='function'){
+      return window.H38OwnerControls.isAutoSendReviewEnabled();
+    }
     if(window.H38OwnerControls&&typeof window.H38OwnerControls.isEnabled==='function'){
       return window.H38OwnerControls.isEnabled(id);
     }
