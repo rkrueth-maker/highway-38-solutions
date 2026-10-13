@@ -7572,7 +7572,7 @@ window.H38_SMART_UPLOAD_AI=Object.freeze({
 
   const DEFAULTS={
     businessName:'Highway 38 Solutions',
-    logoUrl:'../assets/highway38-logo.png?v=20260720-exact-0cbc4514',
+    logoUrl:'../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6',
     primaryColor:'#0b2438',
     secondaryColor:'#eef3f7',
     accentColor:'#d86d2b',
