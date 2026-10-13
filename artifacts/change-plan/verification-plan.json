@@ -1,25 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T17:08:08.883Z",
+  "generatedAt": "2026-10-13T17:21:49.911Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "artifacts/public-image-placements/verification.json",
-    "artifacts/unified-shell/assembly.json",
-    "artifacts/unified-source-assembly/verification.json",
-    "assets/highway38-logo-256.webp",
+    "commercial-app/app-01.js",
     "commercial-app/bundle-features.js",
+    "commercial-app/bundle-pages.js",
     "commercial-app/index.html",
-    "commercial-app/recover.html",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-client-branding.js",
-    "scripts/config/approved-public-assets.json",
+    "commercial-app/styles.css",
+    "commercial-app/supabase-startup.js",
     "scripts/verify-native-ai-communications.js",
+    "scripts/verify-supabase-business-office-auth.js",
     "tests/test_offline_mode_polish_20261012.py",
+    "tests/test_physical_video_wide_stability_20260827.py",
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 14,
+  "fileCount": 13,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
@@ -32,7 +31,7 @@
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
-    "approvedAssets": true,
+    "approvedAssets": false,
     "publicRendering": true,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
@@ -42,16 +41,13 @@
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
     "node scripts/verify-public-ecosystem-tools.js",
-    "python3 scripts/verify-public-images.py",
-    "node scripts/verify-public-image-placements.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
     "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "rendered pixel and direct-image verification"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml",
