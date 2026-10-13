@@ -33,6 +33,7 @@
 .h38-c360-setup-head h2{margin:3px 0 0}
 .h38-c360-setup-dialog .h38-c360-setup-grid{margin:0}
 .h38-c360-setup-dialog .h38-c360-setup-grid>.card{box-shadow:none}
+.h38-c360-setup-dialog .h38-c360-setup-grid .card h2:first-of-type{display:none}
 @media(max-width:900px){
  .h38-c360-master-detail{grid-template-columns:1fr}
  .h38-c360-master-detail>.h38-c360-directory-rail,.h38-c360-master-detail>.h38-c360-detail{grid-column:1/-1!important}
