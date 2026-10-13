@@ -87,9 +87,22 @@ async function boot(page,base,key){
   return errors;
 }
 
+async function ensureNavVisible(page,key){
+  // Desktop sleekness (2026-10-13): nav groups beyond Daily work start
+  // collapsed. Expand the target's group first (one extra click, outside
+  // every timed section) so route timing measures the route, not the toggle.
+  const button=page.locator(`#mainNav > button[data-page="${key}"]`);
+  if(!(await button.count())||await button.isVisible())return;
+  const group=await button.getAttribute('data-h38-nav-group-item');
+  if(!group)return;
+  await page.locator(`#mainNav > button.h38-nav-group-toggle[data-h38-nav-group="${group}"]`).click();
+  await button.waitFor({state:'visible',timeout:1500});
+}
+
 async function clickRoute(page,key,headingText){
   const button=page.locator(`#mainNav > button[data-page="${key}"]`);
   assert.equal(await button.count(),1,`${key} navigation button missing`);
+  await ensureNavVisible(page,key);
   const started=Date.now();
   await button.click({timeout:1500});
   await page.waitForFunction(k=>window.state?.page===k,key,{timeout:1000});
@@ -122,6 +135,7 @@ async function verifyTenant(browser,base,key){
   for(let i=0;i<25;i++){
     const people=page.locator('#mainNav > button[data-page="people"]');
     if(await people.count()){
+      await ensureNavVisible(page,'people');
       await people.click({timeout:1500});
       await page.waitForFunction(()=>window.state?.page==='people',{timeout:1000});
     }else{
@@ -130,6 +144,7 @@ async function verifyTenant(browser,base,key){
     }
     await page.waitForTimeout(100);
     await page.evaluate(()=>{window.__h38SettingsRpcCalls=[];});
+    await ensureNavVisible(page,'settings');
     const started=Date.now();
     await page.locator('#mainNav > button[data-page="settings"]').click({timeout:1500});
     await page.waitForFunction(()=>window.state?.page==='settings'&&/Settings/i.test(document.querySelector('#mainContent h1')?.textContent||''),{timeout:1000});

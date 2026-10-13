@@ -19,7 +19,7 @@ const index=read('commercial-app/index.html');
 try{new vm.Script(assistant,{filename:'personal-assistant.js'});}catch(error){failures.push(`Personal Assistant syntax: ${error.message}`);}
 try{new vm.Script(aiRouter,{filename:'supabase-ai-fallback.js'});}catch(error){failures.push(`Assistant router syntax: ${error.message}`);}
 try{new vm.Script(sw,{filename:'service-worker.js'});}catch(error){failures.push(`Service worker syntax: ${error.message}`);}
-check(assistant.includes("const BUILD='20260807-2245'"),'Personal Assistant build marker is missing.');
+check(assistant.includes("const BUILD='20261013-desktop-sleekness-1'"),'Personal Assistant build marker is missing.');
 check(assistant.includes("const TABLE='personal_assistant_items'"),'Personal Assistant must use its private table.');
 check(assistant.includes('privateUserRecords:true'),'Personal Assistant private-user marker is missing.');
 check(assistant.includes("window.H38DB.put('records'")&&assistant.includes("kind:CACHE_KIND"),'Personal Assistant user-scoped offline cache is missing.');
@@ -58,7 +58,7 @@ check(!/\btools\s*:/.test(edge),'Assistant AI must not expose model tools or fun
 check(/\[functions\.h38-assistant-ai\][\s\S]*?verify_jwt\s*=\s*true/.test(config),'Assistant AI Edge Function must require JWT verification.');
 check(!index.includes('BusinessOffice_AI_Assistant_Client.html')&&!index.includes('BusinessOffice_AI_Assistant.gs'),'Legacy Apps Script assistant must not be loaded by the Supabase commercial runtime.');
 
-check(loader.includes("personal-assistant.css?build=20260807-2245")&&loader.includes("personal-assistant.js?build=20260807-2245")&&loader.includes('loadPersonalAssistant();'),'Office loader does not load Personal Assistant.');
+check(loader.includes("personal-assistant.css?build=20261013-desktop-sleekness-1")&&loader.includes("personal-assistant.js?build=20261013-desktop-sleekness-1")&&loader.includes('loadPersonalAssistant();'),'Office loader does not load Personal Assistant.');
 check(/CACHE_NAME='h38-business-office-\d{8}-\d{4}'/.test(sw)&&sw.includes("'personal-assistant.js'")&&sw.includes("'personal-assistant.css'")&&sw.includes("notificationclick"),'Personal Assistant offline/reminder service-worker integration is incomplete.');
 check(sw.includes("'supabase-ai-fallback.js'")&&sw.includes("LIVE_FIRST.has(file)"),'Assistant router must remain in the installed shell and refresh live when connected.');
 check(css.includes('.pa-grid')&&css.includes('@media(max-width:620px)'),'Personal Assistant mobile layout is incomplete.');
