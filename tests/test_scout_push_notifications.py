@@ -92,6 +92,10 @@ def test_migration_pre_enables_rick_and_amanda_and_arms_catch_up():
     # Cron checker every 30 minutes via the internal-secrets pattern.
     assert "cron.schedule(" in MIGRATION
     assert "'h38-scout-push-notify'" in MIGRATION
+    # h38_internal_job_secrets is provisioned out-of-band in production (no
+    # repo migration creates it): the secret insert + cron schedule must be
+    # guarded so fresh CI replays do not fail on the missing relation.
+    assert "to_regclass('public.h38_internal_job_secrets') is not null" in MIGRATION
     assert "'*/30 * * * *'" in MIGRATION
     assert "'scout-push'" in MIGRATION
 

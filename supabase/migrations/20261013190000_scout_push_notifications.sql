@@ -125,14 +125,24 @@ on conflict (household_id, user_id, scope) do nothing;
 -- this row and presents it as the x-h38-nightly-key header; the edge function
 -- compares the header against the same row. Value generated at apply time,
 -- never committed anywhere.
-insert into public.h38_internal_job_secrets (name, secret_value)
-select 'scout-push', md5(random()::text || clock_timestamp()::text || random()::text)
-where not exists (select 1 from public.h38_internal_job_secrets where name = 'scout-push');
+-- NOTE: public.h38_internal_job_secrets is provisioned out-of-band in
+-- production (no repo migration creates it), so the insert and the cron
+-- schedule below are guarded by its existence — fresh replays (CI) skip the
+-- dispatch plumbing instead of failing, and in production both apply.
+do $$
+begin
+  if to_regclass('public.h38_internal_job_secrets') is not null then
+    insert into public.h38_internal_job_secrets (name, secret_value)
+    select 'scout-push', md5(random()::text || clock_timestamp()::text || random()::text)
+    where not exists (select 1 from public.h38_internal_job_secrets where name = 'scout-push');
+  end if;
+end $$;
 
 -- Scheduled checker: every 30 minutes. Idempotent re-schedule.
 do $$
 begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+  if exists (select 1 from pg_extension where extname = 'pg_cron')
+     and to_regclass('public.h38_internal_job_secrets') is not null then
     perform cron.unschedule('h38-scout-push-notify')
       from (select 1) s where exists (select 1 from cron.job where jobname = 'h38-scout-push-notify');
     perform cron.schedule(
