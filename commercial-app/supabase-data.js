@@ -144,14 +144,41 @@
     try { return await run; } finally { if (hydrateInflight.get(key) === run) hydrateInflight.delete(key); }
   }
 
+  // PostgREST caps a single response at 1,000 rows, so one bounded collection
+  // is paged in 1,000-row slices (newest first) until it is exhausted or the
+  // MAX_RECORDS ceiling is reached. Used for collections the broad query can
+  // silently crowd out (see hydrateSnapshotRaw).
+  async function fetchCollectionRows(db, businessId, collection) {
+    const rows = [];
+    let from = 0;
+    while (from < MAX_RECORDS) {
+      const page = await optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id',businessId).eq('collection',collection).eq('record_status','active').order('updated_at',{ascending:false}).range(from, Math.min(from + 999, MAX_RECORDS - 1)), []);
+      rows.push(...page);
+      if (page.length < 1000) break;
+      from += 1000;
+    }
+    return rows;
+  }
+
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id',businessId).eq('collection','jobs').eq('record_status','active').order('updated_at',{ascending:false}).limit(100), []),
+      // Same cap, money edition (found 2026-10-12, cluster-B live verification):
+      // the broad query returns only the newest 1,000 active records, and
+      // high-churn collections (usageLogs, app_sessions) permanently crowd out
+      // older payments/expenses/invoices — demo held 14 payments ($39,338.75)
+      // and 14 expenses ($25,806) that never reached the snapshot, so Reports
+      // rendered $0. Fetch the money collections explicitly, paged, so every
+      // valid record loads regardless of vintage. Invoices ride along because
+      // payments join to them (Revenue by Customer, invoice balances).
+      fetchCollectionRows(db, businessId, 'payments'),
+      fetchCollectionRows(db, businessId, 'expenses'),
+      fetchCollectionRows(db, businessId, 'invoices'),
       optionalQuery(db.from('business_memberships').select('id,auth_user_id,invited_email,role,status,accepted_at').eq('business_id',businessId).in('status',['active','invited']).order('created_at',{ascending:true}), []),
       optionalQuery(db.from('price_book_items').select('id,item_code,category,description,unit,unit_cost,sell_price,reorder_point,sellable,rentable,rental_rate,advertise,source_type,source_note,approval_status,active,updated_at').eq('business_id',businessId).eq('active',true).order('category').order('description').range(0,999), []),
       optionalQuery(db.from('business_approvals').select('*').eq('business_id',businessId).order('requested_at',{ascending:false}).limit(250), []),
@@ -160,8 +187,18 @@
       optionalQuery(db.from('business_module_settings').select('module_key,enabled,config').eq('business_id',businessId).order('module_key'), [])
     ]);
 
-    [...recentRows,...jobRows].forEach(row => {
+    // A row can arrive twice (broad query + an explicit collection fetch).
+    // business_records identity is (collection, record_key): merge each once
+    // so overlapping fetches never double-count a payment or expense.
+    const mergedRecordKeys = new Set();
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows].forEach(row => {
       const collection = row.collection;
+      const recordKey = text(row.record_key);
+      if (recordKey) {
+        const dedupeKey = `${collection}:${recordKey}`;
+        if (mergedRecordKeys.has(dedupeKey)) return;
+        mergedRecordKeys.add(dedupeKey);
+      }
       const incoming = clean(row.payload);
       if (!snapshot[collection]) snapshot[collection] = [];
       const keys = idKeysFor(collection);
