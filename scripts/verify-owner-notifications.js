@@ -33,7 +33,8 @@ check('push is a seam, not a sender (Push Status only)', fn.includes('"Push Stat
 /* ---- schedule + config + allowlist ---- */
 const mig = read('supabase/migrations/20261013121000_owner_notify_cron.sql');
 check('pg_cron job h38-owner-notify-5m every 5 minutes via pg_net', mig.includes("cron.schedule(") && mig.includes('h38-owner-notify-5m') && mig.includes('*/5 * * * *') && mig.includes('net.http_post'));
-check('cron job reads the key from the secrets table (no secret literal)', mig.includes("name='h38-owner-notify'") && !/secret_value\s*,\s*'[0-9a-f]{16,}'/.test(mig));
+check('cron job reads the key from the secrets table (no secret literal)', mig.includes("name = 'h38-owner-notify'") && !/secret_value\s*,\s*'[0-9a-f]{16,}'/.test(mig));
+check('cron migration is pg_cron-extension guarded (clean-replay safe)', mig.includes("extname = 'pg_cron'") && mig.includes('do $$'));
 const cfg = read('supabase/config.toml');
 check('config.toml registers h38-owner-notify with verify_jwt=false', /\[functions\.h38-owner-notify\]\s*\nverify_jwt = false/.test(cfg));
 const policy = JSON.parse(read('supabase/acceptance/production-policy.json'));
