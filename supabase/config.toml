@@ -53,6 +53,22 @@ verify_jwt = false
 [functions.h38-task-complete]
 verify_jwt = false
 
+# Public proof-of-service link. Anonymous access is intentional: customers
+# have no H38 login. The per-route Proof Token grants exactly one capability:
+# viewing a SANITIZED proof page for that one route (city only, never street
+# addresses; photos only when already public/signed URLs). Expired/revoked
+# tokens refuse. Rate-limited per IP inside the function.
+[functions.h38-proof-link]
+verify_jwt = false
+
+# Review-request scheduler. Drains owner-approved, queued review-request SMS
+# threads whose Deliver After time has passed. Self-authenticating: callers
+# must present the x-h38-nightly-key header matching the 'h38-review-scheduler'
+# row in h38_internal_job_secrets (401 without it), so verify_jwt stays false
+# for the cron runner — same pattern as kit-proactive-engine.
+[functions.h38-review-scheduler]
+verify_jwt = false
+
 # Proactive Kit engine. Runs on schedule (cron), monitors each business for
 # overdue quotes, late invoices, schedule gaps. Creates DRAFT follow-ups and
 # approval tasks — never sends customer messages, never moves money.

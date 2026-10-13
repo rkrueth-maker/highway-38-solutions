@@ -136,6 +136,67 @@ async function logProof(
 
 // ---- AI usage accounting (per-tenant $20/month cap) ----
 
+const AI_MONTHLY_ACTION_LIMIT = 5000;
+const AI_ACTION_ALERT_COUNT = 3750;
+
+// One 75%-of-action-limit flag per business per month, best-effort: a
+// business_records ai_config/ai_usage_alert_75 row plus a proof-log entry.
+// Never throws — an alert failure must not break the AI call.
+async function aiUsageAlert75(
+  supabase: any,
+  businessId: string,
+  count: number,
+): Promise<void> {
+  try {
+    const now = new Date();
+    const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const ex = await supabase
+      .from("business_records")
+      .select("id,payload")
+      .eq("business_id", businessId)
+      .eq("collection", "ai_config")
+      .eq("record_key", "ai_usage_alert_75")
+      .maybeSingle();
+    if (ex.error) return;
+    const prev = ex.data?.payload as any;
+    if (prev && prev.month === month) return;
+    const payload = { month, level: 75, count, sentAt: now.toISOString() };
+    if (ex.data) {
+      await supabase.from("business_records")
+        .update({ payload, updated_at: now.toISOString() })
+        .eq("id", ex.data.id);
+    } else {
+      const own = await supabase
+        .from("business_memberships")
+        .select("auth_user_id")
+        .eq("business_id", businessId)
+        .eq("role", "owner")
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+      const ownerId = own.data?.auth_user_id;
+      if (!ownerId) return;
+      const ins = await supabase.from("business_records").insert({
+        business_id: businessId,
+        collection: "ai_config",
+        record_key: "ai_usage_alert_75",
+        record_status: "active",
+        payload,
+        created_by: ownerId,
+        updated_by: ownerId,
+      });
+      if (ins.error) return;
+    }
+    await logProof(supabase, businessId, "AI_USAGE_ALERT_75", "AI Usage", "", {
+      month,
+      level: 75,
+      count,
+    });
+  } catch {
+    // best-effort by design
+  }
+}
+
 async function aiCapCheck(supabase: any, businessId: string): Promise<void> {
   const m = new Date();
   m.setUTCDate(1);
@@ -150,10 +211,30 @@ async function aiCapCheck(supabase: any, businessId: string): Promise<void> {
     (t: number, x: any) => t + Number(x.cost_estimate || 0),
     0,
   );
-  if (spend >= AI_MONTHLY_CAP_USD) {
+  // 1 action = 1 ai_usage_log row in the current UTC month.
+  const actions = (data || []).length;
+  const ov = await supabase
+    .from("business_records")
+    .select("payload")
+    .eq("business_id", businessId)
+    .eq("collection", "ai_config")
+    .eq("record_key", "ai_cap_override")
+    .eq("record_status", "active")
+    .maybeSingle();
+  const override = !ov.error && ov.data &&
+    (ov.data.payload as any)?.enabled === true;
+  if (actions >= AI_MONTHLY_ACTION_LIMIT && !override) {
+    throw new Error(
+      "AI action limit reached for this month (5,000). Usage resets on the 1st.",
+    );
+  }
+  if (spend >= AI_MONTHLY_CAP_USD && !override) {
     throw new Error(
       `AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}).`,
     );
+  }
+  if (actions >= AI_ACTION_ALERT_COUNT) {
+    await aiUsageAlert75(supabase, businessId, actions);
   }
 }
 
