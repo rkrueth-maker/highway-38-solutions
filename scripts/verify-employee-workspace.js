@@ -75,7 +75,7 @@ for(const needle of [
   'captureEvidence: true, useInventory: true, useAssets: true'
 ])includes(auth,needle,`Staff permission model missing ${needle}`);
 for(const needle of [
-  "const OFFICE_PAGES=['today','customers','meetings','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings']",
+  "const OFFICE_PAGES=['today','customers','meetings','work','tasks','quotes','schedule','messages','field','inventory','fleet','money','accounting','payroll','tax','reports','documents','social','ai','settings']",
   'function allowedPages()','requirements={customers:'
 ])includes(office,needle,`Canonical Business Office navigation missing ${needle}`);
 
@@ -128,7 +128,7 @@ for(const needle of [
   "fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']",'data-h38-field-status'
 ])includes(mobileStability,needle,`Final mobile navigation missing ${needle}`);
 
-expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated, navigation-generation, or physical-startup format.');
+expect(/const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+|[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+)'/.test(worker),'Service-worker cache must keep an accepted dated, navigation-generation, named-suffix, or physical-startup format.');
 
 console.log(JSON.stringify({
   status:'PASS',staffShell:'canonical Business Office',staffNavigation:'permission-filtered final authority',

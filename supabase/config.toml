@@ -7,6 +7,14 @@ verify_jwt = false
 [functions.h38-assistant-ai]
 verify_jwt = true
 
+# Quote AI validates the caller's Supabase session itself via the Auth REST
+# API (direct-supabase-auth-rest) and must answer unauthenticated health and
+# preflight checks with its own PASS/FAIL contract. The gateway must not
+# reject requests before the function runs; every POST action still fails
+# closed with the function's own 401 when the session is missing or invalid.
+[functions.h38-quote-ai]
+verify_jwt = false
+
 [functions.h38-document-factory]
 verify_jwt = true
 

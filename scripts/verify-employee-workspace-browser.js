@@ -242,7 +242,7 @@ async function installHarness(page,{role='',authForm=false,deferredRole=false}={
     assert(await ownerPhone.evaluate(()=>window.state?.shell)==='office','Owner/admin phone must stay on the canonical Office shell.');
     assert(await ownerPhone.evaluate(()=>localStorage.getItem('h38:mobile-workspace-view:v1'))===null,'Owner stale Field View preference must be removed.');
     assert(await ownerPhone.locator('#h38MobileWorkspaceToggle').count()===0,'Owner phone must not expose a retired Field View toggle.');
-    for(const key of ['today','customers','schedule','messages','more'])assert(await ownerPhone.locator(`#mainNav [data-h38-primary="${key}"]`).count()===1,`Owner phone navigation missing ${key}.`);
+    for(const key of ['today','quotes','schedule','customers','more'])assert(await ownerPhone.locator(`#mainNav [data-h38-primary="${key}"]`).count()===1,`Owner phone navigation missing ${key}.`);
     assert(await ownerPhone.locator('#mainNav [data-h38-primary="work"]').count()===0,'Owner phone must preserve the accepted customer-first primary navigation.');
     assert(await ownerPhone.locator('#h38FieldMyDay').count()===0,'Owner Today must not be replaced by Field Staff My Day.');
     await ownerPhoneContext.close();

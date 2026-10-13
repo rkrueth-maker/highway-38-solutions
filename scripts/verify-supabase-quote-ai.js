@@ -14,8 +14,8 @@ const catalogSeed=read('supabase/migrations/20260812160306_highway38_contractor_
 const captureSelector=live.includes("closest('#h38AiQuoteDraftButton')")||live.includes("closest?.('#h38AiQuoteDraftButton')");
 const checks=[
  ['OpenAI key remains server-side',edge.includes('Deno.env.get("OPENAI_API_KEY")')&&!provider.includes('OPENAI_API_KEY')],
- ['Responses API receives image inputs',edge.includes('https://api.openai.com/v1/responses')&&edge.includes('input_image')],
- ['Structured quote schema is required',edge.includes('type: "json_schema"')&&edge.includes('h38_quote_draft')],
+ ['Muse Spark chat completions receives image inputs',edge.includes('https://api.meta.ai/v1/chat/completions')&&edge.includes('type: "image_url"')&&edge.includes('visionPhotos')],
+ ['Structured quote schema is required',edge.includes('tools: [{ type: "function", function: { name: "h38_quote_draft"')&&edge.includes('parameters: quoteSchema()')],
  ['Price Book is searched before local research',edge.includes('priceBookEntries')&&edge.includes('Search the supplied Price Book first')&&edge.includes('local_research')],
  ['Contractor assemblies have a hard ten-percent waste floor',pricingSchema.includes('material_waste_pct numeric not null default 0.10')&&pricingSchema.includes('material_waste_pct >= 0.10')],
  ['H38 seed preserves minimum ten-percent waste',catalogSeed.includes("'MATERIAL_WASTE_FLOOR'")&&catalogSeed.includes("'ASM-DRYWALL-WALL-L4'")&&catalogSeed.includes("'ASM-RETAINING-FABRIC'")&&catalogSeed.includes('greatest(excluded.material_waste_pct,0.10)')],

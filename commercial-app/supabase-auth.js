@@ -376,10 +376,29 @@
       // subject (user id) is a no-op; a different user, a sign-out, or a
       // not-ready bridge still runs the full path below.
       if (this._connectPromise) return this._connectPromise;
-      if (this.ready && this._connectedUserId && runtime.user && runtime.user.id === this._connectedUserId) return;
+      if (this.ready && this._connectedUserId && runtime.user && runtime.user.id === this._connectedUserId) {
+        // The no-op is only valid when the CURRENT Supabase session still
+        // belongs to the connected user and the tenant selection inputs
+        // (the URL business hint) are unchanged. runtime.user is stale by
+        // definition until _connectOnce reads the session, so verify the
+        // live session first: a different signed-in user (or a signed-out
+        // session) must fall through to the full path, which re-resolves
+        // memberships and denies suspended/revoked users instead of
+        // reusing the old ready state (regression caught by
+        // verify-supabase-business-office-auth-runtime).
+        try {
+          const { data } = await initClient().auth.getSession();
+          const fingerprint = `${this._connectedUserId}|${String(location.search || '')}`;
+          if (data?.session?.user?.id === this._connectedUserId && this._connectFingerprint === fingerprint) return;
+        } catch (_) { /* fall through to the full connect path */ }
+      }
       const run = this._connectOnce();
       this._connectPromise = run;
-      try { return await run; } finally { if (this._connectPromise === run) this._connectPromise = null; }
+      try {
+        const result = await run;
+        if (this.ready && this._connectedUserId) this._connectFingerprint = `${this._connectedUserId}|${String(location.search || '')}`;
+        return result;
+      } finally { if (this._connectPromise === run) this._connectPromise = null; }
     }
 
     async _connectOnce() {
