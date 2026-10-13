@@ -1,10 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T09:13:03.377Z",
+  "generatedAt": "2026-10-13T09:22:33.292Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "account-deletion.html",
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/public-image-placements/verification.json",
+    "artifacts/public-website-architecture/verification.json",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
     "commercial-app/app-01.js",
     "commercial-app/assistant-command-bus.js",
     "commercial-app/bundle-features.js",
@@ -17,8 +24,10 @@
     "commercial-app/runtime-rowid-fix.js",
     "commercial-app/service-worker.js",
     "commercial-app/supabase-no-legacy-office.js",
+    "launch-control/evidence/unified-app-architecture-verification.json",
     "privacy.html",
     "scripts/verify-cross-platform-assistant-polish.js",
+    "scripts/verify-highway38-brand-attribution.js",
     "scripts/verify-native-walkthrough-launch-hammer.js",
     "scripts/verify-owner-mobile-smoke.js",
     "scripts/verify-personal-assistant-command-bus.js",
@@ -26,7 +35,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 21,
+  "fileCount": 30,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
