@@ -27,9 +27,9 @@
  */
 (function(){
 'use strict';
-var BUILD='20261013-recordings-polish-1';
+var BUILD='20261013-rescan-fixes-1';
 var BUCKET='business-office-files';
-var ONBOARDING_BUILD='20261013-recordings-polish-1';
+var ONBOARDING_BUILD='20261013-rescan-fixes-1';
 
 var text=function(v){ return String(v==null?'':v).trim(); };
 var esc=function(v){ return text(v).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };

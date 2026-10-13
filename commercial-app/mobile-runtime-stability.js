@@ -142,6 +142,12 @@ function polishChrome(){
       brand.title=brand.dataset.h38FullBrand||text(brand.textContent);
       return;
     }
+    // F2 (recordings 2026-10-13): while the tenant is not known yet, keep the
+    // static header label instead of forcing the intermediate 'H38 Office'
+    // label — the brand cycled Highway 38 Solutions -> H38 Office -> business
+    // name on every cold load. The client-branding script sets the business
+    // name once it loads; only the highway38 tenant itself uses 'H38 Office'.
+    if(tenantKey!=='highway38')return;
     if(!brand.dataset.h38FullBrand)brand.dataset.h38FullBrand=text(brand.textContent)||'Highway 38 Solutions';
     brand.textContent='H38 Office';
     brand.title=brand.dataset.h38FullBrand;
