@@ -22822,9 +22822,12 @@ window.H38_AI_HANDOFF=Object.freeze({build:BUILD,submitTask,waitForResult,runTas
 /* --- ./northern-bouncie-fleet.js --- */
 (function(){
 'use strict';
-const BUILD='20261007-northern-bouncie-fleet-3';
+const BUILD='20261013-bouncie-reminder-1';
 const ENDPOINT='nl-bouncie-fleet';
-const runtime={tab:'map',vehicles:[],trips:[],events:[],connection:null,loading:false,error:'',map:null,markers:[],timer:null,lastLoad:0};
+// Push deep links (the hourly Bouncie reminder) land here with
+// ?fleetTab=settings so the owner arrives on the connect screen directly.
+function initialTab(){try{const t=String(new URLSearchParams(location.search).get('fleetTab')||'').trim().toLowerCase();if(['map','vehicles','trips','alerts','settings'].includes(t))return t;}catch(_){}return 'map';}
+const runtime={tab:initialTab(),vehicles:[],trips:[],events:[],connection:null,loading:false,error:'',map:null,markers:[],timer:null,lastLoad:0};
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtTime=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?text(v):d.toLocaleString();};
@@ -23919,7 +23922,7 @@ if(document.readyState==='loading'){
 (function () {
   'use strict';
 
-  var BUILD = '20261013-owner-notify-1';
+  var BUILD = '20261013-owner-notify-2';
   var MAX_PANEL = 40;
 
   function text(v) { return String(v == null ? '' : v).trim(); }
@@ -24113,7 +24116,7 @@ if(document.readyState==='loading'){
       + '<div class="owner-notify-list">'
       + (rows.length ? rows.map(rowHtml).join('') : '<div class="owner-notify-empty">Nothing needs you right now. New customer activity and items to review will land here.</div>')
       + '</div>'
-      + '<div class="owner-notify-foot">Alert switches live in Settings → Owner Controls → Notifications.</div>';
+      + panelFootHtml();
     var close = document.getElementById('ownerNotifyClose');
     if (close) close.onclick = closePanel;
     var markAll = document.getElementById('ownerNotifyMarkAll');
@@ -24124,6 +24127,8 @@ if(document.readyState==='loading'){
     };
     var check = document.getElementById('ownerNotifyCheck');
     if (check) check.onclick = function () { checkNow(check); };
+    var device = document.getElementById('ownerNotifyDevice');
+    if (device) device.onclick = function () { onDeviceButton(device); };
     panel.querySelectorAll('[data-notify-key]').forEach(function (btn) {
       btn.addEventListener('click', function () { onRowClick(btn.getAttribute('data-notify-key')); });
     });
@@ -24186,6 +24191,105 @@ if(document.readyState==='loading'){
     }
   }
 
+  /* ---------- device push (shared dispatcher: h38-scout-push) ---------- */
+  /* The Office does not run its own push stack. Device subscriptions are
+   * registered with the shared h38-scout-push dispatcher (office_subscribe)
+   * under the signed-in owner's business membership; the dispatcher's
+   * office_dispatch action (called server-side by the notification
+   * producers) delivers. The browser/OS permission can only be granted by
+   * the person on their own device — this flow is that one tap. */
+
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+  function pushToggleOn() {
+    try {
+      return !!(window.H38OwnerControls && typeof window.H38OwnerControls.isOwnerNotifyEnabled === 'function'
+        && window.H38OwnerControls.isOwnerNotifyEnabled('push') === true);
+    } catch (e) { return false; }
+  }
+  function deviceKey() { return 'h38-office-push-' + businessId(); }
+  function deviceOn() { try { return localStorage.getItem(deviceKey()) === '1'; } catch (e) { return false; } }
+  function urlB64ToUint8Array(b64) {
+    var pad = '='.repeat((4 - (b64.length % 4)) % 4);
+    var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    var out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  async function pushHeaders() {
+    var api = sharedClient();
+    var cfg = window.H38_BUSINESS_OFFICE_SUPABASE || {};
+    if (!api || !cfg.url || !cfg.publishableKey) return null;
+    var sess = await api.auth.getSession();
+    var token = sess && sess.data && sess.data.session ? sess.data.session.access_token : '';
+    if (!token) return null;
+    return { cfg: cfg, headers: { 'Authorization': 'Bearer ' + token, 'apikey': cfg.publishableKey, 'Content-Type': 'application/json' } };
+  }
+  async function subscribeDevice() {
+    if (!pushSupported() || !businessId()) return false;
+    try {
+      var auth = await pushHeaders(); if (!auth) return false;
+      var cfgRes = await fetch(auth.cfg.url + '/functions/v1/h38-scout-push', {
+        method: 'POST', headers: auth.headers, body: JSON.stringify({ action: 'config' })
+      });
+      var cfgData = await cfgRes.json().catch(function () { return {}; });
+      if (!cfgData.vapidPublicKey) return false;
+      var reg = await navigator.serviceWorker.ready;
+      var sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(cfgData.vapidPublicKey)
+        });
+      }
+      var res = await fetch(auth.cfg.url + '/functions/v1/h38-scout-push', {
+        method: 'POST', headers: auth.headers,
+        body: JSON.stringify({ action: 'office_subscribe', businessId: businessId(), subscription: sub.toJSON(), userAgent: navigator.userAgent })
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok || !data.ok) return false;
+      try { localStorage.setItem(deviceKey(), '1'); } catch (e) { /* ignore */ }
+      return true;
+    } catch (e) { return false; }
+  }
+  var autoSubTried = false;
+  function maybeAutoSubscribe() {
+    if (autoSubTried) return;
+    if (!isOwnerAdmin() || !pushToggleOn() || !pushSupported()) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || deviceOn()) return;
+    autoSubTried = true;
+    subscribeDevice().then(function (ok) { if (ok) renderPanel(); });
+  }
+  async function onDeviceButton(btn) {
+    btn.disabled = true;
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+        if (typeof window.toast === 'function') window.toast('Notifications are blocked in this browser — allow them in the browser site settings, then tap again.', true);
+        return;
+      }
+      var ok = await subscribeDevice();
+      if (typeof window.toast === 'function') {
+        window.toast(ok ? 'Device notifications are on — alerts will reach this phone.' : 'Could not turn on device notifications. Try again in a moment.', !ok);
+      }
+      renderPanel();
+    } finally { btn.disabled = false; }
+  }
+  function panelFootHtml() {
+    var note = 'Alert switches live in Settings → Owner Controls → Notifications.';
+    var foot = function (inner) { return '<div class="owner-notify-foot">' + inner + '</div>'; };
+    if (!pushToggleOn() || !pushSupported()) return foot(escHtml(note));
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+      return foot('Device notifications are blocked in this browser. ' + escHtml(note));
+    }
+    if (deviceOn()) return foot('📲 Device notifications are on for this device. ' + escHtml(note));
+    return '<div class="owner-notify-device"><button type="button" id="ownerNotifyDevice">📲 Turn on device notifications</button></div>'
+      + foot(escHtml(note));
+  }
+
   /* ---------- Today card ---------- */
 
   function renderTodayCard() {
@@ -24235,11 +24339,35 @@ if(document.readyState==='loading'){
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
   }
 
+  /* Push deep links use ?shortcut=<page> (install-office.js routes its own
+   * set; 'fleet' is routed here — e.g. the Bouncie reminder lands on
+   * Fleet, and northern-bouncie-fleet.js preselects its tab from
+   * ?fleetTab=). */
+  var shortcutHandled = false;
+  function routeNotifyShortcut() {
+    if (shortcutHandled) return;
+    var target = '';
+    try { target = text(new URLSearchParams(location.search).get('shortcut')); } catch (e) { /* ignore */ }
+    if (target !== 'fleet') { shortcutHandled = true; return; }
+    var tries = 0;
+    var go = function () {
+      if (typeof window.openPage === 'function' && snap() && snap().user) {
+        shortcutHandled = true;
+        window.openPage('fleet');
+        return;
+      }
+      if (++tries < 80) setTimeout(go, 150); else shortcutHandled = true;
+    };
+    go();
+  }
+
   var bound = false;
   function refresh() {
     ensurePanel();
     renderBadge();
     renderTodayCard();
+    maybeAutoSubscribe();
+    routeNotifyShortcut();
     var bell = bellEl();
     if (bell && !bound) {
       bound = true;
@@ -24249,7 +24377,7 @@ if(document.readyState==='loading'){
     if (panel && !panel.hidden) renderPanel();
   }
 
-  window.H38OwnerNotify = { refresh: refresh, openPanel: openPanel, closePanel: closePanel, BUILD: BUILD };
+  window.H38OwnerNotify = { refresh: refresh, openPanel: openPanel, closePanel: closePanel, subscribeDevice: subscribeDevice, BUILD: BUILD };
 
   window.addEventListener('h38:office-page-rendered', function () { refresh(); });
   var lastBid = '';

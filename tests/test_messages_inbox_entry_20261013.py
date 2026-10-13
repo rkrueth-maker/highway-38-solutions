@@ -20,7 +20,7 @@ DESKTOP_NAV = (APP / "desktop-navigation-authority.js").read_text(encoding="utf-
 OWNER_CONTROLS = (APP / "owner-controls.js").read_text(encoding="utf-8")
 INDEX = (APP / "index.html").read_text(encoding="utf-8")
 SW = (APP / "service-worker.js").read_text(encoding="utf-8")
-BUILD = "20261013-owner-notify-1"
+BUILD = "20261013-owner-notify-2"
 
 
 def test_messages_page_registered_everywhere():

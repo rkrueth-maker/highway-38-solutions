@@ -49,7 +49,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD = "20261013-owner-notify-1";
+const BUILD = "20261013-owner-notify-2";
 const JOB_SECRET_NAME = "h38-owner-notify";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -581,6 +581,110 @@ async function scanBusiness(sb: any, businessId: string): Promise<{ created: num
   return { created, byCategory, errors };
 }
 
+// ---------- Bouncie connection reminder (Northern Lakes) ----------
+// Rick's requirement (2026-10-13): while Bouncie is NOT connected for the
+// Northern Lakes tenant, the Office app pushes its owners an hourly
+// reminder to connect it — app push only, never SMS/email. The moment
+// Bouncie connection/fleet data appears, the reminder latches off
+// permanently. Connected evidence is exactly what the existing
+// bouncie-watch.py check uses: a fleet_provider_connections row
+// (provider 'bouncie', status 'connected') or at least one active
+// fleet_vehicles row (provider 'bouncie') for the tenant. Delivery rides
+// the shared push dispatcher (h38-scout-push, action 'office_dispatch') —
+// this function never sends push itself. The hourly pg_cron job is
+// 'h38-bouncie-reminder-1h'; the 55-minute floor below guarantees a
+// second run inside the hour can never double-fire.
+const NL_BUSINESS_ID = "736a44a8-b36b-4ced-b5ed-456ed252d8ed";
+const BOUNCIE_REMINDER_TITLE = "Bouncie isn't connected";
+const BOUNCIE_REMINDER_BODY = "Tap to open Fleet settings and connect Bouncie so the trucks sync.";
+const BOUNCIE_REMINDER_URL = "https://highway38solutions.com/commercial-app/index.html?businessKey=northern-lakes&shortcut=fleet&fleetTab=settings";
+const BOUNCIE_REMINDER_TAG = "bouncie-reminder";
+const BOUNCIE_MIN_INTERVAL_MS = 55 * 60 * 1000;
+
+async function bouncieConnected(sb: any, businessId: string): Promise<boolean> {
+  const { data: conns } = await sb.from("fleet_provider_connections")
+    .select("id, status").eq("business_id", businessId).eq("provider", "bouncie").limit(50);
+  if ((conns || []).some((c: Json) => text(c.status).toLowerCase() === "connected")) return true;
+  const { data: vehicles } = await sb.from("fleet_vehicles")
+    .select("id").eq("business_id", businessId).eq("provider", "bouncie").eq("active", true).limit(1);
+  return !!(vehicles && vehicles.length);
+}
+
+async function bouncieReminder(sb: any): Promise<Json> {
+  const businessId = NL_BUSINESS_ID;
+  const { data: stateRow } = await sb.from("bouncie_reminder_state")
+    .select("connected_latched_at, last_sent_at, send_count").eq("business_id", businessId).maybeSingle();
+  if (stateRow?.connected_latched_at) {
+    return { businessId, stopped: true, reason: "connected-latched", sendCount: stateRow.send_count || 0 };
+  }
+  if (await bouncieConnected(sb, businessId)) {
+    await sb.from("bouncie_reminder_state").upsert({
+      business_id: businessId,
+      connected_latched_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "business_id" });
+    return { businessId, connected: true, stopped: true, reason: "connected-evidence-found" };
+  }
+  const lastSentMs = stateRow?.last_sent_at ? Date.parse(stateRow.last_sent_at) : 0;
+  if (lastSentMs && Date.now() - lastSentMs < BOUNCIE_MIN_INTERVAL_MS) {
+    return { businessId, throttled: true, lastSentAt: stateRow.last_sent_at, sendCount: stateRow.send_count || 0 };
+  }
+  const { data: owners } = await sb.from("business_memberships")
+    .select("auth_user_id").eq("business_id", businessId).eq("role", "owner").eq("status", "active");
+  const userIds = (owners || []).map((r: Json) => text(r.auth_user_id)).filter(Boolean);
+  if (!userIds.length) return { businessId, noOwners: true };
+  // Present this function's own job secret to the shared dispatcher.
+  const { data: secretRow } = await sb.from("h38_internal_job_secrets")
+    .select("secret_value").eq("name", JOB_SECRET_NAME).maybeSingle();
+  if (!secretRow?.secret_value) return { businessId, error: "producer secret missing" };
+  let dispatch: Json = {};
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/h38-scout-push`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-h38-nightly-key": text(secretRow.secret_value, 200),
+        "Authorization": `Bearer ${SERVICE_KEY}`,
+        "apikey": SERVICE_KEY,
+      },
+      body: JSON.stringify({
+        action: "office_dispatch", businessId, userIds,
+        title: BOUNCIE_REMINDER_TITLE, body: BOUNCIE_REMINDER_BODY,
+        url: BOUNCIE_REMINDER_URL, tag: BOUNCIE_REMINDER_TAG,
+      }),
+    });
+    dispatch = (await res.json().catch(() => ({}))) as Json;
+  } catch (e) {
+    return { businessId, error: `dispatch call failed: ${text((e as Error)?.message, 200)}` };
+  }
+  const attempted = num(dispatch.attempted);
+  const sent = num(dispatch.sent);
+  if (!attempted) return { businessId, noSubscriptions: true, dispatch };
+  if (sent > 0) {
+    const sendCount = (stateRow?.send_count || 0) + 1;
+    await sb.from("bouncie_reminder_state").upsert({
+      business_id: businessId,
+      last_sent_at: new Date().toISOString(),
+      send_count: sendCount,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "business_id" });
+    try {
+      await sb.from("business_proof_log").insert({
+        business_id: businessId,
+        action_type: "BOUNCIE_REMINDER_SENT",
+        entity_type: "fleet_provider_connections",
+        entity_id: null,
+        result: "PASS",
+        details: { build: BUILD, attempted, sent, sendCount, title: BOUNCIE_REMINDER_TITLE },
+        external_action_occurred: false,
+        created_by: userIds[0],
+      });
+    } catch { /* proof is best-effort; the dispatch log is the delivery record */ }
+    return { businessId, dispatched: true, attempted, sent, sendCount };
+  }
+  return { businessId, dispatched: false, attempted, sent, dispatch };
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { status: "FAIL", message: "POST required", build: BUILD });
   if (!SUPABASE_URL || !SERVICE_KEY) return json(500, { status: "FAIL", message: "Server not configured", build: BUILD });
@@ -588,7 +692,7 @@ Deno.serve(async (req) => {
   let body: Json = {};
   try { body = (await req.json()) as Json; } catch { body = {}; }
   const action = text(body.action, 40) || "scan";
-  if (action !== "scan" && action !== "status") {
+  if (action !== "scan" && action !== "status" && action !== "bouncie-reminder") {
     return json(400, { status: "FAIL", message: "Unsupported action", build: BUILD });
   }
   const requestedBusiness = text(body.businessId, 80);
@@ -606,6 +710,17 @@ Deno.serve(async (req) => {
     const ok = await userBusinessScope(req, sb, requestedBusiness);
     if (!ok) return json(403, { status: "FAIL", message: "Owner or administrator sign-in required for this business", build: BUILD });
     businessIds = [requestedBusiness];
+  }
+
+  if (action === "bouncie-reminder") {
+    // Scoped to the Northern Lakes tenant only: internal callers reach it
+    // with no businessId (all-active scope includes NL); JWT callers must
+    // have passed businessId = NL and passed the owner/admin scope check.
+    if (!businessIds.includes(NL_BUSINESS_ID)) {
+      return json(403, { status: "FAIL", message: "Bouncie reminder is scoped to the Northern Lakes tenant", build: BUILD });
+    }
+    const result = await bouncieReminder(sb);
+    return json(200, { status: "PASS", build: BUILD, bouncieReminder: result });
   }
 
   if (action === "status") {

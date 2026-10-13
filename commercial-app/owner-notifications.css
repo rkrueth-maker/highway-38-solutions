@@ -49,6 +49,8 @@
 .owner-notify-time { flex: 0 0 auto; color: var(--muted, #5c7183); font-size: .72rem; font-weight: 800; padding-top: 2px; }
 .owner-notify-empty { padding: 22px 16px; color: var(--muted, #5c7183); text-align: center; line-height: 1.45; font-size: .88rem; }
 .owner-notify-foot { padding: 9px 12px; border-top: 1px solid var(--line, #d7dee8); color: var(--muted, #5c7183); font-size: .74rem; background: #fbfcfd; }
+.owner-notify-device { padding: 10px 12px 0; }
+.owner-notify-device button { width: 100%; }
 
 .owner-notify-today { border-color: #bcd2ea; background: linear-gradient(180deg, #f4f8ff, #fff); }
 .owner-notify-today-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
