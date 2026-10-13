@@ -47,13 +47,13 @@ async function verifyStaleOwnerFieldRecovery(browser){
   assert.equal(await page.evaluate(()=>window.H38_OWNER_PHONE_MODE_AUTHORITY?.oneBusinessOfficeShell),true,'owner phone authority must declare one Business Office shell.');
   assert.equal(await page.evaluate(()=>window.H38_MOBILE_FIELD_VIEW?.retiredUserFacingMode),true,'legacy mobile field layer must remain compatibility-only.');
   const labels=await page.locator('#mainNav [data-h38-primary]').allTextContents();
-  assert.deepEqual(labels.map(value=>value.trim()),['⌂Today','👤Customers','🗓Schedule','💬Messages','•••More'],'owner phone primary navigation must be customer-first.');
+  assert.deepEqual(labels.map(value=>value.trim()),['⌂Home','🧾Quotes','🗓Schedule','👤Customers','•••More'],'owner phone primary navigation must match the current owner primary order (Home/Quotes/Schedule/Customers, per 1cdc8ef5 + ceb3be6f C1).');
   assert.equal(await page.locator('#mainNav [data-h38-primary="work"]').count(),0,'Jobs must not be a primary owner-phone tab.');
   assert.equal(await page.locator('#mainNav [data-h38-primary="field"]').count(),0,'Site Visit must not be a primary owner-phone tab.');
   await page.locator('#mainNav [data-h38-primary="more"]').click();
   await page.waitForSelector('#h38PrimaryMoreDialog[open]');
   const more=await page.locator('#h38PrimaryMoreDialog').innerText();
-  for(const label of ['Work & Sales','Jobs','Quotes','Site Visit','Money','Records & Equipment','Office'])assert.match(more,new RegExp(label,'i'),`More menu missing ${label}`);
+  for(const label of ['Work','Jobs','Quotes','Site Visit','Money','Records & Equipment','Office'])assert.match(more,new RegExp(label,'i'),`More menu missing ${label}`);
   await context.close();
 }
 
@@ -62,6 +62,6 @@ async function verifyStaleOwnerFieldRecovery(browser){
   const browser=await chromium.launch({headless:true});
   try{
     await verifyStaleOwnerFieldRecovery(browser);
-    console.log(JSON.stringify({status:'PASS',recordingRegression:true,ownerShell:'office',oneBusinessOfficeShell:true,fieldModeToggleRetired:true,primary:['Today','Customers','Schedule','Messages','More'],approvedLogoOnly:true}));
+    console.log(JSON.stringify({status:'PASS',recordingRegression:true,ownerShell:'office',oneBusinessOfficeShell:true,fieldModeToggleRetired:true,primary:['Home','Quotes','Schedule','Customers','More'],approvedLogoOnly:true}));
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

@@ -8,7 +8,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261011-reports-section-1';
+  const BUILD='20261012-reports-section-2';
 
   // ---------- helpers (match Office conventions) ----------
   const $=id=>document.getElementById(id);
@@ -36,6 +36,7 @@
       case 'this-year': return {start:`${y}-01-01`,end:`${y}-12-31`,label:'This year'};
       case 'last-year': return {start:`${y-1}-01-01`,end:`${y-1}-12-31`,label:'Last year'};
       case 'custom': return {start:customStart||'',end:customEnd||'',label:'Custom range'};
+      case 'all': return {start:'',end:'',label:'All dates'};
       default: return {start:iso(first(m)),end:iso(last(m)),label:'This month'};
     }
   }
@@ -43,6 +44,9 @@
   // ---------- state ----------
   const S={tab:'pl',preset:'this-month',start:'',end:'',label:''};
   function currentRange(){
+    // 'All dates' is the no-range state: empty start/end, which inRange()
+    // treats as unbounded — the same representation a blank Custom range uses.
+    if(S.preset==='all')return {start:'',end:'',label:'All dates'};
     const r=rangeFor(S.preset,S.start,S.end);
     return {start:r.start||S.start,end:r.end||S.end,label:r.label};
   }
@@ -79,9 +83,9 @@
     return Object.values(per).sort((a,b)=>b.total-a.total);
   }
 
-  function arAging(){
+  function arAging(start,end){
     const today=new Date().toISOString().slice(0,10);
-    const inv=rows('invoices').filter(r=>notVoid(r)&&recN(r,'Balance')>0);
+    const inv=rows('invoices').filter(r=>notVoid(r)&&recN(r,'Balance')>0&&inRange(rec(r,'Invoice Date','Created Time'),start,end));
     const customers=rows('customers');
     const name=id=>{const c=customers.find(r=>t(rec(r,'Customer ID'))===t(id));return rec(c,'Customer Name')||'—';};
     const buckets={'0-30':[],'31-60':[],'61-90':[],'90+':[]};
@@ -135,7 +139,7 @@
     const cats={};
     exp.forEach(r=>{const c=rec(r,'Category')||'Uncategorized';cats[c]=(cats[c]||0)+recN(r,'Amount')+recN(r,'Tax');});
     const catRows=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
-    const mileage=rows('mileageLog').filter(r=>inRange(rec(r,'Date','Created Time'),start,end));
+    const mileage=rows('mileageEntries').filter(r=>inRange(rec(r,'Trip Date','Date','Created Time'),start,end));
     const miles=mileage.reduce((s,r)=>s+recN(r,'Miles','Distance'),0);
     const subs=rows('subcontractorPayments').filter(r=>inRange(rec(r,'Payment Date','Created Time'),start,end));
     const subTotal=subs.reduce((s,r)=>s+recN(r,'Amount'),0);
@@ -224,8 +228,8 @@
       ['Customer','Payments','Total'],[...list.map(x=>[x.name,x.count,x.total.toFixed(2)]),['Total',list.reduce((s,x)=>s+x.count,0),total.toFixed(2)]])};
   }
 
-  function bodyAR(){
-    const d=arAging();
+  function bodyAR(r){
+    const d=arAging(r.start,r.end);
     S.reportTitle='Outstanding Invoices — Aging';
     const labels={'0-30':'0–30 days','31-60':'31–60 days','61-90':'61–90 days','90+':'Over 90 days'};
     const order=['0-30','31-60','61-90','90+'];
@@ -267,8 +271,10 @@
       ['Person','Entries','Hours'],[...d.list.map(x=>[x.name,x.entries,x.hours.toFixed(1)]),['Total',d.entryCount,d.totalHours.toFixed(1)]])};
   }
 
-  function bodyTax(){
-    const year=new Date().getFullYear();
+  function bodyTax(r){
+    // Use the year from the selected range (the Period picker), not always
+    // the current calendar year — e.g. Last year / This year / a Custom range.
+    const year=r&&r.start?String(r.start).slice(0,4):String(new Date().getFullYear());
     const d=taxSummary(year);
     S.reportTitle=`Year-End Tax Summary ${year}`;
     const html=`
@@ -298,15 +304,15 @@
   const TABS=[
     {id:'pl',label:'Profit & Loss'},
     {id:'revenue',label:'Revenue by Customer'},
-    {id:'ar',label:'Aging'},
-    {id:'winloss',label:'Win / Loss'},
-    {id:'labor',label:'Labor'},
-    {id:'tax',label:'Tax Summary'},
+    {id:'ar',label:'Outstanding Invoice Aging'},
+    {id:'winloss',label:'Quote Win / Loss'},
+    {id:'labor',label:'Labor Summary'},
+    {id:'tax',label:'Year-End Tax Summary'},
   ];
 
   function render(){
     const r=currentRange();
-    const builders={pl:()=>bodyPL(r),revenue:()=>bodyRevenue(r),ar:()=>bodyAR(),winloss:()=>bodyWinLoss(r),labor:()=>bodyLabor(r),tax:()=>bodyTax()};
+    const builders={pl:()=>bodyPL(r),revenue:()=>bodyRevenue(r),ar:()=>bodyAR(r),winloss:()=>bodyWinLoss(r),labor:()=>bodyLabor(r),tax:()=>bodyTax(r)};
     let built;
     try{built=builders[S.tab]();}catch(e){built={html:`<div class="notice warn"><strong>Report failed to load:</strong> ${esc(e.message||e)}</div>`,csv:null};}
     currentCsv=built.csv;
@@ -315,7 +321,7 @@
     main.innerHTML=(typeof window.pageHead==='function'?window.pageHead('Reports','Plain-language summaries from your Office records. Nothing here files anything or moves money.'):'<h1>Reports</h1>')+`
     <style>
       .h38-rep-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-      .h38-rep-tabs button{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer}
+      .h38-rep-tabs button{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer;white-space:normal;overflow:visible;text-overflow:clip}
       .h38-rep-tabs button.active{background:#0f172a;color:#fff;border-color:#0f172a}
       .h38-rep-range{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:4px 0 12px}
       .h38-rep-range label{display:grid;gap:2px;font-size:13px}
@@ -344,6 +350,7 @@
             <option value="this-year"${S.preset==='this-year'?' selected':''}>This year</option>
             <option value="last-year"${S.preset==='last-year'?' selected':''}>Last year</option>
             <option value="custom"${S.preset==='custom'?' selected':''}>Custom</option>
+            <option value="all"${S.preset==='all'?' selected':''}>All dates</option>
           </select>
         </label>
         <label style="${S.preset==='custom'?'':'display:none'}" id="h38-rep-custom-start-wrap">Start <input type="date" id="h38-rep-start" value="${esc(S.start)}"></label>
