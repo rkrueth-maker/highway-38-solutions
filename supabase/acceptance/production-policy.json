@@ -70,7 +70,9 @@
     "h38-resale-web",
     "h38-retailer-source-diagnose",
     "h38-review-scheduler",
+    "h38-scout-push",
     "h38-scout-source-ingest",
+    "h38-scout-sw",
     "h38-site-analytics",
     "h38-site-helper",
     "h38-site-scanner",
@@ -210,7 +212,9 @@
     "h38-vendor-directory": "Validates the caller's Supabase user JWT in code via auth.getUser before serving directory data; returns 401 without a valid token.",
     "h38-voice-receptionist": "Twilio/Telnyx voice webhook receiver (providers cannot send Supabase JWTs); answers live only when the tenant enabled the receptionist and the dialed number matches its live DID, otherwise returns the voicemail fallback.",
     "kit-proactive-engine": "Internal proactive back-office engine; self-authenticating via x-h38-nightly-key gate (checked against h38_internal_job_secrets, 401 without it); its workspace cron runner sends no user JWT, so verify_jwt must stay false.",
-    "nl-bouncie-fleet": "Validates the caller's Supabase user JWT in code via auth.getUser; the Bouncie OAuth callback path is public by OAuth design."
+    "nl-bouncie-fleet": "Validates the caller's Supabase user JWT in code via auth.getUser; the Bouncie OAuth callback path is public by OAuth design.",
+    "h38-scout-push": "Scout deal-alert push API; self-authenticating per action \u2014 user actions validate the Supabase session in code and scope to the caller's coupon_household_members households, the pg_cron check action requires the x-h38-nightly-key secret (h38_internal_job_secrets 'scout-push'), and the service-worker delivery-receipt action stores only a hash of the subscription endpoint.",
+    "h38-scout-sw": "Serves the Scout Web Push service worker script (GET only). A service worker script must be fetchable without credentials; it contains no secrets and only displays push notifications."
   },
   "reviewed_deployed_only_functions": {
     "h38-deals-maintenance": "Owner maintenance API for Deals/Coupon/Penny/Resale; verify_jwt=true and it also validates the caller JWT in code; driven only by the signed-in System Health page. Deployed by the Scout workstream (not source-controlled here); reviewed 2026-10-12.",
