@@ -243,7 +243,16 @@ async function reconcileInvoice(
     "Balance Due": balance,
     "Amount Due": balance,
     "Open Balance": balance,
-    "Status": balance <= 0.005 ? "Paid" : paid > 0 ? "Partially Paid" : String(invoice.payload["Status"] || "Open"),
+    // Zero paid with an open balance must not keep a paid-state label: after
+    // a full refund the stored Status is "Paid", so fall back to "Open"
+    // unless the invoice carries a real pre-payment lifecycle status.
+    "Status": balance <= 0.005
+      ? "Paid"
+      : paid > 0
+        ? "Partially Paid"
+        : (["Paid", "Partially Paid"].includes(String(invoice.payload["Status"] || ""))
+          ? "Open"
+          : String(invoice.payload["Status"] || "Open")),
     "Paid Time": balance <= 0.005 ? String(invoice.payload["Paid Time"] || nowIso) : (invoice.payload["Paid Time"] ?? ""),
   });
 }
@@ -366,8 +375,11 @@ Deno.serve(async (req: Request) => {
 
       const params = new URLSearchParams();
       params.set("mode", "payment");
-      params.append("payment_method_types[]", "card");
-      params.append("payment_method_types[]", "us_bank_account");
+      // Payment methods are NOT pinned here: current Stripe accounts use
+      // dynamic payment methods (managed per-account in the Stripe
+      // Dashboard), and passing payment_method_types makes session
+      // creation fail on those accounts. Card + bank debit stay available
+      // via the account's Dashboard payment-method settings.
       params.set("line_items[0][quantity]", "1");
       params.set("line_items[0][price_data][currency]", "usd");
       params.set("line_items[0][price_data][unit_amount]", String(amountCents));

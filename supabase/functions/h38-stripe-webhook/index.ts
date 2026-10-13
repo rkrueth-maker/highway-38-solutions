@@ -84,6 +84,29 @@ async function verifySignature(raw: string, header: string, secret: string): Pro
   return signatures.some((sig) => timingSafeEqual(sig, expected));
 }
 
+// business_records.created_by / updated_by are NOT NULL. Webhook-written
+// rows are attributed to the business's owner (else administrator), the
+// same attribution the customer portal uses for its server-side writes.
+async function attributionUserId(
+  sb: ReturnType<typeof createClient>,
+  businessId: string,
+): Promise<string> {
+  for (const role of ["owner", "administrator"]) {
+    const { data, error } = await sb
+      .from("business_memberships")
+      .select("auth_user_id")
+      .eq("business_id", businessId)
+      .eq("role", role)
+      .eq("status", "active")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (data?.auth_user_id) return data.auth_user_id;
+  }
+  throw new Error("no owner or administrator found for business");
+}
+
 async function findInvoice(
   sb: ReturnType<typeof createClient>,
   businessId: string,
@@ -158,7 +181,16 @@ async function reconcileInvoice(
     "Balance Due": balance,
     "Amount Due": balance,
     "Open Balance": balance,
-    "Status": balance <= 0.005 ? "Paid" : paid > 0 ? "Partially Paid" : String(invoice.payload["Status"] || "Open"),
+    // Zero paid with an open balance must not keep a paid-state label: after
+    // a full refund the stored Status is "Paid", so fall back to "Open"
+    // unless the invoice carries a real pre-payment lifecycle status.
+    "Status": balance <= 0.005
+      ? "Paid"
+      : paid > 0
+        ? "Partially Paid"
+        : (["Paid", "Partially Paid"].includes(String(invoice.payload["Status"] || ""))
+          ? "Open"
+          : String(invoice.payload["Status"] || "Open")),
     "Paid Time": balance <= 0.005 ? String(invoice.payload["Paid Time"] || nowIso) : (invoice.payload["Paid Time"] ?? ""),
     ...extraChanges,
   });
@@ -227,11 +259,15 @@ Deno.serve(async (req: Request) => {
       // Audit trail is best-effort: a missing tenant resolution or a
       // failed insert must never fail the webhook itself.
       if (!eventId || !resolvedBusiness) return;
+      const actorId = await attributionUserId(sb, resolvedBusiness).catch(() => "");
+      if (!actorId) return;
       await sb.from("business_records").insert({
         business_id: resolvedBusiness,
         collection: EVENT_COLLECTION,
         record_key: eventId,
         record_status: "active",
+        created_by: actorId,
+        updated_by: actorId,
         payload: {
           "Event ID": eventId,
           "Event Type": type,
@@ -272,11 +308,14 @@ Deno.serve(async (req: Request) => {
         .eq("record_key", paymentKey)
         .maybeSingle();
       if (!existingPayment) {
+        const actorId = await attributionUserId(sb, resolvedBusiness);
         const { error: payErr } = await sb.from("business_records").insert({
           business_id: resolvedBusiness,
           collection: "payments",
           record_key: paymentKey,
           record_status: "active",
+          created_by: actorId,
+          updated_by: actorId,
           payload: {
             "Payment ID": paymentKey,
             "Invoice ID": invoiceId,
