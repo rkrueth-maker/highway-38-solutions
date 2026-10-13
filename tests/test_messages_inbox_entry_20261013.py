@@ -20,7 +20,7 @@ DESKTOP_NAV = (APP / "desktop-navigation-authority.js").read_text(encoding="utf-
 OWNER_CONTROLS = (APP / "owner-controls.js").read_text(encoding="utf-8")
 INDEX = (APP / "index.html").read_text(encoding="utf-8")
 SW = (APP / "service-worker.js").read_text(encoding="utf-8")
-BUILD = "20261013-owner-notify-3"
+BUILD = "20261013-messages-entry-3"
 
 
 def test_messages_page_registered_everywhere():
@@ -66,6 +66,7 @@ def test_inbox_aggregates_existing_customer_threads_only():
     assert "data-inbox-customer" in APP09
     assert "window.H38_CUSTOMER_360.selectedCustomerId" in APP09
     assert "H38_OWNER_CUSTOMER_WORKFLOW_POLISH.setContext" in APP09
+    assert "H38ScriptLoader.loadPageScripts('customers')" in APP09
     assert "openPage('customers')" in APP09
 
 
