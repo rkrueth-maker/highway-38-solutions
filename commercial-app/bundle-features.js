@@ -23922,7 +23922,7 @@ if(document.readyState==='loading'){
 (function () {
   'use strict';
 
-  var BUILD = '20261013-owner-notify-2';
+  var BUILD = '20261013-owner-notify-3';
   var MAX_PANEL = 40;
 
   function text(v) { return String(v == null ? '' : v).trim(); }
@@ -24354,6 +24354,19 @@ if(document.readyState==='loading'){
       if (typeof window.openPage === 'function' && snap() && snap().user) {
         shortcutHandled = true;
         window.openPage('fleet');
+        // A service-worker refresh can reload the app right after a build
+        // rolls and bounce the landing back to Today (seen on the first
+        // load of the owner-notify-2 build). While the deep-link param is
+        // still in the URL, re-assert the route a few times so a tapped
+        // push reliably lands on Fleet.
+        var reasserts = 0;
+        var reassert = function () {
+          if (!window.state || window.state.page === 'fleet') return;
+          if (++reasserts > 3) return;
+          try { window.openPage('fleet'); } catch (e) { /* ignore */ }
+          setTimeout(reassert, 2500);
+        };
+        setTimeout(reassert, 2500);
         return;
       }
       if (++tries < 80) setTimeout(go, 150); else shortcutHandled = true;

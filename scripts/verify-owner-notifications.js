@@ -49,7 +49,7 @@ check('toggle changes route through the mirror in the change handler', oc.includ
 /* ---- in-app surface ---- */
 const index = read('commercial-app/index.html');
 check('topbar bell + badge in index.html', index.includes('id="ownerNotifyBell"') && index.includes('id="ownerNotifyBadge"'));
-check('module + css included with the owner-notify build stamp', index.includes('./owner-notifications.js?build=20261013-owner-notify-2') && index.includes('./owner-notifications.css?build=20261013-owner-notify-2'));
+check('module + css included with the owner-notify build stamp', index.includes('./owner-notifications.js?build=20261013-owner-notify-3') && index.includes('./owner-notifications.css?build=20261013-owner-notify-3'));
 const mod = read('commercial-app/owner-notifications.js');
 check('module exposes H38OwnerNotify and renders from snapshot notifications', mod.includes('window.H38OwnerNotify') && mod.includes('s.notifications'));
 check('read state is per user (Read By JSON)', mod.includes('Read By JSON') && mod.includes('persistRead'));
@@ -61,7 +61,7 @@ check('snapshot hydration fetches notifications explicitly + idKeys registered',
 
 /* ---- service worker receiving end ---- */
 const sw = read('commercial-app/service-worker.js');
-check('SW cache rolled to owner-notify build', sw.includes("const CACHE_NAME='h38-business-office-20261013-owner-notify-2'"));
+check('SW cache rolled to owner-notify build', sw.includes("const CACHE_NAME='h38-business-office-20261013-owner-notify-3'"));
 check('SW precaches the module + css', sw.includes("'./owner-notifications.js'") && sw.includes("'./owner-notifications.css'"));
 check('SW has a push listener + generic notificationclick deep link', sw.includes("addEventListener('push'") && sw.includes('showNotification'));
 
@@ -89,6 +89,7 @@ check('migration creates office_push_subscriptions (service-role only)', bouncie
 check('migration shares the dispatch log (business_id column, household nullable)', bouncieMig.includes('alter column household_id drop not null') && bouncieMig.includes('add column if not exists business_id uuid'));
 check('migration creates bouncie_reminder_state + hourly cron', bouncieMig.includes('create table if not exists public.bouncie_reminder_state') && bouncieMig.includes("cron.schedule(") && bouncieMig.includes('h38-bouncie-reminder-1h') && bouncieMig.includes("'7 * * * *'"));
 check('client registers device push with the shared dispatcher', mod.includes("action: 'office_subscribe'") && mod.includes("action: 'config'") && mod.includes('pushManager.subscribe') && mod.includes('Turn on device notifications'));
+check('fleet shortcut re-asserts after a service-worker refresh bounce', mod.includes('reassert') && mod.includes('bounce the landing back to Today'));
 check('client routes the fleet shortcut for push deep links', mod.includes("target !== 'fleet'") && mod.includes("window.openPage('fleet')"));
 const fleet = read('commercial-app/northern-bouncie-fleet.js');
 check('fleet panel preselects the tab from ?fleetTab= (settings = connect screen)', fleet.includes('initialTab()') && fleet.includes("get('fleetTab')") && fleet.includes("'settings'"));
