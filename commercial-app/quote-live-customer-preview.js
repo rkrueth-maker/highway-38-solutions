@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261012-polish-pass2-1';
+const BUILD='20261012-mobile-polish3-1';
 const text=v=>String(v==null?'':v);
 const num=v=>Number.isFinite(Number(v))?Number(v):0;
 function brand(){const b=window.H38_CLIENT_QUOTE_BRANDING||{};const name=typeof b.businessName==='function'?b.businessName():'Highway 38 Solutions';const email=typeof b.publicEmail==='function'?b.publicEmail():'highway38solutions@gmail.com';const logo=typeof b.logoUrl==='function'?b.logoUrl():'/assets/highway38-logo.png?v=20260720-exact-0cbc4514';return{name:String(name||'Highway 38 Solutions'),email:String(email||'highway38solutions@gmail.com'),logo:String(logo||'/assets/highway38-logo.png?v=20260720-exact-0cbc4514')}};
