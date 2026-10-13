@@ -129,6 +129,9 @@ def test_pages_request_permission_only_from_a_tap():
         assert 'requestPermission' not in init_body
         render_body = snippet[snippet.index('function render()'):snippet.index('async function enableFlow()')]
         assert 'requestPermission' not in render_body
+        # The prominent one-tap enable is gated to pre-enabled accounts
+        # (prompt_on_open) — regular accounts use the switches.
+        assert 'prefs.prompt_on_open' in snippet
         # Subscription uses the server-issued VAPID key.
         assert 'applicationServerKey' in snippet
         assert "navigator.serviceWorker.register(SA_SW,{scope:'/functions/v1/'})" in snippet

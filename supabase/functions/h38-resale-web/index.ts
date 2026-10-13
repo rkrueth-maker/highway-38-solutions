@@ -103,8 +103,8 @@ function render(){
   var perm=(typeof Notification==='undefined')?'unsupported':Notification.permission,msg='',showTap=false;
   if(st.deviceSubscribed){msg='Deal alerts are ON for this phone.'}
   else if(perm==='denied'){msg='Notifications are blocked for this site. To fix it: open your browser settings for this page, allow Notifications, then reopen Scout.'}
-  else if(perm==='granted'){msg='This phone allows notifications. One tap finishes turning alerts on for this phone:';showTap=true}
-  else if(prefs.penny_alerts||prefs.resale_alerts){msg='Deal alerts are turned ON for your account. One tap lets this phone show them:';showTap=true}
+  else if(prefs.prompt_on_open&&(prefs.penny_alerts||prefs.resale_alerts)&&(perm==='granted'||perm==='default')){msg='Deal alerts are turned ON for your account. One tap lets this phone show them:';showTap=true}
+  else if(perm==='granted'&&(prefs.penny_alerts||prefs.resale_alerts)){msg='Deal alerts are on for your account but not for this phone yet. Flip a switch off and back on to finish this phone.'}
   else{msg='Deal alerts are off. Flip a switch below and this phone will ask permission once.'}
   $('saStatus').textContent=msg;
   $('saOneTap').classList.toggle('hidden',!showTap);
