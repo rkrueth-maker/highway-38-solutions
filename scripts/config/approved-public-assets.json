@@ -11,6 +11,20 @@
     "allow_image_substitute": false,
     "approved_release_commit": "9679b4b83b2685a67f48295d22346b83702da154"
   },
+  "approved_app_logo_rendition": {
+    "description": "Resize-only 256px WebP rendition of the approved Highway 38 logo, approved by Rick on 2026-10-13 for small in-app rendering only: the Business Office header brand mark and app favicons (index and password-recovery pages). Derived from the approved master with no restyle, recolor, or recrop. The master PNG remains the canonical approved logo for large displays, the brand splash, documents and quotes, install icons (PWA manifest and apple-touch-icon), and every public reference.",
+    "path": "assets/highway38-logo-256.webp",
+    "git_blob_sha": "ac2498e652fec531bb8dc747425e372716f6f1bf",
+    "sha256": "977be843a4c2f00975b272987b831e3cf8b85176e53d5067a6a891ac63b1e7d5",
+    "width": 256,
+    "height": 256,
+    "cache_key": "20261013-exact-ac2498e6",
+    "app_reference": "../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6",
+    "derived_from": "assets/highway38-logo.png",
+    "allow_image_substitute": false,
+    "approved_by": "Rick",
+    "approved_date": "2026-10-13"
+  },
   "approved_public_image_directory": "assets/approved-website-images/",
   "shared_public_css": "assets/css/h38-site-v2.css",
   "shared_public_js": "assets/js/h38-site-v2.js",
