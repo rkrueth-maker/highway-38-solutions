@@ -1,48 +1,40 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T06:06:54.369Z",
+  "generatedAt": "2026-10-13T06:14:53.508Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/index.html",
-    "commercial-app/route-manager.js"
+    ".github/workflows/post-deploy-acceptance.yml"
   ],
-  "fileCount": 2,
+  "fileCount": 1,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": true,
+    "publicWebsite": false,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
-    "workflowOnly": false,
+    "performanceReliability": true,
+    "workflowOnly": true,
     "documentationOnly": false
   },
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": true,
+    "publicRendering": false,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-change-governance.js"
   ],
-  "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+  "expensiveChecks": [],
+  "deploymentWorkflows": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change.",
+    "Authenticated browser and data-coverage evidence is not invalidated by this change.",
+    "Only the affected workflow evidence must be regenerated; unrelated product checks remain reusable when inputs are unchanged."
   ],
-  "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
-  ],
-  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
