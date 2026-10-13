@@ -16,7 +16,7 @@ assert(bootstrap.includes('phone-first-office.js?build=${PHONE_FIRST_BUILD}'),'r
 assert(fs.readFileSync(phoneRuntime,'utf8').includes('eventDrivenStartup:true'),'phone-first startup must be event driven');
 assert(fs.readFileSync(phoneRuntime,'utf8').includes('noStartupTimer:true'),'phone-first startup must not use a fixed startup delay');
 assert(mobileSource.includes("OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']]"),'canonical mobile authority must own the current owner primary order (Home/Quotes/Schedule/Customers, per 1cdc8ef5 + ceb3be6f C1)');
-assert(mobileSource.includes("['Work',['work','quotes','field','meetings']]"),'Jobs/Site Visits must move into grouped More');
+assert(mobileSource.includes("['Work',['work','quotes','field','meetings','messages']]"),'Jobs/Site Visits must move into grouped More');
 assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule','messages']"),'physical mobile authority must recognize customer-first canonical order');
 (async()=>{
   const browser=await chromium.launch({headless:true});
