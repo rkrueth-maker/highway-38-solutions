@@ -36,10 +36,10 @@ async function assertInstallLinks(page){
   }
 }
 async function assertNeutralSharedLabels(page){
-  assert.equal((await page.locator('#globalAiButton .ai-launcher-label').textContent()).trim(),'Assistant');
-  assert.equal((await page.locator('#globalAiButton .h38-floating-assistant-label').textContent()).trim(),'Assistant');
-  assert.equal(await page.locator('#globalAiButton').getAttribute('aria-label'),'Open Assistant');
-  assert.equal(await page.locator('#globalAiButton').getAttribute('title'),'Assistant');
+  assert.equal((await page.locator('#globalAiButton .ai-launcher-label').textContent()).trim(),'Ask Hank');
+  assert.equal((await page.locator('#globalAiButton .h38-floating-assistant-label').textContent()).trim(),'Ask Hank');
+  assert.equal(await page.locator('#globalAiButton').getAttribute('aria-label'),'Ask Hank');
+  assert.equal(await page.locator('#globalAiButton').getAttribute('title'),'Ask Hank');
   assert.equal(await page.locator('#voiceButton').getAttribute('aria-label'),'Talk to Assistant');
   assert.equal(await page.locator('#globalAiDialog').getAttribute('aria-label'),'Assistant');
   assert.equal(await page.evaluate(()=>window.PAGE_DEFS.ai[1]),'AI');

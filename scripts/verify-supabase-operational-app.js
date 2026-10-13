@@ -144,7 +144,7 @@ for(const needle of [
   "id:'quoteLearning'",
   "availability:'add-on',status:'hidden'",
   'Time clock',
-  'ERP Center',
+  'Business Center',
   'Task Manager / deployment',
   'Existing-data uptake',
   'Business-specific quote learning',

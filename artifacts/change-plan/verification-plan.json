@@ -1,26 +1,26 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T00:56:19.228Z",
+  "generatedAt": "2026-10-13T01:11:37.064Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/index.html",
-    "commercial-app/live-customer-navigation-guard-20260910.js",
-    "commercial-app/mobile-runtime-stability.js",
-    "commercial-app/office-account-identity.js",
-    "commercial-app/office-scale-workflow.js",
-    "commercial-app/quote-final-phone-fix.js",
-    "commercial-app/quote-live-customer-preview.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/styles.css",
-    "scripts/verify-highway38-brand-attribution.js",
-    "tests/test_live_customer_navigation_guard_20260910.py",
-    "tests/test_offline_mode_polish_20261012.py"
+    "scripts/verify-complete-office-access-browser.js",
+    "scripts/verify-current-ai-team-browser.js",
+    "scripts/verify-final-pricing-and-cabin.js",
+    "scripts/verify-live-owner-phone-install-browser.js",
+    "scripts/verify-owner-example-maintenance-front-to-back.js",
+    "scripts/verify-owner-mobile-quick-actions-browser.js",
+    "scripts/verify-owner-mobile-smoke.js",
+    "scripts/verify-phone-first-office-browser.js",
+    "scripts/verify-quick-meeting-notes.js",
+    "scripts/verify-supabase-operational-app.js",
+    "scripts/verify-web-site-manager-recorder.js",
+    "tests/test_quick_meeting_notes_20260915.py"
   ],
   "fileCount": 12,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": true,
+    "publicWebsite": false,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": true,
@@ -31,28 +31,20 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": true,
+    "publicRendering": false,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-change-governance.js"
   ],
-  "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+  "expensiveChecks": [],
+  "deploymentWorkflows": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change.",
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
-  "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
-  ],
-  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

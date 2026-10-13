@@ -66,7 +66,10 @@ need(finalRepair.includes('automaticApproval:false')&&finalRepair.includes('auto
 need(nativeGuard.includes('const AUTHORITY_BUILD=')&&nativeGuard.includes("'./site-visit-final-phone-repair.js?build='+AUTHORITY_BUILD"),'final phone repair is loaded from the current live Office authority bootstrap');
 need(nativeGuard.includes('siteVisitFinalPhoneRepairLoaded:true'),'bootstrap contract exposes final repair authority');
 
-need(context.includes('const BUILD="20260915-meeting-site-seed-2"'),'optional server context build remains available');
+// Current server BUILD is '261011-meeting-site-seed-2-claude-1' (its leading
+// bytes carry a pre-existing encoding artifact from the Muse migration,
+// 46714368); pin the unique readable suffix of the current build.
+need(context.includes('261011-meeting-site-seed-2-claude-1'),'optional server context build remains available');
 need(context.includes('captureItems')&&context.includes('quoteInputs'),'optional AI context still preserves capture and quote-useful inputs');
 need(context.includes('SITE_VISIT_MEETING_CONTEXT_PREPARED'),'optional AI context remains proof logged');
 

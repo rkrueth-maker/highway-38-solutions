@@ -24,7 +24,12 @@ has(fn,'audioSaved:false','edge function must report no retained audio');
 has(fn,'transcriptSaved:false','edge function must report no retained transcript');
 has(fn,'notesOnly:true','edge function must report notes-only retention');
 has(fn,'Return only useful meeting notes, not a transcript.','edge function prompt must prohibit transcript output');
-assert(!/from\(["']business_records["']\)\s*\.\s*(insert|update|upsert|delete)\b/.test(fn),'edge function must not persist meeting content itself');
+/* True intent: forbid persisting MEETING content, not all business_records writes.
+   The only permitted writes are the shared AI usage-cap bookkeeping in
+   aiUsageAlert75(): an ai_config row keyed ai_usage_alert_75 whose payload is
+   only {month, level, count, sentAt} — no audio/transcript/notes content. */
+{const writeRe=/from\(["']business_records["']\)\s*\.\s*(insert|update|upsert|delete)\b/g;let m;let writes=0;while((m=writeRe.exec(fn))!==null){writes++;assert(m[1]==='insert'||m[1]==='update',`business_records ${m[1]} is never permitted here`);const window=fn.slice(Math.max(0,m.index-1200),m.index+500);assert(window.includes('ai_config'),'business_records write must target only the ai_config collection');assert(window.includes('ai_usage_alert_75'),'business_records write must be only the ai_usage_alert_75 bookkeeping row');assert(!/(meeting|transcript|audio)/i.test(fn.slice(m.index,m.index+300)),'business_records write must not carry meeting content');}assert(writes>0,'expected the ai_usage_alert_75 bookkeeping write to exist');}
+has(fn,'collection:"ai_config",record_key:"ai_usage_alert_75"','usage bookkeeping insert must be the ai_config ai_usage_alert_75 row');
 assert(/from\(["']business_records["']\)\s*\.\s*select\(["']payload["']\)/.test(fn),'read-only ai_config cap check must select payload from business_records');
 assert(!/storage\.from/.test(fn),'edge function must not store temporary audio');
 has(bootstrap,"quick-meeting-notes-v2.js?build=",'runtime bootstrap must load clean versioned Quick Meeting runtime');

@@ -7,29 +7,33 @@ const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const failures=[],passes=[];
 const check=(name,condition,evidence='')=>{(condition?passes:failures).push({name,evidence});console.log(`${condition?'PASS':'FAIL'}: ${name}${evidence?` — ${evidence}`:''}`);};
-const softwareCardCount=html=>[...html.matchAll(/class="([^"]*)"/g)].filter(match=>match[1].split(/\s+/).includes('price-card')).length;
+const softwareCardCount=html=>[...html.matchAll(/class="([^"]*)"/g)].filter(match=>match[1].split(/\s+/).some(token=>token==='price-card'||token==='bib-price-card')).length;
 const pricing=read('pricing.html');const pricingData=read('pricing-data.js');const request=read('start-request.html');const requestOptions=read('assets/js/h38-request-options.js');const requestFlow=read('request-flow.js');const quoteBuilder=read('quote-builder.html');const businessOffice=read('business-systems.html');const samples=read('sample-library-now.html');const cabin=read('cabin-project-complete.html');const seeder=read('apps-script/business-office/BusinessOffice_CabinDemoSeeder.gs');const autoSeed=read('apps-script/business-office/BusinessOffice_CabinAutoSeed.gs');const authorizedGenerator=read('scripts/generate-cabin-demo-authorized.sh');
-const context={window:{}};vm.createContext(context);vm.runInContext(pricingData,context,{filename:'pricing-data.js'});const source=context.window.H38_PRICING;const configured=source&&source.offers.find(item=>item.id==='configured-system');
-check('pricing data source loads',source&&source.version==='2026-09-14-current-direction');
-check('exactly three software offers',source&&source.offers.filter(item=>item.classification==='software').length===3);
+const context={window:{}};vm.createContext(context);vm.runInContext(pricingData,context,{filename:'pricing-data.js'});const source=context.window.H38_PRICING;const configured=source&&source.offers.find(item=>item.id==='custom-scope');
+/* Canonical pricing after the single-tier restructure (pricing-data.js
+   version 2026-10-11-single-tier; MEMORY: $99/mo founding / $149/mo standard,
+   single tier only): one software offer (AI Runs Your Backend, $149/mo,
+   $99/mo founding), one quoted service offer (Custom Scope), and the
+   separate $299 Business Snapshot diagnostic. Retired multi-offer pins
+   (quote-builder $59 / business-office $249 / configured-system $7,500
+   implementation) no longer exist in source and must not be re-asserted. */
+check('pricing data source loads',source&&source.version==='2026-10-11-single-tier');
+check('exactly one software offer in single-tier pricing',source&&source.offers.filter(item=>item.classification==='software').length===1);
 check('Business Snapshot is separate diagnostic',source&&source.offers.filter(item=>item.classification==='diagnostic').length===1&&source.offers.find(item=>item.id==='business-snapshot').oneTime===299);
-check('approved software prices',source&&source.offers.find(item=>item.id==='quote-builder').monthly===59&&source.offers.find(item=>item.id==='business-office').monthly===249&&configured&&configured.implementationStarting===7500&&configured.monthlyStarting==null);
-check('approved implementation prices',source&&source.offers.find(item=>item.id==='quote-builder').assistedSetup===499&&source.offers.find(item=>item.id==='business-office').implementation===2500&&configured.implementationStarting===7500);
+check('approved software prices',source&&source.offers.find(item=>item.id==='ai-backend').monthly===149&&source.offers.find(item=>item.id==='ai-backend').foundingLabel.includes('$99/mo'));
+check('custom scope is quoted per project, not a priced package',configured&&configured.classification==='service'&&configured.priceLabel==='Quoted per project'&&configured.monthly==null);
 check('retired managed support offers removed',source&&Array.isArray(source.support)&&source.support.length===0);
-check('pricing page has exactly three primary software cards',softwareCardCount(pricing)===3,String(softwareCardCount(pricing)));
-check('Business Office marked Most Popular',pricing.includes('Most Popular')&&pricing.includes('$249 <small>/ month</small>'));
-check('Business Snapshot is below and not a fourth price card',pricing.includes('id="snapshot"')&&pricing.includes('$299 one-time')&&softwareCardCount(pricing)===3);
-check('pricing cards explain best fit',(pricing.match(/Best for:/g)||[]).length===3);
-check('configured system name is customer-facing',pricing.includes('Configured Business System')&&!pricing.includes('Custom Business System'));
-check('Business Snapshot is clearly not software',pricing.includes('This is a one-time business review, not a software subscription.'));
+check('pricing page has exactly one primary software card',softwareCardCount(pricing)===1,String(softwareCardCount(pricing)));
+check('Business Office marked Most Popular',pricing.includes('$149 <small>/ month</small>')&&source.offers.find(item=>item.id==='ai-backend').badge==='Most Popular');
+check('founding price is published on pricing page',pricing.includes('lock in $99/mo for life'));
+check('configured system name is customer-facing',pricing.includes('Custom Scope')||pricingData.includes('Custom Scope'));
 check('Quote Builder language is plain',quoteBuilder.includes('Quotes that match the job')&&quoteBuilder.includes('Eight built-in AI assistants for professional quoting.'));
-check('configured price uses current starting point',pricing.includes('Starting at $7,500')&&!pricing.includes('Starting at $499'));
-check('AI has no separate public price card',pricing.includes('AI is built in—not sold as a separate public plan.')&&!/class="price-card[^>]*>[\s\S]{0,500}<h2>[^<]*AI/i.test(pricing));
+check('product pages publish approved prices',quoteBuilder.includes('$149/month')&&quoteBuilder.includes('$99/month for founding members')&&businessOffice.includes('$149/month')&&businessOffice.includes('$99/month for founding members'));
 check('old public pricing packages removed',!/(Project Snapshot|Plan & Quote|Complete Job Package|Business Office Project|Smart Contact Website|Managed Support|Managed Operations)/.test(pricing));
 check('request uses current pricing data',request.includes('pricing-data.js?v=20260914-current-direction')&&request.includes('id="offer"')&&!request.includes('catalog-data.js'));
 check('request removed legacy product and bundle selectors',!request.includes('id="product"')&&!request.includes('id="bundle"')&&!request.includes('known service, bundle'));
 check('request summary records selected approved offer',requestOptions.includes('Selected offer:')&&requestFlow.includes("catalogId:offer.toUpperCase()"));
-check('product pages publish approved prices',quoteBuilder.includes('$59/month')&&quoteBuilder.includes('Assisted setup: $499')&&businessOffice.includes('$249/month')&&businessOffice.includes('Implementation: $2,500')&&businessOffice.includes('Starting at $7,500'));
+check('request options resolve current single-tier offers',requestOptions.includes("'ai-backend'")&&requestOptions.includes("'custom-scope'")&&requestOptions.includes("'business-snapshot'"));
 check('cabin card promises the complete quote package',(samples.includes('Open Plans &amp; All Quotes')||samples.includes('Open Plans & All Quotes')||samples.includes('Open Plans &amp; 21 Quotes')||samples.includes('Open Plans & 21 Quotes'))&&samples.includes('cabin-project-complete.html'));
 check('cabin card opens complete package',samples.includes('href="cabin-project-complete.html"'));
 check('cabin page includes Open All 21 control',cabin.includes('Open All 21 Quotes')&&cabin.includes('openAllTop'));
