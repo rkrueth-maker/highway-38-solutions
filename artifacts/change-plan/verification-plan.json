@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T00:49:51.623Z",
+  "generatedAt": "2026-10-13T01:05:51.997Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/app-heartbeat.js",
     "commercial-app/field-visit-owner-controls.js",
     "commercial-app/field-visit.js",
@@ -25,7 +28,7 @@
     "tests/test_live_customer_navigation_guard_20260910.py",
     "tests/test_offline_mode_polish_20261012.py"
   ],
-  "fileCount": 20,
+  "fileCount": 23,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
