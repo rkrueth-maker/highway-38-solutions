@@ -57,7 +57,7 @@ function enhanceRaw(){const page=text(stateNow()?.page);if(page==='customers'){
   mountRaw('Jobs','work.jobs','jobs',jobRow,bindJobRows);
   mountRaw('Tasks','work.tasks','tasks',taskRow,bindTaskRows);
  }
- if(page==='quotes')mountRaw('Saved quotes','quotes.saved','quotes',quoteRow,list=>list.querySelectorAll('[data-h38-scale-open-quote]').forEach(button=>button.onclick=()=>window.openQuote?.(button.dataset.h38ScaleOpenQuote)),row=>[val(row,'Project Title'),val(row,'Quote Number'),val(row,'Status'),customerName(val(row,'Customer ID'))].join(' '));
+ if(page==='quotes'&&!document.querySelector('[data-h38-canonical-quotes]'))mountRaw('Saved quotes','quotes.saved','quotes',quoteRow,list=>list.querySelectorAll('[data-h38-scale-open-quote]').forEach(button=>button.onclick=()=>window.openQuote?.(button.dataset.h38ScaleOpenQuote)),row=>[val(row,'Project Title'),val(row,'Quote Number'),val(row,'Status'),customerName(val(row,'Customer ID'))].join(' '));
  if(page==='schedule')mountRaw('Upcoming','schedule.upcoming','scheduleEvents',scheduleRow,null,null,(a,b)=>new Date(val(a,'Start Time'))-new Date(val(b,'Start Time')));
  if(page==='messages'){
   mountRaw('Business conversations','messages.internal','conversations',conversationRow,list=>list.querySelectorAll('[data-h38-scale-conversation]').forEach(button=>button.onclick=()=>{stateNow().selectedConversation=button.dataset.h38ScaleConversation;window.renderMessages?.();}));
