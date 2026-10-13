@@ -25,7 +25,7 @@
 'use strict';
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261013-route-fleet-loop-1';
+var BUILD = '20261013-route-optimize-proof-1';
 var ROUTES_COLLECTION = 'routes';
 var STOPS_COLLECTION = 'routeStops';
 var FEATURE_ID = 'route_management';
@@ -86,7 +86,13 @@ function currentUserName() {
 function isOwner() {
   try {
     var u = currentUser();
-    var role = text(v(u, 'Role', 'role') || '').toLowerCase();
+    // The canonical snapshot user carries roleId/roleName + an owner flag
+    // (e.g. { roleId: 'administrator', owner: false }); legacy record rows
+    // carry 'Role'. Check every shape or owner/admin controls (New route,
+    // Edit route, Proof link — and the route builder's Optimize button)
+    // never render for anyone.
+    if (u && (u.owner === true || u.isOwner === true)) return true;
+    var role = text(v(u, 'Role', 'role', 'roleId', 'roleName') || '').toLowerCase();
     return role === 'owner' || role === 'administrator' || role === 'admin';
   } catch (_) { return false; }
 }
@@ -192,7 +198,13 @@ function routeById(id) {
 }
 function stopsForRoute(routeId) {
   return records(STOPS_COLLECTION)
-    .filter(function(r) { return text(v(r, 'Route ID')) === text(routeId); })
+    .filter(function(r) {
+      // Edit-save retires replaced stops with Status 'deleted' — exclude them
+      // like allRoutes/allCustomers do, or ghost stops pile up in the detail,
+      // progress, and proof views after every edit.
+      return text(v(r, 'Route ID')) === text(routeId) &&
+        !/^(deleted|void|cancelled)$/i.test(text(v(r, 'Status')));
+    })
     .sort(function(a, b) { return num(v(a, 'Stop Order', 'Order')) - num(v(b, 'Stop Order', 'Order')); });
 }
 function stopStatus(stop) {
@@ -639,12 +651,13 @@ async function optimizeBuilderStops(btn) {
       var wc = byId[id];
       if (wc) newOrder.push(builderStops[wc.idx]);
     });
-    // Safety: if the engine dropped anything, append the leftovers in original order.
+    // Safety: if the engine dropped anything, append the leftovers in original
+    // order. This already covers stops without coordinates (they were never
+    // in the engine result) — appending `missing` again here would duplicate
+    // every un-geocoded stop in the builder and, on save, in the route.
     builderStops.forEach(function(st) {
       if (newOrder.indexOf(st) === -1) newOrder.push(st);
     });
-    missing.sort(function(a, b) { return a.idx - b.idx; });
-    missing.forEach(function(m) { newOrder.push(m.stop); });
     builderStops = newOrder;
     builderOptResult = {
       totalMiles: res.totalMiles, totalMinutes: res.totalMinutes,
