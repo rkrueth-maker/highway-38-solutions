@@ -9561,6 +9561,11 @@ handleBridgeError=function(stage,message){
   renderWelcome('error',text);
 };
 
+function h38BrandSplashNorthernRequested(){try{return String(new URLSearchParams(location.search).get('businessKey')||'').toLowerCase()==='northern-lakes';}catch(_){return false;}}
+function h38BrandSplashHtml(status,notice){
+  return '<section class="welcome welcome--brand"><img class="welcome-brand-logo" src="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6" alt="Highway 38 Solutions" width="118" height="118"><h1>Business Office</h1><p class="welcome-brand-tagline">Replace your software. <strong>Get an office worker.</strong></p><p class="welcome-brand-status">'+status+'</p>'+(notice?'<div class="notice">'+notice+'</div>':'')+'</section>';
+}
+
 renderWelcome=function(mode='connecting',detailOverride=''){
   if(!h38SupabaseAuthEnabled())return h38LegacyRenderWelcome(mode,detailOverride);
   if(state.snapshot)return;
@@ -9571,10 +9576,10 @@ renderWelcome=function(mode='connecting',detailOverride=''){
     return;
   }
   if(mode==='choose'){
-    $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Resolving your authorized business.</p></section>';
+    $('mainContent').innerHTML=h38BrandSplashNorthernRequested()?'<section class="welcome"><h1>Business Office</h1><p>Resolving your authorized business.</p></section>':h38BrandSplashHtml('Resolving your authorized business.','');
     return;
   }
-  $('mainContent').innerHTML='<section class="welcome"><h1>Business Office</h1><p>Opening your current verified business records.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>';
+  $('mainContent').innerHTML=h38BrandSplashNorthernRequested()?'<section class="welcome"><h1>Business Office</h1><p>Opening your current verified business records.</p><div class="notice">Nothing is sent, paid, purchased, approved, published, or executed automatically.</div></section>':h38BrandSplashHtml('Opening your current verified business records.','Nothing is sent, paid, purchased, approved, published, or executed automatically.');
 };
 
 loadBusiness=async function(businessId,quiet=false){
