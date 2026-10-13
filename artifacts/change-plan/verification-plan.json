@@ -1,15 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T04:14:34.687Z",
+  "generatedAt": "2026-10-13T04:18:05.005Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/index.html",
     "commercial-app/route-manager.js",
     "supabase/acceptance/production-policy.json",
     "supabase/migrations/20261013020000_route_proof_public_rpc.sql"
   ],
-  "fileCount": 4,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
