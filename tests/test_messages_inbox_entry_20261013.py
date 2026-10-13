@@ -20,7 +20,7 @@ DESKTOP_NAV = (APP / "desktop-navigation-authority.js").read_text(encoding="utf-
 OWNER_CONTROLS = (APP / "owner-controls.js").read_text(encoding="utf-8")
 INDEX = (APP / "index.html").read_text(encoding="utf-8")
 SW = (APP / "service-worker.js").read_text(encoding="utf-8")
-BUILD = "20261013-messages-entry-1"
+BUILD = "20261013-messages-entry-2"
 
 
 def test_messages_page_registered_everywhere():
@@ -65,10 +65,12 @@ def test_inbox_aggregates_existing_customer_threads_only():
     assert "data-inbox-open" in APP09
     assert "data-inbox-customer" in APP09
     assert "window.H38_CUSTOMER_360.selectedCustomerId" in APP09
+    assert "H38_OWNER_CUSTOMER_WORKFLOW_POLISH.setContext" in APP09
     assert "openPage('customers')" in APP09
 
 
 def test_build_roll_pins():
     assert f"const CACHE_NAME='h38-business-office-{BUILD}'" in SW
-    for script in ["app-01.js", "app-08.js", "app-09.js", "mobile-runtime-stability.js", "job-centered-flow.js"]:
-        assert f"./{script}?build={BUILD}" in INDEX, script
+    assert f"./app-09.js?build={BUILD}" in INDEX
+    for script in ["app-01.js", "app-08.js", "mobile-runtime-stability.js", "job-centered-flow.js"]:
+        assert f"./{script}?build=20261013-messages-entry-1" in INDEX, script

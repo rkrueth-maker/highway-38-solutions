@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T17:41:08.869Z",
+  "generatedAt": "2026-10-13T18:02:17.545Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/app-01.js",
     "commercial-app/app-08.js",
     "commercial-app/app-09.js",
@@ -23,7 +26,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 18,
+  "fileCount": 21,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
