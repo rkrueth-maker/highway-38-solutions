@@ -163,11 +163,14 @@
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, propertyRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
-      optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id',businessId).eq('collection','jobs').eq('record_status','active').order('updated_at',{ascending:false}).limit(100), []),
+      // Paged like the other explicit fetches, not the old limit-100: a tenant
+      // past 100 active jobs silently lost its oldest jobs, and paging costs
+      // the same single request for any tenant under 1,000 jobs.
+      fetchCollectionRows(db, businessId, 'jobs'),
       // Same cap, money edition (found 2026-10-12, cluster-B live verification):
       // the broad query returns only the newest 1,000 active records, and
       // high-churn collections (usageLogs, app_sessions) permanently crowd out
@@ -187,6 +190,21 @@
       fetchCollectionRows(db, businessId, 'payrollPeriods'),
       fetchCollectionRows(db, businessId, 'payrollLines'),
       fetchCollectionRows(db, businessId, 'timeEntries'),
+      // Same cap, people/operations edition (found 2026-10-12, snapshot
+      // collection audit): employees never churn, so demo's 3 original
+      // employees (2026-10-06) rank below the cutoff and the People list
+      // drops one in a fresh session. Quotes, tasks, scheduleEvents and
+      // properties ride along: business_records rows for them have no
+      // other collection-scoped fetch (portal hydration covers only the
+      // portal tables and business_records customers), and demo already
+      // crowds out 14/14 quotes, 211/215 tasks, 18/18 schedule events and
+      // 14/18 properties — Quotes, Work/Today, Schedule and the customer
+      // address book all read them from this snapshot.
+      fetchCollectionRows(db, businessId, 'employees'),
+      fetchCollectionRows(db, businessId, 'quotes'),
+      fetchCollectionRows(db, businessId, 'tasks'),
+      fetchCollectionRows(db, businessId, 'scheduleEvents'),
+      fetchCollectionRows(db, businessId, 'properties'),
       optionalQuery(db.from('business_memberships').select('id,auth_user_id,invited_email,role,status,accepted_at').eq('business_id',businessId).in('status',['active','invited']).order('created_at',{ascending:true}), []),
       optionalQuery(db.from('price_book_items').select('id,item_code,category,description,unit,unit_cost,sell_price,reorder_point,sellable,rentable,rental_rate,advertise,source_type,source_note,approval_status,active,updated_at').eq('business_id',businessId).eq('active',true).order('category').order('description').range(0,999), []),
       optionalQuery(db.from('business_approvals').select('*').eq('business_id',businessId).order('requested_at',{ascending:false}).limit(250), []),
@@ -199,7 +217,7 @@
     // business_records identity is (collection, record_key): merge each once
     // so overlapping fetches never double-count a payment or expense.
     const mergedRecordKeys = new Set();
-    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows].forEach(row => {
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...propertyRows].forEach(row => {
       const collection = row.collection;
       const recordKey = text(row.record_key);
       if (recordKey) {

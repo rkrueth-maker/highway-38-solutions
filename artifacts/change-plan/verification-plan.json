@@ -1,21 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T04:34:27.390Z",
+  "generatedAt": "2026-10-13T04:41:29.533Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "commercial-app/index.html",
-    "commercial-app/route-manager.js",
-    "supabase/acceptance/production-policy.json",
-    "supabase/migrations/20261013020000_route_proof_public_rpc.sql"
+    "commercial-app/supabase-data.js"
   ],
-  "fileCount": 4,
+  "fileCount": 2,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -26,7 +24,7 @@
     "publicRendering": true,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
@@ -34,13 +32,11 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
     "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml",
