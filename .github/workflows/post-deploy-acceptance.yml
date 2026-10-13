@@ -102,7 +102,7 @@ jobs:
             return 1
           }
 
-          check_page 'index.html' 'Bring us the problem.'
+          check_page 'index.html' 'Your truck is not'
           check_page 'ecosystem-status.html' 'Highway 38 Solutions · Ecosystem'
           check_page 'customer-portal.html' 'Customer accounts cannot be created from this page.'
           check_page 'business-concept-builder.html' 'Turn a rough idea into a structured launch package.'
