@@ -28,8 +28,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //        -> sends to the business's active office subscriptions; logged to
 //           scout_push_dispatch_log with business_id set.
 //
-// Dispatch rules: batched (ONE push per user per run, penny+resale combined
-// when both are new), honest counts/stores taken from the actual rows, and a
+// Dispatch rules: batched per scope (ONE push per scope per user per run),
+// plain-count copy exactly as Rick asked (2026-10-13: "it can just be a
+// notification that there are 67 new deals") — "67 new penny deals" /
+// "8 new resale deals", counts computed live from the actual rows — and a
 // per-household/per-scope watermark that advances only once a batch has been
 // dispatched (or when every account in the household has that alert off), so
 // nothing ever notifies twice and a pre-enabled account that has not yet
@@ -218,13 +220,14 @@ async function resaleBatch(householdId: string, sinceIso: string): Promise<Batch
   return { count: rows.length, topStores, maxTs: rows.length ? String(rows[0].created_at) : null };
 }
 
-function composeCopy(penny: BatchInfo, resale: BatchInfo): { title: string; body: string; url: string } {
-  const parts: string[] = [];
-  if (penny.count) parts.push(`${penny.count} new penny item${penny.count === 1 ? "" : "s"}${penny.topStores.length ? ` (${penny.topStores.join(", ")})` : ""}`);
-  if (resale.count) parts.push(`${resale.count} new resale lead${resale.count === 1 ? "" : "s"}${resale.topStores.length ? ` (${resale.topStores.join(", ")})` : ""}`);
-  const title = penny.count && resale.count ? "Scout: new deals found"
-    : penny.count ? "Scout: new penny deals" : "Scout: new resale deals";
-  return { title, body: parts.join(" · "), url: penny.count ? PENNY_URL : RESALE_URL };
+// Plain-count copy per scope (Rick, 2026-10-13): the notification just says
+// how many new deals there are; the tap opens that scope's Scout view.
+function scopeCopy(scope: "penny" | "resale", batch: BatchInfo): { title: string; body: string; url: string } {
+  const noun = batch.count === 1 ? "deal" : "deals";
+  if (scope === "penny") {
+    return { title: "Scout: new penny deals", body: `${batch.count} new penny ${noun}`, url: PENNY_URL };
+  }
+  return { title: "Scout: new resale deals", body: `${batch.count} new resale ${noun}`, url: RESALE_URL };
 }
 
 interface SubRow { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }
@@ -291,10 +294,7 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
       if (!batch.count) continue;
       if (scope === "penny") totalNewPenny = Math.max(totalNewPenny, batch.count); else totalNewResale = Math.max(totalNewResale, batch.count);
       if (!userSubs.length) { heldForNoDevice.push(`${userId}:${scope}`); continue; }
-      const copy = composeCopy(
-        scope === "penny" ? batch : { count: 0, topStores: [], maxTs: null },
-        scope === "resale" ? batch : { count: 0, topStores: [], maxTs: null },
-      );
+      const copy = scopeCopy(scope, batch);
       for (const sub of userSubs) {
         jobs.push({ sub, title: copy.title, body: copy.body, url: copy.url, scopes: [scope], windowFrom: wm });
       }
@@ -305,22 +305,13 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
     }
   }
 
-  // Merge per-device jobs that cover both scopes into ONE combined push.
-  const merged = new Map<string, DispatchJob>();
-  for (const job of jobs) {
-    const existing = merged.get(job.sub.id);
-    if (!existing) { merged.set(job.sub.id, job); continue; }
-    existing.scopes = [...existing.scopes, ...job.scopes];
-    existing.title = "Scout: new deals found";
-    existing.body = `${existing.body} · ${job.body}`;
-    existing.url = PENNY_URL;
-  }
-
+  // One push per scope per device (Rick's plain-count copy: a penny push and
+  // a resale push are separate notifications, each just the count).
   let sent = 0;
-  for (const job of merged.values()) {
+  for (const job of jobs) {
     let responded = false;
     try {
-      const result = await sendPush(job.sub, { title: job.title, body: job.body, url: job.url, tag: "scout-new-deals" });
+      const result = await sendPush(job.sub, { title: job.title, body: job.body, url: job.url, tag: job.scopes[0] === "resale" ? "scout-new-resale" : "scout-new-penny" });
       responded = true;
       if (result.status === 404 || result.status === 410) {
         await admin.from("scout_push_subscriptions").update({ active: false, updated_at: new Date().toISOString() }).eq("id", job.sub.id);

@@ -67,10 +67,16 @@ def test_detection_and_watermark_rules():
     # Gone subscriptions are retired, every dispatch is audit-logged.
     assert 'result.status === 404 || result.status === 410' in PUSH_FN
     assert 'scout_push_dispatch_log' in PUSH_FN
-    # Batched: both scopes merge into one combined push per device.
-    assert 'Scout: new deals found' in PUSH_FN
+    # Plain-count copy per scope (Rick, 2026-10-13): one push per scope, the
+    # body is just the count — "67 new penny deals" / "8 new resale deals".
     assert 'Scout: new penny deals' in PUSH_FN
     assert 'Scout: new resale deals' in PUSH_FN
+    assert 'new penny ${noun}' in PUSH_FN
+    assert 'new resale ${noun}' in PUSH_FN
+    assert 'Scout: new deals found' not in PUSH_FN
+    # Per-scope notification tags so a resale push never replaces the penny
+    # push on the device.
+    assert 'scout-new-penny' in PUSH_FN and 'scout-new-resale' in PUSH_FN
 
 
 def test_migration_tables_are_service_role_only():
