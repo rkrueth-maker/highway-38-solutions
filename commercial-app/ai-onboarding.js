@@ -4,7 +4,7 @@
 // Every step works manually. AI assist is optional and results are always
 // reviewable before saving. H38 AI (Kit) remains as fallback.
 // Nothing executes automatically.
-const BUILD='20261007-ai-onboarding-3';
+const BUILD='20261012-ai-onboarding-4';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -364,6 +364,17 @@ async function finish(){
     }else{
       const bid=businessId(),stamp=new Date().toISOString();
       const nextId=prefix=>{try{if(window.H38DB&&typeof window.H38DB.newId==='function')return window.H38DB.newId(prefix);}catch(_){}return prefix+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);};
+      // Business profile — the review step promises profile, services,
+      // customers, and team all save. The profile lands in business_records
+      // (collection 'businessProfile') and returns via hydrateSnapshot as
+      // snapshot.businessProfile[], so Settings and a reopened wizard can
+      // read it back. Stable ID keeps retries duplicate-free.
+      total++;
+      try{
+        const profileId='PROFILE-'+bid;
+        const profileRecord={'Business Profile ID':profileId,'Business ID':bid,'Business Name':onboardingData.businessName,'Business Type':onboardingData.businessType||'','Phone':onboardingData.phone||'','Email':onboardingData.email||'','Address':onboardingData.address||'','Status':'Active','Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+        await window.queueOperation('SAVE_ENTITY','Business Profile',profileId,{entity:'businessProfile',record:profileRecord},{collection:'businessProfile',record:profileRecord,idKeys:['Business Profile ID']},true);saved++;
+      }catch(e){failed.push(`Business profile — ${e&&e.message||e}`);}
       for(const s of onboardingData.services){
         if(!text(s.name))continue;total++;
         s._saveId=s._saveId||nextId('SVC');
@@ -379,6 +390,18 @@ async function finish(){
         const record={'Customer ID':c._saveId,'Business ID':bid,'Customer Name':c.name,'Phone':c.phone||'','Status':'Active','Created Time':stamp,'Updated Time':stamp,'Record Version':1};
         try{await window.queueOperation('SAVE_CUSTOMER','Customer',c._saveId,{customerId:c._saveId,customerName:c.name,phone:c.phone||'',businessId:bid},{collection:'customers',record,idKeys:['Customer ID']},true);saved++;}
         catch(e){failed.push(`Customer "${c.name}" — ${e&&e.message||e}`);}
+      }
+      for(const member of onboardingData.team){
+        if(!text(member.name)&&!text(member.email))continue;total++;
+        // Team invites use the exact SAVE_USER shape the Settings "Add
+        // business user" form uses ({email, displayName, roleId}); the
+        // server turns it into a business_memberships invite. Email is
+        // required for that invite — a name-only entry cannot be saved
+        // through it, so count it honestly instead of queueing a dead op.
+        if(!text(member.email)){failed.push(`Team member "${member.name}" — an email is required to send their invite. Add them later in Settings → Add business user.`);continue;}
+        member._saveId=member._saveId||nextId('USER');
+        try{await window.queueOperation('SAVE_USER','User',member._saveId,{email:text(member.email),displayName:text(member.name),roleId:'staff'});saved++;}
+        catch(e){failed.push(`Team member "${member.name}" — ${e&&e.message||e}`);}
       }
     }
     if(failed.length){showSaveResult({saved,total,failed});return;}
@@ -416,6 +439,23 @@ function toast(msg,bad){
 function start(){
   currentStep=0;
   onboardingData={useAI:true,businessName:'',businessType:'',phone:'',email:'',address:'',services:[],customers:[],team:[]};
+  // Prefill the profile step from a previously saved Business Profile
+  // record (finish() writes one) so reopening the wizard shows what is
+  // already on file instead of blank fields.
+  try{
+    const savedProfile=(window.state?.snapshot?.businessProfile||[])[0];
+    if(savedProfile){
+      onboardingData.businessName=text(savedProfile['Business Name']);
+      onboardingData.businessType=text(savedProfile['Business Type']);
+      onboardingData.phone=text(savedProfile['Phone']);
+      onboardingData.email=text(savedProfile['Email']);
+      onboardingData.address=text(savedProfile['Address']);
+    }
+    if(!onboardingData.businessName){
+      const bizName=text(window.state?.snapshot?.business?.businessName);
+      if(bizName)onboardingData.businessName=bizName;
+    }
+  }catch(e){/* prefill is best-effort; blank fields remain fully editable */}
   render();
 }
 
