@@ -7,7 +7,7 @@ const PAGE_DEFS={today:['⌂','Today'],customers:['👤','Customers'],meetings:[
 const OFFICE_PAGES=['today','customers','meetings','work','tasks','quotes','schedule','messages','field','inventory','fleet','money','accounting','payroll','tax','reports','documents','social','ai','settings'];
 const SHELL_PAGES={office:OFFICE_PAGES,quote:['quotes'],field:['today','work','measure','schedule','messages','field','fleet','documents','ai'],inventory:['today','work','messages','inventory','fleet','documents','ai'],social:['today','messages','social','ai','settings']};
 const SHELL_LABELS={office:'Full Business Office',quote:'Standalone Quote Builder',field:'Field & Crew',inventory:'Inventory & Fleet',social:'Social Control'};
-const state={shell:'office',page:'today',businessId:'',snapshot:null,bridge:null,bridgeReady:false,quote:{quoteId:'',lines:[]},selectedConversation:'',messageTab:'internal',aiConversationId:'',aiChat:[],drivingMode:false,listening:false};
+const state={shell:'office',page:'today',businessId:'',snapshot:null,bridge:null,bridgeReady:false,quote:{quoteId:'',lines:[]},selectedConversation:'',messageTab:'inbox',aiConversationId:'',aiChat:[],drivingMode:false,listening:false};
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const v=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};

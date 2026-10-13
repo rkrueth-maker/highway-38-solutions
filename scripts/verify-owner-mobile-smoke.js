@@ -65,7 +65,7 @@ requireText(topAction,'h38AddCustomerTop','top Customers action bar contains Add
 requireText(topAction,"document.getElementById('customerForm')",'Add Customer targets the canonical customer form');
 
 for(const token of ["['today','⌂','Today']","['customers','👤','Customers']","['schedule','🗓','Schedule']","['messages','💬','Messages']"])requireText(stability,token,`customer-first primary mobile navigation: ${token}`);
-requireText(stability,"['Work',['work','quotes','field','meetings']]",'Jobs, Quotes, Site Visits and Meetings live under Work');
+requireText(stability,"['Work',['work','quotes','field','meetings','messages']]",'Jobs, Quotes, Site Visits, Meetings and Messages live under Work');
 requireText(stability,"primaryNavigation:['Today','Customers','Schedule','Messages','More']",'owner mobile navigation contract remains customer-first');
 requireText(stability,"fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']",'field-role mobile navigation is job-first inside the same Office shell');
 requireText(stability,'roleAwareOneShellNavigation:true','final mobile navigation is role-aware without a second shell');
@@ -100,9 +100,9 @@ requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed'
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
 requireText(index,'mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1','native scroll authority is loaded');
-requireText(index,'mobile-runtime-stability.js?build=20261013-rescan-fixes-1','mobile stability layer loads after native scroll authority');
+requireText(index,'mobile-runtime-stability.js?build=20261013-messages-entry-1','mobile stability layer loads after native scroll authority');
 const nativeScrollAt=index.indexOf('mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1');
-const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20261013-rescan-fixes-1');
+const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20261013-messages-entry-1');
 if(nativeScrollAt>=0&&stabilityAt>nativeScrollAt)pass('native scroll authority installs before mobile stability');else fail('native scroll authority installs before mobile stability');
 requireText(nativeScroll,"main.dataset.h38ManualTouchScroll='2'",'manual touch fallback is prevented before attachment');
 requireText(nativeScroll,'nativeScrollOnly:true','native Office scroll is single authority');
