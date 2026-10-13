@@ -1,22 +1,27 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T12:46:24.119Z",
+  "generatedAt": "2026-10-13T17:08:08.883Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/public-image-placements/verification.json",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
+    "assets/highway38-logo-256.webp",
     "commercial-app/bundle-features.js",
-    "commercial-app/customer-360-browser-integration-v3.js",
-    "commercial-app/h38-script-loader.js",
+    "commercial-app/index.html",
+    "commercial-app/recover.html",
     "commercial-app/service-worker.js",
+    "commercial-app/supabase-client-branding.js",
+    "scripts/config/approved-public-assets.json",
     "scripts/verify-native-ai-communications.js",
-    "tests/test_customer_360_owner_flow_20260824.py",
     "tests/test_offline_mode_polish_20261012.py",
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 9,
+  "fileCount": 14,
   "scopes": {
-    "publicWebsite": false,
+    "publicWebsite": true,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
@@ -27,27 +32,32 @@
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
-    "approvedAssets": false,
-    "publicRendering": false,
+    "approvedAssets": true,
+    "publicRendering": true,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "python3 scripts/verify-public-images.py",
+    "node scripts/verify-public-image-placements.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces",
+    "rendered pixel and direct-image verification"
   ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
