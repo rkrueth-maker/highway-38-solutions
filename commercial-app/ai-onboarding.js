@@ -4,7 +4,7 @@
 // Every step works manually. AI assist is optional and results are always
 // reviewable before saving. H38 AI (Kit) remains as fallback.
 // Nothing executes automatically.
-const BUILD='20261013-onboarding-team-1';
+const BUILD='20261013-recordings-polish-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
