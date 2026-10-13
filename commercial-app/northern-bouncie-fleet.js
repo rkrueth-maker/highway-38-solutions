@@ -1,8 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20261007-northern-bouncie-fleet-3';
+const BUILD='20261013-bouncie-reminder-1';
 const ENDPOINT='nl-bouncie-fleet';
-const runtime={tab:'map',vehicles:[],trips:[],events:[],connection:null,loading:false,error:'',map:null,markers:[],timer:null,lastLoad:0};
+// Push deep links (the hourly Bouncie reminder) land here with
+// ?fleetTab=settings so the owner arrives on the connect screen directly.
+function initialTab(){try{const t=String(new URLSearchParams(location.search).get('fleetTab')||'').trim().toLowerCase();if(['map','vehicles','trips','alerts','settings'].includes(t))return t;}catch(_){}return 'map';}
+const runtime={tab:initialTab(),vehicles:[],trips:[],events:[],connection:null,loading:false,error:'',map:null,markers:[],timer:null,lastLoad:0};
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtTime=v=>{if(!v)return'—';const d=new Date(v);return Number.isNaN(d.getTime())?text(v):d.toLocaleString();};

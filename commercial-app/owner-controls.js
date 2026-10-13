@@ -28,6 +28,9 @@ const FEATURE_TOGGLES=[
   {id:'online_payments_enabled',title:'Online payments (cards & bank debit)',desc:'Let customers pay invoices online through YOUR OWN Stripe account — money settles straight to your bank; the Office never holds it. Stripe charges 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit; no other fees. Connect Stripe below first, then turn this on. Off by default; manual payments keep working either way.',icon:'💳',default:false,category:'Money'},
   {id:'recurring_jobs_enabled',title:'Recurring jobs & service plans',desc:'Set repeat visits (lawn, snow, maintenance plans) on a customer once, then generate the upcoming jobs from Today. You tap to generate — nothing is created or charged automatically. Off by default.',icon:'🔁',default:false,category:'Jobs'},
   {id:'ai_lead_responder',title:'AI lead responder',desc:'When a new online booking comes in, Hank queues a personal follow-up draft for your one-tap review and send — after hours too, so no lead sits cold. You approve every message; nothing sends itself. Needs Online Booking on. Off by default.',icon:'📞',default:false,category:'AI'},
+  {id:'owner_notify_customer',title:'Customer activity alerts',desc:'The bell in the top bar (and a card on Today) tells owners and admins when customers do something: new booking or service requests, portal messages, quote approvals and declines, payments recorded, files uploaded. On by default.',icon:'🔔',default:true,category:'Notifications'},
+  {id:'owner_notify_review',title:'Needs-review alerts',desc:'The same bell flags work waiting on you: pending approvals, queued actions, AI tasks Hank could not finish alone, quotes and prices that need your review. On by default.',icon:'🔔',default:true,category:'Notifications'},
+  {id:'owner_notify_push',title:'Push alerts to my devices',desc:'Also send the alerts above as phone push notifications (one batched push, never a storm). Needs a device subscribed through the shared push service; the in-app bell works either way. Off by default.',icon:'📲',default:false,category:'Notifications'},
   {id:'health_error_monitoring',title:'Health monitoring & auto-fix',desc:'Hank watches for app errors, blank screens, and stuck loading states — and fixes them automatically. Error reports never include names, emails, phone numbers, or addresses. On by default; turning it off disables self-healing.',icon:'❤️',default:true,category:'App Health'},
   {id:'health_usage_analytics',title:'Usage analytics',desc:'Anonymous counts of which features get used and how fast pages load, so the app keeps getting better. No keystrokes, no form contents, no personal data. On by default.',icon:'📊',default:true,category:'App Health'},
 ];
@@ -302,6 +305,66 @@ async function setAutoSendReviewEnabled(enabled){
   }
   const toggles=getToggles();
   toggles['auto_send_review_requests']=!!enabled;
+  saveToggles(toggles);
+}
+
+// Owner notifications (server-side mirror — CANONICAL toggle shape).
+// Three switches, ONE business_module_settings row: module_key
+// 'owner_notifications', enabled = (customer || review), config
+// {customer, review, push}. The h38-owner-notify edge function (pg_cron,
+// every 5 minutes) reads THIS row before producing notification rows, so
+// the owner's intent holds even while the Office is closed. No row means
+// the defaults: customer + review ON, push OFF. Server snapshot wins when
+// present; the local toggles are the display fallback.
+const OWNER_NOTIFY_KEY='owner_notifications';
+const OWNER_NOTIFY_KINDS={owner_notify_customer:'customer',owner_notify_review:'review',owner_notify_push:'push'};
+const OWNER_NOTIFY_DEFAULTS={customer:true,review:true,push:false};
+function ownerNotifySettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===OWNER_NOTIFY_KEY)||null;
+}
+function ownerNotifyResolved(){
+  const row=ownerNotifySettingRow();
+  const cfg=(row&&row.config)||{};
+  const out={};
+  ['customer','review','push'].forEach(kind=>{
+    if(row&&row.enabled===false) out[kind]=false;
+    else if(cfg&&cfg[kind]!==undefined) out[kind]=cfg[kind]===true;
+    else out[kind]=OWNER_NOTIFY_DEFAULTS[kind];
+  });
+  return out;
+}
+function isOwnerNotifyEnabled(kind){
+  const row=ownerNotifySettingRow();
+  if(row) return ownerNotifyResolved()[kind]===true;
+  const toggleId=Object.keys(OWNER_NOTIFY_KINDS).find(id=>OWNER_NOTIFY_KINDS[id]===kind);
+  return isFeatureEnabled(toggleId);
+}
+// Owner/admin only. Mirrors the full resolved config to
+// business_module_settings and keeps the local toggles in sync.
+async function setOwnerNotifyEnabled(kind,enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can change notification settings.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const next=ownerNotifyResolved();
+  next[kind]=!!enabled;
+  const cfg={customer:next.customer===true,review:next.review===true,push:next.push===true,updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:OWNER_NOTIFY_KEY,enabled:(cfg.customer||cfg.review),config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===OWNER_NOTIFY_KEY);
+    const snap={moduleKey:OWNER_NOTIFY_KEY,module_key:OWNER_NOTIFY_KEY,enabled:row.enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['owner_notify_customer']=cfg.customer;
+  toggles['owner_notify_review']=cfg.review;
+  toggles['owner_notify_push']=cfg.push;
   saveToggles(toggles);
 }
 
@@ -729,7 +792,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -871,6 +934,25 @@ function bindOwnerControls(){
         }
         return;
       }
+      // Owner notification switches are server-backed: the h38-owner-notify
+      // edge function reads ONLY the mirrored business_module_settings row
+      // (module_key 'owner_notifications') before producing alerts.
+      // Revert locally if the write fails.
+      if(OWNER_NOTIFY_KINDS[id]){
+        const want=checkbox.checked;
+        checkbox.disabled=true;
+        try{
+          await setOwnerNotifyEnabled(OWNER_NOTIFY_KINDS[id],want);
+          if(typeof toast==='function') toast('Notification setting saved.');
+          if(window.H38OwnerNotify&&typeof window.H38OwnerNotify.refresh==='function') window.H38OwnerNotify.refresh();
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       // AI Lead Responder is server-backed too (the booking function reads
       // the mirrored row). Revert locally if the write fails.
       if(id==='ai_lead_responder'){
@@ -950,6 +1032,9 @@ window.H38OwnerControls={
   isLeadResponderEnabled:isLeadResponderEnabled,
   isAutoSendReviewEnabled:isAutoSendReviewEnabled,
   setAutoSendReviewEnabled:setAutoSendReviewEnabled,
+  isOwnerNotifyEnabled:isOwnerNotifyEnabled,
+  setOwnerNotifyEnabled:setOwnerNotifyEnabled,
+  ownerNotifyResolved:ownerNotifyResolved,
   isModuleVisible:isModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,

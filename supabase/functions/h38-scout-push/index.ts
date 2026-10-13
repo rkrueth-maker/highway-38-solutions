@@ -18,6 +18,15 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //        -> pg_cron entry point (every 30 min); a subscribe also runs the same
 //           per-household check inline so a pending catch-up batch fires the
 //           moment the first device registers.
+//   Office scope (added 2026-10-13 with the owner-notifications build — the
+//   Business Office reuses this dispatcher, same VAPID identity + sendPush):
+//   {action:"office_subscribe", businessId, subscription, userAgent?} + user JWT
+//        (business_memberships owner/administrator) -> office_push_subscriptions
+//   {action:"office_unsubscribe", businessId, endpoint} + user JWT
+//   {action:"office_dispatch", businessId, userIds?, title, body, url, tag}
+//        + x-h38-nightly-key == h38_internal_job_secrets 'h38-owner-notify'
+//        -> sends to the business's active office subscriptions; logged to
+//           scout_push_dispatch_log with business_id set.
 //
 // Dispatch rules: batched (ONE push per user per run, penny+resale combined
 // when both are new), honest counts/stores taken from the actual rows, and a
@@ -350,6 +359,71 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
   };
 }
 
+// ---------- Office scope: Business Office owner notifications ----------
+// The Office does NOT build a second push stack: it reuses this dispatcher
+// (same VAPID identity, same sendPush, same dispatch log). The differences
+// are scope and storage only — subscriptions live in
+// office_push_subscriptions, authorized by business_memberships
+// (owner/administrator) instead of coupon households, and dispatch is
+// internal-key only: the h38-owner-notify producer presents its own job
+// secret ('h38-owner-notify') server-to-server.
+
+const OFFICE_PRODUCER_SECRET_NAME = "h38-owner-notify";
+
+async function officeMembershipRole(userId: string, businessId: string): Promise<string> {
+  const { data } = await admin.from("business_memberships")
+    .select("role")
+    .eq("auth_user_id", userId).eq("business_id", businessId).eq("status", "active")
+    .maybeSingle();
+  return String((data as { role?: string } | null)?.role ?? "");
+}
+
+interface OfficeSubRow { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }
+
+async function officeDispatch(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const businessId = String(body.businessId ?? "");
+  const userIds = Array.isArray(body.userIds) ? body.userIds.map((u) => String(u)) : [];
+  const title = String(body.title ?? "").slice(0, 120);
+  const payloadBody = String(body.body ?? "").slice(0, 300);
+  const url = String(body.url ?? "");
+  const tag = String(body.tag ?? "office").slice(0, 60);
+  if (!businessId || !title || !url) {
+    return { ok: false, error: "businessId, title and url are required", attempted: 0, sent: 0 };
+  }
+  let query = admin.from("office_push_subscriptions")
+    .select("id, user_id, endpoint, p256dh, auth")
+    .eq("business_id", businessId).eq("active", true);
+  if (userIds.length) query = query.in("user_id", userIds);
+  const { data: subRows } = await query;
+  const subs = (subRows ?? []) as OfficeSubRow[];
+  let sent = 0;
+  const results: Record<string, unknown>[] = [];
+  for (const sub of subs) {
+    try {
+      const result = await sendPush(sub, { title, body: payloadBody, url, tag });
+      if (result.status === 404 || result.status === 410) {
+        await admin.from("office_push_subscriptions")
+          .update({ active: false, updated_at: new Date().toISOString() }).eq("id", sub.id);
+      }
+      if (result.status >= 200 && result.status < 300) sent++;
+      results.push({ subscriptionId: sub.id, status: result.status });
+      await admin.from("scout_push_dispatch_log").insert({
+        household_id: null, business_id: businessId, user_id: sub.user_id, subscription_id: sub.id,
+        scopes: tag, title, body: payloadBody,
+        window_from: new Date().toISOString(), window_to: new Date().toISOString(),
+        push_status: result.status, result: result.body,
+      });
+    } catch (err) {
+      results.push({ subscriptionId: sub.id, status: 0 });
+      await admin.from("scout_push_dispatch_log").insert({
+        household_id: null, business_id: businessId, user_id: sub.user_id, subscription_id: sub.id,
+        scopes: tag, title, body: payloadBody, push_status: 0, result: String(err).slice(0, 300),
+      });
+    }
+  }
+  return { ok: true, attempted: subs.length, sent, results };
+}
+
 // ---------- request handling ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -392,6 +466,48 @@ Deno.serve(async (req) => {
     const title = String(body.title ?? "").slice(0, 120);
     if (endpoint.startsWith("https://")) {
       await admin.from("scout_push_receipts").insert({ endpoint_hash: await sha256Hex(endpoint), title });
+    }
+    return json({ ok: true });
+  }
+
+  // ----- Office scope: routed before the household gate (Office users have
+  // no coupon household). Each action does its own authorization. -----
+  if (action === "office_dispatch") {
+    const got = String(req.headers.get("x-h38-nightly-key") ?? "").trim();
+    const { data: secretRow } = await admin.from("h38_internal_job_secrets")
+      .select("secret_value").eq("name", OFFICE_PRODUCER_SECRET_NAME).maybeSingle();
+    if (!got || !secretRow?.secret_value || got !== secretRow.secret_value) {
+      return json({ error: "Internal key required" }, 403);
+    }
+    return json(await officeDispatch(body));
+  }
+
+  if (action === "office_subscribe" || action === "office_unsubscribe") {
+    const officeUser = await userFromJwt(req);
+    if (!officeUser) return json({ error: "Sign in required" }, 401);
+    const businessId = String(body.businessId ?? "");
+    const role = businessId ? await officeMembershipRole(officeUser.id, businessId) : "";
+    if (role !== "owner" && role !== "administrator") {
+      return json({ error: "Office owner/administrator membership required" }, 403);
+    }
+    if (action === "office_subscribe") {
+      const sub = body.subscription as { endpoint?: string; keys?: { p256dh?: string; auth?: string } } | undefined;
+      const endpoint = String(sub?.endpoint ?? "");
+      const p256dh = String(sub?.keys?.p256dh ?? "");
+      const auth = String(sub?.keys?.auth ?? "");
+      if (!endpoint.startsWith("https://") || !p256dh || !auth) return json({ error: "Invalid subscription" }, 400);
+      await admin.from("office_push_subscriptions").upsert({
+        business_id: businessId, user_id: officeUser.id, endpoint, p256dh, auth,
+        user_agent: String(body.userAgent ?? "").slice(0, 300),
+        active: true, updated_at: new Date().toISOString(),
+      }, { onConflict: "endpoint" });
+      return json({ ok: true });
+    }
+    const endpoint = String(body.endpoint ?? "");
+    if (endpoint) {
+      await admin.from("office_push_subscriptions")
+        .update({ active: false, updated_at: new Date().toISOString() })
+        .eq("endpoint", endpoint).eq("user_id", officeUser.id);
     }
     return json({ ok: true });
   }
