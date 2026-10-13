@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20261013-search-nomatch-1';
+const CACHE_NAME='h38-business-office-20261013-logo-rendition-1';
 const PREVIOUS_FIELD_MODE_CACHE_NAME='h38-business-office-20260918-0145';
 const PREVIOUS_ERP_CACHE_NAME='h38-business-office-20260903-2110';
 const PREVIOUS_CUSTOMER_ACTION_CACHE_NAME='h38-business-office-20260827-1350';
@@ -41,7 +41,7 @@ self.addEventListener('fetch',event=>{
   const request=event.request;if(request.method!=='GET')return;const url=new URL(request.url),sameOrigin=url.origin===self.location.origin,isSupabaseClient=request.url===SUPABASE_CDN;if(!sameOrigin&&!isSupabaseClient)return;
   if(sameOrigin&&url.pathname.endsWith('/__native_walkthrough_recovery'))return;
   const file=url.pathname.split('/').pop()||'index.html';
-  if(sameOrigin&&url.pathname.endsWith('/assets/highway38-logo.png')){event.respondWith((async()=>{const cached=await caches.match(request);if(cached)return cached;const response=await fetch(request);if(response&&response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{});}return response;})());return;}
+  if(sameOrigin&&(url.pathname.endsWith('/assets/highway38-logo.png')||url.pathname.endsWith('/assets/highway38-logo-256.webp'))){event.respondWith((async()=>{const cached=await caches.match(request);if(cached)return cached;const response=await fetch(request);if(response&&response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{});}return response;})());return;}
 
   if(sameOrigin&&(request.mode==='navigate'||LIVE_FIRST.has(file))){event.respondWith((async()=>{try{const networkRequest=freshLiveRequest(request,file),response=await fetch(networkRequest,{cache:'no-store'}),cache=await caches.open(CACHE_NAME);cache.put(request.mode==='navigate'?'./index.html':request,response.clone()).catch(()=>{});return response;}catch(error){return(await caches.match(request.mode==='navigate'?'./index.html':request,{ignoreSearch:true}))||Response.error();}})());return;}
   event.respondWith((async()=>{const cached=await caches.match(request,{ignoreSearch:true});if(cached)return cached;try{const response=await fetch(request,{cache:'no-store'});if(response&&response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{});}return response;}catch(error){return Response.error();}})());
