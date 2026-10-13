@@ -17,7 +17,7 @@ const authority=read('docs/architecture/H38_ASSISTANT_AUTHORITY.md');
 for(const needle of [
   "unifiedAssistantLauncher:true","personalAssistantPrivatePerUser:true","businessCommandBusPreserved:true",
   "androidSafeArea:true","iosSafeAreaReady:true","mutationFeedbackLoopPrevented:true","nativeIosShellCreated:false",
-  "openPage('assistant')","h38-floating-assistant","My H38 Assistant"
+  "openPage('assistant')","h38-floating-assistant","Personal Assistant"
 ])assert(polish.includes(needle),`office polish missing ${needle}`);
 for(const needle of [
   'html.h38-native-android body .topbar','max(env(safe-area-inset-top,0px),24px)','html.h38-ios-like body .topbar',
@@ -68,9 +68,9 @@ async function verifyBrowser(browserType,name,userAgent,expectedClass,artifactNa
     assert(await page.locator('html').evaluate((el,c)=>el.classList.contains(c),expectedClass),`${name}: platform class missing`);
     assert(await page.locator('#personalAssistantButton').evaluate(el=>el.hidden),`${name}: duplicate personal assistant launcher must be hidden`);
     assert(await page.locator('#globalAiButton').evaluate(el=>el.classList.contains('h38-floating-assistant')),`${name}: floating assistant class missing`);
-    assert.equal(await page.locator('#globalAiButton .h38-floating-assistant-label').textContent(),'Ask H38');
+    assert.equal(await page.locator('#globalAiButton .h38-floating-assistant-label').textContent(),'Assistant');
     assert.equal(await page.locator('#globalAiButton .h38-floating-due').textContent(),'3');
-    assert.equal(await page.locator('.page-head h1').textContent(),'My H38 Assistant');
+    assert.equal(await page.locator('.page-head h1').textContent(),'Personal Assistant');
     assert((await page.locator('.h38-owner-assistant-note').textContent()).includes('owner-one@example.com'),`${name}: owner-private identity note missing`);
     assert((await page.locator('#paCommandForm textarea').getAttribute('placeholder')).includes('Start quote'),`${name}: business command examples missing`);
     assert((await page.locator('.h38-assistant-command-chips button').count())>=5,`${name}: quick command chips missing`);

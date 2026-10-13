@@ -154,9 +154,9 @@ function autoOpenInstallHelp(){
 function normalizeSharedToolLabels(){
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
-    if(launcher.getAttribute('aria-label')!=='Ask Hank')launcher.setAttribute('aria-label','Ask Hank');
-    if(launcher.getAttribute('title')!=='Ask Hank')launcher.setAttribute('title','Ask Hank');
-    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!=='Ask Hank')label.textContent='Ask Hank';});
+    if(launcher.getAttribute('aria-label')!=='Assistant')launcher.setAttribute('aria-label','Assistant');
+    if(launcher.getAttribute('title')!=='Assistant')launcher.setAttribute('title','Assistant');
+    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!=='Assistant')label.textContent='Assistant';});
   }
   const aiDialog=document.getElementById('globalAiDialog');if(aiDialog&&aiDialog.getAttribute('aria-label')!=='Assistant')aiDialog.setAttribute('aria-label','Assistant');
   const voice=document.getElementById('voiceButton');if(voice&&voice.getAttribute('aria-label')!=='Talk to Assistant')voice.setAttribute('aria-label','Talk to Assistant');

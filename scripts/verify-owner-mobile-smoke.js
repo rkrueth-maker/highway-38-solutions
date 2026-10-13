@@ -147,7 +147,7 @@ requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final rea
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
 requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20261007-visual-run2-a-2'",'runtime loader pins final phone-first build');
-requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261011-e2e-mutation-fix-1'",'runtime loader pins the shared tenant-neutral quick-action release');
+requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261013-ask-hank-dedupe-1'",'runtime loader pins the shared tenant-neutral quick-action release');
 requireText(ownerQuickActions,'personalAssistantUnderPlus:false','generic mobile + menu excludes Assistant');
 requireText(ownerQuickActions,'globalAssistantCanonical:true','global Assistant is the canonical mobile help launcher');
 requireText(ownerQuickActions,'clockInOutUnderPlusAllViewports:true','Clock In / Out is canonical under + on phone and desktop');
