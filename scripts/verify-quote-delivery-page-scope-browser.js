@@ -24,10 +24,15 @@ const runtime=path.resolve(__dirname,'../commercial-app/supabase-quote-delivery.
     assert.equal(await page.locator('#h38ApproveSendQuoteButton').count(),0,'Customers must not show quote-delivery action');
     await page.evaluate(()=>{
       window.state.page='quotes';
-      document.getElementById('mainContent').innerHTML='<header class="page-head"><h1>Quotes</h1><div class="page-tools"></div></header><section>Quote workspace</section>';
+      document.getElementById('mainContent').innerHTML='<header class="page-head"><h1>Quotes</h1><div class="page-tools"></div></header><section>Quote list</section>';
     });
     await page.waitForTimeout(120);
-    assert.equal(await page.locator('#h38ApproveSendQuoteButton').count(),1,'Quotes must show quote-delivery action');
+    assert.equal(await page.locator('#h38ApproveSendQuoteButton').count(),0,'Quotes list (no open quote) must not show quote-delivery action');
+    await page.evaluate(()=>{
+      document.getElementById('mainContent').innerHTML='<header class="page-head"><h1>Quotes</h1><div class="page-tools"></div></header><section><input id="quoteTitle" value="Test quote"></section>';
+    });
+    await page.waitForTimeout(120);
+    assert.equal(await page.locator('#h38ApproveSendQuoteButton').count(),1,'Quotes builder (quote open) must show quote-delivery action');
     assert.match(await page.locator('#h38ApproveSendQuoteButton').textContent(),/Approve & Send Quote/,'Quote action label must remain explicit');
     assert.equal(await page.locator('#h38ApproveSendQuoteButton').isDisabled(),true,'Unsaved quote remains blocked from sending');
     await page.evaluate(()=>{
