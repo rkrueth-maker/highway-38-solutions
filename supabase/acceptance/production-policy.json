@@ -89,7 +89,18 @@
     "authenticated_security_definer_function_executable",
     "rls_enabled_no_policy"
   ],
-  "reviewed_security_advisor_findings": [],
+  "reviewed_security_advisor_findings": [
+    {
+      "lint": "anon_security_definer_function_executable",
+      "name": "h38_route_proof",
+      "reason": "Token-scoped public proof-of-service read (Route Manager share links): read-only SECURITY DEFINER RPC that returns only the one route's completion summary when the caller presents that route's unguessable Proof Token plus its public business_key. No table grants to anon; the token is the capability (same pattern as h38-task-complete). Reviewed 2026-10-13."
+    },
+    {
+      "lint": "anon_security_definer_function_executable",
+      "name": "public.h38_route_proof",
+      "reason": "Same h38_route_proof RPC, schema-qualified advisor name form. Reviewed 2026-10-13."
+    }
+  ],
   "launch_warning_security_advisor_lints": [
     "auth_leaked_password_protection"
   ],
