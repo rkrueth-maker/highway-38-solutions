@@ -100,9 +100,9 @@ requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed'
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
 requireText(index,'mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1','native scroll authority is loaded');
-requireText(index,'mobile-runtime-stability.js?build=20261013-messages-entry-1','mobile stability layer loads after native scroll authority');
+requireText(index,'mobile-runtime-stability.js?build=20261013-owner-notify-1','mobile stability layer loads after native scroll authority');
 const nativeScrollAt=index.indexOf('mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1');
-const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20261013-messages-entry-1');
+const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20261013-owner-notify-1');
 if(nativeScrollAt>=0&&stabilityAt>nativeScrollAt)pass('native scroll authority installs before mobile stability');else fail('native scroll authority installs before mobile stability');
 requireText(nativeScroll,"main.dataset.h38ManualTouchScroll='2'",'manual touch fallback is prevented before attachment');
 requireText(nativeScroll,'nativeScrollOnly:true','native Office scroll is single authority');

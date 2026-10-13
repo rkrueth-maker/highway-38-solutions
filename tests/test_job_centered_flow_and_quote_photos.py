@@ -107,7 +107,7 @@ def test_delete_site_visit_keeps_customer_quote_and_uses_explicit_confirmation()
 
 
 def test_new_flow_is_loaded_live_first_and_cache_busted():
-    assert "./job-centered-flow.js?build=20261013-messages-entry-1" in INDEX
+    assert "./job-centered-flow.js?build=20261013-owner-notify-1" in INDEX
     # Startup deferral (2026-10-13): the site-visit top action and native
     # launch runtimes ship in the H38ScriptLoader FIELD_AND_MEASURE group
     # with the same ?build= params (and stay in the SW lists below).
