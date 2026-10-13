@@ -1,27 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T07:59:11.783Z",
+  "generatedAt": "2026-10-13T08:34:58.874Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "commercial-app/index.html",
-    "commercial-app/office-polish.js",
-    "commercial-app/owner-mobile-quick-actions.js",
-    "commercial-app/runtime-rowid-fix.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/supabase-no-legacy-office.js",
-    "scripts/verify-cross-platform-assistant-polish.js",
-    "scripts/verify-native-walkthrough-launch-hammer.js",
-    "scripts/verify-owner-mobile-quick-actions-browser.js",
-    "scripts/verify-owner-mobile-smoke.js"
+    "commercial-app/route-manager.js"
   ],
-  "fileCount": 10,
+  "fileCount": 2,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
