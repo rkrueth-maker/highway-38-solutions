@@ -133,6 +133,14 @@ function polishAssistantLauncher(){
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
     const displayName=assistantDisplayName();
+    // The launcher is styled position:fixed, but it ships inside the top bar.
+    // On phone widths the mobile shell styles give .topbar a transform, which
+    // makes the header the containing block for fixed descendants — the pill
+    // anchored to the header and rendered above the viewport (complete scan
+    // 2026-10-13, rect y=-74 at 390px). A viewport-floating launcher belongs
+    // at body level; move it there once so fixed positioning is always
+    // viewport-relative. Listeners and ID lookups are unaffected by the move.
+    if(document.body&&launcher.parentElement!==document.body)document.body.appendChild(launcher);
     launcher.classList.add('h38-floating-assistant','h38-polish-touch');
     if(launcher.getAttribute('aria-label')!==displayName)launcher.setAttribute('aria-label',displayName);
     if(launcher.getAttribute('title')!==displayName)launcher.setAttribute('title',displayName);

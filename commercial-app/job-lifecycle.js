@@ -496,10 +496,10 @@ function renderSearch(query){
 }
 function installSearchButton(){
   if(document.getElementById('h38OfficeSearchButton'))return;
-  const ai=document.getElementById('globalAiButton'),container=ai?.parentElement;
+  const ai=document.getElementById('globalAiButton'),container=document.querySelector('.top-actions')||ai?.parentElement;
   if(!container)return;
   const button=document.createElement('button');button.id='h38OfficeSearchButton';button.className='icon-button';button.type='button';button.setAttribute('aria-label','Search Business Office');button.textContent='⌕';button.onclick=openSearch;
-  container.insertBefore(button,ai);
+  container.insertBefore(button,ai&&container.contains(ai)?ai:container.firstChild);
 }
 function enrichAi(){
   if(typeof window.aiContext==='function'&&!window.aiContext.__h38Lifecycle){

@@ -71,3 +71,5 @@
  .h38-c360-event{grid-template-columns:1fr;gap:3px}
  .h38-c360-event>span{padding-top:0}
 }
+.h38-c360-search #h38Customer360Matches button small{flex:0 0 auto;white-space:nowrap}
+.h38-c360-nomatch{padding:11px 13px;color:#5d7688;font-size:.86rem;background:#fff}
