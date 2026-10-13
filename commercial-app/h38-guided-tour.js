@@ -1,32 +1,66 @@
-/* ---- H38 Guided Tour (2026-10-12) ----
- * First-run step-by-step walkthrough for new business owners.
+/* ---- H38 Guided Tour (2026-10-12; F4 behavior fix 2026-10-13) ----
+ * On-demand step-by-step walkthrough for business owners.
  *
- * Rules:
- * - Never blocks: Skip is always one tap away, Escape also exits.
+ * F4 fix — why this file no longer auto-launches:
+ * The first-run auto-launch landed seconds AFTER Today was already usable,
+ * dimmed the working screen, intercepted every tap (the overlay owned
+ * pointer events), and kept saying "Step 1 of 5 — Today screen" after the
+ * user navigated elsewhere. The tour now:
+ * - NEVER auto-launches. It starts only when the user taps
+ *   "Take the office tour" (Settings → Business setup & onboarding),
+ *   which lazy-loads this file via window.H38GuidedTourLoader in
+ *   index.html — so it adds zero startup cost before usable Today.
+ * - Is fully NON-MODAL while open: the overlay never takes pointer
+ *   events; only the tour card itself is interactive. Any tap outside
+ *   the card dismisses the tour and lands on the app underneath.
+ * - Yields on independent navigation: if the app renders a page that is
+ *   not the current step's page, the tour ends instead of showing a
+ *   stale step label over the wrong screen.
+ * - Steps navigate first, then verify window.state.page actually matches
+ *   the step before showing the card; a step whose page cannot be shown
+ *   ends the tour rather than mislabelling another screen.
+ * - Skip / Finish are real buttons (>=44px), plus a separate
+ *   "Don't show again" button that persists the opt-out per user +
+ *   business in localStorage (the tour's existing preference store,
+ *   scoped with the signed-in user's id from H38DB.getUserScope()).
  * - Manual mode emphasized: every step works by hand, Hank is optional.
- * - First-run auto-launch via localStorage; "Replay tour" in Settings.
- * - Spotlight highlights the real UI element; tooltip explains in plain language.
  */
 (function(){
 'use strict';
 
-var BUILD = '20261013-fix-sweep-1';
+var BUILD = '20261013-guided-tour-f4-1';
 var STORE_KEY = 'h38_guided_tour_done';
 
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function $(id){ return document.getElementById(id); }
 function businessKey(){
   try{ return String((window.state&&window.state.businessId)||'default'); }catch(e){ return 'default'; }
 }
-function storeKey(){ return STORE_KEY+'_'+businessKey(); }
+function userKey(){
+  try{
+    if(window.H38DB && typeof window.H38DB.getUserScope==='function'){
+      var u = window.H38DB.getUserScope();
+      if(u) return String(u);
+    }
+  }catch(e){}
+  try{
+    var raw = localStorage.getItem('sb-jqukmwtsgcsaruucnqja-auth-token');
+    var s = raw ? JSON.parse(raw) : null;
+    if(s && s.user && s.user.id) return String(s.user.id);
+  }catch(e){}
+  return 'anon';
+}
+function storeKey(){ return STORE_KEY+'_'+userKey()+'_'+businessKey(); }
+function legacyStoreKey(){ return STORE_KEY+'_'+businessKey(); }
 function isDone(){
-  try{ return localStorage.getItem(storeKey())==='1'; }catch(e){ return true; }
+  try{
+    return localStorage.getItem(storeKey())==='1' || localStorage.getItem(legacyStoreKey())==='1';
+  }catch(e){ return true; }
 }
 function markDone(){
   try{ localStorage.setItem(storeKey(),'1'); }catch(e){}
 }
 function clearDone(){
-  try{ localStorage.removeItem(storeKey()); }catch(e){}
+  try{ localStorage.removeItem(storeKey()); localStorage.removeItem(legacyStoreKey()); }catch(e){}
 }
 
 /* ---- Tour step definitions ----
@@ -63,7 +97,7 @@ var STEPS = [
     page:'today',
     target:null,
     title:'You\u2019re set',
-    body:'That\u2019s the whole loop: customers \u2192 quotes \u2192 jobs \u2192 money. Find everything in the menu \u2014 Quotes, Customers, Schedule, Money. You can replay this tour anytime from Settings.'
+    body:'That\u2019s the whole loop: customers \u2192 quotes \u2192 jobs \u2192 money. Find everything in the menu \u2014 Quotes, Customers, Schedule, Money. You can replay this tour anytime from Settings \u2192 Business setup & onboarding \u2192 \u201cTake the office tour\u201d.'
   }
 ];
 
@@ -75,15 +109,15 @@ function ensureOverlay(){
   overlay = document.createElement('div');
   overlay.id = 'h38TourOverlay';
   overlay.innerHTML =
-    '<div class="h38-tour-dim" data-tour-skip></div>'+
     '<div class="h38-tour-spot" id="h38TourSpot"></div>'+
-    '<div class="h38-tour-card" id="h38TourCard" role="dialog" aria-modal="true" aria-labelledby="h38TourTitle">'+
+    '<div class="h38-tour-card" id="h38TourCard" role="dialog" aria-modal="false" aria-labelledby="h38TourTitle">'+
       '<div class="h38-tour-progress" id="h38TourProgress"></div>'+
       '<h2 id="h38TourTitle"></h2>'+
       '<p id="h38TourBody"></p>'+
-      '<p class="h38-tour-manual">Every step works by hand \u2014 Hank is optional.</p>'+
+      '<p class="h38-tour-manual">Every step works by hand \u2014 Hank is optional. Tap anywhere outside this card to leave the tour and use the app.</p>'+
       '<div class="h38-tour-actions">'+
-        '<button type="button" class="h38-tour-skip" data-tour-skip>Skip tour</button>'+
+        '<button type="button" class="h38-tour-skip" id="h38TourSkip">Skip tour</button>'+
+        '<button type="button" class="h38-tour-never" id="h38TourNever">Don\u2019t show again</button>'+
         '<span class="h38-tour-nav">'+
           '<button type="button" class="secondary" id="h38TourBack">Back</button>'+
           '<button type="button" class="primary" id="h38TourNext">Next</button>'+
@@ -91,13 +125,32 @@ function ensureOverlay(){
       '</div>'+
     '</div>';
   document.body.appendChild(overlay);
-  overlay.addEventListener('click',function(e){
-    if(e.target.closest('[data-tour-skip]')){ endTour(); return; }
-  });
+  $('h38TourSkip').addEventListener('click',function(){ endTour(false); });
+  $('h38TourNever').addEventListener('click',function(){ endTour(true); });
   $('h38TourBack').addEventListener('click',function(){ goTo(current-1); });
-  $('h38TourNext').addEventListener('click',function(){ goTo(current+1); });
+  $('h38TourNext').addEventListener('click',function(){
+    if(current===STEPS.length-1){ endTour(true); return; }
+    goTo(current+1);
+  });
   document.addEventListener('keydown',function(e){
-    if(e.key==='Escape' && overlay && overlay.classList.contains('open')) endTour();
+    if(e.key==='Escape' && overlay && overlay.classList.contains('open')) endTour(false);
+  });
+  // Non-modal yield: any real interaction outside the card dismisses the
+  // tour and is NOT swallowed — the listener is observe-only (capture
+  // phase, no preventDefault/stopPropagation), so the tap still lands
+  // on the app control underneath.
+  document.addEventListener('pointerdown',function(e){
+    if(!overlay || !overlay.classList.contains('open')) return;
+    var card = $('h38TourCard');
+    if(card && !card.contains(e.target)) endTour(false);
+  },true);
+  // Yield on independent navigation: a rendered page that is not the
+  // current step's page means the user (or the app) moved on — end the
+  // tour instead of leaving a stale step label over the new screen.
+  window.addEventListener('h38:office-page-rendered',function(e){
+    if(!overlay || !overlay.classList.contains('open') || current<0) return;
+    var page = (e && e.detail && e.detail.page) || (window.state && window.state.page);
+    if(page && page!==STEPS[current].page) endTour(false);
   });
   return overlay;
 }
@@ -152,7 +205,7 @@ function positionCardCenter(card){
 
 function renderStep(){
   var step = STEPS[current];
-  if(!step){ endTour(); return; }
+  if(!step){ endTour(false); return; }
   ensureOverlay();
   $('h38TourTitle').textContent = step.title;
   $('h38TourBody').textContent = step.body;
@@ -160,8 +213,20 @@ function renderStep(){
   $('h38TourBack').style.visibility = current===0 ? 'hidden' : 'visible';
   $('h38TourNext').textContent = current===STEPS.length-1 ? 'Finish' : 'Next';
   overlay.classList.add('open');
-  // Give the page a beat to render, then position
-  setTimeout(function(){ positionSpotlight(step); }, 350);
+  // Give the page a beat to render, then position — and verify the app
+  // really is on this step's page. If navigation landed elsewhere (page
+  // not allowed for this role/business), never show a stale label: end.
+  var shownStep = current;
+  setTimeout(function(){
+    if(current!==shownStep || !overlay.classList.contains('open')) return;
+    try{
+      if(window.state && window.state.page && window.state.page!==STEPS[shownStep].page){
+        endTour(false);
+        return;
+      }
+    }catch(e){}
+    positionSpotlight(STEPS[shownStep]);
+  }, 350);
   // Reposition on resize/scroll during tour
   window.addEventListener('resize', reposition);
   window.addEventListener('scroll', reposition, {passive:true});
@@ -169,12 +234,18 @@ function renderStep(){
 
 function reposition(){
   if(current<0||!overlay||!overlay.classList.contains('open')) return;
+  try{
+    if(window.state && window.state.page && window.state.page!==STEPS[current].page){
+      endTour(false);
+      return;
+    }
+  }catch(e){}
   positionSpotlight(STEPS[current]);
 }
 
 function goTo(n){
   if(n<0){ return; }
-  if(n>=STEPS.length){ endTour(); return; }
+  if(n>=STEPS.length){ endTour(true); return; }
   current = n;
   var step = STEPS[n];
   // Navigate to the step's page, then render
@@ -186,79 +257,33 @@ function goTo(n){
   renderStep();
 }
 
-function startTour(auto){
+function startTour(){
+  // On-demand only. There is deliberately no auto-launch path in this
+  // file: nothing in the app may call start() except the explicit
+  // "Take the office tour" entry (window.H38GuidedTourLoader in
+  // index.html wires [data-h38-tour] clicks to it).
   if(overlay && overlay.classList.contains('open')) return;
-  if(!auto) clearDone(); // starting manually clears the done flag only for replay bookkeeping
   current = -1;
   goTo(0);
-  // Auto-shown once = shown for good (2026-10-13 fix sweep): persist the done
-  // flag the moment the tour is auto-displayed, so closing, skipping, or
-  // ignoring it can never re-launch it uninvited on a later load. Manual
-  // relaunch via window.H38GuidedTour.start() / [data-h38-tour] still works.
-  if(auto) markDone();
 }
 
-function endTour(){
-  markDone();
+function endTour(persistDone){
+  if(persistDone) markDone();
   current = -1;
   if(overlay) overlay.classList.remove('open');
   window.removeEventListener('resize', reposition);
   window.removeEventListener('scroll', reposition);
 }
 
-/* ---- First-run auto-launch ---- */
-var autoStartWaitingForReady = false;
-function maybeAutoStart(){
-  if(isDone()) return;
-  // Auto-start ONLY after authoritative startup is ready (2026-10-13 fix
-  // sweep): before that the app is still behind the loading cover, and the
-  // tour stepping in mid-bootstrap intercepted first-load navigation. If
-  // startup is not ready yet, wait for the canonical ready event once.
-  if(document.documentElement.dataset.h38AuthoritativeStartup!=='ready'){
-    if(!autoStartWaitingForReady){
-      autoStartWaitingForReady = true;
-      window.addEventListener('h38:authoritative-startup-ready',function(){
-        autoStartWaitingForReady = false;
-        maybeAutoStart();
-      },{once:true});
-    }
-    return;
-  }
-  // Only auto-start for signed-in owners/admins on the today page, once per load
-  try{
-    if(!window.state || !window.state.snapshot) return;
-    var role = String(window.state.role||'').toLowerCase();
-    if(role && role!=='owner' && role!=='administrator' && role!=='admin') return;
-  }catch(e){}
-  // Small delay so the app finishes rendering
-  setTimeout(function(){
-    if(isDone()) return;
-    if(overlay && overlay.classList.contains('open')) return;
-    startTour(true);
-  }, 2500);
-}
-
 /* ---- Public API ---- */
 window.H38GuidedTour = {
   start: startTour,
-  end: endTour,
+  end: function(){ endTour(false); },
+  dismissForever: function(){ endTour(true); },
   isDone: isDone,
   reset: clearDone,
   BUILD: BUILD
 };
 
-/* ---- Wire up ---- */
-document.addEventListener('click',function(e){
-  var b = e.target.closest('[data-h38-tour]');
-  if(b){ e.preventDefault(); startTour(); }
-});
-
-// Auto-launch check after app boots
-if(document.readyState==='complete'){ maybeAutoStart(); }
-else{ window.addEventListener('load',function(){ setTimeout(maybeAutoStart, 1000); }); }
-// Also check when auth state settles (event from app boot)
-window.addEventListener('h38:office-page-rendered',function(){
-  if(!window.__h38TourAutoChecked){ window.__h38TourAutoChecked=true; maybeAutoStart(); }
-});
-
 })();
+

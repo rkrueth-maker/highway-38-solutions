@@ -84,7 +84,6 @@
   <link rel="stylesheet" href="./styles.css?build=20261012-mobile-polish3-1">
   <link rel="stylesheet" href="./ai-drawer.css?build=20260806-0344">
   <link rel="stylesheet" href="./h38-first-quote-guide.css?build=20261010-first-quote-guide-1">
-  <link rel="stylesheet" href="./h38-guided-tour.css?build=20261012-guided-tour-1">
   <link rel="stylesheet" href="./quote-delivery.css?build=20260806-0344">
   <link rel="stylesheet" href="./good-better-best.css?build=20261005-tiered-estimates-1">
   <link rel="stylesheet" href="./print-safe.css?build=20260815-0025">
@@ -184,7 +183,6 @@
   <script defer src="./app-05.js?build=20261007-mark-complete-fix-1"></script>
   <script defer src="./app-06.js?build=20261012-mobile-polish3-1"></script>
   <script defer src="./h38-first-quote-guide.js?build=20261010-first-quote-guide-1"></script>
-  <script defer src="./h38-guided-tour.js?build=20261013-fix-sweep-1"></script>
   <script defer src="./app-07.js?build=20260806-0344"></script>
   <script defer src="./app-08.js?build=20261007-job-status-flow-1"></script>
   <script defer src="./app-09.js?build=20260806-0344"></script>
@@ -346,6 +344,40 @@
       return this.load().then(function(g){ g.start(guideId); });
     }
   };
+  </script>
+  <script>
+  /* Guided tour: on-demand loader ONLY (F4 fix, 2026-10-13). The tour
+     must never auto-launch and must add zero startup cost, so neither
+     its JS nor its CSS is loaded with the app. It loads the first time
+     the user taps a [data-h38-tour] entry ("Take the office tour" in
+     Settings -> Business setup & onboarding) and reuses the loaded
+     copy after that. Mirrors H38TrainingGuidesLoader above. */
+  window.H38GuidedTourLoader = {
+    load: function(){
+      return new Promise(function(resolve, reject){
+        if(window.H38GuidedTour) return resolve(window.H38GuidedTour);
+        if(!document.querySelector('link[data-h38-guided-tour-css]')){
+          var l = document.createElement('link');
+          l.rel = 'stylesheet';
+          l.setAttribute('data-h38-guided-tour-css','1');
+          l.href = './h38-guided-tour.css?build=20261013-guided-tour-f4-1';
+          document.head.appendChild(l);
+        }
+        var s = document.createElement('script');
+        s.src = './h38-guided-tour.js?build=20261013-guided-tour-f4-1';
+        s.onload = function(){ resolve(window.H38GuidedTour); };
+        s.onerror = function(){ reject(new Error('Guided tour failed to load')); };
+        document.head.appendChild(s);
+      });
+    },
+    start: function(){
+      return this.load().then(function(g){ g.start(); });
+    }
+  };
+  document.addEventListener('click',function(e){
+    var b = e.target.closest('[data-h38-tour]');
+    if(b){ e.preventDefault(); window.H38GuidedTourLoader.start(); }
+  });
   </script>
   <script>
   window.H38_HEARTBEAT = {
