@@ -168,12 +168,100 @@ async function saveEvidence(admin: any, row: any, createdBy: string, evidence: a
   return "inserted";
 }
 
+// --- eBay Browse API asking-comp fallback (added 2026-10-13, [ai:kit]) ---
+// The Bing public-index path above has yielded ZERO usable eBay item links
+// in production (Bing RSS no longer returns ebay.com/itm pages for site:
+// queries), so every refresh landed EMPTY and no market evidence ever
+// accumulated. When Bing yields nothing, fall back to live eBay Browse API
+// asking prices using the same project EBAY_* credentials the
+// reseller-ebay-comps function uses. Evidence is recorded honestly as
+// evidence_type "active" (asking), never as sold.
+const browseMarker = "[AUTO:EBAY_BROWSE_ASKING_V1]";
+let ebayTokenCache = { token: "", exp: 0 };
+async function ebayToken() {
+  if (ebayTokenCache.token && Date.now() < ebayTokenCache.exp) return ebayTokenCache.token;
+  const id = Deno.env.get("EBAY_CLIENT_ID") || "";
+  const secret = Deno.env.get("EBAY_CLIENT_SECRET") || "";
+  if (!id || !secret) return "";
+  const r = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${btoa(`${id}:${secret}`)}`,
+    },
+    body: "grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope",
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!r.ok) return "";
+  const data = await r.json().catch(() => ({}));
+  const token = text(data?.access_token);
+  if (token) ebayTokenCache = { token, exp: Date.now() + Math.max(60, Number(data?.expires_in || 7200) - 120) * 1000 };
+  return token;
+}
+
+async function ebayBrowseEvidence(row: any): Promise<any[]> {
+  const token = await ebayToken();
+  if (!token) return [];
+  const upc = text(row.upc).replace(/\D/g, "");
+  const params = new URLSearchParams({ limit: "12" });
+  if (upc.length >= 8) params.set("gtin", upc);
+  else {
+    const tokens = titleTokens(row.title).slice(0, 8);
+    if (tokens.length < 2) return [];
+    params.set("q", tokens.join(" "));
+  }
+  const marketplace = text(Deno.env.get("EBAY_MARKETPLACE")) || "EBAY_US";
+  const r = await fetch(`https://api.ebay.com/buy/browse/v1/item_summary/search?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}`, "X-EBAY-C-MARKETPLACE-ID": marketplace },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) return [];
+  const data = await r.json().catch(() => ({}));
+  const out: any[] = [];
+  for (const item of (Array.isArray(data?.itemSummaries) ? data.itemSummaries : [])) {
+    const sourceUrl = directEbayItemUrl(item?.itemWebUrl);
+    if (!sourceUrl) continue;
+    const rel = relevance(row, { title: item?.title || "", description: "" });
+    if (!rel.ok || (!rel.identifier && rel.ratio < 0.6)) continue;
+    const price = Number(item?.price?.value);
+    if (!Number.isFinite(price) || price <= 0) continue;
+    const shipRaw = item?.shippingOptions?.[0]?.shippingCost?.value;
+    const ship = shipRaw === undefined || shipRaw === null ? null : Number(shipRaw);
+    out.push({
+      evidence_type: "active",
+      marketplace: "eBay asking (Browse API)",
+      title: text(item?.title) || text(row.title),
+      source_url: sourceUrl,
+      observed_price: price,
+      shipping_price: Number.isFinite(ship as number) ? ship : null,
+      condition_label: text(item?.condition) || "",
+      upc: text(row.upc),
+      sku: text(row.sku),
+      asin: "",
+      confidence_score: clamp(45 + Math.round(rel.ratio * 20) + 10, 0, 80),
+      observed_at: new Date().toISOString(),
+      sold_at: null,
+      notes: `${browseMarker} Live eBay ASKING price via Browse API - NOT a sold price. Treat as a resale ceiling estimate; sold prices still require eBay Marketplace Insights. Match=${rel.identifier ? "identifier" : `title:${Math.round(rel.ratio * 100)}%`}.`,
+    });
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
 async function searchOne(admin: any, row: any, createdBy: string) {
   const query = searchQuery(row);
   const attemptedAt = new Date().toISOString();
   try {
     const xml = await fetchText(`https://www.bing.com/search?q=${encodeURIComponent(query)}&format=rss&count=20`);
-    const candidates = parseRssItems(xml).map(item => toEvidence(row, item)).filter(Boolean).slice(0, 6) as any[];
+    let candidates = parseRssItems(xml).map(item => toEvidence(row, item)).filter(Boolean).slice(0, 6) as any[];
+    let usedQuery = query;
+    if (!candidates.length) {
+      const fallback = await ebayBrowseEvidence(row).catch(() => [] as any[]);
+      if (fallback.length) {
+        candidates = fallback;
+        usedQuery = `ebay-browse:${text(row.upc).replace(/\D/g, "") || titleTokens(row.title).slice(0, 8).join(" ")}`;
+      }
+    }
     let inserted = 0, updated = 0, manualPreserved = 0;
     for (const evidence of candidates) {
       const result = await saveEvidence(admin, row, createdBy, evidence);
@@ -195,12 +283,12 @@ async function searchOne(admin: any, row: any, createdBy: string) {
       active_count: activeCount,
       completed_count: completedCount,
       status,
-      last_query: query,
+      last_query: usedQuery,
       last_error: "",
       updated_at: attemptedAt,
     }, { onConflict: "household_id,canonical_key" });
     if (state.error) throw state.error;
-    return { canonical_key: row.canonical_key, title: row.title, status, found: candidates.length, sold: soldCount, active: activeCount, completed: completedCount, inserted, updated, manual_preserved: manualPreserved, query };
+    return { canonical_key: row.canonical_key, title: row.title, status, found: candidates.length, sold: soldCount, active: activeCount, completed: completedCount, inserted, updated, manual_preserved: manualPreserved, query: usedQuery };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     await admin.from("deal_engine_market_refresh_state").upsert({
@@ -324,8 +412,8 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: true,
       mode: serviceRun ? "bounded_batch" : "single_opportunity",
-      provider: "Bing public index → eBay item pages",
-      truth: "SOLD is recorded only when indexed public text explicitly says sold. Completed-but-not-proven-sold stays COMPLETED; ambiguous product matches are discarded.",
+      provider: "Bing public index → eBay item pages; eBay Browse API asking fallback when Bing yields nothing",
+      truth: "SOLD is recorded only when indexed public text explicitly says sold. Completed-but-not-proven-sold stays COMPLETED; ambiguous product matches are discarded. Browse API fallback records ASKING prices as ACTIVE evidence, never as sold.",
       searched: results.length,
       evidence_found: found,
       sold_found: sold,
