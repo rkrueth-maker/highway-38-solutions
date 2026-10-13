@@ -13,7 +13,7 @@ try{new Function(layer);}catch(error){failures.push(`profitability JavaScript sy
 try{new Function(loader);}catch(error){failures.push(`profitability loader syntax: ${error.message}`);}
 check('late loader remains in Business Office',html.includes('./desktop-navigation-authority.js?build='));
 check('late loader owns profitability module load',loader.includes('./profitability-operating-layer.js?build=${PROFITABILITY_BUILD}'));
-check('late loader uses exact profitability build',loader.includes("const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1'"));
+check('late loader uses exact profitability build',loader.includes("const PROFITABILITY_BUILD='20261013-startup-dedupe-1'"));
 check('late loader prevents duplicate scripts',loader.includes("document.querySelector('script[data-h38-profitability-layer]')"));
 check('live-first delivery protects late loader',/LIVE_FIRST[^;]+desktop-navigation-authority\.js/s.test(sw));
 check('profitability assumption inputs have capture safety',loader.includes('PROFITABILITY_INPUT_IDS')&&loader.includes("document.addEventListener('change'")&&loader.includes('event.stopImmediatePropagation()'));

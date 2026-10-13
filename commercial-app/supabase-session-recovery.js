@@ -6,7 +6,7 @@
   if (!shared?.enabled || !officeAuth || typeof officeAuth.signOut !== 'function') return;
   if (window.H38_SUPABASE_SESSION_RECOVERY?.enabled) return;
 
-  let checking = false;
+  let validationPromise = null;
   let redirecting = false;
   let lastValidatedAt = 0;
   const h38RecoveryPageLoad = Date.now();
@@ -52,11 +52,26 @@
     return false;
   }
 
-  async function validate(trigger, force) {
-    if (checking || redirecting || !navigator.onLine) return true;
+  function validate(trigger, force) {
+    if (redirecting || !navigator.onLine) return Promise.resolve(true);
+    // Single-flight session validation (MODULE_PERFORMANCE_STANDARD:
+    // repeated requests for the same route and options reuse one in-flight
+    // promise). Startup used to issue GET auth/v1/user twice: the startup
+    // timer's forced validation completed, then the pageshow handler ran a
+    // second forced validation because the old `checking` flag only blocked
+    // concurrent calls and force bypassed the 15s cooldown. Every trigger
+    // now joins the one in-flight validation instead.
+    if (validationPromise) return validationPromise;
     const now = Date.now();
-    if (!force && now - lastValidatedAt < 15000) return true;
-    checking = true;
+    if (!force && now - lastValidatedAt < 15000) return Promise.resolve(true);
+    const run = validateOnce(trigger);
+    validationPromise = run;
+    const clear = () => { if (validationPromise === run) validationPromise = null; };
+    run.then(clear, clear);
+    return run;
+  }
+
+  async function validateOnce(trigger) {
     try {
       const client = shared.ensure();
       const sessionResult = await client.auth.getSession();
@@ -88,8 +103,6 @@
     } catch (error) {
       if (isSessionFailure(error)) return requireSignIn(error.message);
       return false;
-    } finally {
-      checking = false;
     }
   }
 
@@ -117,7 +130,10 @@
     });
   }
 
-  window.addEventListener('pageshow', () => { void validate('pageshow', true); });
+  // Not forced: the initial pageshow is covered by the startup validation
+  // (joined in flight, or inside its 15s cooldown). A later pageshow — e.g. a
+  // back/forward-cache restore after the cooldown — still revalidates.
+  window.addEventListener('pageshow', () => { void validate('pageshow', false); });
   window.addEventListener('online', () => { void validate('online', true); refreshServiceWorker(); });
   window.addEventListener('load', refreshServiceWorker, { once: true });
   document.addEventListener('visibilitychange', () => {
@@ -135,6 +151,7 @@
     enabled: true,
     build: '20260807-2132',
     validate: function () { return validate('manual', true); },
+    singleFlightValidation: true,
     singleClientRequired: true,
     clearsRevokedMembershipState: true,
     preservesDrafts: true,
