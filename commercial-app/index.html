@@ -3,34 +3,57 @@
 <head>
   <meta charset="utf-8">
   <script>
-  /* H38 Auto-Update: checks version.json on every load. If the server has a
-     newer version than what this device last ran, force a cache-busting reload
-     so updates reach customers without manual cache clears. */
+  /* H38 Auto-Update: checks version.json on every load AND whenever the app
+     returns to the foreground (pageshow / visibilitychange). If the server
+     has a newer version than what this device last ran, force ONE
+     cache-busting reload so updates reach customers without manual cache
+     clears. The foreground re-check exists because a long-lived app instance
+     (an installed PWA resumed from the background, a restored tab) may never
+     perform a fresh navigation — without it such a client can sit on an old
+     shell indefinitely (2026-10-11 Field Sync card; recurred 2026-10-13 with
+     the card-top bands). Loop safety: the seen version is stored BEFORE the
+     reload, and a per-session heal marker caps the reload at one per target
+     version, so a client that still reads a stale version.json after the
+     reload waits for the next session instead of looping. */
   (function(){
-    try{
-      var KEY='h38-app-version';
-      var last=localStorage.getItem(KEY);
-      var xhr=new XMLHttpRequest();
-      xhr.open('GET','./version.json?_='+Date.now(),true);
-      xhr.timeout=8000;
-      xhr.onreadystatechange=function(){
-        if(xhr.readyState!==4)return;
-        try{
-          if(xhr.status!==200)return;
-          var v=JSON.parse(xhr.responseText).version;
-          if(!v)return;
-          if(last&&last!==v){
-            localStorage.setItem(KEY,v);
-            var u=window.location.href.split('#')[0];
-            u+=(u.indexOf('?')>=0?'&':'?')+'_refresh='+Date.now();
-            window.location.replace(u);
-          }else if(!last){
-            localStorage.setItem(KEY,v);
-          }
-        }catch(e){}
-      };
-      xhr.send();
-    }catch(e){}
+    var KEY='h38-app-version';
+    var HEAL_KEY='h38-app-version-heal';
+    var lastRun=0;
+    function check(){
+      var now=Date.now();
+      if(now-lastRun<60000)return; /* throttle foreground re-checks */
+      lastRun=now;
+      try{
+        var last=localStorage.getItem(KEY);
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET','./version.json?_='+now,true);
+        xhr.timeout=8000;
+        xhr.onreadystatechange=function(){
+          if(xhr.readyState!==4)return;
+          try{
+            if(xhr.status!==200)return;
+            var v=JSON.parse(xhr.responseText).version;
+            if(!v)return;
+            if(last&&last!==v){
+              localStorage.setItem(KEY,v);
+              var healed=null;
+              try{healed=sessionStorage.getItem(HEAL_KEY);}catch(e){}
+              if(healed===v)return; /* already healed once this session */
+              try{sessionStorage.setItem(HEAL_KEY,v);}catch(e){}
+              var u=window.location.href.split('#')[0];
+              u+=(u.indexOf('?')>=0?'&':'?')+'_refresh='+Date.now();
+              window.location.replace(u);
+            }else if(!last){
+              localStorage.setItem(KEY,v);
+            }
+          }catch(e){}
+        };
+        xhr.send();
+      }catch(e){}
+    }
+    check();
+    window.addEventListener('pageshow',check);
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
   })();
   </script>
   <script>
@@ -192,7 +215,7 @@
   <script defer src="./app-17.js?build=20261013-app-batch1-1"></script>
   <script defer src="./supabase-runtime-globals.js?build=20260913-mobile-touch-targets-1"></script>
   <script defer src="./supabase-data.js?build=20261013-snapshot-employees-1"></script>
-  <script defer src="./supabase-client-branding.js?build=20261013-card-band-2"></script>
+  <script defer src="./supabase-client-branding.js?build=20261013-self-update-1"></script>
   <script defer src="./supabase-operation-coverage.js?build=20260806-0344"></script>
   <script defer src="./example-data-manager.js?build=20260824-example-data-manager-2"></script>
   <script defer src="./example-data-full-office.js?build=20261007-example-full-office-tenant-gate-1"></script>
