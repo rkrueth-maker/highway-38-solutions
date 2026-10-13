@@ -89,7 +89,18 @@
     "authenticated_security_definer_function_executable",
     "rls_enabled_no_policy"
   ],
-  "reviewed_security_advisor_findings": [],
+  "reviewed_security_advisor_findings": [
+    {
+      "lint": "anon_security_definer_function_executable",
+      "name": "h38_route_proof",
+      "reason": "Token-scoped public proof-of-service read (Route Manager share links): read-only SECURITY DEFINER RPC that returns only the one route's completion summary when the caller presents that route's unguessable Proof Token plus its public business_key. No table grants to anon; the token is the capability (same pattern as h38-task-complete). Reviewed 2026-10-13."
+    },
+    {
+      "lint": "anon_security_definer_function_executable",
+      "name": "public.h38_route_proof",
+      "reason": "Same h38_route_proof RPC, schema-qualified advisor name form. Reviewed 2026-10-13."
+    }
+  ],
   "launch_warning_security_advisor_lints": [
     "auth_leaked_password_protection"
   ],
@@ -187,7 +198,7 @@
     "h38-penny-walmart-exact-image": "Internal worker; rejects callers without the x-h38-nightly-key secret (checked against h38_internal_job_secrets) and returns 401; its pg_cron callers send no user JWT, so verify_jwt must stay false.",
     "h38-penny-walmart-image-enricher": "Internal worker; rejects callers without the x-h38-nightly-key secret (checked against h38_internal_job_secrets) and returns 401; its pg_cron callers send no user JWT, so verify_jwt must stay false.",
     "h38-penny-web-image-enricher": "Internal worker; rejects callers without the x-h38-nightly-key secret (checked against h38_internal_job_secrets) and returns 401; its pg_cron callers send no user JWT, so verify_jwt must stay false.",
-    "h38-proof-link": "Public proof-of-service page; the per-route Proof Token grants exactly one capability — a sanitized read-only route proof (city only, never street addresses; photos only when already public/signed URLs); expired tokens return 410, revoked/unknown 404; rate-limited per IP; every view proof-logged.",
+    "h38-proof-link": "Public proof-of-service page; the per-route Proof Token grants exactly one capability \u2014 a sanitized read-only route proof (city only, never street addresses; photos only when already public/signed URLs); expired tokens return 410, revoked/unknown 404; rate-limited per IP; every view proof-logged.",
     "h38-public-booking": "Public booking intake; hard-gated per tenant \u2014 refuses the booking unless the business explicitly enabled online booking in module settings.",
     "h38-review-scheduler": "Internal scheduler; self-authenticating via x-h38-nightly-key gate (checked against h38_internal_job_secrets row 'h38-review-scheduler', 401 without it); drains only owner-approved queued review-request SMS threads past their Deliver After time; its workspace cron runner sends no user JWT, so verify_jwt must stay false.",
     "h38-quickbooks-bridge": "QuickBooks OAuth bridge; Intuit connect/callback endpoints are public by OAuth design; data operations use the stored per-business QBO connection.",
