@@ -25,7 +25,7 @@
 'use strict';
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261012-route-server-flag-1';
+var BUILD = '20261013-route-proof-fix-1';
 var ROUTES_COLLECTION = 'routes';
 var STOPS_COLLECTION = 'routeStops';
 var FEATURE_ID = 'route_management';
@@ -1006,51 +1006,74 @@ function askPhoto() {
 }
 
 /* ---------- proof of service ---------- */
+/* The tenant key for a share link. The ?businessKey= URL parameter is the
+ * single source of truth (see the BusinessKey Authority shim in index.html);
+ * fall back to the hydrated snapshot's business record, then state. The old
+ * code read only w.state.businessKey — a field the startup never sets — so
+ * every generated link carried an EMPTY businessKey. */
+function currentBusinessKey() {
+  try {
+    var fromUrl = text(w.__H38_URL_BUSINESS_KEY || new URLSearchParams(w.location.search).get('businessKey'));
+    if (fromUrl) return fromUrl.toLowerCase();
+  } catch (_) {}
+  var snap = (w.state && w.state.snapshot) || {};
+  var biz = snap.business || {};
+  return text(biz.businessKey || biz['Business Key'] || (w.state && w.state.businessKey) || '').toLowerCase();
+}
+
 function proofUrl(route) {
   var token = text(v(route, 'Proof Token'));
   var base = w.location.origin + w.location.pathname;
-  return base + '?businessKey=' + encodeURIComponent(text((w.state && w.state.businessKey) || '')) + '&routeProof=' + encodeURIComponent(token);
+  return base + '?businessKey=' + encodeURIComponent(currentBusinessKey()) + '&routeProof=' + encodeURIComponent(token);
 }
 
-function openProofView(routeId) {
-  var route = typeof routeId === 'string' ? routeById(routeId) : routeId;
-  if (!route) { toast('Route not found.', true); return; }
+/* Normalized proof renderer shared by the signed-in view (local snapshot
+ * records) and the anonymous view (token-scoped h38_route_proof RPC).
+ * proof = { routeName, routeDate, crewName, businessName, link,
+ *           stops: [{ name, address, status, arrivedAt, completedAt, notes, photo }] } */
+function renderProofOverlay(proof) {
   ensureStyle();
   var overlay = document.createElement('div');
   overlay.className = 'h38-route-overlay';
-  var stops = stopsForRoute(text(v(route, 'Route ID')));
-  var doneStops = stops.filter(function(s) { return stopStatus(s) === 'done'; });
+  overlay.setAttribute('data-h38-proof-view', '1');
+  var stops = proof.stops || [];
+  var doneStops = stops.filter(function(s) { return s.status === 'done'; });
   overlay.innerHTML = '<div class="h38-route-modal" role="dialog" aria-label="Proof of service" style="max-width:640px">' +
     '<div class="h38-route-proof">' +
     '<h3>✅ Proof of service</h3>' +
-    '<p><strong>' + esc(text(v(route, 'Route Name'))) + '</strong><br>' +
-    '<small class="muted">' + esc(fmtDate(v(route, 'Route Date'))) +
-    (text(v(route, 'Assigned Crew Name')) ? ' · Crew: ' + esc(text(v(route, 'Assigned Crew Name'))) : '') + '</small></p>' +
+    '<p><strong>' + esc(proof.routeName || 'Route') + '</strong><br>' +
+    '<small class="muted">' + esc(fmtDate(proof.routeDate)) +
+    (proof.businessName ? ' · ' + esc(proof.businessName) : '') +
+    (proof.crewName ? ' · Crew: ' + esc(proof.crewName) : '') + '</small></p>' +
     '<p>' + doneStops.length + ' of ' + stops.length + ' stops completed.</p>' +
     stops.map(function(s, i) {
-      var st = stopStatus(s);
+      var st = s.status || 'pending';
       var icon = st === 'done' ? '✅' : st === 'arrived' ? '🟡' : st === 'missed' ? '❌' : '⚪';
-      var line = '<div style="margin:8px 0">' + icon + ' <strong>Stop ' + (i + 1) + ': ' + esc(text(v(s, 'Customer Name'))) + '</strong><br>' +
-        '<small class="muted">' + esc(text(v(s, 'Address'))) + '</small>';
+      var line = '<div style="margin:8px 0">' + icon + ' <strong>Stop ' + (i + 1) + ': ' + esc(s.name) + '</strong><br>' +
+        '<small class="muted">' + esc(s.address) + '</small>';
       if (st === 'done') {
-        line += '<br><small>Arrived ' + esc(fmtTime(v(s, 'Arrived At'))) + ' → Done ' + esc(fmtTime(v(s, 'Completed At'))) + '</small>';
-        if (text(v(s, 'Notes'))) line += '<br><small>📝 ' + esc(text(v(s, 'Notes'))) + '</small>';
-        if (text(v(s, 'Photo'))) line += '<br><img src="' + text(v(s, 'Photo')) + '" style="max-width:100%;border-radius:8px;margin-top:6px" alt="Proof photo">';
+        line += '<br><small>Arrived ' + esc(fmtTime(s.arrivedAt)) + ' → Done ' + esc(fmtTime(s.completedAt)) + '</small>';
+        if (s.notes) line += '<br><small>📝 ' + esc(s.notes) + '</small>';
+        if (s.photo) line += '<br><img src="' + esc(s.photo) + '" style="max-width:100%;border-radius:8px;margin-top:6px" alt="Proof photo">';
+      } else if (st === 'arrived') {
+        line += '<br><small>Arrived ' + esc(fmtTime(s.arrivedAt)) + '</small>';
       }
       return line + '</div>';
     }).join('') +
-    '<div class="proof-link-row" style="margin-top:12px"><label><strong>Shareable proof link</strong></label>' +
-    '<div class="h38-proof-link"><input id="h38ProofLinkInput" readonly value="' + esc(proofUrl(route)) + '">' +
-    '<button type="button" data-proof-copy style="min-height:44px">Copy</button></div>' +
-    '<p class="h38-route-note">Anyone with this link can view the completion summary. ' +
-    'Tip: print this page (Ctrl/Cmd+P) for a paper copy.</p></div>' +
+    (proof.link ?
+      '<div class="proof-link-row" style="margin-top:12px"><label><strong>Shareable proof link</strong></label>' +
+      '<div class="h38-proof-link"><input id="h38ProofLinkInput" readonly value="' + esc(proof.link) + '">' +
+      '<button type="button" data-proof-copy style="min-height:44px">Copy</button></div>' +
+      '<p class="h38-route-note">Anyone with this link can view the completion summary. ' +
+      'Tip: print this page (Ctrl/Cmd+P) for a paper copy.</p></div>' : '') +
     '</div>' +
     '<div class="actions"><button type="button" data-proof-close class="secondary">Close</button>' +
     '<button type="button" data-proof-print>🖨️ Print</button></div></div>';
   document.body.appendChild(overlay);
   overlay.querySelector('[data-proof-close]').addEventListener('click', function() { overlay.remove(); });
   overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
-  overlay.querySelector('[data-proof-copy]').addEventListener('click', function() {
+  var copyBtn = overlay.querySelector('[data-proof-copy]');
+  if (copyBtn) copyBtn.addEventListener('click', function() {
     var input = overlay.querySelector('#h38ProofLinkInput');
     input.select();
     try {
@@ -1060,25 +1083,170 @@ function openProofView(routeId) {
     } catch (_) { toast('Copy the link manually.', true); }
   });
   overlay.querySelector('[data-proof-print]').addEventListener('click', function() { w.print(); });
+  return overlay;
+}
+
+function openProofView(routeId) {
+  var route = typeof routeId === 'string' ? routeById(routeId) : routeId;
+  if (!route) { toast('Route not found.', true); return; }
+  var stops = stopsForRoute(text(v(route, 'Route ID')));
+  renderProofOverlay({
+    routeName: text(v(route, 'Route Name')),
+    routeDate: text(v(route, 'Route Date')),
+    crewName: text(v(route, 'Assigned Crew Name')),
+    businessName: '',
+    link: proofUrl(route),
+    stops: stops.map(function(s) {
+      return {
+        name: text(v(s, 'Customer Name')), address: text(v(s, 'Address')),
+        status: stopStatus(s), arrivedAt: text(v(s, 'Arrived At')),
+        completedAt: text(v(s, 'Completed At')), notes: text(v(s, 'Notes')),
+        photo: text(v(s, 'Photo'))
+      };
+    })
+  });
+}
+
+/* ---------- public (anonymous) proof via token-scoped RPC ---------- */
+/* The proof token is the capability: the h38_route_proof SECURITY DEFINER
+ * RPC (supabase/migrations/20261013020000_route_proof_public_rpc.sql)
+ * returns ONLY that route's completion summary for (businessKey, token).
+ * This path never touches the authenticated snapshot and never loads any
+ * other tenant data. */
+function supabasePublicConfig() {
+  var cfg = w.H38_BUSINESS_OFFICE_SUPABASE || {};
+  if (cfg.url && cfg.publishableKey) return cfg;
+  return { url: 'https://jqukmwtsgcsaruucnqja.supabase.co', publishableKey: '' };
+}
+
+function fetchPublicProof(businessKey, token) {
+  var cfg = supabasePublicConfig();
+  if (!cfg.publishableKey || typeof w.fetch !== 'function') return Promise.resolve(null);
+  return w.fetch(cfg.url + '/rest/v1/rpc/h38_route_proof', {
+    method: 'POST',
+    headers: {
+      'apikey': cfg.publishableKey,
+      'Authorization': 'Bearer ' + cfg.publishableKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_business_key: businessKey || '', p_token: token || '' })
+  }).then(function(resp) { return resp.ok ? resp.json() : null; })
+    .catch(function() { return null; });
+}
+
+function renderPublicProof(data) {
+  var p = (data && data.proof) || {};
+  renderProofOverlay({
+    routeName: text(p.routeName),
+    routeDate: text(p.routeDate),
+    crewName: '',
+    businessName: text(p.businessName),
+    link: w.location.href,
+    stops: (Array.isArray(p.stops) ? p.stops : []).map(function(s) {
+      return {
+        name: text(s && s.name), address: text(s && s.address),
+        status: text(s && s.status || 'pending').toLowerCase(),
+        arrivedAt: text(s && s.arrivedAt), completedAt: text(s && s.completedAt),
+        notes: '', photo: ''
+      };
+    })
+  });
+}
+
+function showProofLinkError() {
+  ensureStyle();
+  if (document.querySelector('[data-h38-proof-view]')) return;
+  var overlay = document.createElement('div');
+  overlay.className = 'h38-route-overlay';
+  overlay.setAttribute('data-h38-proof-view', 'error');
+  overlay.innerHTML = '<div class="h38-route-modal" role="dialog" aria-label="Proof of service" style="max-width:520px">' +
+    '<div class="h38-route-proof"><h3>Proof of service</h3>' +
+    '<p>This proof link is not valid. It may have been copied incorrectly, or the route is no longer available. ' +
+    'Please ask the business to send a fresh link.</p></div>' +
+    '<div class="actions"><button type="button" data-proof-close class="secondary">Close</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('[data-proof-close]').addEventListener('click', function() { overlay.remove(); });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
 
 /* ---------- ?routeProof= deep link ---------- */
-function checkProofDeepLink() {
+function proofDeepLinkParams() {
   try {
     var params = new URLSearchParams(w.location.search);
-    var token = params.get('routeProof');
-    if (!token) return false;
-    var route = allRoutes().find(function(r) { return text(v(r, 'Proof Token')) === text(token); });
+    return { token: text(params.get('routeProof')), businessKey: text(params.get('businessKey')) };
+  } catch (_) { return { token: '', businessKey: '' }; }
+}
+
+function hasStoredSession() {
+  try {
+    for (var i = 0; i < w.localStorage.length; i++) {
+      var k = w.localStorage.key(i);
+      if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') > 0) return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+var proofDeepLinkShown = false;
+
+/* One attempt at the signed-in path. Returns true only when the proof was
+ * actually rendered; false while routes are still hydrating (the caller
+ * retries — the old code checked once at ~2.5s, before the slow startup
+ * had loaded any routes, and gave up forever). */
+function checkProofDeepLink() {
+  try {
+    var pp = proofDeepLinkParams();
+    if (!pp.token || proofDeepLinkShown) return proofDeepLinkShown;
+    var route = allRoutes().find(function(r) { return text(v(r, 'Proof Token')) === pp.token; });
     if (!route || !enabled()) return false;
-    // Render proof view once the app shell is ready
-    var iv = setInterval(function() {
-      if (!document.getElementById('mainContent')) return;
-      clearInterval(iv);
-      setTimeout(function() { openProofView(text(v(route, 'Route ID'))); }, 800);
-    }, 500);
-    setTimeout(function() { clearInterval(iv); }, 15000);
+    if (!document.getElementById('mainContent')) return false;
+    proofDeepLinkShown = true;
+    openProofView(text(v(route, 'Route ID')));
     return true;
   } catch (_) { return false; }
+}
+
+/* Bounded retry driver: poll until the signed-in snapshot hydrates the
+ * route (up to 90s on the slow startup). In parallel, when there is no
+ * stored session (anonymous customer) — or the signed-in path still has
+ * not produced the route after a grace window — fall back to the
+ * token-scoped public RPC, which renders the same summary without
+ * sign-in and without loading the rest of the tenant. */
+function startProofDeepLink() {
+  var pp = proofDeepLinkParams();
+  if (!pp.token) return false;
+  var started = Date.now();
+  var publicTried = false;
+  var iv = setInterval(function() {
+    if (proofDeepLinkShown) { clearInterval(iv); return; }
+    if (checkProofDeepLink()) { clearInterval(iv); return; }
+    var elapsed = Date.now() - started;
+    var signedInLikely = hasStoredSession() || !!businessId();
+    var grace = signedInLikely ? 20000 : 2500;
+    if (!publicTried && elapsed > grace) {
+      publicTried = true;
+      fetchPublicProof(pp.businessKey || currentBusinessKey(), pp.token).then(function(data) {
+        if (proofDeepLinkShown) return;
+        if (data && data.ok && data.proof) {
+          proofDeepLinkShown = true;
+          renderPublicProof(data);
+          clearInterval(iv);
+        } else if (data && data.ok === false) {
+          // Definitive answer from the server: the token does not resolve.
+          proofDeepLinkShown = true;
+          showProofLinkError();
+          clearInterval(iv);
+        }
+        // Network/RPC failure (null): keep retrying the local path until
+        // the overall bound; the final timeout shows the error state.
+      });
+    }
+    if (elapsed > 90000) {
+      clearInterval(iv);
+      if (!proofDeepLinkShown) { proofDeepLinkShown = true; showProofLinkError(); }
+    }
+  }, 600);
+  return true;
 }
 
 /* ---------- boot ---------- */
@@ -1093,18 +1261,19 @@ function start() {
       .observe(document.documentElement, { childList: true, subtree: true });
   }
   fleetHook();
-  // Deep link (after data loads)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(checkProofDeepLink, 2500); }, { once: true });
-  } else {
-    setTimeout(checkProofDeepLink, 2500);
-  }
+  // Deep link: bounded retry until routes hydrate (see startProofDeepLink).
+  startProofDeepLink();
   w.H38RouteManager = Object.freeze({
     build: BUILD,
     enabled: enabled,
     openRouteDetail: openRouteDetail,
     openRouteBuilder: openRouteBuilder,
     openProofView: openProofView,
+    proofUrl: proofUrl,
+    currentBusinessKey: currentBusinessKey,
+    checkProofDeepLink: checkProofDeepLink,
+    startProofDeepLink: startProofDeepLink,
+    fetchPublicProof: fetchPublicProof,
     allRoutes: allRoutes,
     stopsForRoute: stopsForRoute,
     routeProgress: routeProgress,
