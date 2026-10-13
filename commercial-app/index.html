@@ -84,7 +84,6 @@
   <link rel="stylesheet" href="./styles.css?build=20261012-mobile-polish3-1">
   <link rel="stylesheet" href="./ai-drawer.css?build=20260806-0344">
   <link rel="stylesheet" href="./h38-first-quote-guide.css?build=20261010-first-quote-guide-1">
-  <link rel="stylesheet" href="./h38-guided-tour.css?build=20261012-guided-tour-1">
   <link rel="stylesheet" href="./quote-delivery.css?build=20260806-0344">
   <link rel="stylesheet" href="./good-better-best.css?build=20261005-tiered-estimates-1">
   <link rel="stylesheet" href="./print-safe.css?build=20260815-0025">
@@ -177,9 +176,8 @@
   <script defer src="./send-task.js?build=20261011-phase4-1"></script>
   <script defer src="./app-04.js?build=20261010-customer-onboarding-redesign-1"></script>
   <script defer src="./app-05.js?build=20261007-mark-complete-fix-1"></script>
-  <script defer src="./app-06.js?build=20261012-mobile-polish3-1"></script>
-  <script defer src="./h38-guided-tour.js?build=20261013-fix-sweep-1"></script>
-  <script defer src="./app-07.js?build=20260806-0344"></script>
+  <script defer src="./app-06.js?build=20261013-quote-trust-clutter-1"></script>
+  <script defer src="./app-07.js?build=20261013-quote-trust-clutter-1"></script>
   <script defer src="./app-08.js?build=20261007-job-status-flow-1"></script>
   <script defer src="./app-09.js?build=20260806-0344"></script>
   <script defer src="./app-10.js?build=20260806-0344"></script>
@@ -212,11 +210,11 @@
   <script defer src="./native-office-launch-guard.js?build=20260923-native-office-ready-contract-6-authority-refresh"></script>
   <script defer src="./office-account-identity.js?build=20260922-office-account-identity-mobile-clean-2"></script>
   <script defer src="./auth-autofill.js?build=20260910-office-access-1"></script>
-  <script defer src="./supabase-no-legacy-office.js?build=20261013-ask-hank-dedupe-1"></script>
+  <script defer src="./supabase-no-legacy-office.js?build=20261013-desktop-sleekness-1"></script>
   <script defer src="./h38-script-loader.js?build=20261013-startup-deferral-1"></script>
   <script defer src="./flow-tightening.js?build=20260918-1448"></script>
   <script defer src="./job-centered-flow.js?build=20260816-job-centered-flow-1"></script>
-  <script defer src="./mobile-flow-polish-v2.js?build=20261012-mobile-polish-1"></script>
+  <script defer src="./mobile-flow-polish-v2.js?build=20261013-quote-trust-clutter-1"></script>
   <script defer src="./mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1"></script>
   <script defer src="./mobile-runtime-stability.js?build=20261013-rescan-fixes-1"></script>
   <script defer src="./communications-native-receptionist.js?build=20261001-natural-receptionist-3"></script>
@@ -224,7 +222,7 @@
   <script defer src="./assistant-command-runtime.js?build=20260824-assistant-command-runtime-1"></script>
   <script defer src="./customer-readiness-polish.js?build=20260922-canonical-master-detail-layout-1"></script>
   <script defer src="./context-continuity.js?build=20260919-context-continuity-iphone-1"></script>
-  <script defer src="./desktop-navigation-authority.js?build=20261013-rescan-fixes-1"></script>
+  <script defer src="./desktop-navigation-authority.js?build=20261013-desktop-sleekness-1"></script>
   <script defer src="./live-customer-navigation-guard-20260910.js?build=20261013-fix-sweep-1"></script>
   <script defer src="./kit-link.js?build=20261002-kit-link-1"></script>
   <script defer src="./ai-handoff.js?build=20261002-ai-handoff-1"></script>
@@ -255,6 +253,40 @@
       return this.load().then(function(g){ g.start(guideId); });
     }
   };
+  </script>
+  <script>
+  /* Guided tour: on-demand loader ONLY (F4 fix, 2026-10-13). The tour
+     must never auto-launch and must add zero startup cost, so neither
+     its JS nor its CSS is loaded with the app. It loads the first time
+     the user taps a [data-h38-tour] entry ("Take the office tour" in
+     Settings -> Business setup & onboarding) and reuses the loaded
+     copy after that. Mirrors H38TrainingGuidesLoader above. */
+  window.H38GuidedTourLoader = {
+    load: function(){
+      return new Promise(function(resolve, reject){
+        if(window.H38GuidedTour) return resolve(window.H38GuidedTour);
+        if(!document.querySelector('link[data-h38-guided-tour-css]')){
+          var l = document.createElement('link');
+          l.rel = 'stylesheet';
+          l.setAttribute('data-h38-guided-tour-css','1');
+          l.href = './h38-guided-tour.css?build=20261013-guided-tour-f4-1';
+          document.head.appendChild(l);
+        }
+        var s = document.createElement('script');
+        s.src = './h38-guided-tour.js?build=20261013-guided-tour-f4-1';
+        s.onload = function(){ resolve(window.H38GuidedTour); };
+        s.onerror = function(){ reject(new Error('Guided tour failed to load')); };
+        document.head.appendChild(s);
+      });
+    },
+    start: function(){
+      return this.load().then(function(g){ g.start(); });
+    }
+  };
+  document.addEventListener('click',function(e){
+    var b = e.target.closest('[data-h38-tour]');
+    if(b){ e.preventDefault(); window.H38GuidedTourLoader.start(); }
+  });
   </script>
   <script>
   window.H38_HEARTBEAT = {
