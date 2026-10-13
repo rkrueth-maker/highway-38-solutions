@@ -3,6 +3,7 @@ const assert=require('assert');
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('commercial-app/conversation-meeting-assistant.js');
 const index=read('commercial-app/index.html');
+const loader=read('commercial-app/h38-script-loader.js');
 const sw=read('commercial-app/service-worker.js');
 const transcribe=read('supabase/functions/h38-conversation-transcription/index.ts');
 const organize=read('supabase/functions/h38-conversation-organize/index.ts');
@@ -10,7 +11,11 @@ const main=read('native/h38-site-scanner/android-app/app/src/main/java/com/highw
 const quote=read('commercial-app/quote-agent-contract.js');
 const required=(source,markers,label)=>markers.forEach(marker=>assert(source.includes(marker),`${label} missing ${marker}`));
 required(runtime,['recordingOptional:true','zeroAudioMeetingValid:true','Add Past Conversation','DICTATED_RECOLLECTION','TYPED_RECOLLECTION','RECALLED_NOT_VERIFIED','walkthroughHandoffClosesAudioSegment:true','meetingReportDocument:true','privateOnlineEvidence:true','localBlobClearedAfterSync:true','MEETING_REPORT_SAVED','What was discussed','Requested or added work','Approval / acknowledgement','legacySiteVisitsProjectedNotMigrated:true','quoteAgentRemainsAuthority:true'],'meeting runtime');
-required(index,['conversation-meeting-assistant.css?build=20260824-conversation-meeting-assistant-1','conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1'],'index');
+// Startup deferral (2026-10-13): the CSS stays eager in index.html; the JS
+// ships in the H38ScriptLoader 'meetings' group with the same ?build= param
+// (and remains in the service-worker cache lists asserted below).
+required(index,['conversation-meeting-assistant.css?build=20260824-conversation-meeting-assistant-1'],'index');
+required(loader,['conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1'],'script loader meetings group');
 required(sw,['h38-business-office-20260824-0410','h38-business-office-20260824-0155','conversation-meeting-assistant.js','conversation-meeting-assistant.css'],'service worker');
 required(transcribe,['MEETING_TRANSCRIBED','business_records','business_proof_log','business_error_log','gpt-4o-mini-transcribe','whisper-1'],'transcription');
 required(organize,['MEETING_STRUCTURED_NOTES_CREATED','RECALLED_NOT_VERIFIED','OPERATOR_VERIFIED','UNVERIFIED_SPOKEN','A request is not a decision','A discussion is not a commitment'],'organizer');

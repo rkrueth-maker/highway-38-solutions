@@ -22,6 +22,11 @@ const northernLakes=read('supabase/migrations/20260805063500_northern_lakes_clos
 const retirement=read('supabase/migrations/20260805064000_retire_legacy_offices.sql');
 const edge=read('supabase/functions/business-office-invite-activation/index.ts');
 const index=read('commercial-app/index.html');
+const loader=read('commercial-app/h38-script-loader.js');
+// Startup deferral (2026-10-13): supabase-client-quote-branding.js ships in
+// the H38ScriptLoader 'quotes' group, so its effective load position is
+// after every upfront index.html script; other files keep index positions.
+const effectivePos=file=>{const p=index.indexOf(file);return p>=0?p:index.length+loader.indexOf(file);};
 const worker=read('commercial-app/service-worker.js');
 const inviteClient=read('commercial-app/supabase-invite-activation.js');
 const branding=read('commercial-app/supabase-client-branding.js');
@@ -53,8 +58,13 @@ check('invite function sends only user-requested auth invitation',has(edge,['adm
 check('invite function never handles a password',has(edge,['passwordHandledByFunction: false','serviceRoleExposedToBrowser: false'])&&!/password\s*[:=]\s*body/i.test(edge));
 check('invite function limits browser origins',has(edge,['ALLOWED_ORIGINS','https://highway38solutions.com','https://rkrueth-maker.github.io'])&&!edge.includes('access-control-allow-origin": "*"'));
 
-const order=['supabase-auth.js','supabase-invite-activation.js','app-17.js','supabase-runtime-globals.js','supabase-data.js','supabase-client-branding.js','supabase-storage-provider.js','supabase-client-installer.js','supabase-final-startup.js','app-18.js','app-20.js','supabase-client-quote-branding.js','supabase-no-legacy-office.js'];
-let previous=-1;for(const file of order){const position=index.indexOf(file);check(`script order ${file}`,position>previous);previous=position;}
+// Quote branding moved to the end of the effective order: as a deferred
+// 'quotes'-group script it executes after all upfront startup scripts,
+// including the no-legacy-office guard (it has no dependency on that guard;
+// it only needs the client branding/installer chain above, which stays
+// ahead of it). All other relative order is unchanged from the eager era.
+const order=['supabase-auth.js','supabase-invite-activation.js','app-17.js','supabase-runtime-globals.js','supabase-data.js','supabase-client-branding.js','supabase-storage-provider.js','supabase-client-installer.js','supabase-final-startup.js','app-18.js','app-20.js','supabase-no-legacy-office.js','supabase-client-quote-branding.js'];
+let previous=-1;for(const file of order){const position=effectivePos(file);check(`script order ${file}`,position>previous&&position>=0);previous=position;}
 check('PWA caches onboarding and retirement adapters',has(worker,['supabase-invite-activation.js','supabase-client-branding.js','supabase-client-installer.js','supabase-client-quote-branding.js','supabase-no-legacy-office.js']));
 check('sign-in page can request activation without handling password',has(inviteClient,['Activate invitation','business-office-invite-activation','passwordHandledByHighway38:false']));
 check('shared Office applies active business identity',has(branding,["document.title=`${businessName} Business Office`","document.documentElement.style.setProperty('--navy',primary)","logoNode.alt=`${businessName} logo`"]));

@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
 
 INDEX = (APP / 'index.html').read_text(encoding='utf-8')
+SCRIPT_LOADER = (APP / 'h38-script-loader.js').read_text(encoding='utf-8')
 HAMMER = (APP / 'quote-working-hammer.js').read_text(encoding='utf-8')
 LOADER = (APP / 'site-visit-quote-wide-pass-loader.js').read_text(encoding='utf-8')
 SPOKEN = (APP / 'spoken-measurement-authority-final.js').read_text(encoding='utf-8')
@@ -16,7 +17,9 @@ POLISH_BUILD = '20260825-site-visit-deep-polish-3-phone'
 
 
 def test_index_busts_phone_cache_for_current_hammer():
-    assert f'./quote-working-hammer.js?build={HAMMER_BUILD}' in INDEX
+    # Startup deferral (2026-10-13): the hammer ships in the H38ScriptLoader
+    # 'quotes' group with the same cache-busting ?build= param.
+    assert f'./quote-working-hammer.js?build={HAMMER_BUILD}' in SCRIPT_LOADER
 
 
 def test_hammer_busts_phone_cache_for_current_wide_loader():

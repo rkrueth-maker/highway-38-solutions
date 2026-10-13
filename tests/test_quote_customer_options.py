@@ -5,6 +5,7 @@ OPTIONS = ROOT / "commercial-app" / "quote-customer-options.js"
 LIVE_OPTIONS = ROOT / "commercial-app" / "quote-live-customer-options.js"
 PRINT_SAFE = ROOT / "commercial-app" / "quote-print-safe.js"
 INDEX = ROOT / "commercial-app" / "index.html"
+SCRIPT_LOADER = ROOT / "commercial-app" / "h38-script-loader.js"
 
 
 def test_customer_quote_separates_optional_addons_from_base_total():
@@ -56,7 +57,9 @@ def test_android_live_quote_prints_option_aware_customer_document():
 
 
 def test_business_office_loads_customer_options_after_proven_runtimes():
-    index = INDEX.read_text(encoding="utf-8")
+    # Startup deferral (2026-10-13): all four runtimes ship in the
+    # H38ScriptLoader 'quotes' group, loaded sequentially in this same order.
+    index = SCRIPT_LOADER.read_text(encoding="utf-8")
     owner = index.index("./owner-flow-polish.js")
     options = index.index("./quote-customer-options.js")
     phone = index.index("./quote-final-phone-fix.js")

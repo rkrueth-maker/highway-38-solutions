@@ -5,6 +5,7 @@ TOP = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding=
 FINAL = (ROOT / "commercial-app" / "site-visit-native-launch-final.js").read_text(encoding="utf-8")
 UI = (ROOT / "commercial-app" / "field-visit-ui.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "commercial-app" / "index.html").read_text(encoding="utf-8")
+LOADER = (ROOT / "commercial-app" / "h38-script-loader.js").read_text(encoding="utf-8")
 SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
 MAIN = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "src" / "main" / "java" / "com" / "highway38" / "sitescanner" / "MainActivity.java").read_text(encoding="utf-8")
@@ -74,7 +75,9 @@ def test_launcher_is_service_worker_live_first_so_android_gets_repairs():
     live_first = SW.split("const LIVE_FIRST=", 1)[1].split("const SHELL=", 1)[0]
     assert "site-visit-native-launch-final.js" in live_first
     assert "./site-visit-native-launch-final.js" in SW
-    assert "./site-visit-native-launch-final.js?build=" in INDEX
+    # Startup deferral (2026-10-13): the launcher ships cache-busted in the
+    # H38ScriptLoader FIELD_AND_MEASURE group, not as an eager index tag.
+    assert "./site-visit-native-launch-final.js?build=" in LOADER
 
 
 def test_old_web_recorder_is_not_called_by_final_native_save_start_authority():

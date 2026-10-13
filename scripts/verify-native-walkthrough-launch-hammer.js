@@ -14,6 +14,12 @@ const recovery=read('commercial-app/field-visit-recovery.js');
 const serverRecovery=read('commercial-app/field-visit-server-recovery.js');
 const auth=read('commercial-app/auth-autofill.js');
 const index=read('commercial-app/index.html');
+const loader=read('commercial-app/h38-script-loader.js');
+// Startup deferral (2026-10-13): field-visit runtimes ship in the
+// H38ScriptLoader FIELD_AND_MEASURE group (same ?build= params) instead of
+// eager index.html tags, so production-runtime presence is asserted against
+// index + loader combined.
+const loadSource=index+'\n'+loader;
 const noLegacy=read('commercial-app/supabase-no-legacy-office.js');
 const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
 const startupStability=read('commercial-app/startup-site-visit-stability.js');
@@ -34,8 +40,8 @@ for(const s of ['materialSpecificationsAreNotFieldMeasurements:true','operatorVe
 for(const s of ['verifiedDimensionsSuppressAiReverification:true','verifiedCandidatesDisplayAsVerified:true','reviewMissingMeasurementsDeduped:true','serverIdentityEvidenceCascade:true','siteVisitDeleteRemovesAttachedPhotos:true','photoDeleteBesideMakeActionPicture:true','DELETE_SITE_VISIT_EVIDENCE_CASCADE','Capture Session ID','Linked Site Visit ID','Make Action Picture','field-owner-delete-photo','OPERATOR VERIFIED · field measurement already confirmed · no remeasurement required'])must(acceptance,s,'Site Visit acceptance repair');
 for(const s of ['serverSessionFallback:true','localDraftFirst:true','tombstoneSafe:true','H38_FIELD_VISIT_DELETE_TOMBSTONE'])must(serverRecovery,s,'server Site Visit recovery');
 for(const s of ['automaticSavedOfficeFill:true','automaticSavedOfficeSignIn:true','Sign in with saved H38 Office login','Saved H38 Office login found. Signing in'])must(auth,s,'Office sign-in');
-for(const s of ['./field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158','./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1','./field-visit-measurement-classification.js?build=20260810-measurement-classification-2140','./field-visit-video-measurements.js?build=20260811-video-headless-stable-1154','./field-visit-acceptance-fix.js?build=20260810-site-visit-acceptance-2230','./auth-autofill.js?build=20260910-office-access-1','./supabase-no-legacy-office.js?build=20261013-my-hank-rename-1','./supabase-runtime-globals.js?build=20260913-mobile-touch-targets-1'])must(index,s,'production runtime');
-if(index.includes('./field-visit-walkthrough-guidance.js?build=')||index.includes('./field-visit-fast-followup.js?build='))throw new Error('production index still loads retired split Site Visit guidance runtimes');
+for(const s of ['./field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158','./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1','./field-visit-measurement-classification.js?build=20260810-measurement-classification-2140','./field-visit-video-measurements.js?build=20260811-video-headless-stable-1154','./field-visit-acceptance-fix.js?build=20260810-site-visit-acceptance-2230','./auth-autofill.js?build=20260910-office-access-1','./supabase-no-legacy-office.js?build=20261013-my-hank-rename-1','./supabase-runtime-globals.js?build=20260913-mobile-touch-targets-1'])must(loadSource,s,'production runtime');
+if(loadSource.includes('./field-visit-walkthrough-guidance.js?build=')||loadSource.includes('./field-visit-fast-followup.js?build='))throw new Error('production index still loads retired split Site Visit guidance runtimes');
 for(const s of ['loadSiteVisitController','H38_FIELD_VISIT_GUIDED_CONTROLLER','H38_FIELD_VISIT_GUIDANCE','./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1'])must(noLegacy,s,'dynamic Site Visit authority');
 absent(noLegacy,'./field-visit-fast-followup.js?build=','dynamic Site Visit authority');
 for(const s of ['automaticPostCaptureSync:true','automaticWalkthroughProcessing:true','H38 is syncing Site Visit evidence'])must(recovery,s,'post-capture recovery');

@@ -113,7 +113,8 @@ def test_extensions_load_through_existing_live_first_startup_without_cache_bump(
     assert "'supabase-final-startup.js'" in SERVICE_WORKER
     assert "'platform-next.js'" in SERVICE_WORKER
     assert "'platform-deepen.js'" in SERVICE_WORKER
-    assert "const CACHE_NAME='h38-business-office-20261013-my-hank-rename-1'" in SERVICE_WORKER
+    # Cache rolled by the 2026-10-13 startup-deferral pass (loader build changed).
+    assert "const CACHE_NAME='h38-business-office-20261013-startup-deferral-1'" in SERVICE_WORKER
 
 
 def test_ai_team_loader_also_knows_the_new_platform_slices():

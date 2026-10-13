@@ -5,6 +5,7 @@ on:
     paths:
       - 'commercial-app/customer-import-intelligence.js'
       - 'commercial-app/index.html'
+      - 'commercial-app/h38-script-loader.js'
       - 'commercial-app/erp-foundation.js'
       - 'supabase/migrations/**'
       - 'scripts/verify-universal-smart-import.js'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'commercial-app/customer-import-intelligence.js'
       - 'commercial-app/index.html'
+      - 'commercial-app/h38-script-loader.js'
       - 'commercial-app/erp-foundation.js'
       - 'supabase/migrations/**'
       - 'scripts/verify-universal-smart-import.js'

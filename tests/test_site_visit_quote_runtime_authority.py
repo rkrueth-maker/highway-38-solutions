@@ -10,6 +10,7 @@ MEASURE = (APP / 'measurement-verification-authority.js').read_text(encoding='ut
 CLEANUP = (APP / 'site-visit-delete-server-authority.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
 INDEX = (APP / 'index.html').read_text(encoding='utf-8')
+SCRIPT_LOADER = (APP / 'h38-script-loader.js').read_text(encoding='utf-8')
 WIDE = (APP / 'site-visit-wide-acceptance-final.js').read_text(encoding='utf-8')
 RUNTIME = (APP / 'quote-runtime-authority.js').read_text(encoding='utf-8')
 LOADER = (APP / 'site-visit-quote-wide-pass-loader.js').read_text(encoding='utf-8')
@@ -51,6 +52,10 @@ def test_final_quote_runtimes_are_live_first_and_precached():
 
 
 def test_final_authorities_are_loaded_directly_from_index():
+    # Startup deferral (2026-10-13): the final authorities are no longer
+    # eager index.html tags; they ship, in this same order and with the
+    # same declared ?build= params, in the H38ScriptLoader
+    # FIELD_AND_MEASURE group (loaded before the field page renders).
     expected = [
         f'./measurement-verification-authority.js?build={declared_build(MEASURE)}',
         './quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4',
@@ -60,7 +65,7 @@ def test_final_authorities_are_loaded_directly_from_index():
         f'./field-visit-finish-build.js?build={declared_build(FINISH)}',
         './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
     ]
-    positions = [INDEX.index(item) for item in expected]
+    positions = [SCRIPT_LOADER.index(item) for item in expected]
     assert positions == sorted(positions)
     assert "window.H38_ASSET_BUILD='20260821-0219'" in INDEX
     handoff = (APP / 'field-visit-quote-handoff.js').read_text(encoding='utf-8')

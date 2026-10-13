@@ -11,6 +11,10 @@ C360 = (APP / 'customer-360-authority.js').read_text(encoding='utf-8')
 MOBILE_STABILITY = (APP / 'mobile-runtime-stability.js').read_text(encoding='utf-8')
 SW = (APP / 'service-worker.js').read_text(encoding='utf-8')
 INDEX = (APP / 'index.html').read_text(encoding='utf-8')
+LOADER = (APP / 'h38-script-loader.js').read_text(encoding='utf-8')
+# Startup deferral (2026-10-13): page-group scripts execute after every
+# upfront index.html script, so build tags are judged on index + loader.
+LOAD_SOURCE = INDEX + '\n' + LOADER
 BUILD = '20261012-offline-polish-1'
 
 
@@ -80,7 +84,7 @@ def test_customer_setup_card_title_matches_renderer():
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     # Cache name rolled by the 20261012 mobile-polish pass (files changed);
     # the offline file list and live-first behavior below are the invariants.
-    assert "const CACHE_NAME='h38-business-office-20261013-my-hank-rename-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261013-startup-deferral-1'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
     # Logo consolidation: the 2.93MB approved logo is NOT in the shell
@@ -125,7 +129,7 @@ def test_supabase_config_auth_cache_repair_is_removed():
 def test_index_build_tags_match_polish_build():
     for name in ('app-02.js', 'app-19.js', 'offline-mode.js',
                  'customer-360-authority.js'):
-        assert f'./{name}?build={BUILD}' in INDEX, name
+        assert f'./{name}?build={BUILD}' in LOAD_SOURCE, name
     # offline-status-runtime.js rolled with the 2026-10-13 fix sweep (SW
     # consolidation); the other polish-pass files keep the polish build.
     assert './offline-status-runtime.js?build=20261013-fix-sweep-1' in INDEX

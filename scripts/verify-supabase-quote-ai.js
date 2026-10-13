@@ -7,6 +7,11 @@ const provider=read('commercial-app/supabase-quote-ai.js');
 const live=read('commercial-app/quote-ai-live-fix.js');
 const mobile=read('commercial-app/quote-mobile-stabilization.js');
 const index=read('commercial-app/index.html');
+const loader=read('commercial-app/h38-script-loader.js');
+// Startup deferral (2026-10-13): quote runtimes ship in the H38ScriptLoader
+// 'quotes' group (sequential, original order) after the upfront fallback, so
+// load-order checks run against index + loader combined.
+const loadSource=index+'\n'+loader;
 const worker=read('commercial-app/service-worker.js');
 const pricingSchema=read('supabase/migrations/20260812154632_contractor_pricing_system.sql');
 const assemblySync=read('supabase/migrations/20260812155839_contractor_assembly_catalog_sync.sql');
@@ -38,9 +43,9 @@ const checks=[
  ['Recursive page observer is forbidden',!live.includes('MutationObserver')&&live.includes('recursiveObserver:false')],
  ['Browser preflight reflects requested headers',edge.includes('access-control-request-headers')&&edge.includes('quote-ai-cors-preflight')&&edge.includes('preflight: true')],
  ['Preflight returns an observable success response',edge.includes('request.method === "OPTIONS"')&&edge.includes('return json(request, 200')],
- ['AI provider loads after fallback',index.indexOf('supabase-ai-fallback.js')<index.indexOf('supabase-quote-ai.js')],
- ['AI provider loads before mobile build wrapper',index.indexOf('supabase-quote-ai.js')<index.indexOf('quote-mobile-stabilization.js')],
- ['Capture click guard loads last',index.indexOf('quote-mobile-stabilization.js')<index.indexOf('quote-ai-live-fix.js')],
+ ['AI provider loads after fallback',loadSource.indexOf('supabase-ai-fallback.js')>=0&&loadSource.indexOf('supabase-ai-fallback.js')<loadSource.indexOf('supabase-quote-ai.js')],
+ ['AI provider loads before mobile build wrapper',loadSource.indexOf('supabase-quote-ai.js')>=0&&loadSource.indexOf('supabase-quote-ai.js')<loadSource.indexOf('quote-mobile-stabilization.js')],
+ ['Capture click guard loads last',loadSource.indexOf('quote-mobile-stabilization.js')>=0&&loadSource.indexOf('quote-mobile-stabilization.js')<loadSource.indexOf('quote-ai-live-fix.js')],
  ['AI assets remain cached',worker.includes("'./supabase-quote-ai.js'")&&worker.includes("'./quote-ai-live-fix.js'")],
  ['Owner safeguards remain explicit',edge.includes('automaticApproval: false')&&edge.includes('automaticSending: false')&&edge.includes('ownerReviewRequired: true')],
  ['Retired Apps Script is not used',!edge.includes('script.google.com')&&!provider.includes('script.google.com')]

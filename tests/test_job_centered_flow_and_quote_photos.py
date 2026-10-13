@@ -9,6 +9,7 @@ PHOTO_REVIEW = (ROOT / "commercial-app" / "field-visit-photo-review.js").read_te
 TOP_ACTION = (ROOT / "commercial-app" / "site-visit-top-action.js").read_text(encoding="utf-8")
 DELETE_RESET = (ROOT / "commercial-app" / "site-visit-delete-reset-fix.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "commercial-app" / "index.html").read_text(encoding="utf-8")
+LOADER = (ROOT / "commercial-app" / "h38-script-loader.js").read_text(encoding="utf-8")
 SW = (ROOT / "commercial-app" / "service-worker.js").read_text(encoding="utf-8")
 
 
@@ -107,9 +108,12 @@ def test_delete_site_visit_keeps_customer_quote_and_uses_explicit_confirmation()
 
 def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "./job-centered-flow.js?build=20260816-job-centered-flow-1" in INDEX
-    assert "./site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1" in INDEX
+    # Startup deferral (2026-10-13): the site-visit top action and native
+    # launch runtimes ship in the H38ScriptLoader FIELD_AND_MEASURE group
+    # with the same ?build= params (and stay in the SW lists below).
+    assert "./site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1" in LOADER
     assert "window.H38_ASSET_BUILD='20260821-0219'" in INDEX
-    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5" in INDEX
+    assert "./site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5" in LOADER
     assert "./mobile-flow-polish-v2.js?build=20261013-quote-trust-clutter-1" in INDEX
     assert "job-centered-flow.js" in SW.split("const SHELL=", 1)[0]
     assert "'./job-centered-flow.js'" in SW

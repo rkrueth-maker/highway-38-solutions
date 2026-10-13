@@ -6,6 +6,7 @@ on:
       - 'commercial-app/conversation-meeting-assistant.js'
       - 'commercial-app/conversation-meeting-assistant.css'
       - 'commercial-app/index.html'
+      - 'commercial-app/h38-script-loader.js'
       - 'commercial-app/service-worker.js'
       - 'commercial-app/quote-agent-contract.js'
       - 'supabase/functions/h38-conversation-transcription/**'

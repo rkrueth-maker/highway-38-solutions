@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'commercial-app/index.html'
+      - 'commercial-app/h38-script-loader.js'
       - 'commercial-app/service-worker.js'
       - 'commercial-app/supabase-quote-ai*.js'
       - 'commercial-app/quote-mobile-stabilization.js'
@@ -19,6 +20,7 @@ on:
       - main
     paths:
       - 'commercial-app/index.html'
+      - 'commercial-app/h38-script-loader.js'
       - 'commercial-app/service-worker.js'
       - 'commercial-app/supabase-quote-ai*.js'
       - 'commercial-app/quote-mobile-stabilization.js'

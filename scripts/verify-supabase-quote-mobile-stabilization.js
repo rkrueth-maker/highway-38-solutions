@@ -3,6 +3,12 @@
 const fs=require('fs'),path=require('path'),root=path.resolve(__dirname,'..');
 const patch=fs.readFileSync(path.join(root,'commercial-app/quote-mobile-stabilization.js'),'utf8');
 const index=fs.readFileSync(path.join(root,'commercial-app/index.html'),'utf8');
+const loader=fs.readFileSync(path.join(root,'commercial-app/h38-script-loader.js'),'utf8');
+// Startup deferral (2026-10-13): the patch ships in the H38ScriptLoader
+// 'quotes' group, which loads after every upfront startup script (including
+// app-20.js) and before the Quotes page renders; load order is therefore
+// asserted against index + loader combined.
+const loadSource=index+'\n'+loader;
 const sw=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf8');
 const checks=[
  ['Build Quote is explicit',patch.includes("textContent='✨ Build Quote'")],
@@ -20,7 +26,7 @@ const checks=[
  ['non-revisable locked quotes stay protected',patch.includes('is locked and cannot be changed from this screen.')],
  ['revision unlock preserves external-action locks',patch.includes('Nothing is approved or sent automatically.')&&patch.includes('automaticSend:false')],
  ['Proof Log records private photo save',patch.includes("action_type:'SAVE_QUOTE_PHOTO'")&&patch.includes('external_action_occurred:false')],
- ['patch loads after app-20',index.indexOf('app-20.js')<index.indexOf('quote-mobile-stabilization.js')],
+ ['patch loads after app-20',loadSource.indexOf('app-20.js')>=0&&loadSource.indexOf('app-20.js')<loadSource.indexOf('quote-mobile-stabilization.js')],
  ['new asset is in service worker cache',sw.includes("'./quote-mobile-stabilization.js'")],
  ['retired Apps Script not restored',!patch.includes('google.script.run')&&!patch.includes('script.google.com')]
 ];
