@@ -12,25 +12,24 @@ check_file_contains() {
   echo "PASS — $label"
 }
 
-check_file_contains index.html 'Bring us the problem.' 'Homepage problem-first headline'
-check_file_contains index.html 'clear working path.' 'Homepage practical outcome'
-check_file_contains index.html 'Choose the kind of help you need' 'Homepage buyer choice'
-check_file_contains index.html 'I need better software' 'Homepage software path'
-check_file_contains index.html 'I need help solving a project' 'Homepage project-service path'
-check_file_contains index.html 'href="software.html"' 'Homepage software route'
-check_file_contains index.html 'href="project-services.html"' 'Homepage project services route'
-check_file_contains index.html 'href="quote-builder-demo.html"' 'Homepage interactive quote route'
-check_file_contains index.html 'href="implementation.html"' 'Homepage implementation route'
-check_file_contains index.html 'href="security-reliability.html"' 'Homepage security route'
-check_file_contains index.html 'href="start-request.html"' 'Homepage controlled request route'
+check_file_contains index.html 'Your truck is not' 'Homepage problem-first headline'
+check_file_contains index.html 'a filing cabinet.' 'Homepage problem-first outcome'
+check_file_contains index.html 'Business in a box' 'Homepage Business in a Box presentation'
+check_file_contains index.html 'Try the Live Demo' 'Homepage buyer choice: live demo'
+check_file_contains index.html 'See the Plans' 'Homepage buyer choice: plans'
+check_file_contains index.html 'href="business-in-a-box.html"' 'Homepage Business in a Box route'
+check_file_contains index.html 'href="business-office-review-demo.html"' 'Homepage Office demo route'
+check_file_contains index.html 'href="quote-builder.html#examples"' 'Homepage Project Examples route'
+check_file_contains index.html 'href="contact.html"' 'Homepage contact route'
+check_file_contains index.html 'href="start-request.html?offer=business-in-a-box"' 'Homepage controlled request route'
 check_file_contains index.html 'href="pricing.html"' 'Homepage pricing route'
 if grep -Eq 'href="business-systems\.html' index.html; then
   echo 'FAIL — homepage directly sells the authenticated Business Office route.' >&2
   exit 1
 fi
 echo 'PASS — homepage keeps authenticated software behind the software buyer path'
-check_file_contains assets/js/h38-site-v2.js "{href:'software.html',label:'Software'}" 'Canonical software path'
-check_file_contains assets/js/h38-site-v2.js "{href:'project-services.html',label:'Project Services'}" 'Canonical project services path'
+check_file_contains assets/js/h38-site-v2.js "{href:'business-in-a-box.html',label:'Business in a Box'}" 'Canonical Business in a Box path'
+check_file_contains assets/js/h38-site-v2.js "{href:'quote-builder.html#examples',label:'Project Examples'}" 'Canonical Project Examples path'
 if grep -Fq "{href:'quote-builder.html',label:'Quote Builder'}" assets/js/h38-site-v2.js || grep -Fq "{href:'business-systems.html',label:'Business Office'}" assets/js/h38-site-v2.js; then
   echo 'FAIL — shared navigation directly favors one software product.' >&2
   exit 1
@@ -65,7 +64,7 @@ check_file_contains sample-library-now.html 'data-samples="all"' 'Public example
 check_file_contains universal-quote-builder.html 'sample-library-now.html#universal-quote-builder-examples' 'Legacy Universal Quote Builder redirect'
 check_file_contains quote-builder.html 'universal-quote-builder.html' 'Quote Builder compatibility route'
 check_file_contains quote-builder.html 'quote-builder-demo.html' 'Quote Builder interactive demo route'
-check_file_contains pricing.html 'Implementation value' 'Pricing implementation explanation'
+check_file_contains pricing.html 'One small custom feature per quarter included' 'Pricing implementation value'
 check_file_contains start-request.html 'What result do you need?' 'Request outcome prompt'
 check_file_contains start-request.html 'data-request-step="1"' 'Three-step request start'
 check_file_contains start-request.html 'data-request-step="3"' 'Three-step request review'
