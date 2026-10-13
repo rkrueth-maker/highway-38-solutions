@@ -93,6 +93,12 @@
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
       './customer-360-authority.js?build=20261012-offline-polish-1',
       './customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-2',
+      // CI triage fix (2026-10-13, class-b): site-visit-top-action.js is the
+      // Customers-page top action bar ("Start Site Visit" / "Add Customer");
+      // grouping it only under field/measure lost that bar on a
+      // customers-first session (verified by browser probe). It stays in
+      // FIELD_AND_MEASURE as well; the loader dedupes repeat loads.
+      './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
     ];
     const PAGE_MEETINGS = [
       './conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1',

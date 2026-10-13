@@ -3,6 +3,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AUTH = (ROOT / 'commercial-app' / 'mobile-scroll-native-authority.js').read_text(encoding='utf-8')
 INDEX = (ROOT / 'commercial-app' / 'index.html').read_text(encoding='utf-8')
+LOADER = (ROOT / 'commercial-app' / 'h38-script-loader.js').read_text(encoding='utf-8')
+# Startup deferral (2026-10-13): deferred page-group scripts execute after
+# every upfront index.html script, so load order is judged on the combined
+# index + loader source.
+LOAD_SOURCE = INDEX + '\n' + LOADER
 SW = (ROOT / 'commercial-app' / 'service-worker.js').read_text(encoding='utf-8')
 
 
@@ -73,14 +78,14 @@ def test_primary_nav_intent_survives_dom_replacement_and_customer_first_slots_ar
 
 
 def test_guard_loads_before_mobile_and_customer_polish_layers_and_is_live_first():
-    guard = INDEX.index('mobile-scroll-native-authority.js')
+    guard = LOAD_SOURCE.index('mobile-scroll-native-authority.js')
     assert guard >= 0
     for later in [
         'mobile-runtime-stability.js',
         'customer-360-browser-integration-v3.js',
         'customer-readiness-polish.js',
     ]:
-        assert INDEX.index(later) > guard
+        assert LOAD_SOURCE.index(later) > guard
     live_first = SW.split('const LIVE_FIRST=new Set([', 1)[1].split(']);', 1)[0]
     assert "'mobile-scroll-native-authority.js'" in live_first
 

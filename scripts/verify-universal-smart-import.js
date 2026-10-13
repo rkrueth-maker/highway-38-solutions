@@ -10,6 +10,7 @@ const forbid=(source,needle,label=needle)=>{if(source.includes(needle))fail(`For
 
 const importer=read('commercial-app/customer-import-intelligence.js');
 const index=read('commercial-app/index.html');
+const loader=read('commercial-app/h38-script-loader.js');
 const erp=read('commercial-app/erp-foundation.js');
 const stage=read('supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql');
 const universalAudit=read('supabase/migrations/20260914075000_universal_smart_import_proof_log.sql');
@@ -58,9 +59,15 @@ requireText(importer,"p_source_name:`${plan.file} · ${g.sheet}`",'per-sheet sta
 requireText(importer,'stagedRuns.set(g.id,runId)','separate run tracking');
 requireText(importer,'stagedRuns.delete(g.id)','applied run retirement');
 
-requireText(index,'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1','production cache-busted loader');
+// Startup deferral (2026-10-13): the importer is no longer an eager
+// index.html tag; it ships in the H38ScriptLoader 'customers' group with
+// the same cache-busted ?build= param, so the production-loader pin moves
+// to the loader and the stale-build bans apply to both shipping surfaces.
+requireText(loader,'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1','production cache-busted loader');
 forbid(index,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','stale smart-import loader');
 forbid(index,'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1','stale smart-import loader');
+forbid(loader,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','stale smart-import loader');
+forbid(loader,'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1','stale smart-import loader');
 requireText(erp,'id="h38DataUptake"','existing data-uptake host');
 requireText(erp,'data-h38-stage-import','manual import fallback preserved');
 requireText(importer,"host.querySelector('[data-h38-universal-import-panel]')",'non-destructive universal panel injection');

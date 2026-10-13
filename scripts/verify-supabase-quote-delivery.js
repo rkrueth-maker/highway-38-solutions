@@ -4,6 +4,7 @@ const fs=require('fs'),path=require('path'),root=path.resolve(__dirname,'..');
 const client=fs.readFileSync(path.join(root,'commercial-app/supabase-quote-delivery.js'),'utf8');
 const edge=fs.readFileSync(path.join(root,'supabase/functions/h38-quote-delivery/index.ts'),'utf8');
 const index=fs.readFileSync(path.join(root,'commercial-app/index.html'),'utf8');
+const loader=fs.readFileSync(path.join(root,'commercial-app/h38-script-loader.js'),'utf8');
 const sw=fs.readFileSync(path.join(root,'commercial-app/service-worker.js'),'utf8');
 const portal=fs.readFileSync(path.join(root,'customer-portal-quote-delivery.js'),'utf8');
 const portalHtml=fs.readFileSync(path.join(root,'customer-portal.html'),'utf8');
@@ -32,7 +33,11 @@ const checks=[
  ['customer portal exposes private PDF download',portal.includes('createSignedUrl(path,300)')&&portal.includes('Open Proposal PDF')&&portal.includes("config.storageBucket||'customer-portal'")],
  ['customer portal loads current delivery enhancement',Boolean(portalDeliveryBuild)&&portalHtml.includes(`customer-portal-quote-delivery.js?v=${portalDeliveryBuild}`)],
  ['customer portal redirects on custom domain',portalConfig.includes("redirectUrl: 'https://highway38solutions.com/customer-portal.html'")],
- ['Business Office loads delivery script last',index.indexOf('quote-photo-restore.js')<index.indexOf('supabase-quote-delivery.js')&&index.indexOf('supabase-quote-delivery.js')<index.indexOf('supabase-no-legacy-office.js')],
+ // Startup deferral (2026-10-13): delivery is deferred to the H38ScriptLoader
+ // 'quotes' group, where it still loads after quote-photo-restore.js; the
+ // no-legacy-office guard is an upfront startup script, so it now executes
+ // before any deferred delivery script can run.
+ ['Business Office loads delivery script last',loader.indexOf('quote-photo-restore.js')>=0&&loader.indexOf('quote-photo-restore.js')<loader.indexOf('supabase-quote-delivery.js')&&index.indexOf('supabase-no-legacy-office.js')>=0],
  ['mobile cache is current and delivery is network-first',currentCache&&deliveryNetworkFirst&&sw.includes("'./supabase-quote-delivery.js'")],
  ['retired Apps Script is not restored',!client.includes('google.script.run')&&!edge.includes('script.google.com')]
 ];

@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CLIENT = (ROOT / 'commercial-app' / 'measurement-verification-authority.js').read_text(encoding='utf-8')
 SERVER = (ROOT / 'supabase' / 'functions' / 'h38-quote-ai' / 'index.ts').read_text(encoding='utf-8')
 INDEX = (ROOT / 'commercial-app' / 'index.html').read_text(encoding='utf-8')
+LOADER = (ROOT / 'commercial-app' / 'h38-script-loader.js').read_text(encoding='utf-8')
 
 EXPECTED = [
     'FIELD_MEASURED_AND_CHECKED',
@@ -86,6 +87,8 @@ def test_review_wording_no_longer_implies_saved_photo_is_missing():
 
 
 def test_measurement_authority_loads_before_guided_review_runtime():
-    authority = INDEX.index('./measurement-verification-authority.js?build=20260825-measurement-verification-authority-2')
-    guided = INDEX.index('./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1')
+    # Startup deferral (2026-10-13): both runtimes ship in the H38ScriptLoader
+    # FIELD_AND_MEASURE group, loaded sequentially in this same order.
+    authority = LOADER.index('./measurement-verification-authority.js?build=20260825-measurement-verification-authority-2')
+    guided = LOADER.index('./field-visit-guided-controller.js?build=20260811-guided-ar-advance-1')
     assert authority < guided

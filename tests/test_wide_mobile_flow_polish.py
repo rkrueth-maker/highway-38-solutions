@@ -4,6 +4,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "commercial-app"
 INDEX = (APP / "index.html").read_text(encoding="utf-8")
+SCRIPT_LOADER = (APP / "h38-script-loader.js").read_text(encoding="utf-8")
 LAUNCH = (APP / "site-visit-native-launch-final.js").read_text(encoding="utf-8")
 POLISH = (APP / "mobile-flow-polish-v2.js").read_text(encoding="utf-8")
 GRADLE = (ROOT / "native" / "h38-site-scanner" / "android-app" / "app" / "build.gradle").read_text(encoding="utf-8")
@@ -76,7 +77,17 @@ def test_commercial_index_local_assets_exist():
 
 
 def test_wide_polish_loaders_are_last_after_site_visit_top_action():
-    top = INDEX.index('site-visit-top-action.js')
-    launch = INDEX.index('site-visit-native-launch-final.js')
+    # Startup deferral (2026-10-13): the top-action and native-launch
+    # runtimes are no longer eager index.html tags after the polish loader;
+    # they ship in the H38ScriptLoader FIELD_AND_MEASURE group (top action
+    # before native launch, as in index.html) and therefore execute after
+    # every upfront script, including the polish loader, when the field /
+    # measure page is opened. The polish loader itself is a continuous
+    # MutationObserver polisher, so it keeps applying after they load.
+    top = SCRIPT_LOADER.index('site-visit-top-action.js')
+    launch = SCRIPT_LOADER.index('site-visit-native-launch-final.js')
     polish = INDEX.index('mobile-flow-polish-v2.js')
-    assert top < launch < polish
+    assert 'site-visit-top-action.js' not in INDEX
+    assert 'site-visit-native-launch-final.js' not in INDEX
+    assert polish >= 0
+    assert top < launch

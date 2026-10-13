@@ -4,6 +4,12 @@ function need(ok,msg){if(!ok)throw new Error(msg)}
 function has(source,pattern){return pattern instanceof RegExp?pattern.test(source):source.includes(pattern)}
 
 const index=read('commercial-app/index.html');
+const loader=read('commercial-app/h38-script-loader.js');
+// Startup deferral (2026-10-13): field/measure runtimes ship in the
+// H38ScriptLoader FIELD_AND_MEASURE group (same ?build= params, sequential
+// load in the original index order) instead of eager index.html tags, so
+// production-loader presence and order are asserted against index + loader.
+const loadSource=index+'\n'+loader;
 const runtime=read('commercial-app/field-visit-video-measurements.js');
 const guided=read('commercial-app/field-visit-guided-controller.js');
 const recovery=read('commercial-app/field-visit-server-recovery.js');
@@ -13,12 +19,12 @@ const fn=read('supabase/functions/h38-video-measurements/index.ts');
 
 for(const source of [runtime,guided,recovery,cad,cadGuard])new Function(source);
 
-need(index.includes('field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158'),'production loader must install server Site Visit draft recovery before field-visit.js');
-need(index.indexOf('field-visit-server-recovery.js')>index.indexOf('field-visit-core.js')&&index.indexOf('field-visit-server-recovery.js')<index.indexOf('field-visit.js?'),'server recovery must wrap restore before the field visit shell captures it');
-need(index.includes('field-visit-guided-controller.js?build=20260811-guided-ar-advance-1'),'production loader must use current guided controller');
-need(index.includes('field-visit-video-measurements.js?build=20260811-video-headless-stable-1154'),'production loader must use headless video measurement engine');
-need(index.includes('site-scanner-cad-save-guard.js?build=20260811-cad-save-guard-1156'),'production loader must protect CAD save actions');
-need(index.includes('site-scanner-cad-export.js?build=20260811-cad-review-dxf-0143'),'production loader must retain CAD review runtime');
+need(loadSource.includes('field-visit-server-recovery.js?build=20260811-server-draft-recovery-1158'),'production loader must install server Site Visit draft recovery before field-visit.js');
+need(loadSource.indexOf('field-visit-server-recovery.js')>loadSource.indexOf('field-visit-core.js')&&loadSource.indexOf('field-visit-server-recovery.js')<loadSource.indexOf('field-visit.js?'),'server recovery must wrap restore before the field visit shell captures it');
+need(loadSource.includes('field-visit-guided-controller.js?build=20260811-guided-ar-advance-1'),'production loader must use current guided controller');
+need(loadSource.includes('field-visit-video-measurements.js?build=20260811-video-headless-stable-1154'),'production loader must use headless video measurement engine');
+need(loadSource.includes('site-scanner-cad-save-guard.js?build=20260811-cad-save-guard-1156'),'production loader must protect CAD save actions');
+need(loadSource.includes('site-scanner-cad-export.js?build=20260811-cad-review-dxf-0143'),'production loader must retain CAD review runtime');
 
 need(!runtime.includes('MutationObserver'),'video measurement engine must not observe DOM mutations');
 need(runtime.includes('const HEARTBEAT_MS=2500'),'video measurement engine must use bounded heartbeat');

@@ -5,6 +5,7 @@ C360=(ROOT/'commercial-app/customer-360-authority.js').read_text()
 CSS=(ROOT/'commercial-app/customer-360-authority.css').read_text()
 BROWSER=(ROOT/'commercial-app/customer-360-browser-integration-v3.js').read_text()
 INDEX=(ROOT/'commercial-app/index.html').read_text()
+LOADER=(ROOT/'commercial-app/h38-script-loader.js').read_text()
 MODULE_CONTRACT=(ROOT/'apps-script/business-office/BusinessOffice_ModuleContract.gs').read_text()
 CUSTOMER_IMPORT=(ROOT/'commercial-app/customer-import-intelligence.js').read_text()
 CUSTOMER_WORKSPACE=(ROOT/'commercial-app/customer-workspace-documents.js').read_text()
@@ -72,8 +73,11 @@ def test_universal_smart_import_detects_and_stages_business_history_safely():
     ]:
         assert marker in CUSTOMER_IMPORT
     assert 'host.innerHTML=smartHtml()' not in CUSTOMER_IMPORT
-    assert 'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1' in INDEX
+    # Startup deferral (2026-10-13): the importer ships in the
+    # H38ScriptLoader 'customers' group with the same ?build= param.
+    assert 'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1' in LOADER
     assert 'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1' not in INDEX
+    assert 'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1' not in LOADER
     for marker in ['Subscribed services & invoicing','Trigger today','Hours × rate','Review / send invoices',"'Send Allowed':'No'"]:
         assert marker in CUSTOMER_WORKSPACE
     for marker in ['Snap a receipt','capture="environment" multiple','Captured — Office Review Required','Payment Action Performed']:
@@ -120,9 +124,12 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 
 
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
-    assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-2' in INDEX
+    # Startup deferral (2026-10-13): both customer-360 runtimes ship in the
+    # H38ScriptLoader 'customers' group with the same ?build= params.
+    assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-2' in LOADER
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
-    assert 'customer-360-authority.js?build=20261012-offline-polish-1' in INDEX
+    assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in LOADER
+    assert 'customer-360-authority.js?build=20261012-offline-polish-1' in LOADER
     assert 'customer-360-authority.css?build=20260922-layout-stability-2' in BROWSER
     assert 'customer-360-authority.css?build=20260922-layout-stability-2' in INDEX
     assert 'renderNow:root=>renderCustomersNow(root||window)' in C360

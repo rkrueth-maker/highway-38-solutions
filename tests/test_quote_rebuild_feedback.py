@@ -4,6 +4,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 FLOW = ROOT / "commercial-app" / "owner-flow-polish.js"
 INDEX = ROOT / "commercial-app" / "index.html"
+SCRIPT_LOADER = ROOT / "commercial-app" / "h38-script-loader.js"
 
 
 def test_rebuild_uses_real_ai_request_and_persistent_status():
@@ -28,6 +29,9 @@ def test_rebuild_feedback_survives_quote_rerender():
 
 def test_owner_flow_asset_is_cache_busted():
     index = INDEX.read_text(encoding="utf-8")
+    loader = SCRIPT_LOADER.read_text(encoding="utf-8")
     assert "owner-flow-polish.css?build=20260815-2135" in index
-    assert "owner-flow-polish.js?build=20260929-1738" in index
+    # Startup deferral (2026-10-13): the JS ships in the H38ScriptLoader
+    # 'quotes' group with the same cache-busting ?build= param.
+    assert "owner-flow-polish.js?build=20260929-1738" in loader
     assert re.search(r"window\.H38_ASSET_BUILD='\d{8}-\d{4}'", index)

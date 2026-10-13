@@ -9,6 +9,7 @@ const fail = message => { throw new Error(message); };
 const requireText = (source, text, label) => { if (!source.includes(text)) fail(`${label} is missing: ${text}`); };
 
 const index = read('commercial-app/index.html');
+const loader = read('commercial-app/h38-script-loader.js');
 const worker = read('commercial-app/service-worker.js');
 const authFix = read('commercial-app/supabase-quote-ai-auth-fix.js');
 const photoRestore = read('commercial-app/quote-photo-restore.js');
@@ -18,10 +19,14 @@ const edge = read('supabase/functions/h38-quote-ai/index.ts');
 
 new Function(authFix); new Function(photoRestore); new Function(photoReview); new Function(jobFlow);
 
-const quoteBase = index.indexOf('./supabase-quote-ai.js');
-const authRepair = index.indexOf('./supabase-quote-ai-auth-fix.js');
-const mobile = index.indexOf('./quote-mobile-stabilization.js');
-const photoRepair = index.indexOf('./quote-photo-restore.js');
+// Startup deferral (2026-10-13): these quote runtimes are no longer eager
+// index.html tags; they load sequentially, in this same order, from the
+// H38ScriptLoader 'quotes' group before the Quotes page renders, so the
+// required load order is asserted against the loader group.
+const quoteBase = loader.indexOf('./supabase-quote-ai.js');
+const authRepair = loader.indexOf('./supabase-quote-ai-auth-fix.js');
+const mobile = loader.indexOf('./quote-mobile-stabilization.js');
+const photoRepair = loader.indexOf('./quote-photo-restore.js');
 if (!(quoteBase >= 0 && authRepair > quoteBase && mobile > authRepair && photoRepair > mobile)) fail('Quote AI auth repair and saved-photo restore scripts are not loaded in the required order.');
 
 requireText(worker, 'supabase-quote-ai-auth-fix.js', 'Service worker');

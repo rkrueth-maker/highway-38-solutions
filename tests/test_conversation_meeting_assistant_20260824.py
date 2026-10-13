@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = (ROOT / 'commercial-app/conversation-meeting-assistant.js').read_text()
 CSS = (ROOT / 'commercial-app/conversation-meeting-assistant.css').read_text()
 INDEX = (ROOT / 'commercial-app/index.html').read_text()
+LOADER = (ROOT / 'commercial-app/h38-script-loader.js').read_text()
 SW = (ROOT / 'commercial-app/service-worker.js').read_text()
 TRANSCRIBE = (ROOT / 'supabase/functions/h38-conversation-transcription/index.ts').read_text()
 ORGANIZE = (ROOT / 'supabase/functions/h38-conversation-organize/index.ts').read_text()
@@ -13,7 +14,9 @@ QUOTE = (ROOT / 'commercial-app/quote-agent-contract.js').read_text()
 
 def test_meeting_runtime_is_loaded_and_offline_cached():
     assert 'conversation-meeting-assistant.css?build=20260824-conversation-meeting-assistant-1' in INDEX
-    assert 'conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1' in INDEX
+    # Startup deferral (2026-10-13): the JS ships in the H38ScriptLoader
+    # 'meetings' group with the same ?build= param, not as an eager tag.
+    assert 'conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1' in LOADER
     assert "'conversation-meeting-assistant.js'" in SW
     assert "'conversation-meeting-assistant.css'" in SW
     assert 'h38-business-office-20260824-0410' in SW
