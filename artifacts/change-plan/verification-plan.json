@@ -1,21 +1,32 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T11:11:36.916Z",
-  "base": null,
+  "generatedAt": "2026-10-13T11:55:57.018Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "commercial-app/bundle-features.js",
+    "commercial-app/customer-360-authority.css",
+    "commercial-app/customer-360-authority.js",
+    "commercial-app/customer-360-browser-integration-v3.js",
+    "commercial-app/customer-readiness-polish.js",
+    "commercial-app/h38-script-loader.js",
+    "commercial-app/index.html",
+    "commercial-app/job-lifecycle.js",
+    "commercial-app/office-polish.js",
     "commercial-app/service-worker.js",
+    "commercial-app/supabase-no-legacy-office.js",
+    "scripts/verify-native-walkthrough-launch-hammer.js",
     "tests/test_offline_mode_polish_20261012.py",
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 4,
+  "fileCount": 15,
   "scopes": {
-    "publicWebsite": false,
+    "publicWebsite": true,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -23,26 +34,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
+    "publicRendering": true,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
     "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

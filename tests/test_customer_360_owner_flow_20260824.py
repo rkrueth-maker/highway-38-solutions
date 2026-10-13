@@ -126,12 +126,12 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
     # Startup deferral (2026-10-13): both customer-360 runtimes ship in the
     # H38ScriptLoader 'customers' group with the same ?build= params.
-    assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-2' in LOADER
+    assert 'customer-360-browser-integration-v3.js?build=20261013-complete-scan-fixes-1' in LOADER
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in LOADER
-    assert 'customer-360-authority.js?build=20261012-offline-polish-1' in LOADER
-    assert 'customer-360-authority.css?build=20260922-layout-stability-2' in BROWSER
-    assert 'customer-360-authority.css?build=20260922-layout-stability-2' in INDEX
+    assert 'customer-360-authority.js?build=20261013-complete-scan-fixes-1' in LOADER
+    assert 'customer-360-authority.css?build=20261013-complete-scan-fixes-1' in BROWSER
+    assert 'customer-360-authority.css?build=20261013-complete-scan-fixes-1' in INDEX
     assert 'renderNow:root=>renderCustomersNow(root||window)' in C360
     assert '.h38-c360-master-detail>.h38-c360-directory-rail{grid-column:1!important}' in CSS
     assert '.h38-c360-master-detail>.h38-c360-detail{grid-column:2!important}' in CSS
