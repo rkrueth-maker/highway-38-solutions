@@ -86,3 +86,18 @@ verify_jwt = false
 # (401 without it), so verify_jwt stays false for the cron runner.
 [functions.kit-proactive-engine]
 verify_jwt = false
+
+# Scout deal-alert push API. Self-authenticating per action: user actions
+# validate the caller's Supabase session in code and scope to their
+# coupon_household_members households; the pg_cron "check" action requires
+# the x-h38-nightly-key header matching the 'scout-push' row in
+# h38_internal_job_secrets. verify_jwt stays false so the cron caller and
+# the service worker's unauthenticated delivery-receipt action can reach it.
+[functions.h38-scout-push]
+verify_jwt = false
+
+# Scout push service worker script (GET only, serves the /functions/v1/
+# scoped SW that displays deal-alert pushes). Public by design — a service
+# worker script must be fetchable without credentials.
+[functions.h38-scout-sw]
+verify_jwt = false
