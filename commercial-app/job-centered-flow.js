@@ -2,7 +2,7 @@
 'use strict';
 const BUILD='20260819-job-centered-event-driven-2';
 const PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']];
-const MORE_ORDER=['quotes','field','schedule','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
+const MORE_ORDER=['quotes','field','schedule','messages','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 const text=value=>String(value==null?'':value).trim();
 const lower=value=>text(value).toLowerCase();
 const esc=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

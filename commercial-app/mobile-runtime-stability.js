@@ -6,7 +6,7 @@ const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
 const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
 const OWNER_MORE_GROUPS=[
-  ['Work',['work','quotes','field','meetings']],
+  ['Work',['work','quotes','field','meetings','messages']],
   ['Money',['money','accounting','payroll','tax']],
   ['Records & Equipment',['documents','inventory','fleet','people']],
   ['Office',['reports','social','controls','ai','assistant','settings']]
