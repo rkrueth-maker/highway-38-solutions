@@ -1,18 +1,17 @@
 # Scope-aware verification plan
 
-- Files changed: 1
-- Scopes: publicWebsite, performanceReliability, workflowOnly
-- Deployment workflows: .github/workflows/pages-branch-fallback.yml
+- Files changed: 4
+- Scopes: authenticatedApp
+- Deployment workflows: .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
 ## Fast checks
 - `node scripts/verify-change-governance.js`
-- `node scripts/verify-public-website-architecture.js`
-- `node scripts/verify-public-ecosystem-tools.js`
+- `node scripts/verify-unified-app-architecture.js`
+- `node scripts/verify-business-office.js`
+- `node scripts/verify-h38-office-access.js`
 
 ## Expensive or live checks
-- controlled workflow run with machine-readable PASS/HOLD evidence
+- desktop and mobile authenticated route verification for affected workspaces
 
 ## Evidence that may remain reusable
 - Public browser and image evidence is not invalidated by this change.
-- Authenticated browser and data-coverage evidence is not invalidated by this change.
-- Only the affected workflow evidence must be regenerated; unrelated product checks remain reusable when inputs are unchanged.

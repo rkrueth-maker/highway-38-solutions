@@ -1,45 +1,47 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T10:07:55.982Z",
+  "generatedAt": "2026-10-13T11:11:36.916Z",
   "base": null,
   "head": "HEAD",
   "files": [
-    ".github/workflows/pages-branch-fallback.yml"
+    "commercial-app/service-worker.js",
+    "tests/test_offline_mode_polish_20261012.py",
+    "tests/test_platform_push_deepening.py",
+    "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 1,
+  "fileCount": 4,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": false,
+    "publicWebsite": false,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
-    "workflowOnly": true,
+    "performanceReliability": false,
+    "workflowOnly": false,
     "documentationOnly": false
   },
   "risk": {
-    "productionWorkflow": true,
+    "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": false,
-    "authenticatedRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "controlled workflow run with machine-readable PASS/HOLD evidence"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change.",
-    "Only the affected workflow evidence must be regenerated; unrelated product checks remain reusable when inputs are unchanged."
+    "Public browser and image evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
