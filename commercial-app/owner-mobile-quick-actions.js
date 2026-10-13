@@ -35,7 +35,7 @@ function triggerErp(target){
 function ensureErp(target){
   if(window.H38_ERP_FOUNDATION){triggerErp(target);return;}
   let script=document.querySelector('script[data-h38-erp-foundation]');
-  if(!script){script=document.createElement('script');script.src='./erp-foundation.js?build=20261013-rescan-fixes-1';script.async=false;script.dataset.h38ErpFoundation='owner-mobile-quick-actions';document.body.appendChild(script);}
+  if(!script){script=document.createElement('script');script.src='./erp-foundation.js?build=20260903-erp-time-uptake-learning-2';script.async=false;script.dataset.h38ErpFoundation='owner-mobile-quick-actions';document.body.appendChild(script);}
   let tries=0;const timer=setInterval(()=>{if(window.H38_ERP_FOUNDATION){clearInterval(timer);triggerErp(target);}else if(++tries>=40){clearInterval(timer);window.toast?.('Time controls are still loading. Try again.',true);}},100);
 }
 function polishTimeDialog(){

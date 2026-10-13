@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T06:43:50.258Z",
+  "generatedAt": "2026-10-13T06:51:24.005Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/ai-onboarding.js",
     "commercial-app/ai-team-owner-polish.js",
     "commercial-app/desktop-navigation-authority.js",
@@ -23,7 +26,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 18,
+  "fileCount": 21,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
