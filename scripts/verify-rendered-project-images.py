@@ -7,8 +7,8 @@ root=Path(sys.argv[1] if len(sys.argv)>1 else 'browser-artifacts/project-images'
 meta=json.loads((root/'metadata.json').read_text())
 records=meta.get('records',[])
 errors=[]
-if len(records)!=16:
-    errors.append(f'expected 16 rendered project images, found {len(records)}')
+if len(records)!=18:
+    errors.append(f'expected 18 rendered project images, found {len(records)}')
 rasters={'.png','.jpg','.jpeg','.webp'}
 for record in records:
     src=record.get('src','').split('?')[0]

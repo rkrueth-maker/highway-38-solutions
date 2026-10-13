@@ -5,6 +5,10 @@
   if(!ROOT_PAGE)return;
   const VERSION='2026-10-08-website-queue-v1';
   const ANALYTICS_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-analytics';
+  // Mirror of the endpoint's origin allow-list (supabase/functions/h38-site-analytics):
+  // only send beacons from origins the endpoint accepts, so local mirrors and
+  // test rigs on other ports never fire a request that is rejected with 403.
+  const ANALYTICS_ORIGINS=new Set(['https://highway38solutions.com','https://www.highway38solutions.com','https://rkrueth-maker.github.io','http://localhost:8000','http://127.0.0.1:8000']);
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
   const OFFICE_DEMO='business-office-review-demo.html';
   const registry={
@@ -80,6 +84,7 @@
   let pageviewSent=false;
   function trackPageview(){
     if(pageviewSent)return;pageviewSent=true;
+    if(!ANALYTICS_ORIGINS.has(location.origin))return;
     try{
       const payload=JSON.stringify({path:location.pathname||'/',ref:document.referrer||''});
       if(navigator.sendBeacon&&navigator.sendBeacon(ANALYTICS_ENDPOINT,new Blob([payload],{type:'text/plain;charset=utf-8'})))return;
