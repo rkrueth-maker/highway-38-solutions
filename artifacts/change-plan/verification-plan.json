@@ -1,16 +1,23 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T05:35:38.707Z",
+  "generatedAt": "2026-10-13T05:53:21.614Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "artifacts/commercial-system/verification.json",
     "artifacts/public-website-architecture/verification.json",
     "assets/js/h38-site-v2.js",
     "launch-control/evidence/public-customer-path-verification.json",
-    "scripts/verify-public-website-architecture.js"
+    "scripts/browser-commercial-smoke.sh",
+    "scripts/capture-project-example-images.js",
+    "scripts/verify-commercial-browser.js",
+    "scripts/verify-public-website-architecture.js",
+    "scripts/verify-rendered-project-images.py"
   ],
-  "fileCount": 5,
+  "fileCount": 12,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
