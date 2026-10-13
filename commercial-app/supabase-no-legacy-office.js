@@ -172,7 +172,7 @@
     if (!document.querySelector('link[data-h38-job-lifecycle]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = './job-lifecycle.css?build=20260912-employee-receipt-capture-1';
+      link.href = './job-lifecycle.css?build=20261013-owner-view-1';
       link.dataset.h38JobLifecycle = '1';
       document.head.appendChild(link);
     }

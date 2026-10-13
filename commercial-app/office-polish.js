@@ -266,40 +266,66 @@ function cardBandPillTone(pill){
     :/\b(draft|pending|awaiting|review)\b/.test(label)?'pending':'';
   if(tone)pill.classList.add(tone);
 }
+function cardBandIsKicker(el){
+  // A kicker/eyebrow element: class-marked (kicker/eyebrow), or a bare
+  // text-only element carrying a short ALL-CAPS line ("JOB", "FAST WEB
+  // QUOTE"). Sentence-case intros never qualify.
+  if(!el||el.classList.contains('pill'))return false;
+  if(el.matches('.eyebrow,[class*="kicker" i]'))return true;
+  if(el.querySelector('*'))return false;
+  const t=text(el.textContent);
+  return !!t&&t.length<=48&&t===t.toUpperCase()&&/[A-Z]/.test(t);
+}
 function cardBandKicker(wrapper,heading){
   // The kicker/eyebrow line that introduces a heading inside a designed head
-  // wrapper: class-marked (kicker/eyebrow), or a bare short span/p directly
-  // before the heading. It moves into the band so the card keeps its context.
+  // wrapper. It moves into the band so the card keeps its context.
   const marked=wrapper.querySelector('.eyebrow,[class*="kicker" i]');
   if(marked&&marked!==heading&&!marked.classList.contains('pill')&&(marked.compareDocumentPosition(heading)&Node.DOCUMENT_POSITION_FOLLOWING))return marked;
   const prev=heading.previousElementSibling;
-  if(prev&&(prev.tagName==='SPAN'||prev.tagName==='P')&&!prev.querySelector('*')&&!prev.classList.contains('pill')&&text(prev.textContent)&&text(prev.textContent).length<=48)return prev;
+  if(prev&&(prev.tagName==='SPAN'||prev.tagName==='P')&&cardBandIsKicker(prev))return prev;
   return null;
 }
 function polishCardBands(){
   const main=document.getElementById('mainContent');
   if(!main)return;
-  main.querySelectorAll('.card,.h38-platform-card').forEach(card=>{
+  main.querySelectorAll('.card,.h38-platform-card,.h38-ops-panel,.h38-job-command-home').forEach(card=>{
     // Presence of the band itself is the guard (not the data attribute): a
     // renderer that rewrites a card's innerHTML — platform-next does this on
     // every render — drops the band, and the next pass must restore it.
     if(card.querySelector(':scope > .card-band'))return;
     if(card.classList.contains('h38-action-card')||card.classList.contains('h38-profit-card')){card.dataset.h38CardBand='skip';return;}
     if(card.id==='h38CustomerReadyHero'||card.id==='h38CustomerReadyCards')return;
+    // Today's readiness sections, the kit feed and Today's lifecycle summary
+    // card keep their own designed heads (treatment-B implementation
+    // decision). The Work lifecycle DETAIL card (.h38-life-work) bands like
+    // every other main card — the owner films it, eyebrow and all.
+    if(card.classList.contains('h38-life-today')){card.dataset.h38CardBand='skip';return;}
     const first=card.firstElementChild;
     if(!first)return;
-    // Today's readiness sections, the kit feed and the lifecycle cards keep
-    // their own designed heads (treatment-B implementation decision).
-    if(first.classList.contains('h38-ready-section-head')||first.classList.contains('h38-kit-feed-head')||first.classList.contains('h38-life-head')){card.dataset.h38CardBand='skip';return;}
-    let heading=null,pill=null,rowHost=null,rowHostOnly=false,kicker=null,headWrap=null;
+    if(first.classList.contains('h38-ready-section-head')||first.classList.contains('h38-kit-feed-head')){card.dataset.h38CardBand='skip';return;}
+    let heading=null,pill=null,rowHost=null,kicker=null,headWrap=null,headingParent=null;
     if(first.matches('h2,h3')){
       heading=first;
       const sibling=heading.nextElementSibling;
       if(sibling&&sibling.classList.contains('pill'))pill=sibling;
     }else if(first.classList.contains('row-top')){
-      const head=first.querySelector(':scope > h2,:scope > h3');
-      const headPill=first.querySelector(':scope > .pill');
-      if(head){heading=head;pill=headPill;rowHost=first;rowHostOnly=[...first.children].every(el=>el===head||el===headPill);}
+      // The heading may sit in an unclassed div inside the row-top, next to a
+      // direct-child status pill (Change orders, Lead & sales pipeline).
+      const head=first.querySelector('h2,h3');
+      if(head&&(head.parentElement===first||head.parentElement.parentElement===first)){
+        heading=head;headingParent=head.parentElement;rowHost=first;
+        pill=first.querySelector(':scope > .pill');
+        kicker=cardBandKicker(first,head);
+      }
+    }else if((first.tagName==='SPAN'||first.tagName==='P'||first.tagName==='DIV')&&cardBandIsKicker(first)){
+      // Eyebrow-first card: a kicker line as the first element, the heading
+      // immediately after it (field job hero shape).
+      const next=first.nextElementSibling;
+      if(next&&(next.tagName==='H2'||next.tagName==='H3')){
+        heading=next;kicker=first;
+        const sib=heading.nextElementSibling;
+        if(sib&&sib.classList.contains('pill'))pill=sib;
+      }
     }else if(first.tagName==='DIV'||first.tagName==='HEADER'||first.tagName==='SECTION'){
       // Designed head wrapper (h38-customer-directory-head, h38-c360-head,
       // h38-photo-quote-head, h38-platform-head, …): the heading lives inside
@@ -310,10 +336,16 @@ function polishCardBands(){
       const cls=String(first.className||'');
       if(/(^|[-_ ])head($|[-_ ])/.test(cls)){
         const head=first.querySelector('h2,h3');
-        if(head&&(head.parentElement===first||head.parentElement.parentElement===first)&&!first.querySelector('input,select,textarea,form,.card,.list,table')){
-          heading=head;headWrap=first;
-          kicker=cardBandKicker(first,head);
-          pill=first.querySelector('.pill')||first.querySelector('.h38-platform-badge');
+        if(head&&(head.parentElement===first||head.parentElement.parentElement===first)&&!first.querySelector('form,.card,.list,table')){
+          // Form controls disqualify only inside the heading's own box — the
+          // lifecycle head keeps its job picker in a sibling box, and that
+          // must not block the band.
+          const headBox=head.parentElement;
+          if(!headBox.querySelector('input,select,textarea')){
+            heading=head;headWrap=first;headingParent=headBox;
+            kicker=cardBandKicker(first,head);
+            pill=first.querySelector('.pill')||first.querySelector('.h38-platform-badge');
+          }
         }
       }
     }
@@ -332,8 +364,15 @@ function polishCardBands(){
     titleWrap.appendChild(heading);
     band.append(chip,titleWrap);
     if(pill){if(pill.classList.contains('pill'))cardBandPillTone(pill);band.appendChild(pill);}
-    if(rowHost&&rowHostOnly)rowHost.remove();
-    if(headWrap&&!headWrap.querySelector('*')&&!text(headWrap.textContent))headWrap.remove();
+    // Prune ancestors left empty by the extraction (a row-top's heading div,
+    // a head wrapper's inner div) — stop at the card itself and at the first
+    // ancestor that still holds content (notes, buttons, pickers stay put).
+    let pruneFrom=headingParent;
+    while(pruneFrom&&pruneFrom!==card&&card.contains(pruneFrom)&&!pruneFrom.querySelector('*')&&!text(pruneFrom.textContent)){
+      const up=pruneFrom.parentElement;
+      pruneFrom.remove();
+      pruneFrom=up;
+    }
     card.insertBefore(band,card.firstChild);
   });
 }
