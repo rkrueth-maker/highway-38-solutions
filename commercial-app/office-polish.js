@@ -7,6 +7,9 @@ let applyScheduled=false;
 
 function text(value){return String(value==null?'':value).trim();}
 function setText(node,value){const next=String(value==null?'':value);if(node&&node.textContent!==next)node.textContent=next;}
+function northernTenant(){try{const b=window.state?.snapshot?.business||{};const key=text(b.businessKey||b['Business Key']||window.state?.businessKey||new URLSearchParams(location.search).get('businessKey')||'').toLowerCase();return key==='northern-lakes';}catch(_){return false;}}
+function assistantDisplayName(){return northernTenant()?'Assistant':'My Hank';}
+function assistantPageTitle(){return northernTenant()?'Personal Assistant':'My Hank';}
 function searchDialog(){return document.getElementById('h38OfficeSearchDialog');}
 function androidNative(){return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native;}
 function iosLike(){return /iPhone|iPad|iPod/i.test(String(navigator.userAgent||''));}
@@ -129,16 +132,17 @@ function polishAssistantLauncher(){
   }
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
+    const displayName=assistantDisplayName();
     launcher.classList.add('h38-floating-assistant','h38-polish-touch');
-    if(launcher.getAttribute('aria-label')!=='Assistant')launcher.setAttribute('aria-label','Assistant');
-    if(launcher.getAttribute('title')!=='Assistant')launcher.setAttribute('title','Assistant');
+    if(launcher.getAttribute('aria-label')!==displayName)launcher.setAttribute('aria-label',displayName);
+    if(launcher.getAttribute('title')!==displayName)launcher.setAttribute('title',displayName);
     if(launcher.dataset.h38UnifiedAssistant!=='1'){
       launcher.dataset.h38UnifiedAssistant='1';
-      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">Assistant</span>';
+      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">'+displayName+'</span>';
       launcher.addEventListener('click',openUnifiedAssistant,true);
     }else{
       const label=launcher.querySelector('.h38-floating-assistant-label,.ai-launcher-label');
-      if(label&&text(label.textContent)!=='Assistant')label.textContent='Assistant';
+      if(label&&text(label.textContent)!==displayName)label.textContent=displayName;
     }
   }
   syncAssistantBadge();
@@ -192,7 +196,7 @@ function decorateAssistantPage(){
   const form=document.getElementById('paCommandForm');
   if(!main||!form)return;
   const heading=main.querySelector('.page-head h1');
-  setText(heading,'Personal Assistant');
+  setText(heading,assistantPageTitle());
   const intro=main.querySelector('.page-head p');
   setText(intro,'Private to your sign-in. Ask questions, manage personal reminders, or give H38 Business Office commands.');
   const label=form.querySelector('label');
