@@ -58,7 +58,8 @@ requireText(importer,"p_source_name:`${plan.file} · ${g.sheet}`",'per-sheet sta
 requireText(importer,'stagedRuns.set(g.id,runId)','separate run tracking');
 requireText(importer,'stagedRuns.delete(g.id)','applied run retirement');
 
-requireText(index,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','production cache-busted loader');
+requireText(index,'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1','production cache-busted loader');
+forbid(index,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','stale smart-import loader');
 forbid(index,'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1','stale smart-import loader');
 requireText(erp,'id="h38DataUptake"','existing data-uptake host');
 requireText(erp,'data-h38-stage-import','manual import fallback preserved');
