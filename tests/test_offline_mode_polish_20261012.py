@@ -80,7 +80,7 @@ def test_customer_setup_card_title_matches_renderer():
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     # Cache name rolled by the 20261012 mobile-polish pass (files changed);
     # the offline file list and live-first behavior below are the invariants.
-    assert "const CACHE_NAME='h38-business-office-20261013-fix-sweep-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261013-fix-sweep-2'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
     # Logo consolidation: the 2.93MB approved logo is NOT in the shell
@@ -88,6 +88,38 @@ def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     assert 'highway38-logo.png' not in SW.split('const SHELL=')[1].split('];')[0]
     assert "url.pathname.endsWith('/assets/highway38-logo.png')" in SW
     assert 'caches.match(request)' in SW
+
+
+def test_startup_fix_retire_is_scoped_to_legacy_offline_shell_only():
+    startup_fix = (APP / 'startup-fix.js').read_text(encoding='utf-8')
+    # Function name and its init() call site are preserved.
+    assert 'async function retireLegacyOfflineShell()' in startup_fix
+    assert 'retireLegacyOfflineShell();' in startup_fix
+    # Unregister ONLY registrations whose worker script is offline-sw.js —
+    # never every registration in the /commercial-app/ scope.
+    assert "endsWith('/offline-sw.js')" in startup_fix
+    assert "registration.scope.includes('/commercial-app/')" not in startup_fix
+    # Delete ONLY legacy 'h38-office-shell-*' caches — the canonical
+    # 'h38-business-office-*' caches must be untouched by this cleanup.
+    assert "key.startsWith('h38-office-shell-')" in startup_fix
+    assert "key.startsWith('h38-business-office-')" not in startup_fix
+
+
+def test_supabase_config_auth_cache_repair_is_removed():
+    config = (APP / 'supabase-config.js').read_text(encoding='utf-8')
+    # The dated one-shot repair (build 20260809-1848) unregistered ALL
+    # service workers and deleted all canonical caches on every fresh
+    # session, hiding the page while doing it. It is gone entirely.
+    assert 'h38RepairStaleAuthCache' not in config
+    assert 'h38:auth-cache-repair' not in config
+    assert 'unregister' not in config
+    assert 'caches.delete' not in config
+    # The production config export below the repair remains.
+    assert 'window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({' in config
+    assert "stage: 'supabase-production-only'" in config
+    # Changed files roll to the fix-sweep-2 build in the Office entry.
+    assert './supabase-config.js?build=20261013-fix-sweep-2' in INDEX
+    assert './startup-fix.js?build=20261013-fix-sweep-2' in INDEX
 
 
 def test_index_build_tags_match_polish_build():
