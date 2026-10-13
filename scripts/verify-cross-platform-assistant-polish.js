@@ -17,7 +17,7 @@ const authority=read('docs/architecture/H38_ASSISTANT_AUTHORITY.md');
 for(const needle of [
   "unifiedAssistantLauncher:true","personalAssistantPrivatePerUser:true","businessCommandBusPreserved:true",
   "androidSafeArea:true","iosSafeAreaReady:true","mutationFeedbackLoopPrevented:true","nativeIosShellCreated:false",
-  "openPage('assistant')","h38-floating-assistant","Personal Assistant"
+  "openPage('assistant')","h38-floating-assistant","My Hank"
 ])assert(polish.includes(needle),`office polish missing ${needle}`);
 for(const needle of [
   'html.h38-native-android body .topbar','max(env(safe-area-inset-top,0px),24px)','html.h38-ios-like body .topbar',
@@ -68,9 +68,9 @@ async function verifyBrowser(browserType,name,userAgent,expectedClass,artifactNa
     assert(await page.locator('html').evaluate((el,c)=>el.classList.contains(c),expectedClass),`${name}: platform class missing`);
     assert(await page.locator('#personalAssistantButton').evaluate(el=>el.hidden),`${name}: duplicate personal assistant launcher must be hidden`);
     assert(await page.locator('#globalAiButton').evaluate(el=>el.classList.contains('h38-floating-assistant')),`${name}: floating assistant class missing`);
-    assert.equal(await page.locator('#globalAiButton .h38-floating-assistant-label').textContent(),'Assistant');
+    assert.equal(await page.locator('#globalAiButton .h38-floating-assistant-label').textContent(),'My Hank');
     assert.equal(await page.locator('#globalAiButton .h38-floating-due').textContent(),'3');
-    assert.equal(await page.locator('.page-head h1').textContent(),'Personal Assistant');
+    assert.equal(await page.locator('.page-head h1').textContent(),'My Hank');
     assert((await page.locator('.h38-owner-assistant-note').textContent()).includes('owner-one@example.com'),`${name}: owner-private identity note missing`);
     assert((await page.locator('#paCommandForm textarea').getAttribute('placeholder')).includes('Start quote'),`${name}: business command examples missing`);
     assert((await page.locator('.h38-assistant-command-chips button').count())>=5,`${name}: quick command chips missing`);
@@ -79,7 +79,7 @@ async function verifyBrowser(browserType,name,userAgent,expectedClass,artifactNa
     assert(floatingBox&&navBox&&floatingBox.y+floatingBox.height<=navBox.y+4,`${name}: floating assistant overlaps bottom navigation`);
     await page.screenshot({path:path.join(artifactDir,artifactName),fullPage:true});
     await page.locator('#globalAiButton').click();assert.equal(await page.evaluate(()=>state.page),'assistant',`${name}: unified launcher did not open assistant`);assert.equal(await page.evaluate(()=>__oldAiOpened),false,`${name}: old AI drawer should not win launcher click`);
-    await page.locator('.h38-assistant-command-chips button').filter({hasText:'Open jobs'}).click();assert((await page.evaluate(()=>__submitted)).includes('Open jobs'),`${name}: quick command did not submit through Personal Assistant form`);
+    await page.locator('.h38-assistant-command-chips button').filter({hasText:'Open jobs'}).click();assert((await page.evaluate(()=>__submitted)).includes('Open jobs'),`${name}: quick command did not submit through My Hank form`);
     const topPadding=parseFloat(await page.locator('.topbar').evaluate(el=>getComputedStyle(el).paddingTop));if(expectedClass==='h38-native-android')assert(topPadding>=30,`${name}: Android top safe area is too small: ${topPadding}`);
     await page.locator('body').evaluate(el=>el.classList.add('h38-employee-mode'));assert.equal(await page.locator('#globalAiButton').evaluate(el=>getComputedStyle(el).display),'none',`${name}: legacy employee mode CSS must still hide owner assistant if that class is used by an older client`);
     assert.deepEqual(errors,[],`${name}: browser errors: ${errors.join('; ')}`);return {name,topPadding,artifact:artifactName};
