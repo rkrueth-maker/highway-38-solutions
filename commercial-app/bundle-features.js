@@ -19781,7 +19781,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 'use strict';
 const BUILD='20260819-job-centered-event-driven-2';
 const PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['customers','👤','Customers'],['messages','💬','Messages']];
-const MORE_ORDER=['quotes','field','schedule','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
+const MORE_ORDER=['quotes','field','schedule','messages','documents','money','accounting','reports','people','inventory','fleet','payroll','tax','social','controls','ai','settings'];
 const text=value=>String(value==null?'':value).trim();
 const lower=value=>text(value).toLowerCase();
 const esc=value=>typeof window.esc==='function'?window.esc(value):text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -20657,7 +20657,7 @@ const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
 const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
 const OWNER_MORE_GROUPS=[
-  ['Work',['work','quotes','field','meetings']],
+  ['Work',['work','quotes','field','meetings','messages']],
   ['Money',['money','accounting','payroll','tax']],
   ['Records & Equipment',['documents','inventory','fleet','people']],
   ['Office',['reports','social','controls','ai','assistant','settings']]
