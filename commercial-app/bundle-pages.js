@@ -59,9 +59,14 @@ allowedPages.__h38Meetings=true;
 renderNav.__h38Meetings=true;
 function network(){const online=navigator.onLine;$('networkBadge').textContent=online?'Online':'Offline';$('networkBadge').className=`badge ${online?'online':'offline'}`;}
 function toast(message,bad=false){const node=$('toast');node.textContent=message;node.className=`toast${bad?' bad':''}`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.add('hidden'),4800);}
+function h38BrandSplashNorthernRequested(){try{return String(new URLSearchParams(location.search).get('businessKey')||'').toLowerCase()==='northern-lakes';}catch(_){return false;}}
 function renderWelcome(mode='connecting'){
   if(state.snapshot)return;
   const unavailable=mode==='unavailable',authorizing=mode==='authorizing';
+  if(!unavailable&&!h38BrandSplashNorthernRequested()){
+    $('mainContent').innerHTML=`<section class="welcome welcome--brand"><img class="welcome-brand-logo" src="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6" alt="Highway 38 Solutions" width="118" height="118"><h1>Business Office</h1><p class="welcome-brand-tagline">Replace your software. <strong>Get an office worker.</strong></p><p class="welcome-brand-status">${authorizing?'Complete the Google authorization window, then return here.':'Connecting to your business securely. This should take only a few seconds.'}</p><div class="notice">Offline work remains on this device. Nothing is sent, paid, purchased, approved, or published automatically.</div></section>`;
+    return;
+  }
   $('mainContent').innerHTML=`<section class="welcome"><h1>${unavailable?'Sign in to open Business Office':authorizing?'Finish secure sign-in':'Opening Business Office…'}</h1><p>${unavailable?'Android blocked the hidden Google session. Tap the secure sign-in button once; you will return to this same website.':authorizing?'Complete the Google authorization window, then return here.':'Connecting to your business securely. This should take only a few seconds.'}</p>${unavailable?'<div class="welcome-actions"><button id="secureSignInButton" class="primary" type="button">Sign in securely</button><button id="retryConnectionButton" class="secondary" type="button">Retry connection</button></div>':''}<div class="notice">Offline work remains on this device. Nothing is sent, paid, purchased, approved, or published automatically.</div></section>`;
   if(unavailable){$('secureSignInButton').onclick=()=>state.bridge.authorize();$('retryConnectionButton').onclick=()=>state.bridge.connect();}
 }
