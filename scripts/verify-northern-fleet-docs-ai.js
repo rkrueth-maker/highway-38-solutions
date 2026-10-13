@@ -17,7 +17,12 @@ const factory=text('commercial-app/ai-document-factory.js');
 has(factory,"['owner','administrator']",'SAVE_ATTACHMENT','SAVE_EMAIL_DRAFT',"formats:Object.freeze(['pdf','docx','xlsx','csv','txt','eml'])",'automaticSending:false','automaticPayment:false','automaticPublishing:false','window.addEventListener(\'submit\'');
 const edge=text('supabase/functions/h38-document-factory/index.ts');
 has(edge,'Only an Owner or Administrator','Never invent customers','pdf-lib@1.17.1','jszip@3.10.1','Business systems powered by Highway 38 Solutions','externalActionOccurred:false','automaticSending:false');
-must(!edge.includes('tools:'),'Document factory must not enable model tools');
+// No agentic/executable model tools. The single exception, mirroring the
+// canonical structured-output pattern positively required by
+// verify-supabase-quote-ai.js, is the inert h38_document_spec function schema:
+// its arguments are parsed as a document spec and never executed/dispatched.
+has(edge,'tools:[{type:"function",function:{name:"h38_document_spec",description:"Structured document spec",parameters:schema()}}]');
+must((edge.match(/\btools:/g)||[]).length===1,'Document factory must not enable model tools beyond the structured document spec');
 const migration=text('supabase/migrations/20260912090000_fleet_provider_foundation.sql');
 has(migration,'fleet_provider_connections','fleet_provider_secrets','fleet_vehicles','fleet_vehicle_assignments','fleet_trips','fleet_events','fleet_job_zones','fleet_webhook_receipts','enable row level security','private.business_access',"array['owner','administrator']",'auth.uid()','fleet secrets deny authenticated','fleet receipts deny authenticated');
 const fleet=text('commercial-app/northern-bouncie-fleet.js');
