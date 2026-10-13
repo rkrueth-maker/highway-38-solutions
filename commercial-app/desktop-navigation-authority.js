@@ -1,17 +1,77 @@
 (function(){
 'use strict';
-const BUILD='20260911-desktop-navigation-final-authority-8-late-auth-paint';
+const BUILD='20261013-desktop-sleekness-1';
 const PROFITABILITY_BUILD='20261013-startup-dedupe-1';
 const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
 const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
-const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant','settings']);
+const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant','settings','memberships']);
 const NAV_GROUPS=Object.freeze([
   Object.freeze(['Daily work',Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field'])]),
   Object.freeze(['Money & accounting',Object.freeze(['money','accounting','payroll','tax','reports'])]),
   Object.freeze(['Team & assets',Object.freeze(['people','inventory','fleet','documents'])]),
-  Object.freeze(['Business',Object.freeze(['social','controls','ai','assistant','settings'])])
+  Object.freeze(['Business',Object.freeze(['social','memberships','controls','ai','assistant','settings'])])
 ]);
+const NAV_COLLAPSE_STORAGE_PREFIX='h38-desktop-nav-collapsed-groups-v1';
+function navCollapseStorageKey(){
+  const s=officeState(),user=s?.snapshot?.user||{};
+  const who=String(user.email||user.userId||user.id||user.roleId||'signed-in').trim().toLowerCase()||'signed-in';
+  const business=String(s?.businessId||s?.snapshot?.business?.businessId||'office').trim().toLowerCase()||'office';
+  return `${NAV_COLLAPSE_STORAGE_PREFIX}:${who}:${business}`;
+}
+function readCollapsedNavGroups(){
+  // Returns null when this user has never stored a preference; the
+  // renderer then applies the sleek default (every group beyond the
+  // first starts collapsed).
+  try{
+    const raw=window.localStorage?.getItem(navCollapseStorageKey());
+    if(raw==null)return null;
+    const parsed=JSON.parse(raw);
+    return new Set(Array.isArray(parsed)?parsed.map(value=>String(value)) : []);
+  }catch(_){return null;}
+}
+function effectiveCollapsedNavGroups(){
+  const stored=readCollapsedNavGroups();
+  if(stored)return stored;
+  return new Set(NAV_GROUPS.slice(1).map(([group])=>group));
+}
+function writeCollapsedNavGroups(collapsed){
+  try{window.localStorage?.setItem(navCollapseStorageKey(),JSON.stringify(Array.from(collapsed)));}catch(_){}
+}
+function navGroupCollapsed(group,collapsed,visible,current){
+  // The group holding the active page always renders expanded so the
+  // current location is never hidden behind a collapsed section.
+  if(visible.includes(current))return false;
+  return collapsed.has(group);
+}
+function setNavGroupExpanded(nav,group,expanded){
+  if(!nav)return false;
+  const toggle=nav.querySelector(`:scope > button.h38-nav-group-toggle[data-h38-nav-group="${group}"]`);
+  if(toggle)toggle.setAttribute('aria-expanded',expanded?'true':'false');
+  nav.querySelectorAll(`:scope > button[data-page][data-h38-nav-group-item="${group}"]`).forEach(button=>{
+    button.classList.toggle('h38-nav-group-item-collapsed',!expanded);
+  });
+  return true;
+}
+function toggleNavGroup(group){
+  const nav=document.getElementById('mainNav');if(!nav)return false;
+  const toggle=nav.querySelector(`:scope > button.h38-nav-group-toggle[data-h38-nav-group="${group}"]`);
+  if(!toggle)return false;
+  const expanded=toggle.getAttribute('aria-expanded')!=='true';
+  setNavGroupExpanded(nav,group,expanded);
+  const collapsed=effectiveCollapsedNavGroups();
+  if(expanded)collapsed.delete(group);else collapsed.add(group);
+  writeCollapsedNavGroups(collapsed);
+  return true;
+}
+function ensureActiveNavGroupExpanded(){
+  const nav=document.getElementById('mainNav'),current=officeState()?.page;if(!nav||!current)return false;
+  const active=nav.querySelector(`:scope > button[data-page="${current}"]`);
+  const group=active?.dataset?.h38NavGroupItem;
+  if(!group)return false;
+  if(active.classList.contains('h38-nav-group-item-collapsed'))setNavGroupExpanded(nav,group,true);
+  return true;
+}
 const OFFICE_REQUIREMENTS=Object.freeze({
   customers:['viewCustomers','manageWork','manageQuotes'],
   meetings:['viewCustomers','manageCommunications','manageWork'],
@@ -25,6 +85,7 @@ const OFFICE_REQUIREMENTS=Object.freeze({
   inventory:['manageInventory','useInventory'],
   fleet:['manageAssets','useAssets','manageMaintenance'],
   money:['manageFinancial','viewFinancial'],
+  memberships:['manageFinancial','viewFinancial'],
   accounting:['manageFinancial','viewFinancial'],
   payroll:['manageFinancial'],
   tax:['manageFinancial'],
@@ -68,7 +129,7 @@ function allowedPages(){
 function installNavigationStyle(){
   if(document.getElementById('h38CompleteDesktopNavStyle'))return false;
   const style=document.createElement('style');style.id='h38CompleteDesktopNavStyle';style.textContent=`
-@media(min-width:761px){#mainNav.main-nav{overflow-y:auto;overscroll-behavior:contain;padding-bottom:28px}.h38-nav-section-label{padding:14px 12px 5px;font-size:.68rem;font-weight:900;letter-spacing:.075em;text-transform:uppercase;color:var(--muted,#667085);user-select:none}.h38-nav-section-label:first-child{padding-top:5px}#mainNav.main-nav>button[data-page]{flex:0 0 auto}}
+@media(min-width:761px){#mainNav.main-nav{overflow-y:auto;overscroll-behavior:contain;padding-bottom:28px}.h38-nav-section-label{padding:14px 12px 5px;font-size:.68rem;font-weight:900;letter-spacing:.075em;text-transform:uppercase;color:var(--muted,#667085);user-select:none}.h38-nav-section-label:first-child{padding-top:5px}#mainNav.main-nav>button[data-page]{flex:0 0 auto}#mainNav.main-nav>button.h38-nav-group-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;margin:0;padding:10px 12px 5px;border:0;border-radius:0;background:transparent;color:var(--muted,#667085);font-size:.68rem;font-weight:900;letter-spacing:.075em;text-transform:uppercase;text-align:left;cursor:pointer;box-shadow:none}#mainNav.main-nav>button.h38-nav-group-toggle:hover{background:transparent;border-color:transparent;color:var(--navy,#0b2438)}#mainNav.main-nav>button.h38-nav-group-toggle::after{content:'▾';font-size:.72rem;letter-spacing:0}#mainNav.main-nav>button.h38-nav-group-toggle[aria-expanded="false"]::after{content:'▸'}#mainNav.main-nav>button[data-page].h38-nav-group-item-collapsed{display:none}}
 `;
   document.head.appendChild(style);return true;
 }
@@ -79,13 +140,21 @@ function updateActive(page=officeState()?.page){
     button.classList.toggle('active',active);
     if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
   });
+  ensureActiveNavGroupExpanded();
 }
 function groupedNavigationHtml(pages,defs,current){
   const pageSet=new Set(pages),rendered=new Set(),chunks=[];
-  NAV_GROUPS.forEach(([group,keys])=>{
+  const collapsedGroups=effectiveCollapsedNavGroups();
+  NAV_GROUPS.forEach(([group,keys],groupIndex)=>{
     const visible=keys.filter(key=>pageSet.has(key));if(!visible.length)return;
-    chunks.push(`<div class="h38-nav-section-label" data-h38-nav-group="${group}">${group}</div>`);
-    visible.forEach(key=>{const def=defs[key]||['•',key],icon=def.length>1?def[0]:'',label=def.length>1?def[1]:def[0];rendered.add(key);chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`);});
+    const collapsible=groupIndex>0;
+    const collapsed=collapsible&&navGroupCollapsed(group,collapsedGroups,visible,current);
+    if(collapsible){
+      chunks.push(`<button type="button" class="h38-nav-section-label h38-nav-group-toggle" data-h38-nav-group="${group}" aria-expanded="${collapsed?'false':'true'}" aria-label="Toggle ${group} navigation">${group}</button>`);
+    }else{
+      chunks.push(`<div class="h38-nav-section-label" data-h38-nav-group="${group}">${group}</div>`);
+    }
+    visible.forEach(key=>{const def=defs[key]||['•',key],icon=def.length>1?def[0]:'',label=def.length>1?def[1]:def[0];rendered.add(key);chunks.push(`<button type="button" data-page="${String(key)}" data-h38-nav-group-item="${group}" class="${key===current?'active':''}${collapsed?' h38-nav-group-item-collapsed':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`);});
   });
   pages.filter(key=>!rendered.has(key)).forEach(key=>{const def=defs[key]||['•',key],icon=def.length>1?def[0]:'',label=def.length>1?def[1]:def[0];chunks.push(`<button type="button" data-page="${String(key)}" class="${key===current?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`);});
   return chunks.join('');
@@ -103,6 +172,7 @@ function renderDesktopNavigation(){
   nav.innerHTML=groupedNavigationHtml(pages,defs,s.page);
   nav.dataset.h38AccessSignature=signature;
   nav.querySelectorAll(':scope > button[data-page]').forEach(button=>button.onclick=()=>window.openPage?.(button.dataset.page));
+  nav.querySelectorAll(':scope > button.h38-nav-group-toggle').forEach(button=>button.onclick=()=>toggleNavGroup(button.dataset.h38NavGroup));
   updateActive();
   window.dispatchEvent(new CustomEvent('h38:office-navigation-access-updated',{detail:{shell:s.shell,pages:pages.slice(),grouped:true}}));
 }
@@ -291,6 +361,11 @@ window.H38_DESKTOP_NAVIGATION_AUTHORITY=Object.freeze({
   accountIdentityBuild:ACCOUNT_IDENTITY_BUILD,
   completeOwnerOfficeNavigation:true,
   groupedOwnerOfficeNavigation:true,
+  collapsibleNavGroups:true,
+  navGroupCollapsePersistedPerUser:true,
+  activeNavGroupAlwaysExpanded:true,
+  toggleNavGroup,
+  readCollapsedNavGroups,
   explicitSignedInAccountIdentity:true,
   lateAuthNavigationPaint:true,
   pageRenderNavigationReconcile:true,

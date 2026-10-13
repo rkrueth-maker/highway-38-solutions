@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260807-2245';
+const BUILD='20261013-desktop-sleekness-1';
 const TABLE='personal_assistant_items';
 const CACHE_KIND='H38_PERSONAL_ASSISTANT';
 const CACHE_PREFIX='personal-assistant:';
@@ -216,11 +216,11 @@ async function showNotification(item){
 }
 function scanDueReminders(){const due=runtime.items.filter(item=>item.status==='open'&&item.remind_at&&new Date(item.remind_at).getTime()<=Date.now());due.slice(0,5).forEach(showNotification);updateAssistantBadge();}
 function dueCount(){return runtime.items.filter(item=>item.status==='open'&&(isPast(item.remind_at)||isToday(item.remind_at)||isPast(item.due_at)||isToday(item.due_at))).length;}
-function updateAssistantBadge(){const button=document.getElementById('personalAssistantButton');if(!button)return;const count=dueCount(),badge=button.querySelector('.pa-due-dot');if(count){if(badge)badge.textContent=String(Math.min(count,99));else button.insertAdjacentHTML('beforeend',`<span class="pa-due-dot">${Math.min(count,99)}</span>`);}else badge?.remove();}
+function updateAssistantBadge(){const count=dueCount();try{window.H38_PA_DUE_COUNT=count;}catch(_){}const pill=document.getElementById('globalAiButton');if(!pill)return;let badge=pill.querySelector('.h38-floating-due');if(count){if(!badge){badge=document.createElement('span');badge.className='h38-floating-due';pill.appendChild(badge);}badge.textContent=String(Math.min(count,99));}else badge?.remove();}
 function installNav(){
   try{if(typeof PAGE_DEFS!=='undefined'&&!PAGE_DEFS.assistant)PAGE_DEFS.assistant=['🤝','Assistant'];if(typeof SHELL_PAGES!=='undefined'&&Array.isArray(SHELL_PAGES.office)&&!SHELL_PAGES.office.includes('assistant'))SHELL_PAGES.office.splice(Math.max(1,SHELL_PAGES.office.indexOf('settings')),0,'assistant');if(typeof renderNav==='function')renderNav();}catch(_){}
 }
-function installTopButton(){const top=document.querySelector('.top-actions');if(!top||document.getElementById('personalAssistantButton'))return;const button=document.createElement('button');button.id='personalAssistantButton';button.type='button';button.className='ai-launcher pa-top-button';button.innerHTML='<span aria-hidden="true">🤝</span><span class="ai-launcher-label">Assistant</span>';button.setAttribute('aria-label','Open Personal Assistant');button.onclick=()=>{try{openPage('assistant');}catch(_){}};const ai=document.getElementById('globalAiButton');top.insertBefore(button,ai||top.firstChild);updateAssistantBadge();}
+function installTopButton(){/* Desktop sleekness (2026-10-13): the top bar carries exactly ONE assistant entry — the Ask Hank button (kit-link) — and the floating Assistant pill (#globalAiButton) is the canonical Personal Assistant launcher (PR #1302). This module must not add a second top-bar Assistant button; remove one if an older cached copy created it. The Assistant page stays reachable from the pill and the sidebar. */document.getElementById('personalAssistantButton')?.remove();updateAssistantBadge();}
 function installRenderer(){
   try{if(typeof renderPage!=='function'||renderPage.__h38PersonalAssistant)return;const original=renderPage,wrapped=function(){if(app()?.page==='assistant'){renderPersonalAssistant();return;}return original.apply(this,arguments);};wrapped.__h38PersonalAssistant=true;renderPage=wrapped;}catch(_){}
 }

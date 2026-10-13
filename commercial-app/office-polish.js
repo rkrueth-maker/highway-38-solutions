@@ -111,7 +111,11 @@ function syncAssistantBadge(){
   const launcher=document.getElementById('globalAiButton');
   if(!launcher)return;
   let badge=launcher.querySelector('.h38-floating-due');
-  const count=text(source?.textContent);
+  // The top-bar Personal Assistant button no longer exists (desktop
+  // sleekness, 2026-10-13); personal-assistant.js now publishes its due
+  // count on window.H38_PA_DUE_COUNT and badges the pill directly. Keep
+  // the legacy fixture/button source working when one is present.
+  const count=text(source?.textContent)||(Number(window.H38_PA_DUE_COUNT||0)>0?String(Math.min(99,Number(window.H38_PA_DUE_COUNT))):'');
   if(!count){badge?.remove();return;}
   if(!badge){badge=document.createElement('span');badge.className='h38-floating-due';launcher.appendChild(badge);}
   setText(badge,count);
