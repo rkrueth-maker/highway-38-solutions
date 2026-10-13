@@ -28,7 +28,7 @@ def test_ai_rebuild_is_restored_and_secondary_after_site_visit_lines_exist():
     app20 = APP20.read_text(encoding="utf-8")
 
     assert "quoteHasLines()" in polish
-    assert "Rebuild quote with H38 AI" in polish
+    assert "Rebuild quote with Hank" in polish
     assert "Existing Site Visit quote lines do not need to be rebuilt" in polish
     assert "restoresBaseAiToolWhenMissing:true" in polish
     assert "realAiRebuildButtonId:'h38AiQuoteDraftButton'" in polish
@@ -37,5 +37,9 @@ def test_ai_rebuild_is_restored_and_secondary_after_site_visit_lines_exist():
     # the original app-20 tool creator to recreate the same button/handler.
     assert "window.h38AddQuoteAiTools" in polish
     assert "window.h38AddQuoteAiTools();" in polish
-    assert "ai.id='h38AiQuoteDraftButton'" in app20
-    assert "ai.onclick=h38BuildAiQuoteDraft" in app20
+    # The app-20 tool creator no longer creates the button itself: the AI
+    # rebuild entry was consolidated into the quote entry chooser, while
+    # app-20 still owns the draft handler and its canonical button id.
+    assert "Consolidated into h38ShowQuoteEntryChooser - Build with Hank is now a chooser option" in app20
+    assert "async function h38BuildAiQuoteDraft()" in app20
+    assert "const button=$('h38AiQuoteDraftButton')" in app20

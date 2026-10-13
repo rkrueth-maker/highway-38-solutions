@@ -22,7 +22,7 @@ def test_platform_runtime_javascript_is_valid():
 
 
 def test_platform_push_is_loaded_from_supported_office_bootstrap():
-    assert "const PLATFORM_BUILD='20260923-platform-push-1'" in POLISH
+    assert "const PLATFORM_BUILD='20261011-platform-push-2'" in POLISH
     assert "./platform-next.js?build=${PLATFORM_BUILD}" in POLISH
     assert "data-h38-platform-next" in POLISH or "dataset.h38PlatformNext='1'" in POLISH
     assert 'platformLoader:true' in POLISH

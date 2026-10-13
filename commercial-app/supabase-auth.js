@@ -343,6 +343,7 @@
     } finally {
       runtime.session = null;
       runtime.user = null;
+      if (runtime.bridge) runtime.bridge._connectedUserId = '';
       clearBrowserTenantState();
       runtime.bridge?.onStatus('sign-in-required');
       authPanel('signin', 'Signed out.');
@@ -359,6 +360,8 @@
       this.onError = onError || (() => {});
       this.ready = false;
       this.transport = 'supabase-auth';
+      this._connectPromise = null;
+      this._connectedUserId = '';
       runtime.bridge = this;
     }
 
@@ -366,6 +369,20 @@
     authorize() { this.onStatus('sign-in-required'); authPanel('signin'); return true; }
 
     async connect() {
+      // Single-flight bootstrap (2026-10-13 fix sweep): every startup caller
+      // (init, visibility/online handlers, the auth listener itself) joins the
+      // same in-flight connect instead of re-running the full auth_state RPC +
+      // bootstrap chain. A connect that already completed for the same token
+      // subject (user id) is a no-op; a different user, a sign-out, or a
+      // not-ready bridge still runs the full path below.
+      if (this._connectPromise) return this._connectPromise;
+      if (this.ready && this._connectedUserId && runtime.user && runtime.user.id === this._connectedUserId) return;
+      const run = this._connectOnce();
+      this._connectPromise = run;
+      try { return await run; } finally { if (this._connectPromise === run) this._connectPromise = null; }
+    }
+
+    async _connectOnce() {
       try {
         const client = initClient();
         if (!runtime.subscription) {
@@ -379,12 +396,21 @@
               runtime.session = null;
               runtime.user = null;
               this.ready = false;
+              this._connectedUserId = '';
               clearBrowserTenantState();
               this.onStatus('sign-in-required');
               return;
             }
-            if (session && (!runtime.session || runtime.session.access_token !== session.access_token)) {
-              setTimeout(() => this.connect(), 0);
+            if (session && session.user) {
+              if (runtime.user && runtime.user.id === session.user.id) {
+                // Same token subject (initial session or a token refresh):
+                // adopt the fresh session WITHOUT a second full connect.
+                runtime.session = session;
+                return;
+              }
+              if (!runtime.session || runtime.session.access_token !== session.access_token) {
+                setTimeout(() => this.connect(), 0);
+              }
             }
           });
           runtime.subscription = listener.data.subscription;
@@ -448,6 +474,7 @@
           await writeAuthorization('active', session.user.id, selected.businessId);
         }
         this.ready = true;
+        this._connectedUserId = session.user.id;
         const startup = {
           status: 'PASS',
           authTransport: 'supabase-auth',

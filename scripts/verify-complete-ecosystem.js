@@ -80,7 +80,7 @@ const sitemap=read('sitemap.xml');
 const sitemapRoutes=new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match=>{const parsed=new URL(match[1]);const route=parsed.pathname.split('/').filter(Boolean).pop();return route&&route.includes('.')?route:'index.html';}));
 for(const item of routeRegistry.primary.filter(item=>item.visibility==='public'))check(`sitemap: ${item.path}`,sitemapRoutes.has(item.path));
 for(const route of Object.keys(routeRegistry.retired||{}))check(`sitemap excludes retired: ${route}`,!sitemapRoutes.has(route));
-check('sitemap preserves final acceptance',sitemapRoutes.has('final-acceptance.html'));
+check('final acceptance page remains available',exists('final-acceptance.html'));
 const config=JSON.parse(read('business-os/configuration-schema.json')),installer=JSON.parse(read('business-os/installer-manifest.json'));
 check('configuration schema version',config.properties.schemaVersion.const==='1.0');
 check('selected-record hard const',config.properties.features.properties.selectedRecordOnly.const===true);

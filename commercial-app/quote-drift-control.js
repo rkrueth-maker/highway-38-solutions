@@ -1,10 +1,10 @@
 (function(){
 'use strict';
-const BUILD='20260807-1200';
+const BUILD='20261013-fix-sweep-1';
 const text=v=>String(v==null?'':v),num=v=>Number.isFinite(Number(v))?Number(v):0;
 const clone=v=>JSON.parse(JSON.stringify(v==null?null:v));
 const esc=v=>text(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-function loadSafePrint(){if(!document.querySelector('link[data-h38-safe-print]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./print-safe.css?build=20260807-0505';link.dataset.h38SafePrint='true';document.head.appendChild(link);}if(!window.H38_SAFE_QUOTE_PRINT&&!document.querySelector('script[data-h38-safe-print]')){const script=document.createElement('script');script.src='./quote-print-safe.js?build=20260807-0505';script.async=false;script.dataset.h38SafePrint='true';document.head.appendChild(script);}}
+function loadSafePrint(){if(!document.querySelector('link[data-h38-safe-print]')){const link=document.createElement('link');link.rel='stylesheet';link.href='./print-safe.css?build=20260807-0505';link.dataset.h38SafePrint='true';document.head.appendChild(link);}if(!window.H38_SAFE_QUOTE_PRINT&&!document.querySelector('script[data-h38-safe-print]')&&![...document.scripts].some(el=>{try{return new URL(el.src,location.href).pathname.endsWith('/quote-print-safe.js');}catch(e){return false;}})){const script=document.createElement('script');script.src='./quote-print-safe.js?build=20260815-2105';script.async=false;script.dataset.h38SafePrint='true';document.head.appendChild(script);}}
 function money(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(num(v));}
 function total(lines){return(lines||[]).reduce((sum,line)=>sum+num(line.quantity)*num(line.unitPrice),0);}
 function key(line){return text(line&&line.description).trim().toLowerCase();}

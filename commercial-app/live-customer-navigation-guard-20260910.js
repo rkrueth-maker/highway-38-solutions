@@ -8,7 +8,7 @@ window.H38_LIVE_CUSTOMER_NAVIGATION_GUARD=Object.freeze({
   lateMeetingBounceBlocked:false,explicitMeetingPreserved:true,mutatesNavigation:false,capturesClicks:false,
   automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false
 });
-function loadRuntime(src,datasetKey,ready){if(ready?.()||document.querySelector(`script[data-${datasetKey}]`))return;const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(`data-${datasetKey}`,'runtime');document.head.appendChild(script);}
+function loadRuntime(src,datasetKey,ready){if(ready?.()||document.querySelector(`script[data-${datasetKey}]`))return;const path=src.split('?')[0].replace(/^\.\//,'');if([...document.scripts].some(el=>{try{return new URL(el.src,location.href).pathname.endsWith('/'+path);}catch(e){return false;}}))return;const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(`data-${datasetKey}`,'runtime');document.head.appendChild(script);}
 function loadStyle(href,key){if(document.querySelector(`link[data-${key}]`))return;const css=document.createElement('link');css.rel='stylesheet';css.href=href;css.setAttribute(`data-${key}`,'style');document.head.appendChild(css);}
 function loadOfficeLaunchPolish(){
   loadStyle('./office-document-export.css?build=20260911-office-document-export-1','h38-office-document-export');
@@ -20,7 +20,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./office-scale-workflow.js?build=20261012-mobile-polish3-1','h38-office-scale-workflow',()=>window.H38_OFFICE_SCALE_WORKFLOW);
   loadRuntime('./office-scale-task-guard.js?build=20260911-office-scale-task-guard-1','h38-office-scale-task-guard',()=>window.H38_OFFICE_SCALE_TASK_GUARD);
   loadRuntime('./office-document-packet.js?build=20260911-office-document-packet-1','h38-office-document-packet',()=>window.H38_OFFICE_DOCUMENT_PACKET);
-  loadRuntime('./office-reference-samples.js?build=20260911-office-reference-samples-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
+  loadRuntime('./office-reference-samples.js?build=20261013-fix-sweep-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
   loadRuntime('./northern-document-polish.js?build=20260912-northern-document-polish-1','h38-northern-document-polish',()=>window.H38_NORTHERN_DOCUMENT_POLISH);
   loadRuntime('./tenant-attribution.js?build=20261012-mobile-polish-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
   loadRuntime('./ai-document-factory.js?build=20260912-ai-document-factory-1','h38-ai-document-factory',()=>window.H38_AI_DOCUMENT_FACTORY);

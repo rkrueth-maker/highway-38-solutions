@@ -11,13 +11,15 @@ def test_quick_meeting_is_notes_only_and_customer_optional():
     assert 'audioAttachmentId' not in RUNTIME
 
 def test_quick_meeting_has_one_simple_phone_entry_and_customer_layout_repair():
-    for marker in ['h38Qm2Today','Start meeting','h38-qm2-customer','function capture(e){if(!mobile())return;','siteVisitEvidenceUntouched:true']:
+    for marker in ['h38Qm2Today','Start recording','h38-qm2-customer','function capture(e){if(!mobile())return;','siteVisitEvidenceUntouched:true']:
         assert marker in RUNTIME
 
 def test_edge_function_processes_audio_without_retaining_it():
     for marker in ['audioSaved:false','transcriptSaved:false','notesOnly:true','Return only useful meeting notes, not a transcript.','business_memberships']:
         assert marker in FN
-    assert 'from("business_records")' not in FN
+    for write_op in ('insert', 'update', 'upsert', 'delete'):
+        assert f'from("business_records").{write_op}(' not in FN, f'business_records {write_op} would persist meeting data'
+    assert 'from("business_records").select("payload")' in FN, 'read-only ai_config cap check selects payload from business_records'
     assert 'storage.from' not in FN
 
 def test_runtime_is_versioned_and_bootstrapped():

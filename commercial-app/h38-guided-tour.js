@@ -10,7 +10,7 @@
 (function(){
 'use strict';
 
-var BUILD = '20261012-guided-tour-1';
+var BUILD = '20261013-fix-sweep-1';
 var STORE_KEY = 'h38_guided_tour_done';
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
@@ -186,11 +186,16 @@ function goTo(n){
   renderStep();
 }
 
-function startTour(){
+function startTour(auto){
   if(overlay && overlay.classList.contains('open')) return;
-  clearDone(); // starting manually clears the done flag only for replay bookkeeping
+  if(!auto) clearDone(); // starting manually clears the done flag only for replay bookkeeping
   current = -1;
   goTo(0);
+  // Auto-shown once = shown for good (2026-10-13 fix sweep): persist the done
+  // flag the moment the tour is auto-displayed, so closing, skipping, or
+  // ignoring it can never re-launch it uninvited on a later load. Manual
+  // relaunch via window.H38GuidedTour.start() / [data-h38-tour] still works.
+  if(auto) markDone();
 }
 
 function endTour(){
@@ -202,8 +207,23 @@ function endTour(){
 }
 
 /* ---- First-run auto-launch ---- */
+var autoStartWaitingForReady = false;
 function maybeAutoStart(){
   if(isDone()) return;
+  // Auto-start ONLY after authoritative startup is ready (2026-10-13 fix
+  // sweep): before that the app is still behind the loading cover, and the
+  // tour stepping in mid-bootstrap intercepted first-load navigation. If
+  // startup is not ready yet, wait for the canonical ready event once.
+  if(document.documentElement.dataset.h38AuthoritativeStartup!=='ready'){
+    if(!autoStartWaitingForReady){
+      autoStartWaitingForReady = true;
+      window.addEventListener('h38:authoritative-startup-ready',function(){
+        autoStartWaitingForReady = false;
+        maybeAutoStart();
+      },{once:true});
+    }
+    return;
+  }
   // Only auto-start for signed-in owners/admins on the today page, once per load
   try{
     if(!window.state || !window.state.snapshot) return;
@@ -214,7 +234,7 @@ function maybeAutoStart(){
   setTimeout(function(){
     if(isDone()) return;
     if(overlay && overlay.classList.contains('open')) return;
-    startTour();
+    startTour(true);
   }, 2500);
 }
 

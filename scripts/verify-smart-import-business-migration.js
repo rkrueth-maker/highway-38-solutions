@@ -31,7 +31,9 @@ must(smart.includes("p_business_id:businessId()"),'staging is bound to the activ
 must(smart.includes("p_run_id:runId"),'reviewed staging run is explicitly applied');
 must(upload.includes('window.H38_SMART_UPLOAD'),'existing Smart Upload remains intact');
 must(universal.includes('window.H38_UNIVERSAL_SMART_IMPORT'),'existing structured mapping authority remains intact');
-must(edge.includes('type:"input_file"'),'protected document authority supports direct file analysis');
+must(edge.includes('type:"file"')&&edge.includes('file_data:`data:application/pdf;base64,${src.data}`'),'protected document authority supports direct file analysis (chat-completions file content part carries the actual PDF bytes)');
+must(edge.includes('type:"image_url"'),'protected document authority supports direct image analysis (image content block)');
+must(!edge.includes('type:"input_file"'),'OpenAI-era input_file part is retired');
 must(edge.includes('application/pdf'),'protected document authority accepts scanned PDFs');
 must(edge.includes('ownerReviewRequired:true'),'AI output remains owner-review gated');
 for(const token of ['automaticAssignment:false','automaticCustomerRelease:false','automaticCustomerSending:false','automaticApproval:false','automaticScheduling:false','automaticPurchasing:false','automaticPayment:false','automaticFinancialAction:false'])must(edge.includes(token),`document analysis preserves ${token}`);
