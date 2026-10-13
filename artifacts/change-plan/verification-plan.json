@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T01:18:24.981Z",
+  "generatedAt": "2026-10-13T01:19:50.542Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
@@ -18,9 +18,12 @@
     "scripts/verify-quick-meeting-notes.js",
     "scripts/verify-supabase-operational-app.js",
     "scripts/verify-web-site-manager-recorder.js",
-    "tests/test_quick_meeting_notes_20260915.py"
+    "tests/test_physical_video_wide_stability_20260827.py",
+    "tests/test_platform_push_deepening.py",
+    "tests/test_quick_meeting_notes_20260915.py",
+    "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 15,
+  "fileCount": 18,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": false,
