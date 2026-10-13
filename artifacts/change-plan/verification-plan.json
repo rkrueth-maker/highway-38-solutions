@@ -1,41 +1,52 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T04:04:51.881Z",
+  "generatedAt": "2026-10-13T04:14:34.687Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    ".github/workflows/verify-northern-fleet-docs-ai.yml",
-    ".github/workflows/verify-northern-lakes-commercial-package.yml"
+    "commercial-app/index.html",
+    "commercial-app/route-manager.js",
+    "supabase/acceptance/production-policy.json",
+    "supabase/migrations/20261013020000_route_proof_public_rpc.sql"
   ],
-  "fileCount": 2,
+  "fileCount": 4,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
-    "customerPortal": false,
+    "publicWebsite": true,
+    "authenticatedApp": true,
+    "customerPortal": true,
     "sharedArchitecture": false,
     "performanceReliability": true,
-    "workflowOnly": true,
+    "workflowOnly": false,
     "documentationOnly": false
   },
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": false
+    "longRunningData": true
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js"
+    "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-customer-portal-security.js",
+    "node scripts/verify-h38-office-access.js"
   ],
-  "expensiveChecks": [],
-  "deploymentWorkflows": [],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change.",
-    "Only the affected workflow evidence must be regenerated; unrelated product checks remain reusable when inputs are unchanged."
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces",
+    "resumable small-batch generation with cursor and exact final counts"
   ],
+  "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
