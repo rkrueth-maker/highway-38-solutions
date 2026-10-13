@@ -151,3 +151,21 @@ input[type="file"]::file-selector-button:hover{background:#e8eef3}
   body.h38-auth-authorized #mainContent select{min-height:44px}
   body.h38-auth-authorized .h38-install-platform-link{min-height:44px}
 }
+
+/* Brand-moment splash — Rick-approved 2026-10-13 (option mock, pop-pass evidence).
+   Applies only to loading-state .welcome screens (welcome--brand). Dismissal is
+   unchanged: the boot flow replaces #mainContent when records are ready, so the
+   splash never adds dwell time. The progress bar reuses the .welcome::after
+   sweep (h38SplashBar) with the mock's orange-on-navy treatment; the global
+   prefers-reduced-motion rule in this file neutralizes the animation. */
+.welcome--brand{position:fixed;inset:0;z-index:90;max-width:none;margin:0;padding:32px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;color:#fff;background:radial-gradient(120% 90% at 50% 0%,#1d5a86 0%,#174a70 42%,#0b2438 78%)}
+.welcome--brand .welcome-brand-logo{width:118px;height:118px;border-radius:26px;box-shadow:0 24px 48px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.25)}
+.welcome--brand h1{font-size:2rem;line-height:1.15;letter-spacing:-.02em;font-weight:850;color:#fff}
+.welcome--brand .welcome-brand-tagline{color:rgba(255,255,255,.78);font-size:1.02rem;font-weight:550}
+.welcome--brand .welcome-brand-tagline strong{color:#f2a65a;font-weight:800}
+.welcome--brand .welcome-brand-status{color:rgba(255,255,255,.88);font-size:.98rem}
+.welcome--brand .notice{padding:0;border:0;background:transparent;box-shadow:none;color:rgba(255,255,255,.55);font-size:.8rem;line-height:1.5;max-width:420px}
+.welcome--brand::after{width:210px;height:5px;margin:0 auto;background-image:linear-gradient(90deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.16) 35%,#f2a65a 50%,rgba(255,255,255,.16) 65%,rgba(255,255,255,.16) 100%);background-size:220% 100%}
+.welcome--brand .welcome-actions{width:min(420px,100%);margin-top:2px}
+.welcome--brand .welcome-actions .primary{background:linear-gradient(135deg,#f2a65a,#d86d2b);border-color:transparent;color:#231303}
+.welcome--brand .welcome-actions .secondary{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.45);color:#fff}
