@@ -1,13 +1,15 @@
 (function(){
 'use strict';
 
-const BUILD='20260901-profitability-operating-layer-1';
+const BUILD='20261013-startup-dedupe-1';
 const DEFAULTS=Object.freeze({targetMarginPct:32,laborBurdenPct:30,overheadPct:10});
 const HEALTH_DIMENSIONS=Object.freeze(['Profit','Sales','Operations','Team','Cash','Systems']);
 const COMPLETE_JOB_RE=/\b(complet(?:e|ed)|closed|done|invoiced|paid)\b/i;
 const POSITIVE_QUOTE_RE=/\b(approved|accepted|won|awarded|sold)\b/i;
 const NEGATIVE_QUOTE_RE=/\b(declined|rejected|lost|cancelled|canceled)\b/i;
 let priceBookCache={businessId:'',loadedAt:0,assemblies:[],items:[]};
+let priceBookInFlight=null;
+let priceBookInFlightBusinessId='';
 
 const app=()=>window.state||{};
 const snap=()=>app().snapshot||{};
@@ -107,13 +109,24 @@ function explicitUnitCost(line){
 async function getPriceBook(){
   const businessId=text(app().businessId);if(!businessId)return priceBookCache;
   if(priceBookCache.businessId===businessId&&Date.now()-priceBookCache.loadedAt<300000)return priceBookCache;
+  // Single-flight (MODULE_PERFORMANCE_STANDARD: repeated requests for the same
+  // route and options reuse one in-flight promise). The completed-result cache
+  // above only stamps loadedAt after the fetch resolves, so concurrent startup
+  // decorators (snapshot-updated listener + wrapped renderToday) each used to
+  // issue the same price_book_assemblies + price_book_items pair. Join the
+  // in-flight request for the same business instead.
+  if(priceBookInFlight&&priceBookInFlightBusinessId===businessId)return priceBookInFlight;
   const client=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();if(!client)return priceBookCache={businessId,loadedAt:Date.now(),assemblies:[],items:[]};
-  const [assemblyResult,itemResult]=await Promise.all([
-    client.from('price_book_assemblies').select('id,assembly_code,description,output_unit,direct_cost_per_unit,sell_rate,approval_status').eq('business_id',businessId),
-    client.from('price_book_items').select('id,item_code,description,unit,unit_cost,approval_status').eq('business_id',businessId)
-  ]);
-  const assemblies=assemblyResult.error?[]:(assemblyResult.data||[]),items=itemResult.error?[]:(itemResult.data||[]);
-  priceBookCache={businessId,loadedAt:Date.now(),assemblies,items};return priceBookCache;
+  const request=(async()=>{
+    const [assemblyResult,itemResult]=await Promise.all([
+      client.from('price_book_assemblies').select('id,assembly_code,description,output_unit,direct_cost_per_unit,sell_rate,approval_status').eq('business_id',businessId),
+      client.from('price_book_items').select('id,item_code,description,unit,unit_cost,approval_status').eq('business_id',businessId)
+    ]);
+    const assemblies=assemblyResult.error?[]:(assemblyResult.data||[]),items=itemResult.error?[]:(itemResult.data||[]);
+    priceBookCache={businessId,loadedAt:Date.now(),assemblies,items};return priceBookCache;
+  })();
+  priceBookInFlight=request;priceBookInFlightBusinessId=businessId;
+  try{return await request;}finally{if(priceBookInFlight===request){priceBookInFlight=null;priceBookInFlightBusinessId='';}}
 }
 function matchLineCost(line,book){
   const explicit=explicitUnitCost(line);if(explicit.known)return explicit;
