@@ -66,9 +66,9 @@ for(const marker of ["properties:'Property'","assets:'Equipment'","employees:'Em
 }
 must(life.includes('Customers, properties, jobs, quotes, invoices, files, equipment and people.'),'Office Search scope copy is incomplete.');
 must(life.includes('Search name, address, job, quote, invoice, file, equipment…'),'Office Search placeholder does not advertise context search.');
-must(loader.includes('job-lifecycle.js?build=20260919-search-scope-polish-1'),'Supported Office does not load expanded-search lifecycle JS.');
-must(loader.includes('job-lifecycle.css?build=20260807-2225'),'Supported Office does not load lifecycle CSS.');
-must(loader.includes('office-polish.js?build=20260807-2306'),'Supported Office does not load polish JS.');
+must(loader.includes('job-lifecycle.js?build=20261013-complete-scan-fixes-1'),'Supported Office does not load expanded-search lifecycle JS.');
+must(loader.includes('job-lifecycle.css?build=20260912-employee-receipt-capture-1'),'Supported Office does not load lifecycle CSS.');
+must(loader.includes('office-polish.js?build=20261013-complete-scan-fixes-1'),'Supported Office does not load polish JS.');
 must(loader.includes('office-polish.css?build=20260919-business-office-visual-polish-2'),'Supported Office does not load current visual polish CSS.');
 must(sw.includes("'./job-lifecycle.js'"),'Offline shell does not cache lifecycle JS.');
 must(sw.includes("'./job-lifecycle.css'"),'Offline shell does not cache lifecycle CSS.');
