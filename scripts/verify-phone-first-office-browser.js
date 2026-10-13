@@ -11,12 +11,12 @@ const mobileScroll=path.join(app,'mobile-scroll-native-authority.js');
 const bootstrap=fs.readFileSync(path.join(app,'runtime-rowid-fix.js'),'utf8');
 const mobileSource=fs.readFileSync(mobileRuntime,'utf8');
 const scrollSource=fs.readFileSync(mobileScroll,'utf8');
-assert(bootstrap.includes("const PHONE_FIRST_BUILD='20260920-phone-safe-zone-2'"),'phone-first build must be versioned in the live-first bootstrap');
+assert(bootstrap.includes("const PHONE_FIRST_BUILD='20261007-visual-run2-a-2'"),'phone-first build must be versioned in the live-first bootstrap');
 assert(bootstrap.includes('phone-first-office.js?build=${PHONE_FIRST_BUILD}'),'runtime-rowid live-first bootstrap must load phone-first Office');
 assert(fs.readFileSync(phoneRuntime,'utf8').includes('eventDrivenStartup:true'),'phone-first startup must be event driven');
 assert(fs.readFileSync(phoneRuntime,'utf8').includes('noStartupTimer:true'),'phone-first startup must not use a fixed startup delay');
-assert(mobileSource.includes("PRIMARY=[['today','⌂','Today'],['customers','👤','Customers'],['schedule','🗓','Schedule'],['messages','💬','Messages']]"),'canonical mobile authority must own customer-first primary order');
-assert(mobileSource.includes("['Work & Sales',['work','quotes','field','meetings']]"),'Jobs/Site Visits must move into grouped More');
+assert(mobileSource.includes("OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']]"),'canonical mobile authority must own the current owner primary order (Home/Quotes/Schedule/Customers, per 1cdc8ef5 + ceb3be6f C1)');
+assert(mobileSource.includes("['Work',['work','quotes','field','meetings']]"),'Jobs/Site Visits must move into grouped More');
 assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule','messages']"),'physical mobile authority must recognize customer-first canonical order');
 (async()=>{
   const browser=await chromium.launch({headless:true});
@@ -45,10 +45,10 @@ assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule'
     await phone.addScriptTag({path:mobileScroll});
     await phone.addScriptTag({path:mobileRuntime});
     await phone.addScriptTag({path:phoneRuntime});
-    await phone.waitForFunction(()=>window.H38_MOBILE_RUNTIME_STABILITY?.phoneFirstPrimaryNavigation===true&&window.H38_PHONE_FIRST_OFFICE?.build==='20260920-phone-safe-zone-2');
+    await phone.waitForFunction(()=>window.H38_MOBILE_RUNTIME_STABILITY?.phoneFirstPrimaryNavigation===true&&window.H38_PHONE_FIRST_OFFICE?.build==='20261007-visual-run2-a-2');
     await phone.waitForFunction(()=>document.querySelectorAll('#mainNav [data-h38-primary]').length===5);
     const labels=await phone.locator('#mainNav [data-h38-primary] span:last-child').allTextContents();
-    assert.deepEqual(labels,['Today','Customers','Schedule','Messages','More'],'canonical phone navigation must be customer-first');
+    assert.deepEqual(labels,['Home','Quotes','Schedule','Customers','More'],'canonical phone navigation must match the current owner primary order');
     assert.equal(await phone.locator('#mainNav [data-h38-primary="work"]').count(),0,'Jobs must not occupy the bottom phone bar');
     await phone.waitForSelector('#h38PhoneCreateButton',{state:'attached'});
     assert.equal(await phone.locator('#h38PhoneCreateButton').count(),1,'phone must expose a separate create button');
@@ -70,13 +70,13 @@ assert(scrollSource.includes("const PRIMARY_KEYS=['today','customers','schedule'
 
     await phone.locator('#h38PhoneCreateButton').click();await phone.waitForSelector('#h38PhoneCreateDialog[open]');const create=phone.locator('#h38PhoneCreateDialog');for(const key of ['customer','meeting','site','quote','job','expense'])assert.equal(await create.locator(`[data-h38-create="${key}"]`).count(),1,`create sheet missing ${key}`);await create.locator('[data-h38-close]').click();
 
-    await phone.locator('#mainNav [data-h38-primary="more"]').click();await phone.waitForSelector('#h38PrimaryMoreDialog[open]');const more=phone.locator('#h38PrimaryMoreDialog');const groups=(await more.locator('.h38-more-group > h3').allTextContents()).map(x=>x.trim());assert.deepEqual(groups,['Work & Sales','Money','Records & Equipment','Office']);for(const key of ['work','quotes','field','meetings','money','documents','inventory','fleet','settings'])assert.equal(await more.locator(`[data-more-page="${key}"]`).count(),1,`More missing ${key}`);await more.locator('[data-close-more]').click();
+    await phone.locator('#mainNav [data-h38-primary="more"]').click();await phone.waitForSelector('#h38PrimaryMoreDialog[open]');const more=phone.locator('#h38PrimaryMoreDialog');const groups=(await more.locator('.h38-more-group > h3').allTextContents()).map(x=>x.trim());assert.deepEqual(groups,['Work','Money','Records & Equipment','Office']);for(const key of ['work','quotes','field','meetings','money','documents','inventory','fleet','settings'])assert.equal(await more.locator(`[data-more-page="${key}"]`).count(),1,`More missing ${key}`);await more.locator('[data-close-more]').click();
 
     await phone.evaluate(()=>{window.H38_FIELD_VISIT_CORE.state.open=true;const app=document.getElementById('h38FieldVisitApp');app.hidden=false;app.setAttribute('aria-hidden','false');app.querySelector('.field-visit-main').textContent='Walkthrough recording Stop & Use Video Take Photo';});await phone.waitForSelector('#h38SiteStepper');assert.equal(await phone.locator('#h38SiteStepper').getAttribute('data-step'),'2');assert.equal(await phone.locator('#h38PhoneCreateButton').count(),0,'global create button must get out of the way during Site Visit capture');
     assert.deepEqual(errors,[],`phone runtime errors: ${errors.join(' | ')}`);
 
     const desktop=await browser.newPage({viewport:{width:1280,height:900}});await desktop.setContent('<!doctype html><html><body><nav id="mainNav"><button id="desktopOriginal">Desktop</button></nav><main id="mainContent"><header class="page-head"><h1>Today</h1></header></main></body></html>');await desktop.evaluate(()=>{window.state={shell:'office',page:'today',snapshot:{user:{owner:true}}};window.allowedPages=()=>['today','customers','schedule','messages','work'];window.renderNav=()=>{};});await desktop.addScriptTag({path:phoneRuntime});await desktop.waitForTimeout(120);assert.equal(await desktop.locator('#h38PhoneCreateButton').count(),0);assert.equal(await desktop.locator('#mainNav [data-h38-primary]').count(),0,'phone polish must not take desktop navigation ownership');await desktop.close();
     const phoneContract=await phone.evaluate(()=>window.H38_PHONE_FIRST_OFFICE);assert.equal(phoneContract.universalBottomSafeZone,true);assert.equal(phoneContract.readableNavigationAt320,true);
-    console.log(JSON.stringify({status:'PASS',build:'20260920-phone-safe-zone-2',primary:labels,singleNavAuthority:true,customerSearch:true,simplifiedToday:true,groupedMore:true,siteVisitStepper:true,universalBottomSafeZone:true,readableNavigationAt320:true,desktopUnchanged:true}));
+    console.log(JSON.stringify({status:'PASS',build:'20261007-visual-run2-a-2',primary:labels,singleNavAuthority:true,customerSearch:true,simplifiedToday:true,groupedMore:true,siteVisitStepper:true,universalBottomSafeZone:true,readableNavigationAt320:true,desktopUnchanged:true}));
   }finally{await phone.close();await browser.close();}
 })().catch(error=>{console.error(error.stack||error);process.exit(1);});
