@@ -1,19 +1,30 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T08:34:58.874Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-13T09:14:53.211Z",
+  "base": null,
   "head": "HEAD",
   "files": [
+    "commercial-app/app-06.js",
+    "commercial-app/app-07.js",
     "commercial-app/index.html",
-    "commercial-app/route-manager.js"
+    "commercial-app/live-customer-navigation-guard-20260910.js",
+    "commercial-app/mobile-flow-polish-v2.js",
+    "commercial-app/office-scale-workflow.js",
+    "commercial-app/owner-customer-workflow-polish.js",
+    "commercial-app/owner-flow-polish.js",
+    "commercial-app/quote-mobile-stabilization.js",
+    "commercial-app/supabase-quote-delivery.js",
+    "scripts/verify-quote-delivery-page-scope-browser.js",
+    "scripts/verify-supabase-quote-delivery.js",
+    "tests/test_job_centered_flow_and_quote_photos.py"
   ],
-  "fileCount": 2,
+  "fileCount": 13,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
