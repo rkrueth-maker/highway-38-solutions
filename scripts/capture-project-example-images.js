@@ -40,7 +40,7 @@ function server() {
 async function waitForProjectImages(page) {
   const images = page.locator('.project-card .project-visual img');
   const count = await images.count();
-  if (count !== 16) throw new Error(`Expected 16 project images, found ${count}`);
+  if (count !== 18) throw new Error(`Expected 18 project images, found ${count}`);
 
   await images.evaluateAll(elements => {
     for (const image of elements) image.loading = 'eager';
@@ -86,7 +86,7 @@ async function waitForProjectImages(page) {
       const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
       await page.goto(`${base}/sample-library-now.html?visual=${Date.now()}`, { waitUntil: 'networkidle', timeout: 60000 });
       await page.locator('.project-card').first().waitFor({ state: 'visible', timeout: 15000 });
-      if (await page.locator('.project-card').count() !== 8) throw new Error('Project card count is not 8');
+      if (await page.locator('.project-card').count() !== 30) throw new Error('Project card count is not 30');
 
       const images = await waitForProjectImages(page);
       await page.screenshot({ path: path.join(out, `project-examples-${viewport.name}.png`), fullPage: true });

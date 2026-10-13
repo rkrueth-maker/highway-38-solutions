@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-07T12:37:30.973Z",
+  "generatedAt": "2026-10-13T05:27:26.434Z",
   "architecture": "competitive-readiness-split-buyer-paths-integrated-quote-demo",
-  "passed": 366,
+  "passed": 436,
   "failed": 0,
   "routes": [
     "index.html",
@@ -11,19 +11,21 @@
     "software.html",
     "project-services.html",
     "pricing.html",
+    "business-in-a-box.html",
     "quote-builder-demo.html",
     "implementation.html",
     "security-reliability.html",
     "about.html",
     "contact.html",
+    "partner-apply.html",
     "start-request.html",
     "portal.html"
   ],
-  "existingProjectExamples": 9,
+  "existingProjectExamples": 30,
   "universalDemonstration": true,
   "interactiveQuoteDemo": true,
   "quoteBuilderIntegratedExamples": true,
-  "currentDirection": "2026-10-06-business-in-a-box-two-plans",
+  "currentDirection": "2026-10-11-business-in-a-box-single-tier",
   "controls": {
     "routeRegistry": true,
     "sharedShell": true,
@@ -46,8 +48,8 @@
       "detail": "2026-09-15-competitive-readiness-custom-digital-services"
     },
     {
-      "name": "thirteen primary routes",
-      "detail": "13"
+      "name": "fifteen primary routes",
+      "detail": "15"
     },
     {
       "name": "primary route registered: index.html",
@@ -74,6 +76,10 @@
       "detail": ""
     },
     {
+      "name": "primary route registered: business-in-a-box.html",
+      "detail": ""
+    },
+    {
       "name": "primary route registered: quote-builder-demo.html",
       "detail": ""
     },
@@ -91,6 +97,10 @@
     },
     {
       "name": "primary route registered: contact.html",
+      "detail": ""
+    },
+    {
+      "name": "primary route registered: partner-apply.html",
       "detail": ""
     },
     {
@@ -130,6 +140,10 @@
       "detail": ""
     },
     {
+      "name": "required public artifact: business-in-a-box.html",
+      "detail": ""
+    },
+    {
       "name": "required public artifact: quote-builder-demo.html",
       "detail": ""
     },
@@ -147,6 +161,10 @@
     },
     {
       "name": "required public artifact: contact.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: partner-apply.html",
       "detail": ""
     },
     {
@@ -246,8 +264,8 @@
       "detail": "business-in-a-box.html"
     },
     {
-      "name": "index.html: local asset pricing.html",
-      "detail": "pricing.html"
+      "name": "index.html: local asset assets/videos/hank-ai-helper-v7-final.mp4",
+      "detail": "assets/videos/hank-ai-helper-v7-final.mp4"
     },
     {
       "name": "index.html: local asset pricing.html",
@@ -464,6 +482,174 @@
     {
       "name": "sample-library-now.html: local asset cabin-project-complete.html",
       "detail": "cabin-project-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "sample-library-now.html: local asset contractor-quote-complete.html",
+      "detail": "contractor-quote-complete.html"
     },
     {
       "name": "sample-library-now.html: local asset start-request.html",
@@ -762,15 +948,67 @@
       "detail": "start-request.html"
     },
     {
-      "name": "pricing.html: local asset start-request.html",
-      "detail": "start-request.html"
-    },
-    {
       "name": "pricing.html: local asset business-office-review-demo.html",
       "detail": "business-office-review-demo.html"
     },
     {
       "name": "pricing.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "business-in-a-box.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html: title",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "business-in-a-box.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "business-in-a-box.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "business-in-a-box.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset business-office-review-demo.html",
+      "detail": "business-office-review-demo.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset assets/demo-workthroughs/cabin-exterior-render.png",
+      "detail": "assets/demo-workthroughs/cabin-exterior-render.png"
+    },
+    {
+      "name": "business-in-a-box.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset business-office-review-demo.html",
+      "detail": "business-office-review-demo.html"
+    },
+    {
+      "name": "business-in-a-box.html: local asset assets/js/h38-site-v2.js",
       "detail": "assets/js/h38-site-v2.js"
     },
     {
@@ -982,6 +1220,34 @@
       "detail": "assets/js/h38-site-v2.js"
     },
     {
+      "name": "partner-apply.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html: title",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "partner-apply.html: local asset commercial-public.css",
+      "detail": "commercial-public.css"
+    },
+    {
+      "name": "partner-apply.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "partner-apply.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
       "name": "start-request.html: viewport",
       "detail": ""
     },
@@ -1098,6 +1364,10 @@
       "detail": ""
     },
     {
+      "name": "business-in-a-box.html: canonical shared shell",
+      "detail": ""
+    },
+    {
       "name": "quote-builder-demo.html: canonical shared shell",
       "detail": ""
     },
@@ -1115,6 +1385,10 @@
     },
     {
       "name": "contact.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "partner-apply.html: canonical shared shell",
       "detail": ""
     },
     {
@@ -1146,7 +1420,7 @@
       "detail": ""
     },
     {
-      "name": "current pricing exposes the two approved plans",
+      "name": "current pricing exposes the single approved plan",
       "detail": ""
     },
     {
@@ -1154,7 +1428,7 @@
       "detail": ""
     },
     {
-      "name": "pricing data exposes exactly two software plans with current prices",
+      "name": "pricing data exposes exactly one software plan with current prices",
       "detail": ""
     },
     {
@@ -1191,7 +1465,7 @@
     },
     {
       "name": "examples preserve approved project cards and remain open-ended",
-      "detail": "9"
+      "detail": "30"
     },
     {
       "name": "Quote Builder owns the current public example experience",
@@ -1406,6 +1680,10 @@
       "detail": ""
     },
     {
+      "name": "sitemap includes business-in-a-box.html",
+      "detail": ""
+    },
+    {
       "name": "sitemap includes quote-builder-demo.html",
       "detail": ""
     },
@@ -1423,6 +1701,10 @@
     },
     {
       "name": "sitemap includes contact.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes partner-apply.html",
       "detail": ""
     },
     {
@@ -1478,7 +1760,7 @@
       "detail": ""
     },
     {
-      "name": "sitemap preserves final acceptance route",
+      "name": "final acceptance page remains available",
       "detail": ""
     },
     {

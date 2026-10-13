@@ -105,23 +105,23 @@ jobs:
             echo "Production check failed for $path; expected: $pattern" >&2
             return 1
           }
-          fetch_until_ready '' 'See the solution.' /tmp/home.html
-          grep -Fq 'Run the whole job.' /tmp/home.html
-          grep -Fq 'Three software products. One connected direction.' /tmp/home.html
-          grep -Fq 'href="solutions.html"' /tmp/home.html
+          fetch_until_ready '' 'Your truck is not' /tmp/home.html
+          grep -Fq 'keeps every quote, invoice, job, and customer in one place' /tmp/home.html
+          grep -Fq 'Business in a box' /tmp/home.html
+          grep -Fq 'href="business-in-a-box.html"' /tmp/home.html
           grep -Fq 'href="pricing.html"' /tmp/home.html
           grep -Fq 'href="quote-builder.html#examples"' /tmp/home.html
           ! grep -Eq 'href="(business-systems|sample-library-now|universal-quote-builder)\.html' /tmp/home.html
-          fetch_until_ready 'pricing.html' 'Three software products' /tmp/pricing.html
-          grep -Fq '$59' /tmp/pricing.html
-          grep -Fq '$249' /tmp/pricing.html
-          grep -Fq 'Starting at $7,500' /tmp/pricing.html
-          grep -Fq '$299 one-time' /tmp/pricing.html
+          fetch_until_ready 'pricing.html' 'lock in $99/mo for life' /tmp/pricing.html
+          grep -Fq '$149' /tmp/pricing.html
+          grep -Fq '$49.99' /tmp/pricing.html
+          grep -Fq 'includes 5,000 actions per month' /tmp/pricing.html
+          grep -Fq 'Most capable' /tmp/pricing.html
           ! grep -Fq 'Starting at $499' /tmp/pricing.html
           ! grep -Fq 'Smart Contact Website' /tmp/pricing.html
           fetch_until_ready 'business-systems.html' 'Universal Smart Import' /tmp/office.html
           grep -Fq 'Stage, review, then apply' /tmp/office.html
-          grep -Fq 'Starting at $7,500' /tmp/office.html
+          grep -Fq 'Run the whole business.' /tmp/office.html
           fetch_until_ready 'quote-builder.html' 'Simple when the quote is simple.' /tmp/quote-builder.html
           grep -Fq 'universal-quote-builder.html' /tmp/quote-builder.html
           fetch_until_ready 'sample-library-now.html' 'Complete project demonstrations' /tmp/samples.html
@@ -146,7 +146,7 @@ jobs:
           ! grep -Fq '$342,815' /tmp/samples.html
           fetch_until_ready 'universal-quote-builder.html' 'sample-library-now.html#universal-quote-builder-examples' /tmp/universal.html
           fetch_until_ready 'universal-quote-builder-example.html' 'Print / Save PDF' /tmp/universal-viewer.html
-          fetch_until_ready 'assets/js/uqb-public-examples.js' "version: '2026-07-26-static-public-v1'" /tmp/universal-data.js
+          fetch_until_ready 'assets/js/uqb-public-examples.js' "version: '2026-10-09-static-public-v2'" /tmp/universal-data.js
           fetch_until_ready 'solutions.html' 'Five connected capabilities' /tmp/solutions.html
           fetch_until_ready 'start-request.html' 'What result do you need?' /tmp/request.html
           grep -Fq 'data-request-step="1"' /tmp/request.html
