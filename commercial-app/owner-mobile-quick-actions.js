@@ -11,6 +11,8 @@ function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
 function user(){return window.state?.snapshot?.user||{};}
 function role(){const u=user();return text(u.roleName||u.roleId||u.role).toLowerCase();}
 function manager(){const u=user();return !!(u.owner||u.permissions?.all||['owner','administrator','admin'].includes(role()));}
+function northernTenant(){try{const b=window.state?.snapshot?.business||{};const key=text(b.businessKey||b['Business Key']||window.state?.businessKey||new URLSearchParams(location.search).get('businessKey')||'').toLowerCase();return key==='northern-lakes';}catch(_){return false;}}
+function assistantDisplayName(){return northernTenant()?'Assistant':'My Hank';}
 function closeQuick(){const d=document.getElementById('h38QuickCreateDialog');if(!d)return;try{d.close();}catch(_){d.removeAttribute('open');}}
 function installStyle(){
   let style=document.getElementById('h38OwnerMobileQuickActionsStyle');
@@ -154,9 +156,10 @@ function autoOpenInstallHelp(){
 function normalizeSharedToolLabels(){
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
-    if(launcher.getAttribute('aria-label')!=='My Hank')launcher.setAttribute('aria-label','My Hank');
-    if(launcher.getAttribute('title')!=='My Hank')launcher.setAttribute('title','My Hank');
-    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!=='My Hank')label.textContent='My Hank';});
+    const displayName=assistantDisplayName();
+    if(launcher.getAttribute('aria-label')!==displayName)launcher.setAttribute('aria-label',displayName);
+    if(launcher.getAttribute('title')!==displayName)launcher.setAttribute('title',displayName);
+    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!==displayName)label.textContent=displayName;});
   }
   const aiDialog=document.getElementById('globalAiDialog');if(aiDialog&&aiDialog.getAttribute('aria-label')!=='Assistant')aiDialog.setAttribute('aria-label','Assistant');
   const voice=document.getElementById('voiceButton');if(voice&&voice.getAttribute('aria-label')!=='Talk to Assistant')voice.setAttribute('aria-label','Talk to Assistant');
