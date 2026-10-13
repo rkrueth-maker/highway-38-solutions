@@ -236,6 +236,71 @@ function polishTouchTargets(){
   bindSearchTrigger(document.getElementById('h38OpenLifecycleSearch'));
   document.getElementById('h38OfficeSearchButton')?.classList.add('h38-polish-touch');
 }
+/* Card-top band (treatment B, Rick-approved 2026-10-13): every content card gets a
+   tinted header band — icon chip + title + the card's own status pill when it has
+   one. Runs inside this shared polish pass so all views inherit it (Today, Jobs,
+   Quotes, Money, Customers, Schedule, Messages inbox, …) with no per-view markup
+   changes and no new requests. Cards with their own designed headers (Today
+   .h38-action-card action cards, .h38-profit-card) and heading-less stat cards are
+   left untouched, so big numbers stay dominant. Tenant-neutral: chip glyphs come
+   from the page icon vocabulary (app-01 PAGE_DEFS) or the heading's own leading
+   emoji — never business branding. */
+const CARD_PAGE_ICONS={today:'⌂',customers:'👤',meetings:'🗣️',work:'🧰',tasks:'📋',quotes:'🧾',measure:'📐',schedule:'🗓',messages:'💬',field:'📍',inventory:'📦',fleet:'🚚',money:'💵',memberships:'🎟',accounting:'🧮',payroll:'💰',tax:'📑',reports:'📊',documents:'📁',social:'📣',ai:'🤖',assistant:'✦',settings:'⚙️',people:'👥',controls:'🎛️'};
+function cardHeadingGlyph(heading){
+  const node=heading.firstChild;
+  if(!node||node.nodeType!==3)return'';
+  const match=node.textContent.match(/^(\s*)([^\p{L}\p{N}]+)/u);
+  if(!match)return'';
+  const run=match[2].trim();
+  if(!run||[...run].length>3)return'';
+  if(![...run].some(ch=>ch.codePointAt(0)>0x2000))return'';
+  node.textContent=node.textContent.slice(match[0].length).replace(/^[\s\uFE0F\u200D]+/u,'');
+  return run;
+}
+function cardBandPillTone(pill){
+  if(['good','bad','pending','warn','info','neutral'].some(kind=>pill.classList.contains(kind)))return;
+  const label=text(pill.textContent).toLowerCase();
+  const tone=/\b(overdue|past due|failed|declined|missed|cancelled|canceled)\b/.test(label)?'bad'
+    :/\b(paid|completed|complete|done|approved|won|strong|delivered|signed)\b/.test(label)?'good'
+    :/\bin progress\b/.test(label)?'info'
+    :/\b(draft|pending|awaiting|review)\b/.test(label)?'pending':'';
+  if(tone)pill.classList.add(tone);
+}
+function polishCardBands(){
+  const main=document.getElementById('mainContent');
+  if(!main)return;
+  main.querySelectorAll('.card:not([data-h38-card-band])').forEach(card=>{
+    if(card.classList.contains('h38-action-card')||card.classList.contains('h38-profit-card')){card.dataset.h38CardBand='skip';return;}
+    const first=card.firstElementChild;
+    if(!first)return;
+    let heading=null,pill=null,rowHost=null;
+    if(first.matches('h2,h3')){
+      heading=first;
+      const sibling=heading.nextElementSibling;
+      if(sibling&&sibling.classList.contains('pill'))pill=sibling;
+    }else if(first.classList.contains('row-top')){
+      const head=first.querySelector(':scope > h2,:scope > h3');
+      const headPill=first.querySelector(':scope > .pill');
+      if(head&&[...first.children].every(el=>el===head||el===headPill)){heading=head;pill=headPill;rowHost=first;}
+    }
+    if(!heading||heading.hidden||heading.classList.contains('hidden')||!text(heading.textContent))return;
+    card.dataset.h38CardBand='1';
+    const glyph=cardHeadingGlyph(heading);
+    const band=document.createElement('div');
+    band.className='card-band';
+    const chip=document.createElement('span');
+    chip.className='card-chip';
+    chip.setAttribute('aria-hidden','true');
+    chip.textContent=glyph||CARD_PAGE_ICONS[text(window.state&&window.state.page)]||'▦';
+    const titleWrap=document.createElement('div');
+    titleWrap.className='card-band-title';
+    titleWrap.appendChild(heading);
+    band.append(chip,titleWrap);
+    if(pill){cardBandPillTone(pill);band.appendChild(pill);}
+    if(rowHost)rowHost.remove();
+    card.insertBefore(band,card.firstChild);
+  });
+}
 let applyMuted=false;
 function apply(){
   if(applyMuted)return;
@@ -247,6 +312,7 @@ function apply(){
     polishAssistantLauncher();
     decorateAssistantPage();
     syncShellTop();
+    polishCardBands();
   }finally{
     setTimeout(()=>{applyMuted=false;},50);
   }
