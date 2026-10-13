@@ -964,8 +964,11 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
         : `${origin}/commercial-app/customer-portal.html`;
       const params = new URLSearchParams();
       params.set("mode", "payment");
-      params.append("payment_method_types[]", "card");
-      params.append("payment_method_types[]", "us_bank_account");
+      // Payment methods are NOT pinned here: current Stripe accounts use
+      // dynamic payment methods (managed per-account in the Stripe
+      // Dashboard), and passing payment_method_types makes session
+      // creation fail on those accounts. Card + bank debit stay available
+      // via the account's Dashboard payment-method settings.
       params.set("line_items[0][quantity]", "1");
       params.set("line_items[0][price_data][currency]", "usd");
       params.set("line_items[0][price_data][unit_amount]", String(Math.round(balance * 100)));
