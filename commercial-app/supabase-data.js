@@ -123,7 +123,28 @@
     }
   }
 
-  async function hydrateSnapshot(baseSnapshot, businessId) {
+  // Single-flight hydration (2026-10-13 fix sweep): concurrent callers for the
+  // same business join ONE in-flight hydration, and once a full snapshot has
+  // been applied for this session a non-forced call returns the caller's
+  // snapshot without re-running the eight startup queries. Explicit refreshes
+  // (Bridge request 'fullStartupRefresh'/'completionBootstrap') pass
+  // {force:true} and always re-query.
+  const hydrateInflight = new Map();
+  const hydrateApplied = new Set();
+  async function hydrateSnapshot(baseSnapshot, businessId, options) {
+    const key = String(businessId || '');
+    if (hydrateInflight.has(key)) return hydrateInflight.get(key);
+    if (!options?.force && hydrateApplied.has(key)) return baseSnapshot;
+    const run = (async () => {
+      const snapshot = await hydrateSnapshotRaw(baseSnapshot, businessId);
+      hydrateApplied.add(key);
+      return snapshot;
+    })();
+    hydrateInflight.set(key, run);
+    try { return await run; } finally { if (hydrateInflight.get(key) === run) hydrateInflight.delete(key); }
+  }
+
+  async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
     const [recentRows, jobRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
@@ -509,7 +530,7 @@
     if (action === 'completionSync') return synchronize(args && args.operations || []);
     if (action === 'fullStartupRefresh' || action === 'completionBootstrap') {
       const base = await originalRequest.call(this,action,args,timeout);
-      return hydrateSnapshot(base,selectedBusinessId(args));
+      return hydrateSnapshot(base,selectedBusinessId(args),{force:true});
     }
     if (action === 'aiRecommendationDecision') {
       const businessId = selectedBusinessId(args);
@@ -525,7 +546,10 @@
   Bridge.prototype.connect = async function () {
     const result = await originalConnect.apply(this,arguments);
     const businessId = auth.getState().selectedBusinessId;
-    if (this.ready && businessId && window.state?.snapshot) {
+    // If the bootstrap path (handleStartupBootstrap → loadBusiness →
+    // fullStartupRefresh) already applied a full snapshot for this business,
+    // do not hydrate or re-paint a second time.
+    if (this.ready && businessId && window.state?.snapshot && !hydrateApplied.has(businessId)) {
       try {
         const hydrated = await hydrateSnapshot(window.state.snapshot,businessId);
         await this.onFullSnapshot(hydrated,businessId);
