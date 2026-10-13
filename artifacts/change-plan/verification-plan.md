@@ -1,14 +1,13 @@
 # Scope-aware verification plan
 
-- Files changed: 18
-- Scopes: authenticatedApp, customerPortal, performanceReliability
+- Files changed: 2
+- Scopes: authenticatedApp, performanceReliability
 - Deployment workflows: .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
 ## Fast checks
 - `node scripts/verify-change-governance.js`
 - `node scripts/verify-unified-app-architecture.js`
 - `node scripts/verify-business-office.js`
-- `node scripts/verify-customer-portal-security.js`
 - `node scripts/verify-h38-office-access.js`
 
 ## Expensive or live checks
