@@ -81,7 +81,7 @@
   </script>
   <link rel="manifest" href="./manifest.webmanifest?build=20260807-0415">
   <link rel="icon" type="image/webp" href="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6">
-  <link rel="stylesheet" href="./styles.css?build=20261013-brand-splash-1">
+  <link rel="stylesheet" href="./styles.css?build=20261013-owner-notify-1">
   <link rel="stylesheet" href="./ai-drawer.css?build=20260806-0344">
   <link rel="stylesheet" href="./h38-first-quote-guide.css?build=20261010-first-quote-guide-1">
   <link rel="stylesheet" href="./quote-delivery.css?build=20260806-0344">
@@ -99,6 +99,7 @@
   <link rel="stylesheet" href="./northern-bouncie-fleet.css?build=20261002-bouncie-fleet-1">
   <link rel="stylesheet" href="./payroll-print.css?build=20261005-payroll-v2-1">
   <link rel="stylesheet" href="./owner-controls.css?build=20261003-owner-controls-1">
+  <link rel="stylesheet" href="./owner-notifications.css?build=20261013-owner-notify-1">
   <link rel="stylesheet" href="./smart-upload.css?build=20260920-final-real-office-1">
   <link rel="stylesheet" href="./owner-home.css?build=20261013-pop-pass-1">
   <link rel="stylesheet" href="./h38-visual-refresh.css?build=20261011-visual-refresh-1">
@@ -112,6 +113,7 @@
       <span id="networkBadge" class="badge offline">Internet</span>
       <span id="gatewayBadge" class="badge offline">Sync offline</span>
       <span id="syncBadge" class="badge neutral">All saved</span>
+      <button id="ownerNotifyBell" class="icon-button" type="button" aria-label="Notifications" hidden>🔔<span id="ownerNotifyBadge" class="owner-notify-badge" hidden></span></button>
       <button id="globalAiButton" class="ai-launcher" type="button" aria-label="Open AI assistant"><span aria-hidden="true">✨</span><span class="ai-launcher-label">Hank</span></button>
       <button id="voiceButton" class="icon-button" type="button" aria-label="Talk to AI assistant">🎙️</button>
       <button id="syncButton" class="icon-button" type="button" aria-label="Refresh active membership">↻</button>
@@ -160,7 +162,7 @@
   <script defer src="./supabase-invite-activation.js?build=20260910-0100"></script>
   <script defer src="./auth-session-guard.js?build=20260806-0344"></script>
   <script defer src="./supabase-session-recovery.js?build=20261013-startup-dedupe-1"></script>
-  <script defer src="./app-01.js?build=20261013-messages-entry-1"></script>
+  <script defer src="./app-01.js?build=20261013-owner-notify-1"></script>
   <script defer src="./runtime-rowid-fix.js?build=20261013-my-hank-rename-1"></script>
   <script defer src="./app-02.js?build=20261012-offline-polish-1"></script>
   <script defer src="./app-03.js?build=20260806-0344"></script>
@@ -202,7 +204,7 @@
   <script defer src="./supabase-portal-hydration.js?build=20260806-0344"></script>
   <script defer src="./auth-cache-guard.js?build=20260929-auth-cache-ai-source-7"></script>
   <script defer src="./startup-fix.js?build=20261013-startup-dedupe-1"></script>
-  <script defer src="./supabase-startup.js?build=20261013-brand-splash-1"></script>
+  <script defer src="./supabase-startup.js?build=20261013-owner-notify-1"></script>
   <script defer src="./app-19.js?build=20261012-offline-polish-1"></script>
   <script defer src="./supabase-final-startup.js?build=20261013-fix-sweep-1"></script>
   <script defer src="./app-18.js?build=20260806-0344"></script>
@@ -227,6 +229,7 @@
   <script defer src="./kit-link.js?build=20261002-kit-link-1"></script>
   <script defer src="./ai-handoff.js?build=20261002-ai-handoff-1"></script>
   <script defer src="./owner-controls.js?build=20261008-inventory-module-1"></script>
+  <script defer src="./owner-notifications.js?build=20261013-owner-notify-1"></script>
   <script defer src="./machine-shop-pricebook-templates.js?build=20261004-machine-shop-templates-1"></script>
   <script defer src="./machine-shop.js?build=20261005-machine-shop-2"></script>
   <script defer src="./inventory-checker.js?build=20261008-inventory-module-2"></script>

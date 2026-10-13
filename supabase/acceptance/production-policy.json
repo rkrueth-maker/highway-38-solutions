@@ -36,6 +36,7 @@
     "h38-office-gateway",
     "h38-owner-maintenance",
     "h38-owner-maintenance-oidc",
+    "h38-owner-notify",
     "h38-penny-crazy4-visual-enricher",
     "h38-penny-dg-history-enricher",
     "h38-penny-dg-indexed-enricher",
@@ -214,7 +215,8 @@
     "kit-proactive-engine": "Internal proactive back-office engine; self-authenticating via x-h38-nightly-key gate (checked against h38_internal_job_secrets, 401 without it); its workspace cron runner sends no user JWT, so verify_jwt must stay false.",
     "nl-bouncie-fleet": "Validates the caller's Supabase user JWT in code via auth.getUser; the Bouncie OAuth callback path is public by OAuth design.",
     "h38-scout-push": "Scout deal-alert push API; self-authenticating per action \u2014 user actions validate the Supabase session in code and scope to the caller's coupon_household_members households, the pg_cron check action requires the x-h38-nightly-key secret (h38_internal_job_secrets 'scout-push'), and the service-worker delivery-receipt action stores only a hash of the subscription endpoint.",
-    "h38-scout-sw": "Serves the Scout Web Push service worker script (GET only). A service worker script must be fetchable without credentials; it contains no secrets and only displays push notifications."
+    "h38-scout-sw": "Serves the Scout Web Push service worker script (GET only). A service worker script must be fetchable without credentials; it contains no secrets and only displays push notifications.",
+"h38-owner-notify": "Owner-notification producer invoked by pg_cron (job 'h38-owner-notify-5m') via pg_net with no user JWT; self-authenticates with the x-h38-nightly-key header checked against the 'h38-owner-notify' row in h38_internal_job_secrets (401 without it). A signed-in owner/administrator JWT is also accepted, scoped to that caller's own business. Same pattern as h38-review-scheduler and kit-proactive-engine. Read-only on source data; writes only owner notification rows + proof log. Approved 2026-10-13 (Rick: 'office should notify of any customer activity or when new items need review')."
   },
   "reviewed_deployed_only_functions": {
     "h38-deals-maintenance": "Owner maintenance API for Deals/Coupon/Penny/Resale; verify_jwt=true and it also validates the caller JWT in code; driven only by the signed-in System Health page. Deployed by the Scout workstream (not source-controlled here); reviewed 2026-10-12.",

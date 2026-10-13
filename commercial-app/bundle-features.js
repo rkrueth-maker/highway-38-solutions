@@ -22931,6 +22931,9 @@ const FEATURE_TOGGLES=[
   {id:'online_payments_enabled',title:'Online payments (cards & bank debit)',desc:'Let customers pay invoices online through YOUR OWN Stripe account — money settles straight to your bank; the Office never holds it. Stripe charges 2.9% + 30¢ per card payment, or 0.8% (max $5) for bank debit; no other fees. Connect Stripe below first, then turn this on. Off by default; manual payments keep working either way.',icon:'💳',default:false,category:'Money'},
   {id:'recurring_jobs_enabled',title:'Recurring jobs & service plans',desc:'Set repeat visits (lawn, snow, maintenance plans) on a customer once, then generate the upcoming jobs from Today. You tap to generate — nothing is created or charged automatically. Off by default.',icon:'🔁',default:false,category:'Jobs'},
   {id:'ai_lead_responder',title:'AI lead responder',desc:'When a new online booking comes in, Hank queues a personal follow-up draft for your one-tap review and send — after hours too, so no lead sits cold. You approve every message; nothing sends itself. Needs Online Booking on. Off by default.',icon:'📞',default:false,category:'AI'},
+  {id:'owner_notify_customer',title:'Customer activity alerts',desc:'The bell in the top bar (and a card on Today) tells owners and admins when customers do something: new booking or service requests, portal messages, quote approvals and declines, payments recorded, files uploaded. On by default.',icon:'🔔',default:true,category:'Notifications'},
+  {id:'owner_notify_review',title:'Needs-review alerts',desc:'The same bell flags work waiting on you: pending approvals, queued actions, AI tasks Hank could not finish alone, quotes and prices that need your review. On by default.',icon:'🔔',default:true,category:'Notifications'},
+  {id:'owner_notify_push',title:'Push alerts to my devices',desc:'Also send the alerts above as phone push notifications (one batched push, never a storm). Needs a device subscribed through the shared push service; the in-app bell works either way. Off by default.',icon:'📲',default:false,category:'Notifications'},
   {id:'health_error_monitoring',title:'Health monitoring & auto-fix',desc:'Hank watches for app errors, blank screens, and stuck loading states — and fixes them automatically. Error reports never include names, emails, phone numbers, or addresses. On by default; turning it off disables self-healing.',icon:'❤️',default:true,category:'App Health'},
   {id:'health_usage_analytics',title:'Usage analytics',desc:'Anonymous counts of which features get used and how fast pages load, so the app keeps getting better. No keystrokes, no form contents, no personal data. On by default.',icon:'📊',default:true,category:'App Health'},
 ];
@@ -23163,6 +23166,66 @@ function bindLeadResponder(){
       if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
     }
   };
+}
+
+// Owner notifications (server-side mirror — CANONICAL toggle shape).
+// Three switches, ONE business_module_settings row: module_key
+// 'owner_notifications', enabled = (customer || review), config
+// {customer, review, push}. The h38-owner-notify edge function (pg_cron,
+// every 5 minutes) reads THIS row before producing notification rows, so
+// the owner's intent holds even while the Office is closed. No row means
+// the defaults: customer + review ON, push OFF. Server snapshot wins when
+// present; the local toggles are the display fallback.
+const OWNER_NOTIFY_KEY='owner_notifications';
+const OWNER_NOTIFY_KINDS={owner_notify_customer:'customer',owner_notify_review:'review',owner_notify_push:'push'};
+const OWNER_NOTIFY_DEFAULTS={customer:true,review:true,push:false};
+function ownerNotifySettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===OWNER_NOTIFY_KEY)||null;
+}
+function ownerNotifyResolved(){
+  const row=ownerNotifySettingRow();
+  const cfg=(row&&row.config)||{};
+  const out={};
+  ['customer','review','push'].forEach(kind=>{
+    if(row&&row.enabled===false) out[kind]=false;
+    else if(cfg&&cfg[kind]!==undefined) out[kind]=cfg[kind]===true;
+    else out[kind]=OWNER_NOTIFY_DEFAULTS[kind];
+  });
+  return out;
+}
+function isOwnerNotifyEnabled(kind){
+  const row=ownerNotifySettingRow();
+  if(row) return ownerNotifyResolved()[kind]===true;
+  const toggleId=Object.keys(OWNER_NOTIFY_KINDS).find(id=>OWNER_NOTIFY_KINDS[id]===kind);
+  return isFeatureEnabled(toggleId);
+}
+// Owner/admin only. Mirrors the full resolved config to
+// business_module_settings and keeps the local toggles in sync.
+async function setOwnerNotifyEnabled(kind,enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can change notification settings.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const next=ownerNotifyResolved();
+  next[kind]=!!enabled;
+  const cfg={customer:next.customer===true,review:next.review===true,push:next.push===true,updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:OWNER_NOTIFY_KEY,enabled:(cfg.customer||cfg.review),config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===OWNER_NOTIFY_KEY);
+    const snap={moduleKey:OWNER_NOTIFY_KEY,module_key:OWNER_NOTIFY_KEY,enabled:row.enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['owner_notify_customer']=cfg.customer;
+  toggles['owner_notify_review']=cfg.review;
+  toggles['owner_notify_push']=cfg.push;
+  saveToggles(toggles);
 }
 
 // Recommended Vendors (server-side mirror).
@@ -23589,7 +23652,7 @@ function renderOwnerControls(){
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
               <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():toggles[f.id])?'checked':''}>
+                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):toggles[f.id])?'checked':''}>
                 <span class="slider"></span>
               </label>
             </div>
@@ -23710,6 +23773,25 @@ function bindOwnerControls(){
         }
         return;
       }
+      // Owner notification switches are server-backed: the h38-owner-notify
+      // edge function reads ONLY the mirrored business_module_settings row
+      // (module_key 'owner_notifications') before producing alerts.
+      // Revert locally if the write fails.
+      if(OWNER_NOTIFY_KINDS[id]){
+        const want=checkbox.checked;
+        checkbox.disabled=true;
+        try{
+          await setOwnerNotifyEnabled(OWNER_NOTIFY_KINDS[id],want);
+          if(typeof toast==='function') toast('Notification setting saved.');
+          if(window.H38OwnerNotify&&typeof window.H38OwnerNotify.refresh==='function') window.H38OwnerNotify.refresh();
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       // AI Lead Responder is server-backed too (the booking function reads
       // the mirrored row). Revert locally if the write fails.
       if(id==='ai_lead_responder'){
@@ -23786,6 +23868,9 @@ window.H38OwnerControls={
   isInventoryEnabled:isInventoryEnabled,
   setInventoryEnabled:setInventoryEnabled,
   setLeadResponderEnabled:setLeadResponderEnabled,
+  isOwnerNotifyEnabled:isOwnerNotifyEnabled,
+  setOwnerNotifyEnabled:setOwnerNotifyEnabled,
+  ownerNotifyResolved:ownerNotifyResolved,
   isLeadResponderEnabled:isLeadResponderEnabled,
   isModuleVisible:isModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
@@ -23810,6 +23895,372 @@ if(document.readyState==='loading'){
 }
 })();
 ;
+
+/* --- ./owner-notifications.js --- */
+/* ---- H38 Owner Notifications — bell, panel, Today card (2026-10-13) ----
+ *
+ * Rick's requirement: "office should notify of any customer activity or
+ * when new items need review."
+ *
+ * Producer: the h38-owner-notify edge function (pg_cron, every 5 min)
+ * scans the canonical sources and writes rows into business_records
+ * collection 'notifications' with Audience 'owners-admins'. This module
+ * is only the surface: it renders those rows (plus the legacy per-user
+ * task notes send-task.js writes into the same collection) as a topbar
+ * bell with an unread badge, a dropdown panel with deep links, and a
+ * compact card on Today. Read state is per user ('Read By JSON'), so
+ * one owner reading an alert never hides it from another.
+ *
+ * Category switches live in Owner Controls (server-mirrored
+ * business_module_settings 'owner_notifications'); this surface honors
+ * the same resolved values. Push delivery rides the shared push
+ * dispatcher via the rows' 'Push Status' — nothing here sends pushes.
+ */
+(function () {
+  'use strict';
+
+  var BUILD = '20261013-owner-notify-1';
+  var MAX_PANEL = 40;
+
+  function text(v) { return String(v == null ? '' : v).trim(); }
+  function escHtml(s) {
+    if (typeof window.esc === 'function') return window.esc(s);
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function field(row, key) {
+    if (typeof window.v === 'function') return window.v(row, key);
+    return row ? row[key] : '';
+  }
+  function snap() { return (window.state && window.state.snapshot) || null; }
+  function myId() { var s = snap(); return s && s.user ? text(s.user.userId) : ''; }
+  function myRole() { var s = snap(); return s && s.user ? text(s.user.roleName).toLowerCase() : ''; }
+  function isOwnerAdmin() { return ['owner', 'administrator'].indexOf(myRole()) >= 0; }
+  function businessId() { return window.state ? text(window.state.businessId) : ''; }
+
+  function categoryOn(kind) {
+    try {
+      if (window.H38OwnerControls && typeof window.H38OwnerControls.isOwnerNotifyEnabled === 'function') {
+        return window.H38OwnerControls.isOwnerNotifyEnabled(kind) === true;
+      }
+    } catch (e) { /* fall through to defaults */ }
+    return true; // customer + review default ON (push is not a display category)
+  }
+
+  /* ---------- row model ---------- */
+
+  function readBy(row) {
+    var raw = field(row, 'Read By JSON');
+    if (Array.isArray(raw)) return raw.map(text);
+    if (typeof raw === 'string' && raw) {
+      try { var parsed = JSON.parse(raw); if (Array.isArray(parsed)) return parsed.map(text); } catch (e) { /* ignore */ }
+    }
+    return [];
+  }
+  function isMine(row) {
+    var audience = text(field(row, 'Audience'));
+    if (audience === 'owners-admins') return true;
+    var uid = text(field(row, 'User ID'));
+    return !!uid && uid === myId(); // legacy per-user task notes
+  }
+  function isVisible(row) {
+    if (!row || !isMine(row)) return false;
+    var audience = text(field(row, 'Audience'));
+    if (audience !== 'owners-admins') return true; // legacy rows always show
+    var cat = text(field(row, 'Category'));
+    if (cat === 'customer') return categoryOn('customer');
+    if (cat === 'review') return categoryOn('review');
+    return true;
+  }
+  function isUnread(row) {
+    if (text(field(row, 'Status')) === 'Read') return false;
+    return readBy(row).indexOf(myId()) < 0;
+  }
+  function rowTime(row) {
+    var t = new Date(field(row, 'Created Time') || field(row, 'Created At') || 0).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+  function allRows() {
+    var s = snap();
+    var list = (s && Array.isArray(s.notifications)) ? s.notifications : [];
+    return list.filter(isVisible).slice().sort(function (a, b) { return rowTime(b) - rowTime(a); });
+  }
+  function unreadRows() { return allRows().filter(isUnread); }
+
+  var EVENT_ICONS = {
+    booking_request: '📅', customer_request: '📥', customer_message: '💬',
+    quote_approved: '✅', quote_declined: '❌', quote_review: '🧾',
+    payment_recorded: '💵', online_payment: '💳', customer_upload: '📎',
+    approval_pending: '✍️', action_pending: '⏳', action_failed: '⚠️',
+    handoff_pending: '🤖', price_review: '🏷️'
+  };
+  function iconFor(row) {
+    var t = text(field(row, 'Event Type'));
+    if (EVENT_ICONS[t]) return EVENT_ICONS[t];
+    return text(field(row, 'Category')) === 'customer' ? '👤' : '🔔';
+  }
+  function relTime(row) {
+    var t = rowTime(row); if (!t) return '';
+    var mins = Math.max(1, Math.round((Date.now() - t) / 60000));
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.round(hrs / 24) + 'd ago';
+  }
+
+  /* ---------- persistence (mark read) ---------- */
+
+  function sharedClient() {
+    var c = window.H38_SUPABASE_SHARED_CLIENT;
+    return c && typeof c.ensure === 'function' ? c.ensure() : null;
+  }
+  async function persistRead(row) {
+    var key = text(field(row, 'Notification ID'));
+    var bid = businessId();
+    if (!key || !bid) return;
+    var by = readBy(row);
+    if (by.indexOf(myId()) < 0) by.push(myId());
+    var next = Object.assign({}, row, { 'Read By JSON': JSON.stringify(by) });
+    if (text(field(row, 'Audience')) !== 'owners-admins') next['Status'] = 'Read';
+    // Local copies first so the UI updates instantly.
+    var s = snap();
+    if (s && Array.isArray(s.notifications)) {
+      var i = s.notifications.indexOf(row);
+      if (i >= 0) s.notifications[i] = next;
+    }
+    try {
+      var api = sharedClient();
+      if (!api) return;
+      var existing = await api.from('business_records').select('id,payload')
+        .eq('business_id', bid).eq('collection', 'notifications').eq('record_key', key).maybeSingle();
+      if (existing && existing.data) {
+        var payload = Object.assign({}, existing.data.payload || {}, {
+          'Read By JSON': next['Read By JSON'],
+          'Status': next['Status'] || existing.data.payload['Status']
+        });
+        await api.from('business_records').update({ payload: payload, updated_at: new Date().toISOString() }).eq('id', existing.data.id);
+      }
+    } catch (e) { /* read state is best-effort; never break navigation */ }
+  }
+
+  /* ---------- direct fetch (panel open / after Check now) ---------- */
+
+  async function fetchFresh() {
+    var bid = businessId();
+    var api = sharedClient();
+    if (!bid || !api) return;
+    try {
+      var res = await api.from('business_records')
+        .select('record_key,payload,updated_at')
+        .eq('business_id', bid).eq('collection', 'notifications').eq('record_status', 'active')
+        .order('updated_at', { ascending: false }).limit(100);
+      if (res.error || !Array.isArray(res.data)) return;
+      var s = snap(); if (!s) return;
+      var byKey = {};
+      (s.notifications || []).forEach(function (r) { byKey[text(field(r, 'Notification ID'))] = r; });
+      res.data.forEach(function (row) {
+        var p = row.payload || {};
+        var k = text(p['Notification ID']) || row.record_key;
+        if (k) byKey[k] = p;
+      });
+      s.notifications = Object.keys(byKey).map(function (k) { return byKey[k]; });
+    } catch (e) { /* snapshot data still renders */ }
+  }
+
+  /* ---------- rendering ---------- */
+
+  function badgeEl() { return document.getElementById('ownerNotifyBadge'); }
+  function bellEl() { return document.getElementById('ownerNotifyBell'); }
+
+  function renderBadge() {
+    var bell = bellEl(); if (!bell) return;
+    if (!isOwnerAdmin() || !snap()) { bell.hidden = true; return; }
+    bell.hidden = false;
+    var n = unreadRows().length;
+    var badge = badgeEl();
+    if (badge) {
+      badge.hidden = n === 0;
+      badge.textContent = n > 99 ? '99+' : String(n);
+    }
+    bell.setAttribute('aria-label', n ? ('Notifications, ' + n + ' unread') : 'Notifications');
+  }
+
+  function panelEl() { return document.getElementById('ownerNotifyPanel'); }
+
+  function rowHtml(row) {
+    var unread = isUnread(row);
+    return '<button type="button" class="owner-notify-row' + (unread ? ' unread' : '') + '" data-notify-key="' + escHtml(text(field(row, 'Notification ID'))) + '">'
+      + '<span class="owner-notify-icon" aria-hidden="true">' + iconFor(row) + '</span>'
+      + '<span class="owner-notify-text"><strong>' + escHtml(text(field(row, 'Title')) || 'Notification') + '</strong>'
+      + (text(field(row, 'Body')) ? '<small>' + escHtml(text(field(row, 'Body'))) + '</small>' : '')
+      + '</span>'
+      + '<span class="owner-notify-time">' + escHtml(relTime(row)) + '</span>'
+      + '</button>';
+  }
+
+  function renderPanel() {
+    var panel = panelEl(); if (!panel) return;
+    var rows = allRows().slice(0, MAX_PANEL);
+    var unread = unreadRows().length;
+    panel.innerHTML =
+      '<div class="owner-notify-head"><strong>Notifications</strong>'
+      + '<span class="owner-notify-head-actions">'
+      + (unread ? '<button type="button" class="secondary" id="ownerNotifyMarkAll">Mark all read</button>' : '')
+      + '<button type="button" class="secondary" id="ownerNotifyCheck">Check now</button>'
+      + '<button type="button" class="icon-button" id="ownerNotifyClose" aria-label="Close notifications">✕</button>'
+      + '</span></div>'
+      + '<div class="owner-notify-list">'
+      + (rows.length ? rows.map(rowHtml).join('') : '<div class="owner-notify-empty">Nothing needs you right now. New customer activity and items to review will land here.</div>')
+      + '</div>'
+      + '<div class="owner-notify-foot">Alert switches live in Settings → Owner Controls → Notifications.</div>';
+    var close = document.getElementById('ownerNotifyClose');
+    if (close) close.onclick = closePanel;
+    var markAll = document.getElementById('ownerNotifyMarkAll');
+    if (markAll) markAll.onclick = async function () {
+      var pending = unreadRows();
+      for (var i = 0; i < pending.length; i++) { try { await persistRead(pending[i]); } catch (e) { /* continue */ } }
+      renderBadge(); renderPanel(); renderTodayCard();
+    };
+    var check = document.getElementById('ownerNotifyCheck');
+    if (check) check.onclick = function () { checkNow(check); };
+    panel.querySelectorAll('[data-notify-key]').forEach(function (btn) {
+      btn.addEventListener('click', function () { onRowClick(btn.getAttribute('data-notify-key')); });
+    });
+  }
+
+  async function onRowClick(key) {
+    var row = allRows().find(function (r) { return text(field(r, 'Notification ID')) === key; });
+    if (!row) return;
+    try { await persistRead(row); } catch (e) { /* navigate anyway */ }
+    renderBadge(); renderTodayCard();
+    var page = text(field(row, 'Link Page'));
+    var recordId = text(field(row, 'Link Record ID'));
+    closePanel();
+    if (page) {
+      window.H38NotifyFocus = { page: page, recordId: recordId, at: Date.now() };
+      try { window.dispatchEvent(new CustomEvent('h38:notify-focus', { detail: window.H38NotifyFocus })); } catch (e) { /* ignore */ }
+      if (typeof window.openPage === 'function') window.openPage(page);
+    }
+  }
+
+  function openPanel() {
+    var panel = panelEl(); if (!panel) return;
+    renderPanel();
+    panel.hidden = false;
+    fetchFresh().then(function () { if (!panel.hidden) { renderPanel(); renderBadge(); } });
+  }
+  function closePanel() { var panel = panelEl(); if (panel) panel.hidden = true; }
+  function togglePanel() { var panel = panelEl(); if (!panel) return; if (panel.hidden) openPanel(); else closePanel(); }
+
+  async function checkNow(btn) {
+    var bid = businessId();
+    var cfg = window.H38_BUSINESS_OFFICE_SUPABASE || {};
+    var api = sharedClient();
+    if (!bid || !api || !cfg.url || !cfg.publishableKey) {
+      if (typeof window.toast === 'function') window.toast('Notifications check is unavailable right now.', true);
+      return;
+    }
+    btn.disabled = true;
+    try {
+      var sess = await api.auth.getSession();
+      var token = sess && sess.data && sess.data.session ? sess.data.session.access_token : '';
+      if (!token) throw new Error('Sign in again to check for new alerts.');
+      var res = await fetch(cfg.url + '/functions/v1/h38-owner-notify', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'apikey': cfg.publishableKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'scan', businessId: bid })
+      });
+      var data = {};
+      try { data = await res.json(); } catch (e) { /* ignore */ }
+      if (!res.ok || data.status !== 'PASS') throw new Error(data.message || ('Check failed (' + res.status + ')'));
+      await fetchFresh();
+      renderBadge(); renderPanel(); renderTodayCard();
+      if (typeof window.toast === 'function') {
+        window.toast(data.created ? ('Checked — ' + data.created + ' new alert' + (data.created === 1 ? '' : 's') + '.') : 'Checked — nothing new.');
+      }
+    } catch (e) {
+      if (typeof window.toast === 'function') window.toast('Could not check: ' + (e && e.message ? e.message : e), true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ---------- Today card ---------- */
+
+  function renderTodayCard() {
+    var card = document.getElementById('ownerNotifyTodayCard');
+    if (!window.state || window.state.page !== 'today' || !isOwnerAdmin()) { if (card) card.remove(); return; }
+    var rows = unreadRows();
+    if (!rows.length) { if (card) card.remove(); return; }
+    var customers = rows.filter(function (r) { return text(field(r, 'Category')) === 'customer'; }).length;
+    var review = rows.length - customers;
+    var parts = [];
+    if (customers) parts.push(customers + ' customer activit' + (customers === 1 ? 'y' : 'ies'));
+    if (review) parts.push(review + ' item' + (review === 1 ? '' : 's') + ' to review');
+    var html = '<div class="owner-notify-today-inner"><div><strong>🔔 ' + rows.length + ' thing' + (rows.length === 1 ? '' : 's') + ' need' + (rows.length === 1 ? 's' : '') + ' you</strong>'
+      + '<small>' + escHtml(parts.join(' · ')) + '</small></div>'
+      + '<button type="button" id="ownerNotifyTodayOpen">View alerts</button></div>';
+    if (!card) {
+      var main = document.getElementById('mainContent');
+      var grid = main ? (main.querySelector('.h38-digest-grid') || main.querySelector('.grid')) : null;
+      if (!grid || !grid.parentNode) return;
+      card = document.createElement('section');
+      card.className = 'card span12 owner-notify-today';
+      card.id = 'ownerNotifyTodayCard';
+      grid.parentNode.insertBefore(card, grid);
+    }
+    card.innerHTML = html;
+    var btn = document.getElementById('ownerNotifyTodayOpen');
+    if (btn) btn.onclick = openPanel;
+  }
+
+  /* ---------- wiring ---------- */
+
+  function ensurePanel() {
+    if (panelEl()) return;
+    var panel = document.createElement('div');
+    panel.id = 'ownerNotifyPanel';
+    panel.className = 'owner-notify-panel';
+    panel.hidden = true;
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Notifications');
+    document.body.appendChild(panel);
+    document.addEventListener('click', function (e) {
+      if (panel.hidden) return;
+      var bell = bellEl();
+      if (panel.contains(e.target) || (bell && bell.contains(e.target))) return;
+      closePanel();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
+  }
+
+  var bound = false;
+  function refresh() {
+    ensurePanel();
+    renderBadge();
+    renderTodayCard();
+    var bell = bellEl();
+    if (bell && !bound) {
+      bound = true;
+      bell.addEventListener('click', togglePanel);
+    }
+    var panel = panelEl();
+    if (panel && !panel.hidden) renderPanel();
+  }
+
+  window.H38OwnerNotify = { refresh: refresh, openPanel: openPanel, closePanel: closePanel, BUILD: BUILD };
+
+  window.addEventListener('h38:office-page-rendered', function () { refresh(); });
+  var lastBid = '';
+  setInterval(function () {
+    var bid = businessId();
+    if (bid && bid !== lastBid) { lastBid = bid; refresh(); }
+    else if (snap()) renderBadge();
+  }, 5000);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh);
+  else refresh();
+})();
 
 /* --- ./health-dashboard.js --- */
 /* H38 Health Dashboard — H38 TENANT ONLY.

@@ -78,6 +78,18 @@ verify_jwt = false
 [functions.h38-review-scheduler]
 verify_jwt = false
 
+# Owner notifications producer. Scans customer-activity + needs-review
+# sources per business and writes owner/admin notification rows into
+# business_records 'notifications'. Self-authenticating: the pg_cron
+# caller (job 'h38-owner-notify-5m', pg_net http_post, every 5 minutes)
+# must present the x-h38-nightly-key header matching the 'h38-owner-notify'
+# row in h38_internal_job_secrets (401 without it); a signed-in
+# owner/administrator JWT may also request a scan of their own business
+# (panel "Check now"). verify_jwt stays false for the key-gated cron
+# caller — same pattern as h38-review-scheduler / kit-proactive-engine.
+[functions.h38-owner-notify]
+verify_jwt = false
+
 # Proactive Kit engine. Runs on schedule (cron), monitors each business for
 # overdue quotes, late invoices, schedule gaps. Creates DRAFT follow-ups and
 # approval tasks — never sends customer messages, never moves money.
