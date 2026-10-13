@@ -36,7 +36,7 @@ def test_production_header_and_messages_use_customer_facing_copy():
     assert "Team conversations" in MOBILE
     assert "Start a conversation" in MOBILE
     assert "Tools grouped by what you are trying to do." in MOBILE
-    for group in ["Work & Sales", "Money", "Records & Equipment", "Office"]:
+    for group in ["Work", "Money", "Records & Equipment", "Office"]:
         assert group in MOBILE
 
 

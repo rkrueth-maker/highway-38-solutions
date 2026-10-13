@@ -38,7 +38,7 @@ def test_document_runtime_preserves_owner_authority():
 
 def test_document_runtime_is_loaded_by_network_first_assistant_runtime():
     loader = LOADER.read_text(encoding="utf-8")
-    assert "document-photo-service-runtime-v2.js?build=20260825-document-photo-service-2" in loader
+    assert "document-photo-service-runtime-v2.js?build=20261007-document-photo-service-3" in loader
     assert "loadDocumentServiceRuntime" in loader
     assert "smartDocumentRuntime:true" in loader
 

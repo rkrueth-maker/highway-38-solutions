@@ -201,10 +201,10 @@ def test_work_rows_ignore_poisoned_local_dataset_and_preserve_server_evidence():
 
 
 def test_quote_ai_is_one_phone_bounded_model_pass_and_render_proof_is_uuid_safe():
-    assert '20260822-owner-bounded-draft-21' in QUOTE_AI
+    assert 'const QUOTE_AI_BUILD = "20261002-timeout-retry-23"' in QUOTE_AI
     assert 'const QUOTE_MODEL_TIMEOUT_MS = 120000;' in QUOTE_AI
     assert 'detail: "low"' in QUOTE_AI
-    assert QUOTE_AI.count('draft = await callQuoteModelWithRetry(context, photos)') == 1
+    assert QUOTE_AI.count('draft = await callQuoteModelWithRetry(service, businessId, context, photos)') == 1
     assert 'previousDraft' not in QUOTE_AI
     assert 'SERVER REPAIR REQUEST' not in QUOTE_AI
     assert 'serverBreakoutSecondPass: false' in QUOTE_AI
@@ -238,7 +238,7 @@ def test_quote_direction_ui_supports_values_prices_upgrades_and_visuals():
 
 
 def test_option_engine_is_bounded_and_keeps_landscape_garage_retaining_wall_behavior():
-    assert '20260822-quote-options-directions-2' in EDGE
+    assert '20261011-quote-options-modelfix-1' in EDGE
     assert 'AbortSignal.timeout(80000)' in EDGE
     assert 'entity_id:null' in EDGE
     assert 'entity_id:quoteId' not in EDGE

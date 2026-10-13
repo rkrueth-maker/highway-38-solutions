@@ -72,15 +72,15 @@ for(const marker of ['20260821-render-saved-action-picture-2-phone','function in
 assert(!render.includes('window.state?.bridge?.request'));
 
 const quoteAi=read('supabase/functions/h38-quote-ai/index.ts');
-for(const marker of ['20260822-owner-bounded-draft-21','const QUOTE_MODEL_TIMEOUT_MS = 120000;','detail: "low"','serverBreakoutSecondPass: false','singleModelPass: true'])assert(quoteAi.includes(marker),`quote ai missing ${marker}`);
-assert.strictEqual((quoteAi.match(/draft = await callQuoteModelWithRetry\(context, photos\)/g)||[]).length,1);
+for(const marker of ['const QUOTE_AI_BUILD = "20261002-timeout-retry-23"','const QUOTE_MODEL_TIMEOUT_MS = 120000;','detail: "low"','serverBreakoutSecondPass: false','singleModelPass: true'])assert(quoteAi.includes(marker),`quote ai missing ${marker}`);
+assert.strictEqual((quoteAi.match(/draft = await callQuoteModelWithRetry\(service, businessId, context, photos\)/g)||[]).length,1);
 assert(!quoteAi.includes('SERVER REPAIR REQUEST'));
 assert(!quoteAi.includes('previousDraft'));
 assert(!quoteAi.includes('entity_id: quoteId'));
 assert((quoteAi.match(/entity_id: null/g)||[]).length>=2);
 
 const quoteOptions=read('supabase/functions/h38-quote-options/index.ts');
-for(const marker of ['20260822-quote-options-directions-2','AbortSignal.timeout(80000)','entity_id:null','details:{quoteId'])assert(quoteOptions.includes(marker),`quote options missing ${marker}`);
+for(const marker of ['20261011-quote-options-modelfix-1','AbortSignal.timeout(80000)','entity_id:null','details:{quoteId'])assert(quoteOptions.includes(marker),`quote options missing ${marker}`);
 assert(!quoteOptions.includes('entity_id:quoteId'));
 
 const reproduction=read('commercial-app/quote-reproduction-authority.js');

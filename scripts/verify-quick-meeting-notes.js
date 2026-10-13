@@ -5,7 +5,7 @@ const runtime=fs.readFileSync('commercial-app/quick-meeting-notes-v2.js','utf8')
 const bootstrap=fs.readFileSync('commercial-app/runtime-rowid-fix.js','utf8');
 const fn=fs.readFileSync('supabase/functions/h38-quick-meeting-notes/index.ts','utf8');
 function has(source,needle,message){assert(source.includes(needle),message||`missing ${needle}`);}
-has(runtime,"const BUILD='20260915-quick-meeting-notes-2'",'quick meeting runtime build marker');
+has(runtime,"const BUILD='20261002-notes-handoff-fallback-4'",'quick meeting runtime build marker');
 has(runtime,"customerOptional:true",'customer must be optional');
 has(runtime,"temporaryAudioOnly:true",'audio must be temporary');
 has(runtime,"recordingPersisted:false",'recording must not be persisted');
@@ -24,7 +24,8 @@ has(fn,'audioSaved:false','edge function must report no retained audio');
 has(fn,'transcriptSaved:false','edge function must report no retained transcript');
 has(fn,'notesOnly:true','edge function must report notes-only retention');
 has(fn,'Return only useful meeting notes, not a transcript.','edge function prompt must prohibit transcript output');
-assert(!/from\(["']business_records["']\)/.test(fn),'edge function must not persist meeting content itself');
+assert(!/from\(["']business_records["']\)\s*\.\s*(insert|update|upsert|delete)\b/.test(fn),'edge function must not persist meeting content itself');
+assert(/from\(["']business_records["']\)\s*\.\s*select\(["']payload["']\)/.test(fn),'read-only ai_config cap check must select payload from business_records');
 assert(!/storage\.from/.test(fn),'edge function must not store temporary audio');
 has(bootstrap,"quick-meeting-notes-v2.js?build=",'runtime bootstrap must load clean versioned Quick Meeting runtime');
 console.log(JSON.stringify({status:'PASS',checks:['retired v1 absent','notes-only persistence','temporary audio','no transcript retention','optional customer','Today meeting button','customer mobile width cleanup','desktop Meeting preserved','Site Visit untouched','versioned runtime bootstrap']},null,2));

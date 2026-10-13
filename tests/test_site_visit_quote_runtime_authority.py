@@ -58,7 +58,7 @@ def test_final_authorities_are_loaded_directly_from_index():
         f'./site-visit-delete-server-authority.js?build={declared_build(CLEANUP)}',
         './field-visit-quote-handoff.js?build=20260922-site-visit-quote-customer-authority-7',
         f'./field-visit-finish-build.js?build={declared_build(FINISH)}',
-        './site-visit-top-action.js?build=20260821-site-visit-quote-runtime-authority-1',
+        './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
     ]
     positions = [INDEX.index(item) for item in expected]
     assert positions == sorted(positions)
@@ -90,7 +90,7 @@ def test_shared_quote_machine_is_loaded_first_by_final_loader_and_is_generic():
 def test_service_worker_cache_was_bumped_for_final_authority():
     assert "h38-business-office-20260821-1605" in SW
     assert "h38-business-office-20260821-1015" in SW
-    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+)'", SW)
+    assert re.search(r"const CACHE_NAME='h38-business-office-\d{8}-(?:\d{4}|nav-core-\d+|[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+)'", SW)
     assert "fieldVerifiedMeasurementWins:true" in WIDE
     assert "savedActionPictureRendersWithoutCustomerSelection:true" in WIDE
 

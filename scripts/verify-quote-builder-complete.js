@@ -29,7 +29,8 @@ need(clientManifest,"'BusinessOffice_QuoteBuilder_Client'",'Quote Builder worksp
 need(clientManifest,"'BusinessOffice_QuoteBuilder_Completion'",'Quote Builder completion manifest entry');
 if((clientManifest.match(/BusinessOffice_QuoteBuilder_Client/g)||[]).length!==1)throw new Error('Quote Builder workspace must be included exactly once.');
 if((clientManifest.match(/BusinessOffice_QuoteBuilder_Completion/g)||[]).length!==1)throw new Error('Quote Builder completion must be included exactly once.');
-need(gateway,'quoteBuilder=1#module=quoteBuilder','focused secure gateway');
+const shellGateway=read('apps-script/unified-shell/Unified_AppShell.gs');
+need(shellGateway,"quoteBuilder:'?quoteBuilder=1'",'focused secure gateway route in the unified shell (the public quote-builder page no longer hosts the direct gateway link; owners enter via Owner Access)');
 need(completion,"new URLSearchParams(location.search).get('quoteBuilder')==='1'",'focus-mode query');
 need(completion,'type="file" multiple','photo/PDF intake');
 need(completion,"call('uploadDocument'",'private document upload');

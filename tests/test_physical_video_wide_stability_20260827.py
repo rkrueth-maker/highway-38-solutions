@@ -21,7 +21,7 @@ def test_online_startup_does_not_paint_cached_counts_before_authoritative_snapsh
     assert "nativeRevealWaitsForAuthoritativeSnapshot:true" in STARTUP
     assert "h38:authoritative-startup-ready" in STARTUP
     assert "const firstAuthoritativeOpen=!state.snapshot;" in STARTUP
-    assert "if(!firstAuthoritativeOpen)toast('Office refreshed.');" in STARTUP
+    assert "toast('Office refreshed.')" not in STARTUP
     assert "Offline · verified device cache" in STARTUP
     assert "startupMode: 'SUPABASE_AUTH_FOUNDATION'" in AUTH
     assert "fullRefreshPending: true" in AUTH

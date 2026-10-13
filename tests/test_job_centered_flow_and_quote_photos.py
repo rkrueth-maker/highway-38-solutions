@@ -18,7 +18,7 @@ def test_phone_navigation_is_five_customer_first_primary_places():
     assert "['customers','👤','Customers']" in MOBILE
     assert "['schedule','🗓','Schedule']" in MOBILE
     assert "['messages','💬','Messages']" in MOBILE
-    assert "['Work & Sales',['work','quotes','field','meetings']]" in MOBILE
+    assert "['Work',['work','quotes','field','meetings']]" in MOBILE
     assert "data-h38-primary=\"more\"" in MOBILE
     assert "navigationDelegatedToMobileAuthority:true" in PHONE_FIRST
 
@@ -107,7 +107,7 @@ def test_delete_site_visit_keeps_customer_quote_and_uses_explicit_confirmation()
 
 def test_new_flow_is_loaded_live_first_and_cache_busted():
     assert "./job-centered-flow.js?build=20260816-job-centered-flow-1" in INDEX
-    assert "./site-visit-top-action.js?build=20260821-site-visit-quote-runtime-authority-1" in INDEX
+    assert "./site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1" in INDEX
     assert "window.H38_ASSET_BUILD='20260821-0219'" in INDEX
     assert "./site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5" in INDEX
     assert "./mobile-flow-polish-v2.js?build=20261012-mobile-polish-1" in INDEX

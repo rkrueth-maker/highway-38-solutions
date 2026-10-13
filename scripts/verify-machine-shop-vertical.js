@@ -222,7 +222,7 @@ sandbox.state = {
   businessId: 'biz-1',
   page: 'today',
   user: { roleName: 'owner' },
-  snapshot: { moduleSettings: [], user: { userId: 'u1' } },
+  snapshot: { moduleSettings: [], user: { userId: 'u1', roleName: 'owner' } },
 };
 
 vm.createContext(sandbox);
@@ -255,10 +255,12 @@ const H38Tpl = sandbox.H38MachineShopTemplates;
   assert('runtime: H38MachineShop.enabled() follows toggle', H38Shop.enabled() === true);
 
   sandbox.state.user.roleName = 'staff';
+  sandbox.state.snapshot.user.roleName = 'staff';
   let threw = false;
   try { await H38OC.setMachineShop(false); } catch (e) { threw = /Only a business owner/.test(e.message); }
   assert('runtime: non-owner cannot flip the toggle', threw === true);
   sandbox.state.user.roleName = 'owner';
+  sandbox.state.snapshot.user.roleName = 'owner';
 
   /* ---- renderPage routes to shop workspace ---- */
   sandbox.state.page = 'shop';

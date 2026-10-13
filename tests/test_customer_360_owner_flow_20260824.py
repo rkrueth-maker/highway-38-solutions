@@ -72,7 +72,7 @@ def test_universal_smart_import_detects_and_stages_business_history_safely():
     ]:
         assert marker in CUSTOMER_IMPORT
     assert 'host.innerHTML=smartHtml()' not in CUSTOMER_IMPORT
-    assert 'customer-import-intelligence.js?build=20260914-universal-smart-import-1' in INDEX
+    assert 'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1' in INDEX
     assert 'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1' not in INDEX
     for marker in ['Subscribed services & invoicing','Trigger today','Hours × rate','Review / send invoices',"'Send Allowed':'No'"]:
         assert marker in CUSTOMER_WORKSPACE
@@ -122,7 +122,7 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
     assert 'customer-360-browser-integration-v3.js?build=20260922-preserve-explicit-test-selection-2' in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
-    assert 'customer-360-authority.js?build=20260922-customer-workspace-layout-authority-5' in INDEX
+    assert 'customer-360-authority.js?build=20261012-offline-polish-1' in INDEX
     assert 'customer-360-authority.css?build=20260922-layout-stability-2' in BROWSER
     assert 'customer-360-authority.css?build=20260922-layout-stability-2' in INDEX
     assert 'renderNow:root=>renderCustomersNow(root||window)' in C360
