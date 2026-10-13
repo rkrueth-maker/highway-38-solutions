@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261012-polish-pass2-1';
+const BUILD='20261012-mobile-polish3-1';
 const PAGE_SIZE=16;
 const browsers=new Map();
 let scheduled=false,reconciling=false;

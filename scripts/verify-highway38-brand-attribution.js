@@ -12,7 +12,7 @@ const ownerLaunch=read('businesses/northern-lakes/app-launch.js');
 const meeting=read('commercial-app/conversation-meeting-assistant.js');
 const readiness=read('commercial-app/customer-readiness-polish.js');
 for(const [name,source] of [['tenant attribution',commercial],['Office loader',loader],['Northern site shell',shell],['Northern public attribution',publicCredit],['Northern portal config',portalConfig],['Northern owner launcher',ownerLaunch]])new vm.Script(source,{filename:name});
-assert(index.includes('live-customer-navigation-guard-20260910.js?build=20261012-polish-pass2-1'),'Office entry must load the attribution-aware shared loader');
+assert(index.includes('live-customer-navigation-guard-20260910.js?build=20261012-mobile-polish3-1'),'Office entry must load the attribution-aware shared loader');
 assert(loader.includes("tenant-attribution.js?build=20261012-mobile-polish-1"),'shared Office loader must load the current tenant attribution runtime');
 assert(commercial.includes("NORTH_KEY='northern-lakes'"),'tenant attribution must be scoped to Northern Lakes');
 assert(commercial.includes('h38SharedTenantMobileChrome'),'shared tenant runtime must install mobile chrome framing for H38 and Northern');
