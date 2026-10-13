@@ -92,7 +92,7 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
  #mainContent .empty{padding:17px!important}
  #mainContent .quick-grid{gap:8px!important}
  #mainContent .quick-grid button{min-height:54px!important}
- #mainContent .row-actions button,#mainContent .tabs button{min-height:42px!important}
+ #mainContent .row-actions button,#mainContent .tabs button{min-height:44px!important}
  #mainContent label{margin-top:8px!important}
  #mainNav.h38-five-primary-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;z-index:2500!important;margin:0!important;padding:6px 6px env(safe-area-inset-bottom,0px)!important;background:var(--card,#fff)!important;box-shadow:0 -8px 24px rgba(11,36,56,.12);transform:translateZ(0);backface-visibility:hidden;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;overflow:visible!important}
  #mainNav.h38-five-primary-nav button{min-width:0!important;max-width:none!important;min-height:54px!important;padding:5px 2px!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent}
