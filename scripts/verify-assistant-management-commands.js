@@ -21,8 +21,8 @@ for(const needle of [
   'automaticDataImportApply:false',
   'automaticQuoteLearningMutation:false',
   "return'Opened Time & attendance.",
-  "return'Opened Team Access in ERP Center.",
-  "return'Opened Existing-data uptake in ERP Center.",
+  "return'Opened Team Access in Business Center.",
+  "return'Opened Existing-data uptake in Business Center.",
   'started the internal advisory analysis',
   "return'Opened Jobs & Task Manager."
 ])assert(polish.includes(needle),`management command polish missing ${needle}`);
@@ -113,7 +113,7 @@ for(const needle of ['ERP Center','Time & Attendance','Team Access','Existing-da
 
     assert(Object.values(result.can).every(Boolean),`all management intents must be first-class: ${JSON.stringify(result.can)}`);
     assert.equal(result.taskPage,'work','Task Manager command must open the existing Work/Task Manager authority');
-    assert(result.responses.erp.includes('ERP Center'));
+    assert(result.responses.erp.includes('Business Center'));
     assert(result.responses.time.includes('audited time controls'));
     assert(result.responses.team.includes('explicit Team Access controls'));
     assert(result.responses.data.includes('does not stage or apply'));
@@ -130,7 +130,7 @@ for(const needle of ['ERP Center','Time & Attendance','Team Access','Existing-da
     assert.equal(result.busFlags.automaticQuoteLearningMutation,false);
     assert.equal(result.paExtended,true);
     assert.equal(result.polishFlags.erpAssistantCommands,true);
-    assert.deepEqual(result.chips,['ERP center','Time & attendance','Team access']);
+    assert.deepEqual(result.chips,['Business center','Time & attendance','Team access']);
     assert.deepEqual(errors,[],`browser errors: ${errors.join('; ')}`);
     console.log(JSON.stringify({status:'PASS',intents:Object.keys(result.can),erpTargets:activity.erpOpens,quoteLearningRuns:activity.learningRuns,taskManagerPage:result.taskPage,mutationBoundaries:result.busFlags},null,2));
   }finally{await browser.close();}

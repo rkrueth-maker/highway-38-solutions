@@ -126,15 +126,15 @@ function polishAssistantLauncher(){
   const launcher=document.getElementById('globalAiButton');
   if(launcher){
     launcher.classList.add('h38-floating-assistant','h38-polish-touch');
-    if(launcher.getAttribute('aria-label')!=='Ask Hank')launcher.setAttribute('aria-label','Ask Hank');
-    if(launcher.getAttribute('title')!=='Ask Hank')launcher.setAttribute('title','Ask Hank');
+    if(launcher.getAttribute('aria-label')!=='Assistant')launcher.setAttribute('aria-label','Assistant');
+    if(launcher.getAttribute('title')!=='Assistant')launcher.setAttribute('title','Assistant');
     if(launcher.dataset.h38UnifiedAssistant!=='1'){
       launcher.dataset.h38UnifiedAssistant='1';
-      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">Ask Hank</span>';
+      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">Assistant</span>';
       launcher.addEventListener('click',openUnifiedAssistant,true);
     }else{
       const label=launcher.querySelector('.h38-floating-assistant-label,.ai-launcher-label');
-      if(label&&text(label.textContent)!=='Ask Hank')label.textContent='Ask Hank';
+      if(label&&text(label.textContent)!=='Assistant')label.textContent='Assistant';
     }
   }
   syncAssistantBadge();
@@ -188,7 +188,7 @@ function decorateAssistantPage(){
   const form=document.getElementById('paCommandForm');
   if(!main||!form)return;
   const heading=main.querySelector('.page-head h1');
-  setText(heading,'Ask Hank');
+  setText(heading,'Personal Assistant');
   const intro=main.querySelector('.page-head p');
   setText(intro,'Private to your sign-in. Ask questions, manage personal reminders, or give H38 Business Office commands.');
   const label=form.querySelector('label');
