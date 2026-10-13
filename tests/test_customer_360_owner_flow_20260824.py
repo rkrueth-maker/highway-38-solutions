@@ -126,7 +126,7 @@ def test_source_only_children_get_unique_customer_hint_but_finance_is_not_supple
 def test_customer_360_dynamic_loader_uses_latest_physical_runtime_filename():
     # Startup deferral (2026-10-13): both customer-360 runtimes ship in the
     # H38ScriptLoader 'customers' group with the same ?build= params.
-    assert 'customer-360-browser-integration-v3.js?build=20261013-complete-scan-fixes-1' in LOADER
+    assert 'customer-360-browser-integration-v3.js?build=20261013-search-nomatch-1' in LOADER
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in INDEX
     assert 'customer-360-browser-integration-v2.js?build=20260824-customer-360-browser-integration-v3' not in LOADER
     assert 'customer-360-authority.js?build=20261013-complete-scan-fixes-1' in LOADER

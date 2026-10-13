@@ -92,7 +92,7 @@
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
       './customer-360-authority.js?build=20261013-complete-scan-fixes-1',
-      './customer-360-browser-integration-v3.js?build=20261013-complete-scan-fixes-1',
+      './customer-360-browser-integration-v3.js?build=20261013-search-nomatch-1',
       // CI triage fix (2026-10-13, class-b): site-visit-top-action.js is the
       // Customers-page top action bar ("Start Site Visit" / "Add Customer");
       // grouping it only under field/measure lost that bar on a
