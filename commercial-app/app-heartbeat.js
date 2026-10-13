@@ -3,10 +3,27 @@
 // App usage heartbeat — tracks who opens the app, when, and for how long.
 // Include after the app's Supabase client is available. Writes to business_records
 // collection 'app_sessions'. Configure via window.H38_HEARTBEAT = {app:'office'}.
+//
+// 2026-10-13 fix sweep:
+// - The first beat used to fire immediately at script load, before
+//   window.state had the business id, so business_id was null and Supabase
+//   answered HTTP 403 on every cold start. Beats now wait until BOTH the
+//   business id and an auth token exist (polled, plus the canonical
+//   h38:authoritative-startup-ready event), then run on the normal interval.
+// - getToken is supplied by index.html and reuses the existing bridge/shared
+//   client session — no extra Supabase client is created for the heartbeat.
+// - The beforeunload write used navigator.sendBeacon to the REST endpoint
+//   with no apikey/Authorization headers, which produced CORS console errors
+//   on the next navigation. It now uses fetch(..., {keepalive:true}) with
+//   the exact same auth headers as a normal write. The session-close write is
+//   kept because app_sessions rows are consumed by the Office movement watch
+//   (see supabase/functions/h38-*-web heartbeat notes); only 'Last Seen At'
+//   freshness matters there, but 'Ended At' is preserved for parity.
 
 const CFG = window.H38_HEARTBEAT || {};
 const APP = CFG.app || 'office';
 const SESSION_KEY = 'h38-heartbeat-session';
+const BUILD = '20261013-fix-sweep-1';
 
 function getSessionId(){
   try {
@@ -33,13 +50,10 @@ function getSupabase(){
   return null;
 }
 
-async function writeSession(patch){
-  const sb = getSupabase();
-  const token = await getToken();
-  if(!sb || !token) return;
+function sessionBody(patch){
   const user = getUser();
   const sessionId = getSessionId();
-  const body = {
+  return {
     business_id: getBusinessId(),
     collection: 'app_sessions',
     record_key: sessionId,
@@ -53,44 +67,72 @@ async function writeSession(patch){
       'Last Seen At': new Date().toISOString(),
     }, patch || {}),
   };
+}
+
+function authHeaders(sb, token){
+  return {
+    'apikey': sb.key,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Prefer': 'resolution=merge-duplicates,return=minimal',
+  };
+}
+
+async function writeSession(patch){
+  const sb = getSupabase();
+  if(!sb || !getBusinessId()) return false;
+  const token = await getToken();
+  if(!token) return false;
   try{
     await fetch(sb.url + '/rest/v1/business_records', {
       method: 'POST',
-      headers: {
-        'apikey': sb.key,
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal',
-      },
-      body: JSON.stringify(body),
+      headers: authHeaders(sb, token),
+      body: JSON.stringify(sessionBody(patch)),
     });
-  }catch(e){ /* heartbeat is best-effort */ }
+    return true;
+  }catch(e){ /* heartbeat is best-effort */ return false; }
 }
 
 async function beat(){
   await writeSession({});
 }
 
-// Start: record session open
-beat();
-// Heartbeat every 60s while the page is visible
-setInterval(()=>{ if(!document.hidden) beat(); }, 60000);
-// On close: mark ended
+let started = false;
+let readinessTimer = null;
+async function startWhenReady(){
+  if(started) return;
+  // Wait until the app has a business id AND a session token; a beat before
+  // that is the 403 this sweep removes.
+  if(!getBusinessId() || !(await getToken())) return;
+  started = true;
+  if(readinessTimer){ clearInterval(readinessTimer); readinessTimer = null; }
+  // Start: record session open
+  beat();
+  // Heartbeat every 60s while the page is visible
+  setInterval(()=>{ if(!document.hidden) beat(); }, 60000);
+}
+
+readinessTimer = setInterval(()=>{ startWhenReady(); }, 500);
+window.addEventListener('h38:authoritative-startup-ready', ()=>{ startWhenReady(); });
+startWhenReady();
+
+// On close: mark ended — fetch keepalive with the same auth headers as a
+// normal write (sendBeacon cannot carry them and errored on CORS).
 window.addEventListener('beforeunload', ()=>{
   const sb = getSupabase();
+  if(!sb || !getBusinessId()) return;
   getToken().then(token=>{
-    if(!sb || !token) return;
-    const payload = JSON.stringify({
-      business_id: getBusinessId(),
-      collection: 'app_sessions',
-      record_key: getSessionId(),
-      record_status: 'active',
-      payload: { 'Ended At': new Date().toISOString(), 'Last Seen At': new Date().toISOString() },
-    });
+    if(!token) return;
     try{
-      navigator.sendBeacon(sb.url + '/rest/v1/business_records?on_conflict=record_key',
-        new Blob([payload], {type:'application/json'}));
+      fetch(sb.url + '/rest/v1/business_records?on_conflict=record_key', {
+        method: 'POST',
+        headers: authHeaders(sb, token),
+        body: JSON.stringify(sessionBody({ 'Ended At': new Date().toISOString(), 'Last Seen At': new Date().toISOString() })),
+        keepalive: true,
+      }).catch(()=>{});
     }catch(e){}
   });
 });
+
+window.H38_APP_HEARTBEAT = Object.freeze({ build: BUILD, app: APP });
 })();

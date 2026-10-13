@@ -1,6 +1,6 @@
 # Scope-aware verification plan
 
-- Files changed: 12
+- Files changed: 15
 - Scopes: performanceReliability
 - Deployment workflows: none
 

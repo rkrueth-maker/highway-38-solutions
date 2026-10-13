@@ -23,13 +23,29 @@ def test_offline_polish_javascript_is_valid():
         assert result.returncode == 0, f'{name}: {result.stderr}'
 
 
-def test_legacy_bottom_pill_is_gone_but_sw_registration_stays():
+def test_legacy_bottom_pill_is_gone_and_offline_sw_registration_removed():
     # The old pill was position:fixed at bottom:10px with z-index 9999, directly
     # over the fixed phone bottom nav, and swallowed every nav tap offline.
     assert 'h38OfflinePill' not in OFFLINE_RUNTIME
     assert 'data-h38-offline-pill' not in OFFLINE_RUNTIME
     assert 'bottom:10px' not in OFFLINE_RUNTIME
-    assert "register('./offline-sw.js'" in OFFLINE_RUNTIME
+    # SW consolidation (2026-10-13 fix sweep): service-worker.js is the ONE
+    # canonical worker. The runtime must no longer register ./offline-sw.js;
+    # instead it cleans up any legacy registration pointing at that script.
+    assert "register('./offline-sw.js'" not in OFFLINE_RUNTIME
+    assert 'getRegistrations' in OFFLINE_RUNTIME
+    assert "endsWith('/offline-sw.js')" in OFFLINE_RUNTIME
+    assert 'unregister' in OFFLINE_RUNTIME
+
+
+def test_offline_sw_is_a_self_destruct_stub():
+    offline_sw = (APP / 'offline-sw.js').read_text(encoding='utf-8')
+    assert 'skipWaiting' in offline_sw
+    assert 'clients.claim' in offline_sw
+    assert 'h38-office-shell-' in offline_sw
+    assert 'self.registration.unregister()' in offline_sw
+    # The stub must not intercept fetches — no fetch handler at all.
+    assert "addEventListener('fetch'" not in offline_sw
 
 
 def test_offline_mode_owns_one_non_blocking_banner():
@@ -64,13 +80,20 @@ def test_customer_setup_card_title_matches_renderer():
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     # Cache name rolled by the 20261012 mobile-polish pass (files changed);
     # the offline file list and live-first behavior below are the invariants.
-    assert "const CACHE_NAME='h38-business-office-20261012-mobile-polish3-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261013-fix-sweep-1'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
+    # Logo consolidation: the 2.93MB approved logo is NOT in the shell
+    # precache; it is served cache-first at runtime under its versioned URL.
+    assert 'highway38-logo.png' not in SW.split('const SHELL=')[1].split('];')[0]
+    assert "url.pathname.endsWith('/assets/highway38-logo.png')" in SW
+    assert 'caches.match(request)' in SW
 
 
 def test_index_build_tags_match_polish_build():
     for name in ('app-02.js', 'app-19.js', 'offline-mode.js',
-                 'offline-status-runtime.js', 'customer-360-authority.js',
-                 'mobile-runtime-stability.js'):
+                 'customer-360-authority.js', 'mobile-runtime-stability.js'):
         assert f'./{name}?build={BUILD}' in INDEX, name
+    # offline-status-runtime.js rolled with the 2026-10-13 fix sweep (SW
+    # consolidation); the other polish-pass files keep the polish build.
+    assert './offline-status-runtime.js?build=20261013-fix-sweep-1' in INDEX

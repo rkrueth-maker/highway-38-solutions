@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T01:11:37.064Z",
+  "generatedAt": "2026-10-13T01:18:13.093Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "scripts/verify-complete-office-access-browser.js",
     "scripts/verify-current-ai-team-browser.js",
     "scripts/verify-final-pricing-and-cabin.js",
@@ -17,7 +20,7 @@
     "scripts/verify-web-site-manager-recorder.js",
     "tests/test_quick_meeting_notes_20260915.py"
   ],
-  "fileCount": 12,
+  "fileCount": 15,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": false,
