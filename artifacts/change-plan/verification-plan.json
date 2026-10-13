@@ -1,16 +1,20 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T05:12:43.911Z",
+  "generatedAt": "2026-10-13T05:35:38.707Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "supabase/migrations/20261013060000_ai_handoff_usage_counting.sql"
+    "artifacts/commercial-system/verification.json",
+    "artifacts/public-website-architecture/verification.json",
+    "assets/js/h38-site-v2.js",
+    "launch-control/evidence/public-customer-path-verification.json",
+    "scripts/verify-public-website-architecture.js"
   ],
-  "fileCount": 1,
+  "fileCount": 5,
   "scopes": {
-    "publicWebsite": false,
+    "publicWebsite": true,
     "authenticatedApp": false,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": true,
     "workflowOnly": false,
@@ -20,23 +24,23 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
+    "publicRendering": true,
     "authenticatedRendering": false,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
     "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
