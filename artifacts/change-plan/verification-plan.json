@@ -1,9 +1,10 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T05:53:21.614Z",
+  "generatedAt": "2026-10-13T06:00:28.277Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    ".github/workflows/production-smoke.yml",
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
@@ -14,10 +15,11 @@
     "scripts/browser-commercial-smoke.sh",
     "scripts/capture-project-example-images.js",
     "scripts/verify-commercial-browser.js",
+    "scripts/verify-issue83-source.sh",
     "scripts/verify-public-website-architecture.js",
     "scripts/verify-rendered-project-images.py"
   ],
-  "fileCount": 12,
+  "fileCount": 14,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
