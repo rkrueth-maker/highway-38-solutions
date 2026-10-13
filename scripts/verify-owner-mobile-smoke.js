@@ -65,7 +65,7 @@ requireText(topAction,'h38AddCustomerTop','top Customers action bar contains Add
 requireText(topAction,"document.getElementById('customerForm')",'Add Customer targets the canonical customer form');
 
 for(const token of ["['today','⌂','Today']","['customers','👤','Customers']","['schedule','🗓','Schedule']","['messages','💬','Messages']"])requireText(stability,token,`customer-first primary mobile navigation: ${token}`);
-requireText(stability,"['Work',['work','quotes','field','meetings']]",'Jobs, Quotes, Site Visits and Meetings live under Work');
+requireText(stability,"['Work',['work','quotes','field','meetings','messages']]",'Jobs, Quotes, Site Visits, Meetings and Messages live under Work');
 requireText(stability,"primaryNavigation:['Today','Customers','Schedule','Messages','More']",'owner mobile navigation contract remains customer-first');
 requireText(stability,"fieldPrimaryNavigation:['Today','Jobs','Schedule','Messages','More']",'field-role mobile navigation is job-first inside the same Office shell');
 requireText(stability,'roleAwareOneShellNavigation:true','final mobile navigation is role-aware without a second shell');
