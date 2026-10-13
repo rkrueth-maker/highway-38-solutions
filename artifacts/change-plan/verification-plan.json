@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T01:18:52.774Z",
+  "generatedAt": "2026-10-13T01:21:46.179Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/ai-onboarding.js",
     "commercial-app/app-17.js",
     "commercial-app/desktop-navigation-authority.js",
@@ -13,7 +16,7 @@
     "terms.html",
     "tests/test_live_customer_navigation_guard_20260910.py"
   ],
-  "fileCount": 8,
+  "fileCount": 11,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
