@@ -1,41 +1,55 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T04:04:51.881Z",
+  "generatedAt": "2026-10-13T04:13:32.502Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    ".github/workflows/verify-northern-fleet-docs-ai.yml",
-    ".github/workflows/verify-northern-lakes-commercial-package.yml"
+    "commercial-app/ai-onboarding.js",
+    "commercial-app/desktop-navigation-authority.js",
+    "commercial-app/index.html",
+    "commercial-app/quick-start.js",
+    "commercial-app/service-worker.js",
+    "tests/test_live_customer_navigation_guard_20260910.py",
+    "tests/test_offline_mode_polish_20261012.py",
+    "tests/test_platform_push_deepening.py",
+    "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 2,
+  "fileCount": 9,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
+    "publicWebsite": true,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
-    "workflowOnly": true,
+    "performanceReliability": false,
+    "workflowOnly": false,
     "documentationOnly": false
   },
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js"
+    "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
-  "expensiveChecks": [],
-  "deploymentWorkflows": [],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change.",
-    "Only the affected workflow evidence must be regenerated; unrelated product checks remain reusable when inputs are unchanged."
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
+  "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
