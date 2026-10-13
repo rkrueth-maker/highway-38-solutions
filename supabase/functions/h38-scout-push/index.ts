@@ -104,7 +104,7 @@ async function encryptPayload(
   const ephemeral = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
   const asPublic = new Uint8Array(await crypto.subtle.exportKey("raw", ephemeral.publicKey));
   const uaKey = await crypto.subtle.importKey("raw", uaPublic, { name: "ECDH", namedCurve: "P-256" }, false, []);
-  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", namedCurve: "P-256" }, ephemeral.privateKey, uaKey, 256));
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: uaKey }, ephemeral.privateKey, 256));
 
   const info = concatBytes(new TextEncoder().encode("WebPush: info\0"), uaPublic, asPublic);
   const ikm = await hkdf(shared, authSecret, info, 32);
@@ -261,6 +261,7 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
   }
 
   const jobs: DispatchJob[] = [];
+  const pendingAdvance = new Map<string, string>();
   const heldForNoDevice: string[] = [];
   let totalNewPenny = 0;
   let totalNewResale = 0;
@@ -288,9 +289,10 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
       for (const sub of userSubs) {
         jobs.push({ sub, title: copy.title, body: copy.body, url: copy.url, scopes: [scope], windowFrom: wm });
       }
-      // The batch counts as seen by this account once its pushes are handed
-      // off below; advance now to the newest item in the batch.
-      if (batch.maxTs) await advance(userId, scope, batch.maxTs);
+      // Remember the batch end per account+scope; the watermark advances
+      // after dispatch, and only for jobs the push service actually
+      // answered (a server-side failure must not silently eat a batch).
+      if (batch.maxTs) pendingAdvance.set(`${userId}:${scope}`, batch.maxTs);
     }
   }
 
@@ -307,8 +309,10 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
 
   let sent = 0;
   for (const job of merged.values()) {
+    let responded = false;
     try {
       const result = await sendPush(job.sub, { title: job.title, body: job.body, url: job.url, tag: "scout-new-deals" });
+      responded = true;
       if (result.status === 404 || result.status === 410) {
         await admin.from("scout_push_subscriptions").update({ active: false, updated_at: new Date().toISOString() }).eq("id", job.sub.id);
       }
@@ -325,6 +329,15 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
         scopes: job.scopes.join(","), title: job.title, body: job.body,
         push_status: 0, result: String(err).slice(0, 300),
       });
+    }
+    // The push service answered (any HTTP status): this account has now been
+    // handed the batch, so its watermark may advance. If our own send threw,
+    // the watermark holds and the batch is retried on the next run instead.
+    if (responded) {
+      for (const scope of job.scopes) {
+        const ts = pendingAdvance.get(`${job.sub.user_id}:${scope}`);
+        if (ts) await advance(job.sub.user_id, scope, ts);
+      }
     }
   }
 

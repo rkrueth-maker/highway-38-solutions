@@ -38,6 +38,11 @@ def test_push_function_uses_real_web_push_crypto():
                   'SCOUT_VAPID_PUBLIC_KEY', 'SCOUT_VAPID_PRIVATE_KEY_JWK',
                   '"Content-Encoding": "aes128gcm"']:
         assert token in PUSH_FN, token
+    # ECDH derive params must carry the peer public key (a namedCurve here
+    # crashes Deno's WebCrypto — caught by the live dispatch proof).
+    assert '{ name: "ECDH", public: uaKey }' in PUSH_FN
+    # Watermark advances only when the push service actually answered.
+    assert 'responded = true' in PUSH_FN and 'pendingAdvance' in PUSH_FN
 
 
 def test_push_function_auth_boundaries():
