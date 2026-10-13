@@ -1,35 +1,28 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T01:19:50.542Z",
+  "generatedAt": "2026-10-13T01:21:46.179Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
-    "scripts/verify-complete-office-access-browser.js",
-    "scripts/verify-current-ai-team-browser.js",
-    "scripts/verify-final-pricing-and-cabin.js",
-    "scripts/verify-live-owner-phone-install-browser.js",
-    "scripts/verify-owner-example-maintenance-front-to-back.js",
-    "scripts/verify-owner-mobile-quick-actions-browser.js",
-    "scripts/verify-owner-mobile-smoke.js",
-    "scripts/verify-phone-first-office-browser.js",
-    "scripts/verify-quick-meeting-notes.js",
-    "scripts/verify-supabase-operational-app.js",
-    "scripts/verify-web-site-manager-recorder.js",
-    "tests/test_physical_video_wide_stability_20260827.py",
-    "tests/test_platform_push_deepening.py",
-    "tests/test_quick_meeting_notes_20260915.py",
-    "tests/test_task_manager_training_videos.py"
+    "commercial-app/ai-onboarding.js",
+    "commercial-app/app-17.js",
+    "commercial-app/desktop-navigation-authority.js",
+    "commercial-app/index.html",
+    "commercial-app/quick-start.js",
+    "commercial-app/reports-section.js",
+    "terms.html",
+    "tests/test_live_customer_navigation_guard_20260910.py"
   ],
-  "fileCount": 18,
+  "fileCount": 11,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
+    "publicWebsite": true,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -37,20 +30,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js"
+    "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
-  "expensiveChecks": [],
-  "deploymentWorkflows": [],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
+  "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
