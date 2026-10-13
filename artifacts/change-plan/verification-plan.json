@@ -1,18 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-13T05:12:43.911Z",
+  "generatedAt": "2026-10-13T06:02:02.623Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "supabase/migrations/20261013060000_ai_handoff_usage_counting.sql"
+    "commercial-app/index.html",
+    "commercial-app/route-manager.js"
   ],
-  "fileCount": 1,
+  "fileCount": 2,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
-    "customerPortal": true,
+    "publicWebsite": true,
+    "authenticatedApp": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -20,25 +21,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
