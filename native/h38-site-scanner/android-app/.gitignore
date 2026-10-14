@@ -1,0 +1,5 @@
+# Firebase config for the Deals app is injected by CI from a repository
+# secret (release) or generated as a marked stub (compile gate). The real
+# google-services.json is never committed.
+reseller/google-services.json
+*/google-services.json

@@ -1,5 +1,9 @@
 plugins {
     id 'com.android.application'
+    // Native FCM push (Scout deal alerts, v3.2.0). Needs google-services.json
+    // next to this build file — CI injects the real Firebase config for
+    // release builds, or a clearly-marked stub for compile-gate builds.
+    id 'com.google.gms.google-services'
 }
 
 def releaseKeystorePath = System.getenv('H38_ANDROID_UPLOAD_KEYSTORE_PATH')
@@ -11,7 +15,7 @@ def h38BuildSha = (System.getenv('GITHUB_SHA') ?: 'local').replace('"', '')
 def h38BuildRun = (System.getenv('GITHUB_RUN_NUMBER') ?: 'local').replace('"', '')
 
 // Compatibility markers for the legacy v310/v311 source preflight only.
-// The release workflows verify the packaged APK independently as 342 / 3.1.2.
+// The release workflows verify the packaged APK independently as 343 / 3.2.0.
 // versionCode 341
 // versionName '3.1.1'
 
@@ -23,8 +27,8 @@ android {
         applicationId 'com.highway38.resellerscout'
         minSdk 24
         targetSdk 36
-        versionCode 342
-        versionName '3.1.2'
+        versionCode 343
+        versionName '3.2.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'H38_BUILD_SHA', '"' + h38BuildSha + '"'
         buildConfigField 'String', 'H38_BUILD_RUN', '"' + h38BuildRun + '"'
@@ -84,6 +88,10 @@ dependencies {
     implementation 'androidx.camera:camera-view:1.4.2'
     implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    // Native push for Scout deal alerts (v3.2.0): FCM device token +
+    // notification display. NotificationCompat comes via androidx.core above.
+    implementation platform('com.google.firebase:firebase-bom:33.1.2')
+    implementation 'com.google.firebase:firebase-messaging'
 
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'

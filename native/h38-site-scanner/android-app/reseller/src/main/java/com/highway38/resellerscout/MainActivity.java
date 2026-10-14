@@ -11,6 +11,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.provider.MediaStore;
@@ -49,6 +50,8 @@ import java.util.Locale;
  */
 public final class MainActivity extends Activity {
     public static final String H38_DEALS_THIN_SHELL = "H38_DEALS_THIN_SHELL_V311";
+    public static final String H38_DEALS_NATIVE_PUSH_V320 =
+            "H38_DEALS_NATIVE_PUSH_V320:fcm-token-registration+native-notification-display+alerts-card-bridge";
     private static final String SHELL_URL = "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-deals-shell";
     private static final String INTERNAL_PREFIX = "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-";
     private static final int REQUEST_LOCATION = 4101;
@@ -56,12 +59,14 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_WEB_FILE = 4103;
     private static final int REQUEST_SPEECH = 4104;
     private static final int REQUEST_WEB_CAMERA_PERMISSION = 4105;
+    private static final int REQUEST_POST_NOTIFICATIONS = 4106;
 
     private WebView webView;
     private String pendingPhotoRole = "item";
     private ValueCallback<Uri[]> fileChooser;
     private Uri pendingCameraUri;
     private File pendingCameraFile;
+    private String pendingPushJwt = "";
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -82,7 +87,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38DealsAndroid/3.1.1");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38DealsAndroid/3.2.0");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Deals");
@@ -349,6 +354,38 @@ public final class MainActivity extends Activity {
             for (int result : grantResults) if (result == PackageManager.PERMISSION_GRANTED) granted = true;
             launchWebFileChooser(granted);
         }
+        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
+            // Continue registration either way: when allowed, the token
+            // signup completes; when denied, the shell reads the denied
+            // state back and explains the Settings fix.
+            PushRegistrar.fetchTokenAndRegister(this, pendingPushJwt, this::deliverPushResult);
+        }
+    }
+
+    /** Ask for the Android 13+ notification permission if needed, then register. */
+    private void startPushRegistration(String jwt) {
+        pendingPushJwt = jwt == null ? "" : jwt;
+        try { H38DealsMessagingService.ensureChannel(this); } catch (Throwable ignored) {}
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+                        != PackageManager.PERMISSION_GRANTED) {
+            PushRegistrar.markPermissionAsked(this);
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},
+                    REQUEST_POST_NOTIFICATIONS);
+            return;
+        }
+        PushRegistrar.fetchTokenAndRegister(this, pendingPushJwt, this::deliverPushResult);
+    }
+
+    /** Hands the registration outcome to the shell page's Deal alerts card. */
+    private void deliverPushResult(org.json.JSONObject state) {
+        runOnUiThread(() -> {
+            try {
+                String js = "window.H38NativePushResult&&window.H38NativePushResult("
+                        + org.json.JSONObject.quote(state.toString()) + ")";
+                webView.evaluateJavascript(js, null);
+            } catch (Throwable ignored) {}
+        });
     }
 
     @Override public void onBackPressed() {
@@ -369,5 +406,19 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void takePhoto(String role) { runOnUiThread(() -> MainActivity.this.takePhoto(role)); }
         @JavascriptInterface public void reload() { runOnUiThread(() -> webView.loadUrl(SHELL_URL)); }
         @JavascriptInterface public String build() { return buildIdentity(); }
+
+        // --- Native push bridge (v3.2.0) ---------------------------------
+        // The shell's Deal alerts card uses these when present: this WebView
+        // has no Web Push, so alerts register through FCM instead.
+        @JavascriptInterface public boolean pushSupported() { return true; }
+
+        @JavascriptInterface public String pushState() {
+            try { return PushRegistrar.stateJson(MainActivity.this).toString(); }
+            catch (Throwable t) { return "{\"permission\":\"default\",\"registered\":false,\"token\":\"\"}"; }
+        }
+
+        @JavascriptInterface public void pushRegister(String jwt) {
+            runOnUiThread(() -> startPushRegistration(jwt));
+        }
     }
 }
