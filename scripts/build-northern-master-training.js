@@ -1,3 +1,5 @@
+'use strict';
+// Regeneration trigger: rerun the full narrated Northern library against the repaired production Office.
 const fs=require('fs');
 const path=require('path');
 const {spawnSync}=require('child_process');
