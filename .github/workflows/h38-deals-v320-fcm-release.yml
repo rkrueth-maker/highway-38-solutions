@@ -1,0 +1,335 @@
+name: H38 Deals v3.2.0 native FCM release
+
+# v3.2.0 adds native Firebase Cloud Messaging push to the H38 Deals app so
+# Scout penny/resale deal alerts buzz the phone from the Deals app itself
+# (the app WebView has no Web Push — see h38-scout-push register_device).
+#
+# Two jobs, one honest gate:
+#   compile-gate - always runs. Builds the owner APK against a clearly
+#                  marked STUB google-services.json (fake project, fake key)
+#                  and verifies badging, signing cert, and the compiled
+#                  native-push markers. Its artifact is COMPILE PROOF ONLY —
+#                  it can never receive a push and must never be installed.
+#   release      - runs only when the repository secret
+#                  H38_DEALS_GOOGLE_SERVICES_JSON_B64 holds the real
+#                  google-services.json for package
+#                  com.highway38.resellerscout.owner. Without it the job
+#                  publishes a RELEASE_BLOCKED marker and no APK.
+#
+# The backend half (scout_device_tokens, register_device, FCM send branch)
+# is deployed independently via the Supabase Management API and does not
+# depend on this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type BUILD_V320_NATIVE_PUSH to run this frozen build
+        required: true
+        type: choice
+        options:
+          - BUILD_V320_NATIVE_PUSH
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-deals-v320-fcm-release
+  cancel-in-progress: false
+
+jobs:
+  compile-gate:
+    name: Compile gate with stub Firebase config (never installable)
+    if: inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ANDROID_HOME: /home/runner/android-sdk
+      ANDROID_SDK_ROOT: /home/runner/android-sdk
+      GRADLE_HOME_DIR: /home/runner/gradle-8.13
+      EXPECTED_CERT_SHA256: cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+    steps:
+      - name: Freeze on the reviewed branch
+        run: |
+          test "$GITHUB_REF" = "refs/heads/agent/scout-fcm-push" || { echo "Run only from refs/heads/agent/scout-fcm-push; got $GITHUB_REF"; exit 1; }
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch" || { echo "Manual dispatch required"; exit 1; }
+
+      - name: Check out the frozen source
+        uses: actions/checkout@v4
+        with:
+          ref: agent/scout-fcm-push
+          path: source
+          fetch-depth: 1
+
+      - name: Write the clearly-marked STUB Firebase config
+        working-directory: source/native/h38-site-scanner/android-app
+        run: |
+          test ! -e reseller/google-services.json || { echo "google-services.json must not be committed"; exit 1; }
+          cat > reseller/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "h38-deals-stub-compile-only",
+              "storage_bucket": "h38-deals-stub-compile-only.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.highway38.resellerscout.owner" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "STUB_NOT_A_REAL_FIREBASE_KEY_COMPILE_ONLY" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+          echo "Stub google-services.json written (fake project h38-deals-stub-compile-only)."
+
+      - name: Validate the frozen v3.2.0 source
+        working-directory: source/native/h38-site-scanner/android-app
+        run: |
+          set -euo pipefail
+          grep -F "versionCode 343" reseller/build.gradle
+          grep -F "versionName '3.2.0'" reseller/build.gradle
+          grep -F "id 'com.google.gms.google-services'" reseller/build.gradle
+          grep -F "com.google.firebase:firebase-messaging" reseller/build.gradle
+          grep -F "H38_DEALS_NATIVE_PUSH_V320" reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
+          grep -F "H38DealsMessagingService" reseller/src/main/AndroidManifest.xml
+          grep -F "android.permission.POST_NOTIFICATIONS" reseller/src/main/AndroidManifest.xml
+          grep -F "register_device" reseller/src/main/java/com/highway38/resellerscout/PushRegistrar.java
+          echo "Frozen v3.2.0 native-push source: OK"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Gradle and the Android SDK
+        run: |
+          set -euo pipefail
+          mkdir -p "$GRADLE_HOME_DIR" "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /home/runner
+          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdtools.zip
+          unzip -q /tmp/cmdtools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Restore the byte-identical owner signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Require the owner signing key before building
+        env:
+          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
+          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
+          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
+          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
+        run: |
+          set -euo pipefail
+          test -s "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" || { echo "Owner signing cache is missing; refusing to create a non-updatable APK"; exit 1; }
+          actual=$(keytool -list -v -keystore "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" -storepass "$H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD" -alias "$H38_ANDROID_UPLOAD_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          test "$actual" = "$EXPECTED_CERT_SHA256" || { echo "Signing certificate mismatch: $actual"; exit 1; }
+          echo "Owner signing certificate verified: $actual"
+
+      - name: Build and verify the compile-gate APK
+        working-directory: source/native/h38-site-scanner/android-app
+        env:
+          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
+          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
+          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
+          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
+        run: |
+          set -euo pipefail
+          "$GRADLE_HOME_DIR/bin/gradle" :reseller:assembleOwner --no-daemon --stacktrace
+          apk=$(find reseller/build/outputs/apk/owner -type f -name '*.apk' -print -quit)
+          test -n "$apk" || { echo "Owner APK was not produced"; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/verified"
+          cp "$apk" "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk"
+          aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$aapt" dump badging "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk" | tee /tmp/badging.txt
+          grep -F "package: name='com.highway38.resellerscout.owner'" /tmp/badging.txt
+          grep -F "versionCode='343'" /tmp/badging.txt
+          grep -F "versionName='3.2.0'" /tmp/badging.txt
+          grep -F "application-label:'H38 Deals'" /tmp/badging.txt
+          unzip -p "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk" 'classes*.dex' > /tmp/all.dex
+          grep -a -F "H38_DEALS_NATIVE_PUSH_V320" /tmp/all.dex >/dev/null || { echo "Native push marker missing from dex"; exit 1; }
+          grep -a -F "H38DealsMessagingService" /tmp/all.dex >/dev/null || { echo "Messaging service missing from dex"; exit 1; }
+          grep -a -F "com/google/firebase/messaging" /tmp/all.dex >/dev/null || { echo "Firebase Messaging missing from dex"; exit 1; }
+          echo "COMPILE GATE PASSED: v3.2.0 native-push source compiles and packages. This APK uses a stub Firebase config and must never be installed."
+
+      - name: Publish the compile-gate APK (proof only)
+        uses: actions/upload-artifact@v4
+        with:
+          name: H38-Deals-3.2.0-COMPILE-ONLY-do-not-install
+          path: verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Release build (requires the real Firebase config secret)
+    needs: compile-gate
+    if: inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ANDROID_HOME: /home/runner/android-sdk
+      ANDROID_SDK_ROOT: /home/runner/android-sdk
+      GRADLE_HOME_DIR: /home/runner/gradle-8.13
+      EXPECTED_CERT_SHA256: cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
+      GOOGLE_SERVICES_B64: ${{ secrets.H38_DEALS_GOOGLE_SERVICES_JSON_B64 }}
+    steps:
+      - name: Check out the frozen source
+        uses: actions/checkout@v4
+        with:
+          ref: agent/scout-fcm-push
+          path: source
+          fetch-depth: 1
+
+      - name: Decode the real Firebase config if the secret exists
+        id: cfg
+        working-directory: source/native/h38-site-scanner/android-app
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_SERVICES_B64:-}" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "Repository secret H38_DEALS_GOOGLE_SERVICES_JSON_B64 is not set."
+            exit 0
+          fi
+          echo "$GOOGLE_SERVICES_B64" | base64 -d > reseller/google-services.json
+          pkg=$(python3 -c "import json;d=json.load(open('reseller/google-services.json'));print(d['client'][0]['client_info']['android_client_info']['package_name'])")
+          test "$pkg" = "com.highway38.resellerscout.owner" || { echo "google-services.json package mismatch: $pkg"; exit 1; }
+          project=$(python3 -c "import json;d=json.load(open('reseller/google-services.json'));print(d['project_info']['project_id'])")
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+          echo "present=true" >> "$GITHUB_OUTPUT"
+          echo "Real Firebase config decoded for project: $project"
+
+      - name: Publish the blocked marker when no Firebase config exists
+        if: steps.cfg.outputs.present != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p blocked
+          cat > blocked/RELEASE_BLOCKED_NO_FIREBASE_CONFIG.txt <<'TXT'
+          H38 Deals 3.2.0 release is BLOCKED: no Firebase project config exists yet.
+
+          One-time setup (about 5 minutes, in a browser signed in as
+          highway38solutions@gmail.com):
+            1. console.firebase.google.com -> Add project (any name, e.g.
+               "Highway 38 Scout"). No billing needed for FCM.
+            2. In the project: Add app -> Android -> package name
+               com.highway38.resellerscout.owner -> Register app ->
+               download google-services.json.
+            3. Add it as the GitHub repository secret
+               H38_DEALS_GOOGLE_SERVICES_JSON_B64 (base64 of the file).
+            4. Project settings -> Service accounts -> Generate new private
+               key -> save that JSON as the Supabase edge-function secret
+               SCOUT_FCM_SERVICE_ACCOUNT_JSON for h38-scout-push.
+            5. Re-run this workflow. The release job will then build, verify,
+               and publish H38-Deals-3.2.0.apk.
+          TXT
+          cat blocked/RELEASE_BLOCKED_NO_FIREBASE_CONFIG.txt
+
+      - name: Upload the blocked marker
+        if: steps.cfg.outputs.present != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: H38-Deals-3.2.0-RELEASE-BLOCKED-no-firebase-config
+          path: blocked/RELEASE_BLOCKED_NO_FIREBASE_CONFIG.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Set up Java 17
+        if: steps.cfg.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Gradle and the Android SDK
+        if: steps.cfg.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$GRADLE_HOME_DIR" "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /home/runner
+          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdtools.zip
+          unzip -q /tmp/cmdtools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+
+      - name: Restore the byte-identical owner signing key
+        if: steps.cfg.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Require the owner signing key before building
+        if: steps.cfg.outputs.present == 'true'
+        env:
+          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
+          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
+          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
+          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
+        run: |
+          set -euo pipefail
+          test -s "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" || { echo "Owner signing cache is missing; refusing to create a non-updatable APK"; exit 1; }
+          actual=$(keytool -list -v -keystore "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" -storepass "$H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD" -alias "$H38_ANDROID_UPLOAD_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          test "$actual" = "$EXPECTED_CERT_SHA256" || { echo "Signing certificate mismatch: $actual"; exit 1; }
+          echo "Owner signing certificate verified: $actual"
+
+      - name: Build and verify the release APK
+        if: steps.cfg.outputs.present == 'true'
+        working-directory: source/native/h38-site-scanner/android-app
+        env:
+          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
+          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
+          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
+          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
+          FIREBASE_PROJECT: ${{ steps.cfg.outputs.project }}
+        run: |
+          set -euo pipefail
+          "$GRADLE_HOME_DIR/bin/gradle" :reseller:assembleOwner --no-daemon --stacktrace
+          apk=$(find reseller/build/outputs/apk/owner -type f -name '*.apk' -print -quit)
+          test -n "$apk" || { echo "Owner APK was not produced"; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/verified"
+          cp "$apk" "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0.apk"
+          final="$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0.apk"
+          aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$aapt" dump badging "$final" | tee /tmp/badging.txt
+          grep -F "package: name='com.highway38.resellerscout.owner'" /tmp/badging.txt
+          grep -F "versionCode='343'" /tmp/badging.txt
+          grep -F "versionName='3.2.0'" /tmp/badging.txt
+          grep -F "application-label:'H38 Deals'" /tmp/badging.txt
+          jar="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$jar" verify --verbose --print-certs "$final" | tee /tmp/certs.txt
+          grep -F "Verified using v2 scheme (APK Signature Scheme v2): true" /tmp/certs.txt
+          grep -F "Number of signers: 1" /tmp/certs.txt
+          grep -F "certificate SHA-256 digest: $EXPECTED_CERT_SHA256" /tmp/certs.txt
+          unzip -p "$final" 'classes*.dex' > /tmp/all.dex
+          grep -a -F "H38_DEALS_NATIVE_PUSH_V320" /tmp/all.dex >/dev/null || { echo "Native push marker missing from dex"; exit 1; }
+          grep -a -F "H38DealsMessagingService" /tmp/all.dex >/dev/null || { echo "Messaging service missing from dex"; exit 1; }
+          grep -a -F "com/google/firebase/messaging" /tmp/all.dex >/dev/null || { echo "Firebase Messaging missing from dex"; exit 1; }
+          unzip -p "$final" 'resources.arsc' > /tmp/resources.arsc || true
+          grep -a -F "$FIREBASE_PROJECT" /tmp/resources.arsc >/dev/null || { echo "Firebase project id not embedded in APK resources"; exit 1; }
+          sha256sum "$final" | tee "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0.apk.sha256"
+          echo "RELEASE ACCEPTED: H38 Deals 3.2.0 (versionCode 343), Firebase project $FIREBASE_PROJECT, cert $EXPECTED_CERT_SHA256"
+
+      - name: Publish the release APK
+        if: steps.cfg.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: H38-Deals-3.2.0-release
+          path: |
+            verified/H38-Deals-3.2.0.apk
+            verified/H38-Deals-3.2.0.apk.sha256
+          if-no-files-found: error
+          retention-days: 90
