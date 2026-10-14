@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-14T04:07:36.050Z",
+  "generatedAt": "2026-10-14T04:08:55.895Z",
   "architecture": "competitive-readiness-split-buyer-paths-integrated-quote-demo",
-  "passed": 436,
+  "passed": 445,
   "failed": 0,
   "routes": [
     "index.html",
@@ -262,6 +262,30 @@
     {
       "name": "index.html: local asset business-in-a-box.html",
       "detail": "business-in-a-box.html"
+    },
+    {
+      "name": "index.html: local asset business-in-a-box.html",
+      "detail": "business-in-a-box.html"
+    },
+    {
+      "name": "index.html: local asset software.html",
+      "detail": "software.html"
+    },
+    {
+      "name": "index.html: local asset implementation.html",
+      "detail": "implementation.html"
+    },
+    {
+      "name": "index.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "index.html: local asset solutions.html",
+      "detail": "solutions.html"
+    },
+    {
+      "name": "index.html: local asset start-request.html",
+      "detail": "start-request.html"
     },
     {
       "name": "index.html: local asset assets/videos/hank-ai-helper-v7-final.mp4",
@@ -762,6 +786,18 @@
     {
       "name": "solutions.html: local asset pricing.html",
       "detail": "pricing.html"
+    },
+    {
+      "name": "solutions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "solutions.html: local asset manufacturing-cnc.html",
+      "detail": "manufacturing-cnc.html"
+    },
+    {
+      "name": "solutions.html: local asset robotics-automation.html",
+      "detail": "robotics-automation.html"
     },
     {
       "name": "solutions.html: local asset start-request.html",
