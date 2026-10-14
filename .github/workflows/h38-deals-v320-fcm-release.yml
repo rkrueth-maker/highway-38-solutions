@@ -119,7 +119,9 @@ jobs:
 
       - name: Install Gradle and the Android SDK
         run: |
-          set -euo pipefail
+          # No pipefail here on purpose: `yes | sdkmanager --licenses` ends
+          # with a benign SIGPIPE for yes once sdkmanager stops reading.
+          set -eu
           mkdir -p "$GRADLE_HOME_DIR" "$ANDROID_HOME/cmdline-tools"
           curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /home/runner
@@ -264,7 +266,9 @@ jobs:
       - name: Install Gradle and the Android SDK
         if: steps.cfg.outputs.present == 'true'
         run: |
-          set -euo pipefail
+          # No pipefail here on purpose: `yes | sdkmanager --licenses` ends
+          # with a benign SIGPIPE for yes once sdkmanager stops reading.
+          set -eu
           mkdir -p "$GRADLE_HOME_DIR" "$ANDROID_HOME/cmdline-tools"
           curl -fsSL https://services.gradle.org/distributions/gradle-8.13-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /home/runner
