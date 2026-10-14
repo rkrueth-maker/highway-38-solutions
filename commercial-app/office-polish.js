@@ -288,7 +288,7 @@ function cardBandKicker(wrapper,heading){
 function polishCardBands(){
   const main=document.getElementById('mainContent');
   if(!main)return;
-  main.querySelectorAll('.card,.h38-platform-card,.h38-ops-panel,.h38-job-command-home').forEach(card=>{
+  main.querySelectorAll('.card,.h38-platform-card,.h38-ops-panel,.h38-job-command-home,.h38-deepen-card,.h38-ai-team').forEach(card=>{
     // Presence of the band itself is the guard (not the data attribute): a
     // renderer that rewrites a card's innerHTML — platform-next does this on
     // every render — drops the band, and the next pass must restore it.
@@ -325,6 +325,23 @@ function polishCardBands(){
         heading=next;kicker=first;
         const sib=heading.nextElementSibling;
         if(sib&&sib.classList.contains('pill'))pill=sib;
+      }
+    }else if(first.tagName==='DIV'&&!first.className){
+      // Bare designed head (platform-deepen cards — Owner operating
+      // cockpit, 7-day work board, field workflow readiness): a classless
+      // wrapper whose FIRST element is the kicker line and whose heading
+      // is a direct child right after it. Band kicker + heading; the note
+      // and everything below stay in the wrapper. (2026-10-13 round 3:
+      // these cards sat outside every band case — no *-head class for the
+      // wrapper case, children present so the kicker test failed — so the
+      // owner's Home showed the cockpit unbanded under the banded command
+      // center.)
+      const k=first.firstElementChild;
+      if(k&&cardBandIsKicker(k)){
+        const head=first.querySelector(':scope > h2,:scope > h3');
+        if(head&&!first.querySelector('form,.card,.list,table')&&!first.querySelector('input,select,textarea')){
+          heading=head;headWrap=first;headingParent=first;kicker=k;
+        }
       }
     }else if(first.tagName==='DIV'||first.tagName==='HEADER'||first.tagName==='SECTION'){
       // Designed head wrapper (h38-customer-directory-head, h38-c360-head,
