@@ -36,9 +36,9 @@ def test_bell_is_hidden_until_the_module_confirms_an_owner_role():
 
 
 def test_sw_cache_and_startup_stamps_roll_together():
-    assert "const CACHE_NAME='h38-business-office-20261013-owner-view-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261013-scout-alerts-office-1'" in SW
     startup = (APP / 'supabase-startup.js').read_text(encoding='utf-8')
-    assert '20261013-owner-notify-3' in startup
+    assert '20261013-owner-notify-4' in startup
     assert '20261013-brand-splash-1' not in SW and '20261013-brand-splash-1' not in INDEX
 
 
@@ -69,3 +69,30 @@ def test_fleet_deep_link_lands_on_the_connect_screen():
     loader = (APP / 'h38-script-loader.js').read_text(encoding='utf-8')
     assert 'northern-bouncie-fleet.js?build=20261013-bouncie-reminder-1' in loader
     assert "target !== 'fleet'" in MOD  # module routes ?shortcut=fleet
+
+
+def test_scout_deal_alerts_section_is_household_gated():
+    # Renders ONLY when h38-scout-push get_state succeeds for the user;
+    # a 403 (no Scout household) hides it for every other tenant/account.
+    assert 'Scout deal alerts' in MOD
+    assert "scoutApi('get_state'" in MOD
+    assert "scout.phase = 'hidden'" in MOD
+    assert 'ownerNotifyScoutWrap' in MOD
+
+
+def test_scout_switches_and_enable_flow_mirror_the_deals_shell():
+    assert "scoutApi('set_prefs'" in MOD
+    assert "scoutApi('subscribe'" in MOD
+    assert "scoutApi('config')" in MOD
+    assert 'id="scoutAlertsPenny"' in MOD and 'id="scoutAlertsResale"' in MOD
+    assert 'id="scoutAlertsEnable"' in MOD
+    # The Office SW's own subscription is reused (no second SW, no scout SW).
+    assert 'h38-scout-sw' not in MOD
+
+
+def test_scout_deep_link_and_unsupported_line():
+    assert "params.get('scoutAlerts')" in MOD
+    assert "params.get('shortcut') === 'notifications'" in MOD
+    assert 'routeScoutAlertsLink' in MOD and 'scrollIntoView' in MOD
+    # Environments without PushManager get one honest line, not dead switches.
+    assert 'Deal alerts need the Chrome browser or the Deals app update' in MOD

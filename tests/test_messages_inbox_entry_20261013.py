@@ -73,7 +73,7 @@ def test_inbox_aggregates_existing_customer_threads_only():
 def test_build_roll_pins():
     # SW cache rolled past BUILD by the 2026-10-13 card-top band pass; the
     # app-09 script stamp below still carries this PR's BUILD value.
-    assert "const CACHE_NAME='h38-business-office-20261013-owner-view-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261013-scout-alerts-office-1'" in SW
     assert f"./app-09.js?build={BUILD}" in INDEX
     for script in ["app-01.js", "app-08.js", "mobile-runtime-stability.js", "job-centered-flow.js"]:
         assert f"./{script}?build=20261013-messages-entry-1" in INDEX, script

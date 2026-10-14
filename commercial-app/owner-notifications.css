@@ -52,6 +52,20 @@
 .owner-notify-device { padding: 10px 12px 0; }
 .owner-notify-device button { width: 100%; }
 
+.owner-notify-scout {
+  border-top: 1px solid var(--line, #d7dee8);
+  padding: 11px 12px 12px; background: #f7fafc;
+}
+.owner-notify-scout-head strong { color: var(--navy, #0b2438); font-size: .9rem; }
+.owner-notify-scout-status { margin: 6px 0 0; color: var(--muted, #5c7183); font-size: .8rem; line-height: 1.4; }
+.owner-notify-scout-tap { margin-top: 9px; }
+.owner-notify-scout-tap button { width: 100%; }
+.owner-notify-scout-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 0 0; font-size: .86rem; color: var(--text, #20303c); cursor: pointer;
+}
+.owner-notify-scout-row input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--blue, #174a70); cursor: pointer; }
+
 .owner-notify-today { border-color: #bcd2ea; background: linear-gradient(180deg, #f4f8ff, #fff); }
 .owner-notify-today-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .owner-notify-today-inner strong { display: block; color: var(--navy, #0b2438); font-size: 1rem; }
