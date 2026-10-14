@@ -16,6 +16,7 @@
     logo:LOGO,
     navigation:[
       {href:'business-in-a-box.html',label:'Business in a Box'},
+      {href:'solutions.html',label:'What We Do'},
       {href:'pricing.html',label:'Pricing'},
       {href:OFFICE_DEMO,label:'Office Demo'},
       {href:'quote-builder.html#examples',label:'Project Examples'},
