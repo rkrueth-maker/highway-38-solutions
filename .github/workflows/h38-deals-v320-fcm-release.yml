@@ -4,17 +4,34 @@ name: H38 Deals v3.2.0 native FCM release
 # Scout penny/resale deal alerts buzz the phone from the Deals app itself
 # (the app WebView has no Web Push — see h38-scout-push register_device).
 #
-# Two jobs, one honest gate:
+# Two jobs, honest gates:
 #   compile-gate - always runs. Builds the owner APK against a clearly
 #                  marked STUB google-services.json (fake project, fake key)
-#                  and verifies badging, signing cert, and the compiled
-#                  native-push markers. Its artifact is COMPILE PROOF ONLY —
-#                  it can never receive a push and must never be installed.
-#   release      - runs only when the repository secret
-#                  H38_DEALS_GOOGLE_SERVICES_JSON_B64 holds the real
-#                  google-services.json for package
-#                  com.highway38.resellerscout.owner. Without it the job
-#                  publishes a RELEASE_BLOCKED marker and no APK.
+#                  with an ephemeral runner debug key, and verifies badging
+#                  and the compiled native-push markers. Its artifact is
+#                  COMPILE PROOF ONLY — wrong Firebase project AND wrong
+#                  signing key; it can never receive a push and must never
+#                  be installed.
+#   release      - publishes a real APK only when ALL of these hold:
+#                  (a) repo secret H38_DEALS_GOOGLE_SERVICES_JSON_B64 holds
+#                      the real google-services.json for
+#                      com.highway38.resellerscout.owner;
+#                  (b) a signing key is available (see below).
+#                  Otherwise it publishes a RELEASE_BLOCKED marker naming the
+#                  missing piece and no APK.
+#
+# Signing reality (verified 2026-10-13): the 3.1.2 owner key lived only in
+# the Actions cache `h38-reseller-scout-owner-debug-signing-v1`; GitHub
+# evicts caches unused for 7 days and that cache is GONE (exact-key cache
+# query returns 0). A build signed with any other key cannot update the
+# installed 3.1.2 in place. So the release job:
+#   - uses the cached key when it is present AND its certificate is the
+#     known 3.1.2 cert (update-in-place preserved);
+#   - otherwise BLOCKS, unless repo variable
+#     H38_DEALS_ALLOW_NEW_SIGNING_KEY=YES explicitly authorizes a fresh
+#     key — then it generates one, persists it to the same cache for all
+#     future builds, and flags the APK FRESH-KEY-REINSTALL-REQUIRED
+#     (uninstall the old app, install fresh, sign in once).
 #
 # The backend half (scout_device_tokens, register_device, FCM send branch)
 # is deployed independently via the Supabase Management API and does not
@@ -56,7 +73,6 @@ jobs:
       ANDROID_HOME: /home/runner/android-sdk
       ANDROID_SDK_ROOT: /home/runner/android-sdk
       GRADLE_HOME_DIR: /home/runner/gradle-8.13
-      EXPECTED_CERT_SHA256: cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
     steps:
       - name: Freeze on the reviewed branch
         run: |
@@ -131,50 +147,31 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
 
-      - name: Restore the byte-identical owner signing key
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: h38-reseller-scout-owner-debug-signing-v1
-
-      - name: Require the owner signing key before building
-        env:
-          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
-          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
-          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
-          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
-        run: |
-          set -euo pipefail
-          test -s "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" || { echo "Owner signing cache is missing; refusing to create a non-updatable APK"; exit 1; }
-          actual=$(keytool -list -v -keystore "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" -storepass "$H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD" -alias "$H38_ANDROID_UPLOAD_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
-          test "$actual" = "$EXPECTED_CERT_SHA256" || { echo "Signing certificate mismatch: $actual"; exit 1; }
-          echo "Owner signing certificate verified: $actual"
-
       - name: Build and verify the compile-gate APK
         working-directory: source/native/h38-site-scanner/android-app
-        env:
-          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
-          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
-          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
-          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
         run: |
           set -euo pipefail
+          # No upload-key env: the module signs the owner build with its
+          # debug signing config (ephemeral runner key). Compile proof only.
           "$GRADLE_HOME_DIR/bin/gradle" :reseller:assembleOwner --no-daemon --stacktrace
           apk=$(find reseller/build/outputs/apk/owner -type f -name '*.apk' -print -quit)
           test -n "$apk" || { echo "Owner APK was not produced"; exit 1; }
           mkdir -p "$GITHUB_WORKSPACE/verified"
           cp "$apk" "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk"
+          final="$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk"
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          "$aapt" dump badging "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk" | tee /tmp/badging.txt
+          "$aapt" dump badging "$final" | tee /tmp/badging.txt
           grep -F "package: name='com.highway38.resellerscout.owner'" /tmp/badging.txt
           grep -F "versionCode='343'" /tmp/badging.txt
           grep -F "versionName='3.2.0'" /tmp/badging.txt
           grep -F "application-label:'H38 Deals'" /tmp/badging.txt
-          unzip -p "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk" 'classes*.dex' > /tmp/all.dex
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$final" | tee /tmp/certs.txt
+          grep -F "Verified using v2 scheme (APK Signature Scheme v2): true" /tmp/certs.txt
+          unzip -p "$final" 'classes*.dex' > /tmp/all.dex
           grep -a -F "H38_DEALS_NATIVE_PUSH_V320" /tmp/all.dex >/dev/null || { echo "Native push marker missing from dex"; exit 1; }
           grep -a -F "H38DealsMessagingService" /tmp/all.dex >/dev/null || { echo "Messaging service missing from dex"; exit 1; }
           grep -a -F "com/google/firebase/messaging" /tmp/all.dex >/dev/null || { echo "Firebase Messaging missing from dex"; exit 1; }
-          echo "COMPILE GATE PASSED: v3.2.0 native-push source compiles and packages. This APK uses a stub Firebase config and must never be installed."
+          echo "COMPILE GATE PASSED: v3.2.0 native-push source compiles and packages. Stub Firebase + ephemeral key: NEVER install this APK."
 
       - name: Publish the compile-gate APK (proof only)
         uses: actions/upload-artifact@v4
@@ -185,7 +182,7 @@ jobs:
           retention-days: 30
 
   release:
-    name: Release build (requires the real Firebase config secret)
+    name: Release build (real Firebase config + signing key required)
     needs: compile-gate
     if: github.event_name == 'push' || inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
     runs-on: ubuntu-24.04
@@ -196,6 +193,7 @@ jobs:
       GRADLE_HOME_DIR: /home/runner/gradle-8.13
       EXPECTED_CERT_SHA256: cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
       GOOGLE_SERVICES_B64: ${{ secrets.H38_DEALS_GOOGLE_SERVICES_JSON_B64 }}
+      ALLOW_NEW_KEY: ${{ vars.H38_DEALS_ALLOW_NEW_SIGNING_KEY }}
     steps:
       - name: Check out the frozen source
         uses: actions/checkout@v4
@@ -222,49 +220,92 @@ jobs:
           echo "present=true" >> "$GITHUB_OUTPUT"
           echo "Real Firebase config decoded for project: $project"
 
-      - name: Publish the blocked marker when no Firebase config exists
-        if: steps.cfg.outputs.present != 'true'
+      - name: Restore the owner signing key cache
+        if: steps.cfg.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: h38-reseller-scout-owner-debug-signing-v1
+
+      - name: Assess signing (same key, authorized fresh key, or blocked)
+        id: sign
+        if: steps.cfg.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          ks="$HOME/.android/debug.keystore"
+          if [ -s "$ks" ]; then
+            actual=$(keytool -list -v -keystore "$ks" -storepass android -alias androiddebugkey | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+            if [ "$actual" = "$EXPECTED_CERT_SHA256" ]; then
+              echo "mode=same" >> "$GITHUB_OUTPUT"
+              echo "Original 3.1.2 signing key restored — update-in-place preserved."
+            elif [ "${ALLOW_NEW_KEY:-}" = "YES" ]; then
+              echo "mode=fresh" >> "$GITHUB_OUTPUT"
+              echo "Cached key is the previously authorized fresh key (cert $actual) — reinstall-required line continues."
+            else
+              echo "mode=blocked" >> "$GITHUB_OUTPUT"
+              echo "Cached keystore cert $actual does not match the installed app's cert and no fresh-key authorization is set."
+            fi
+          elif [ "${ALLOW_NEW_KEY:-}" = "YES" ]; then
+            echo "mode=fresh" >> "$GITHUB_OUTPUT"
+            echo "No cached key (the 3.1.2 key cache was evicted) — fresh key authorized; generating one and persisting it to the cache for future builds."
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -keystore "$ks" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
+            test -s "$ks" || { echo "Key generation failed"; exit 1; }
+          else
+            echo "mode=blocked" >> "$GITHUB_OUTPUT"
+            echo "No signing key available: the 3.1.2 owner key cache was evicted and fresh-key signing is not authorized."
+          fi
+
+      - name: Publish the blocked marker
+        if: steps.cfg.outputs.present != 'true' || steps.sign.outputs.mode == 'blocked'
         run: |
           set -euo pipefail
           mkdir -p blocked
-          cat > blocked/RELEASE_BLOCKED_NO_FIREBASE_CONFIG.txt <<'TXT'
-          H38 Deals 3.2.0 release is BLOCKED: no Firebase project config exists yet.
-
-          One-time setup (about 5 minutes, in a browser signed in as
-          highway38solutions@gmail.com):
-            1. console.firebase.google.com -> Add project (any name, e.g.
-               "Highway 38 Scout"). No billing needed for FCM.
-            2. In the project: Add app -> Android -> package name
-               com.highway38.resellerscout.owner -> Register app ->
-               download google-services.json.
-            3. Add it as the GitHub repository secret
-               H38_DEALS_GOOGLE_SERVICES_JSON_B64 (base64 of the file).
-            4. Project settings -> Service accounts -> Generate new private
-               key -> save that JSON as the Supabase edge-function secret
-               SCOUT_FCM_SERVICE_ACCOUNT_JSON for h38-scout-push.
-            5. Re-run this workflow. The release job will then build, verify,
-               and publish H38-Deals-3.2.0.apk.
-          TXT
-          cat blocked/RELEASE_BLOCKED_NO_FIREBASE_CONFIG.txt
+          {
+            echo "H38 Deals 3.2.0 release is BLOCKED — no APK was published."
+            echo
+            if [ "${{ steps.cfg.outputs.present }}" != "true" ]; then
+              echo "Missing: a Firebase project for the Deals app."
+              echo "One-time setup (about 5 minutes, in a browser signed in as highway38solutions@gmail.com):"
+              echo "  1. console.firebase.google.com -> Add project (e.g. \"Highway 38 Scout\"). No billing needed for FCM."
+              echo "  2. Add app -> Android -> package com.highway38.resellerscout.owner -> download google-services.json."
+              echo "  3. Save it as GitHub repo secret H38_DEALS_GOOGLE_SERVICES_JSON_B64 (base64 of the file)."
+              echo "  4. Project settings -> Service accounts -> Generate new private key -> save that JSON as the"
+              echo "     Supabase edge-function secret SCOUT_FCM_SERVICE_ACCOUNT_JSON for h38-scout-push."
+              echo "  5. Re-run this workflow."
+              echo
+            fi
+            if [ "${{ steps.cfg.outputs.present }}" = "true" ] && [ "${{ steps.sign.outputs.mode }}" = "blocked" ]; then
+              echo "Missing: the original app signing key."
+              echo "The 3.1.2 signing key lived only in a GitHub Actions cache that has been evicted"
+              echo "(caches unused for 7 days are deleted; the last Deals build was 2026-09-28)."
+              echo "Without it, no new APK can update the installed app in place."
+              echo "Options: (a) find ~/.android/debug.keystore on any machine that ever built the app"
+              echo "with certificate SHA-256 cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46"
+              echo "and re-seed the cache; or (b) accept a one-time uninstall + reinstall + sign-in on"
+              echo "both phones by setting repo variable H38_DEALS_ALLOW_NEW_SIGNING_KEY=YES and re-running."
+            fi
+          } > blocked/RELEASE_BLOCKED.txt
+          cat blocked/RELEASE_BLOCKED.txt
 
       - name: Upload the blocked marker
-        if: steps.cfg.outputs.present != 'true'
+        if: steps.cfg.outputs.present != 'true' || steps.sign.outputs.mode == 'blocked'
         uses: actions/upload-artifact@v4
         with:
-          name: H38-Deals-3.2.0-RELEASE-BLOCKED-no-firebase-config
-          path: blocked/RELEASE_BLOCKED_NO_FIREBASE_CONFIG.txt
+          name: H38-Deals-3.2.0-RELEASE-BLOCKED
+          path: blocked/RELEASE_BLOCKED.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Set up Java 17
-        if: steps.cfg.outputs.present == 'true'
+        if: steps.cfg.outputs.present == 'true' && steps.sign.outputs.mode != 'blocked'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Install Gradle and the Android SDK
-        if: steps.cfg.outputs.present == 'true'
+        if: steps.cfg.outputs.present == 'true' && steps.sign.outputs.mode != 'blocked'
         run: |
           # No pipefail here on purpose: `yes | sdkmanager --licenses` ends
           # with a benign SIGPIPE for yes once sdkmanager stops reading.
@@ -278,29 +319,8 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
 
-      - name: Restore the byte-identical owner signing key
-        if: steps.cfg.outputs.present == 'true'
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: h38-reseller-scout-owner-debug-signing-v1
-
-      - name: Require the owner signing key before building
-        if: steps.cfg.outputs.present == 'true'
-        env:
-          H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
-          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
-          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
-          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
-        run: |
-          set -euo pipefail
-          test -s "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" || { echo "Owner signing cache is missing; refusing to create a non-updatable APK"; exit 1; }
-          actual=$(keytool -list -v -keystore "$H38_ANDROID_UPLOAD_KEYSTORE_PATH" -storepass "$H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD" -alias "$H38_ANDROID_UPLOAD_KEY_ALIAS" | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
-          test "$actual" = "$EXPECTED_CERT_SHA256" || { echo "Signing certificate mismatch: $actual"; exit 1; }
-          echo "Owner signing certificate verified: $actual"
-
       - name: Build and verify the release APK
-        if: steps.cfg.outputs.present == 'true'
+        if: steps.cfg.outputs.present == 'true' && steps.sign.outputs.mode != 'blocked'
         working-directory: source/native/h38-site-scanner/android-app
         env:
           H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
@@ -308,41 +328,45 @@ jobs:
           H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
           H38_ANDROID_UPLOAD_KEY_PASSWORD: android
           FIREBASE_PROJECT: ${{ steps.cfg.outputs.project }}
+          SIGN_MODE: ${{ steps.sign.outputs.mode }}
         run: |
           set -euo pipefail
           "$GRADLE_HOME_DIR/bin/gradle" :reseller:assembleOwner --no-daemon --stacktrace
           apk=$(find reseller/build/outputs/apk/owner -type f -name '*.apk' -print -quit)
           test -n "$apk" || { echo "Owner APK was not produced"; exit 1; }
           mkdir -p "$GITHUB_WORKSPACE/verified"
-          cp "$apk" "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0.apk"
-          final="$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0.apk"
+          if [ "$SIGN_MODE" = "fresh" ]; then name="H38-Deals-3.2.0-FRESH-KEY-REINSTALL-REQUIRED.apk"; else name="H38-Deals-3.2.0.apk"; fi
+          cp "$apk" "$GITHUB_WORKSPACE/verified/$name"
+          final="$GITHUB_WORKSPACE/verified/$name"
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$aapt" dump badging "$final" | tee /tmp/badging.txt
           grep -F "package: name='com.highway38.resellerscout.owner'" /tmp/badging.txt
           grep -F "versionCode='343'" /tmp/badging.txt
           grep -F "versionName='3.2.0'" /tmp/badging.txt
           grep -F "application-label:'H38 Deals'" /tmp/badging.txt
-          jar="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$jar" verify --verbose --print-certs "$final" | tee /tmp/certs.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$final" | tee /tmp/certs.txt
           grep -F "Verified using v2 scheme (APK Signature Scheme v2): true" /tmp/certs.txt
           grep -F "Number of signers: 1" /tmp/certs.txt
-          grep -F "certificate SHA-256 digest: $EXPECTED_CERT_SHA256" /tmp/certs.txt
+          if [ "$SIGN_MODE" = "same" ]; then
+            grep -F "certificate SHA-256 digest: $EXPECTED_CERT_SHA256" /tmp/certs.txt
+          else
+            echo "FRESH KEY BUILD: phones must uninstall the old H38 Deals before installing; sign-in will be required once."
+            grep -F "certificate SHA-256 digest:" /tmp/certs.txt
+          fi
           unzip -p "$final" 'classes*.dex' > /tmp/all.dex
           grep -a -F "H38_DEALS_NATIVE_PUSH_V320" /tmp/all.dex >/dev/null || { echo "Native push marker missing from dex"; exit 1; }
           grep -a -F "H38DealsMessagingService" /tmp/all.dex >/dev/null || { echo "Messaging service missing from dex"; exit 1; }
           grep -a -F "com/google/firebase/messaging" /tmp/all.dex >/dev/null || { echo "Firebase Messaging missing from dex"; exit 1; }
           unzip -p "$final" 'resources.arsc' > /tmp/resources.arsc || true
           grep -a -F "$FIREBASE_PROJECT" /tmp/resources.arsc >/dev/null || { echo "Firebase project id not embedded in APK resources"; exit 1; }
-          sha256sum "$final" | tee "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0.apk.sha256"
-          echo "RELEASE ACCEPTED: H38 Deals 3.2.0 (versionCode 343), Firebase project $FIREBASE_PROJECT, cert $EXPECTED_CERT_SHA256"
+          sha256sum "$final" | tee "$GITHUB_WORKSPACE/verified/$name.sha256"
+          echo "RELEASE ACCEPTED: H38 Deals 3.2.0 (versionCode 343), Firebase project $FIREBASE_PROJECT, signing mode $SIGN_MODE"
 
       - name: Publish the release APK
-        if: steps.cfg.outputs.present == 'true'
+        if: steps.cfg.outputs.present == 'true' && steps.sign.outputs.mode != 'blocked'
         uses: actions/upload-artifact@v4
         with:
           name: H38-Deals-3.2.0-release
-          path: |
-            verified/H38-Deals-3.2.0.apk
-            verified/H38-Deals-3.2.0.apk.sha256
+          path: verified/*
           if-no-files-found: error
           retention-days: 90
