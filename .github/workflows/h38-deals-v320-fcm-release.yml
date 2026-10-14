@@ -25,13 +25,22 @@ name: H38 Deals v3.2.0 native FCM release
 # evicts caches unused for 7 days and that cache is GONE (exact-key cache
 # query returns 0). A build signed with any other key cannot update the
 # installed 3.1.2 in place. So the release job:
-#   - uses the cached key when it is present AND its certificate is the
+#   - uses the persisted key when it is present AND its certificate is the
 #     known 3.1.2 cert (update-in-place preserved);
 #   - otherwise BLOCKS, unless repo variable
 #     H38_DEALS_ALLOW_NEW_SIGNING_KEY=YES explicitly authorizes a fresh
-#     key — then it generates one, persists it to the same cache for all
-#     future builds, and flags the APK FRESH-KEY-REINSTALL-REQUIRED
-#     (uninstall the old app, install fresh, sign in once).
+#     key — then it signs with the authorized fresh key and flags the APK
+#     FRESH-KEY-REINSTALL-REQUIRED (uninstall the old app, install fresh,
+#     sign in once).
+#
+# Key persistence (fixed 2026-10-13, release run): the authorized fresh
+# key was generated ONCE and persisted as repo secrets —
+# H38_DEALS_KEYSTORE_B64 (+ H38_DEALS_KEYSTORE_PASSWORD /
+# H38_DEALS_KEY_ALIAS / H38_DEALS_KEY_PASSWORD) — because an Actions
+# cache is NOT durable storage (that is exactly how the 3.1.2 key was
+# lost). The release job restores the keystore from the secret first;
+# the legacy cache is only a fallback, and on-runner generation is a
+# last resort that must be re-persisted as the secret before shipping.
 #
 # The backend half (scout_device_tokens, register_device, FCM send branch)
 # is deployed independently via the Supabase Management API and does not
@@ -194,6 +203,7 @@ jobs:
       EXPECTED_CERT_SHA256: cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46
       GOOGLE_SERVICES_B64: ${{ secrets.H38_DEALS_GOOGLE_SERVICES_JSON_B64 }}
       ALLOW_NEW_KEY: ${{ vars.H38_DEALS_ALLOW_NEW_SIGNING_KEY }}
+      KEYSTORE_B64: ${{ secrets.H38_DEALS_KEYSTORE_B64 }}
     steps:
       - name: Check out the frozen source
         uses: actions/checkout@v4
@@ -220,8 +230,24 @@ jobs:
           echo "present=true" >> "$GITHUB_OUTPUT"
           echo "Real Firebase config decoded for project: $project"
 
-      - name: Restore the owner signing key cache
+      - name: Restore the signing keystore from the repo secret (durable)
+        id: keystore
         if: steps.cfg.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          if [ -n "${KEYSTORE_B64:-}" ]; then
+            mkdir -p "$HOME/.android"
+            echo "$KEYSTORE_B64" | base64 -d > "$HOME/.android/debug.keystore"
+            test -s "$HOME/.android/debug.keystore" || { echo "Keystore secret decoded to an empty file"; exit 1; }
+            echo "from_secret=true" >> "$GITHUB_OUTPUT"
+            echo "Signing keystore restored from repo secret H38_DEALS_KEYSTORE_B64 (durable; survives cache eviction)."
+          else
+            echo "from_secret=false" >> "$GITHUB_OUTPUT"
+            echo "No H38_DEALS_KEYSTORE_B64 secret set; falling back to the legacy Actions cache."
+          fi
+
+      - name: Restore the owner signing key cache (legacy fallback)
+        if: steps.cfg.outputs.present == 'true' && steps.keystore.outputs.from_secret != 'true'
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
@@ -240,14 +266,14 @@ jobs:
               echo "Original 3.1.2 signing key restored — update-in-place preserved."
             elif [ "${ALLOW_NEW_KEY:-}" = "YES" ]; then
               echo "mode=fresh" >> "$GITHUB_OUTPUT"
-              echo "Cached key is the previously authorized fresh key (cert $actual) — reinstall-required line continues."
+              echo "Signing key present (cert $actual) is the authorized fresh key — reinstall-required line continues."
             else
               echo "mode=blocked" >> "$GITHUB_OUTPUT"
-              echo "Cached keystore cert $actual does not match the installed app's cert and no fresh-key authorization is set."
+              echo "Keystore cert $actual does not match the installed app's cert and no fresh-key authorization is set."
             fi
           elif [ "${ALLOW_NEW_KEY:-}" = "YES" ]; then
             echo "mode=fresh" >> "$GITHUB_OUTPUT"
-            echo "No cached key (the 3.1.2 key cache was evicted) — fresh key authorized; generating one and persisting it to the cache for future builds."
+            echo "WARNING: no persisted key found (no secret, no cache) — generating an on-runner key as a LAST RESORT. It persists only to the Actions cache; it MUST be saved as repo secret H38_DEALS_KEYSTORE_B64 before this APK ships, or the next build will be signed differently again."
             mkdir -p "$HOME/.android"
             keytool -genkeypair -keystore "$ks" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
             test -s "$ks" || { echo "Key generation failed"; exit 1; }
@@ -282,7 +308,7 @@ jobs:
               echo "Without it, no new APK can update the installed app in place."
               echo "Options: (a) find ~/.android/debug.keystore on any machine that ever built the app"
               echo "with certificate SHA-256 cdabe362ad80788c4ac216a26a8dcc44174eceb3c380c3b4a126507af4043c46"
-              echo "and re-seed the cache; or (b) accept a one-time uninstall + reinstall + sign-in on"
+              echo "and persist it as repo secret H38_DEALS_KEYSTORE_B64; or (b) accept a one-time uninstall + reinstall + sign-in on"
               echo "both phones by setting repo variable H38_DEALS_ALLOW_NEW_SIGNING_KEY=YES and re-running."
             fi
           } > blocked/RELEASE_BLOCKED.txt
@@ -324,9 +350,9 @@ jobs:
         working-directory: source/native/h38-site-scanner/android-app
         env:
           H38_ANDROID_UPLOAD_KEYSTORE_PATH: /home/runner/.android/debug.keystore
-          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: android
-          H38_ANDROID_UPLOAD_KEY_ALIAS: androiddebugkey
-          H38_ANDROID_UPLOAD_KEY_PASSWORD: android
+          H38_ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.H38_DEALS_KEYSTORE_PASSWORD }}
+          H38_ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.H38_DEALS_KEY_ALIAS }}
+          H38_ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.H38_DEALS_KEY_PASSWORD }}
           FIREBASE_PROJECT: ${{ steps.cfg.outputs.project }}
           SIGN_MODE: ${{ steps.sign.outputs.mode }}
         run: |
