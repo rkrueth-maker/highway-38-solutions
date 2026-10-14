@@ -23922,7 +23922,7 @@ if(document.readyState==='loading'){
 (function () {
   'use strict';
 
-  var BUILD = '20261013-owner-notify-3';
+  var BUILD = '20261013-owner-notify-4';
   var MAX_PANEL = 40;
 
   function text(v) { return String(v == null ? '' : v).trim(); }
@@ -24116,7 +24116,9 @@ if(document.readyState==='loading'){
       + '<div class="owner-notify-list">'
       + (rows.length ? rows.map(rowHtml).join('') : '<div class="owner-notify-empty">Nothing needs you right now. New customer activity and items to review will land here.</div>')
       + '</div>'
+      + '<div id="ownerNotifyScoutWrap"></div>'
       + panelFootHtml();
+    renderScoutSection();
     var close = document.getElementById('ownerNotifyClose');
     if (close) close.onclick = closePanel;
     var markAll = document.getElementById('ownerNotifyMarkAll');
@@ -24153,6 +24155,7 @@ if(document.readyState==='loading'){
     var panel = panelEl(); if (!panel) return;
     renderPanel();
     panel.hidden = false;
+    scoutInit();
     fetchFresh().then(function () { if (!panel.hidden) { renderPanel(); renderBadge(); } });
   }
   function closePanel() { var panel = panelEl(); if (panel) panel.hidden = true; }
@@ -24290,6 +24293,176 @@ if(document.readyState==='loading'){
       + foot(escHtml(note));
   }
 
+  /* ---------- Scout deal alerts (shared dispatcher: h38-scout-push) ---------- */
+  /* Rick (2026-10-13): the Deals wrapper's in-app browser disables the
+   * alert switches (no PushManager/Notification there), so registration
+   * also lives here, on the full-browser Pages origin. The Scout
+   * household sits outside the Office tenants, so this section is
+   * data-gated: it renders ONLY when h38-scout-push get_state succeeds
+   * for the signed-in user (a Scout household member). Everyone else
+   * (Northern Lakes, other tenants, staff without a household) gets a
+   * 403 and the section never appears. The browser subscription is the
+   * Office SW's own — the same one office_subscribe registers — and is
+   * re-registered server-side for the Scout scopes via 'subscribe',
+   * which fires the armed catch-up the moment the first row lands.
+   * Call shapes mirror the Deals shell module exactly. */
+
+  var scout = { phase: 'idle', key: '', state: null, note: '', busy: false };
+
+  async function scoutApi(action, extra) {
+    var auth = await pushHeaders();
+    if (!auth) throw new Error('Sign in again to manage deal alerts.');
+    var body = { action: action };
+    if (extra) Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
+    var res = await fetch(auth.cfg.url + '/functions/v1/h38-scout-push', {
+      method: 'POST', headers: auth.headers, body: JSON.stringify(body)
+    });
+    var data = {};
+    try { data = await res.json(); } catch (e) { /* ignore */ }
+    if (!res.ok) {
+      var err = new Error(data.error || ('HTTP ' + res.status));
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+  async function scoutEndpoint() {
+    try {
+      var reg = await navigator.serviceWorker.ready;
+      var sub = await reg.pushManager.getSubscription();
+      return sub ? (sub.toJSON().endpoint || '') : '';
+    } catch (e) { return ''; }
+  }
+  async function scoutInit() {
+    if (scout.phase !== 'idle') return;
+    scout.phase = 'loading';
+    try {
+      var endpoint = pushSupported() ? await scoutEndpoint() : '';
+      var st = await scoutApi('get_state', { endpoint: endpoint });
+      scout.state = st;
+      if (!pushSupported()) { scout.phase = 'unsupported'; renderScoutSection(); return; }
+      scout.phase = 'ready';
+      try {
+        var cfg = await scoutApi('config');
+        scout.key = cfg.vapidPublicKey || '';
+      } catch (e) { /* key is fetched again inside the enable flow */ }
+    } catch (e) {
+      scout.phase = 'hidden'; // no Scout household for this account — render nothing
+    }
+    renderScoutSection();
+  }
+  function scoutStatusText() {
+    if (scout.note) return scout.note;
+    var st = scout.state; if (!st) return 'Checking your deal alerts…';
+    var prefs = st.prefs || {};
+    var perm = (typeof Notification === 'undefined') ? 'unsupported' : Notification.permission;
+    if (st.deviceSubscribed) return 'Deal alerts are ON for this phone.';
+    if (perm === 'denied') return 'Notifications are blocked for this site. To fix it: open your browser settings for this page, allow Notifications, then tap a switch again.';
+    if (prefs.penny_alerts || prefs.resale_alerts) {
+      return perm === 'granted'
+        ? 'Deal alerts are on for your account but not for this phone yet. One tap finishes this phone:'
+        : 'Deal alerts are turned ON for your account. One tap lets this phone show them:';
+    }
+    return 'Deal alerts are off. Flip a switch below and this phone will ask permission once.';
+  }
+  function scoutShowTap() {
+    var st = scout.state;
+    if (!st || st.deviceSubscribed) return false;
+    var prefs = st.prefs || {};
+    if (!prefs.penny_alerts && !prefs.resale_alerts) return false;
+    return typeof Notification !== 'undefined' && Notification.permission !== 'denied';
+  }
+  function scoutSectionHtml() {
+    if (scout.phase === 'unsupported') {
+      return '<div class="owner-notify-scout" id="ownerNotifyScout">'
+        + '<div class="owner-notify-scout-head"><strong>🔔 Scout deal alerts</strong></div>'
+        + '<p class="owner-notify-scout-status">Deal alerts need the Chrome browser or the Deals app update.</p></div>';
+    }
+    if (scout.phase !== 'ready' || !scout.state) return '';
+    var prefs = scout.state.prefs || {};
+    var dis = scout.busy ? ' disabled' : '';
+    return '<div class="owner-notify-scout" id="ownerNotifyScout">'
+      + '<div class="owner-notify-scout-head"><strong>🔔 Scout deal alerts</strong></div>'
+      + '<p class="owner-notify-scout-status" id="scoutAlertsStatus">' + escHtml(scoutStatusText()) + '</p>'
+      + (scoutShowTap() ? '<div class="owner-notify-scout-tap"><button type="button" id="scoutAlertsEnable"' + dis + '>Turn on phone notifications</button></div>' : '')
+      + '<label class="owner-notify-scout-row"><span>New penny deals</span><input type="checkbox" id="scoutAlertsPenny" role="switch"' + (prefs.penny_alerts ? ' checked' : '') + dis + '></label>'
+      + '<label class="owner-notify-scout-row"><span>New resale deals</span><input type="checkbox" id="scoutAlertsResale" role="switch"' + (prefs.resale_alerts ? ' checked' : '') + dis + '></label>'
+      + '</div>';
+  }
+  function renderScoutSection() {
+    var wrap = document.getElementById('ownerNotifyScoutWrap');
+    if (!wrap) return;
+    wrap.innerHTML = scoutSectionHtml();
+    var en = document.getElementById('scoutAlertsEnable');
+    if (en) en.onclick = function () { scoutEnableFlow(); };
+    var p = document.getElementById('scoutAlertsPenny');
+    if (p) p.onchange = scoutTogglesChanged;
+    var r = document.getElementById('scoutAlertsResale');
+    if (r) r.onchange = scoutTogglesChanged;
+  }
+  async function scoutEnableFlow() {
+    if (scout.busy) return;
+    scout.busy = true; scout.note = ''; renderScoutSection();
+    try {
+      var perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        scout.note = perm === 'denied'
+          ? 'Notifications are blocked for this site. Allow them in your browser site settings, then tap again.'
+          : 'Permission was not given. Tap any time to try again.';
+        return;
+      }
+      if (!scout.key) {
+        var cfg = await scoutApi('config');
+        scout.key = cfg.vapidPublicKey || '';
+      }
+      if (!scout.key) throw new Error('Alert service is not configured.');
+      var reg = await navigator.serviceWorker.ready;
+      var sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(scout.key)
+        });
+      }
+      var j = sub.toJSON();
+      var res = await scoutApi('subscribe', {
+        subscription: { endpoint: j.endpoint, keys: j.keys },
+        userAgent: navigator.userAgent
+      });
+      scout.state = await scoutApi('get_state', { endpoint: j.endpoint });
+      var cu = res && res.catchUp;
+      scout.note = (cu && cu.sent > 0)
+        ? 'You are set — your first deal alert is on its way to this phone.'
+        : 'You are set — this phone will buzz when new penny or resale deals land.';
+    } catch (e) {
+      scout.note = 'Could not turn on notifications: ' + (e && e.message ? e.message : e);
+    } finally {
+      scout.busy = false;
+      renderScoutSection();
+    }
+  }
+  async function scoutTogglesChanged() {
+    var pEl = document.getElementById('scoutAlertsPenny');
+    var rEl = document.getElementById('scoutAlertsResale');
+    if (!pEl || !rEl) return;
+    var penny = !!pEl.checked;
+    var resale = !!rEl.checked;
+    scout.note = '';
+    try {
+      var r = await scoutApi('set_prefs', { penny_alerts: penny, resale_alerts: resale });
+      if (scout.state) scout.state.prefs = r.prefs;
+      if ((penny || resale) && !(scout.state && scout.state.deviceSubscribed)
+        && typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
+        await scoutEnableFlow();
+        return;
+      }
+      renderScoutSection();
+    } catch (e) {
+      scout.note = 'Could not save alert settings: ' + (e && e.message ? e.message : e);
+      renderScoutSection(); // re-renders from server state, reverting the switch
+    }
+  }
+
   /* ---------- Today card ---------- */
 
   function renderTodayCard() {
@@ -24374,6 +24547,39 @@ if(document.readyState==='loading'){
     go();
   }
 
+  /* Scout deal-alerts deep link (?scoutAlerts=1 or ?shortcut=notifications):
+   * a first-time household member (e.g. Amanda in plain Chrome on her
+   * tablet, no Office install) lands straight on this panel with the
+   * Scout section scrolled into view — no hunting for the bell. Waits for
+   * the signed-in snapshot, exactly like the fleet shortcut above. */
+  var scoutLinkHandled = false;
+  function routeScoutAlertsLink() {
+    if (scoutLinkHandled) return;
+    var on = false;
+    try {
+      var params = new URLSearchParams(location.search);
+      on = params.get('scoutAlerts') === '1' || params.get('shortcut') === 'notifications';
+    } catch (e) { /* ignore */ }
+    if (!on) { scoutLinkHandled = true; return; }
+    var tries = 0;
+    var go = function () {
+      if (snap() && snap().user) {
+        scoutLinkHandled = true;
+        openPanel();
+        var st = 0;
+        var scroll = function () {
+          var elx = document.getElementById('ownerNotifyScout');
+          if (elx) { try { elx.scrollIntoView({ block: 'nearest' }); } catch (e) { /* ignore */ } return; }
+          if (++st < 48) setTimeout(scroll, 250);
+        };
+        setTimeout(scroll, 300);
+        return;
+      }
+      if (++tries < 80) setTimeout(go, 150); else scoutLinkHandled = true;
+    };
+    go();
+  }
+
   var bound = false;
   function refresh() {
     ensurePanel();
@@ -24381,6 +24587,7 @@ if(document.readyState==='loading'){
     renderTodayCard();
     maybeAutoSubscribe();
     routeNotifyShortcut();
+    routeScoutAlertsLink();
     var bell = bellEl();
     if (bell && !bound) {
       bound = true;
