@@ -167,4 +167,7 @@ body.h38-auth-authorized #mainContent .card-band{background:#edf4f9;border-botto
    (the base .card-band offsets assume standard card padding). */
 body.h38-auth-authorized #mainContent .h38-platform-card>.card-band,body.h38-auth-authorized #mainContent .h38-job-command-home>.card-band{margin:-14px -14px 12px}
 body.h38-auth-authorized #mainContent .h38-ops-panel>.card-band{margin:-16px -16px 12px}
+/* Round 3 (2026-10-13): the deepen cards and the AI Team panel also pad at
+   14px, so their bands take the same -14px fit. */
+body.h38-auth-authorized #mainContent .h38-deepen-card>.card-band,body.h38-auth-authorized #mainContent .h38-ai-team>.card-band{margin:-14px -14px 12px}
 body.h38-auth-authorized #mainContent .pill.info{background:#e9f2fc!important;color:var(--h38-accent)!important}
