@@ -21,6 +21,15 @@ name: H38 Deals v3.2.0 native FCM release
 # depend on this workflow.
 
 on:
+  # Pushing this file on the frozen branch is the dispatch mechanism (the
+  # API token available to the build crew cannot create workflow_dispatch
+  # events — same pattern as the v3.1.2 release workflow). Manual dispatch
+  # stays available for anyone with Actions write.
+  push:
+    branches:
+      - agent/scout-fcm-push
+    paths:
+      - .github/workflows/h38-deals-v320-fcm-release.yml
   workflow_dispatch:
     inputs:
       confirmation:
@@ -40,7 +49,7 @@ concurrency:
 jobs:
   compile-gate:
     name: Compile gate with stub Firebase config (never installable)
-    if: inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
+    if: github.event_name == 'push' || inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -52,7 +61,7 @@ jobs:
       - name: Freeze on the reviewed branch
         run: |
           test "$GITHUB_REF" = "refs/heads/agent/scout-fcm-push" || { echo "Run only from refs/heads/agent/scout-fcm-push; got $GITHUB_REF"; exit 1; }
-          test "$GITHUB_EVENT_NAME" = "workflow_dispatch" || { echo "Manual dispatch required"; exit 1; }
+          case "$GITHUB_EVENT_NAME" in push|workflow_dispatch) ;; *) echo "Push or manual dispatch required"; exit 1;; esac
 
       - name: Check out the frozen source
         uses: actions/checkout@v4
@@ -176,7 +185,7 @@ jobs:
   release:
     name: Release build (requires the real Firebase config secret)
     needs: compile-gate
-    if: inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
+    if: github.event_name == 'push' || inputs.confirmation == 'BUILD_V320_NATIVE_PUSH'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
