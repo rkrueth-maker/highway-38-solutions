@@ -178,6 +178,7 @@ input[type="file"]::file-selector-button:hover{background:#e8eef3}
 .card-band{display:flex;align-items:center;gap:10px;margin:-15px -15px 12px;padding:10px 14px;background:#edf4f9;border-bottom:1px solid var(--line);border-radius:calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0}
 .card-band .card-chip{flex:0 0 34px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(11,36,56,.12);font-size:1.02rem;line-height:1}
 .card-band .card-band-title{flex:1;min-width:0}
+.card-band .card-band-kicker{display:block;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.62;margin:0 0 1px;line-height:1.25}
 .card-band h2,.card-band h3{margin:0;font-size:1.02rem;line-height:1.25}
 .card-band .pill{flex:0 0 auto}
 .pill.info{background:#e3effc;border-color:#c9def5;color:#0f5cb8}

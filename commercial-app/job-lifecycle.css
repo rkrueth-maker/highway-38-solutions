@@ -21,6 +21,12 @@
 .h38-life-checklist summary{display:flex;justify-content:space-between;gap:12px;padding:10px;cursor:pointer}
 .h38-life-checklist>div{padding:0 10px 10px}
 .h38-life-check{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid rgba(100,115,130,.12)}
+/* The global form rule (input{width:100%;min-height:44px;padding:9px 11px})
+   otherwise stretches the row's checkbox into a huge empty box that eats half
+   the row and crushes the label — the overlap in the owner's 2026-10-13
+   screen recording. Pin the checkbox to a real checkbox size. */
+.h38-life-check input[type="checkbox"]{flex:0 0 auto;width:20px;height:20px;min-height:0;padding:0;margin:2px 0 0;border-radius:5px;accent-color:#175d8a}
+.h38-life-check>span{flex:1;min-width:0}
 .h38-life-template-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 .h38-life-template-actions button{font-size:.78rem}
 .good-text{color:#2f7653}
