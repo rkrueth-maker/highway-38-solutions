@@ -959,7 +959,7 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
   if (!shared?.enabled || !officeAuth || typeof officeAuth.signOut !== 'function') return;
   if (window.H38_SUPABASE_SESSION_RECOVERY?.enabled) return;
 
-  let checking = false;
+  let validationPromise = null;
   let redirecting = false;
   let lastValidatedAt = 0;
   const h38RecoveryPageLoad = Date.now();
@@ -974,8 +974,12 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
     return code.includes('refresh_token_not_found') ||
       code.includes('bad_jwt') ||
       code.includes('no_authorization') ||
+      code.includes('session_not_found') ||
+      code.includes('user_not_found') ||
       message.includes('invalid refresh token') ||
       message.includes('refresh token not found') ||
+      message.includes('invalid jwt') ||
+      message.includes('session not found') ||
       message.includes('jwt expired') ||
       message.includes('token is malformed') ||
       message.includes('session is invalid') ||
@@ -991,8 +995,23 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
     if (redirecting) return false;
     redirecting = true;
     setStatus('Session expired · secure sign-in required');
+    // Local scope ONLY (2026-10-13 round 3). This path runs on inference
+    // from a background validation, and the validating context can be a
+    // stale second surface (browser tab + installed app) whose in-memory
+    // tokens another context has already rotated past. The previous
+    // officeAuth.signOut() used the default GLOBAL scope: it calls
+    // /logout and deletes the account's server session for every context,
+    // so one stale validation forced a full re-login everywhere (owner's
+    // phone, recording #4: icon open → sign-in form, and the server-side
+    // session was gone entirely — only the fresh sign-in remained).
+    // Local scope clears just this context's stored copy and still lands
+    // it on the sign-in form when the session is genuinely dead; a live
+    // session held by another context survives and re-persists its
+    // tokens. User-initiated sign-out (supabase-auth.js) stays global.
     try {
-      await officeAuth.signOut();
+      const client = shared.get() || (typeof shared.ensure === 'function' ? shared.ensure() : null);
+      if (client) await client.auth.signOut({ scope: 'local' });
+      else if (officeAuth && typeof officeAuth.signOut === 'function') await officeAuth.signOut();
     } catch (error) {
       try {
         const client = shared.get();
@@ -1005,44 +1024,112 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
     return false;
   }
 
-  async function validate(trigger, force) {
-    if (checking || redirecting || !navigator.onLine) return true;
+  function persistedTokens() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !/^sb-.*-auth-token$/.test(key)) continue;
+        const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+        if (parsed && (parsed.access_token || parsed.refresh_token)) {
+          return { access: text(parsed.access_token), refresh: text(parsed.refresh_token) };
+        }
+      }
+    } catch (ignore) {}
+    return null;
+  }
+
+  function tokensChangedSince(startTokens) {
+    if (!startTokens) return false;
+    const nowTokens = persistedTokens();
+    if (!nowTokens) return false;
+    return (nowTokens.access && nowTokens.access !== startTokens.access) ||
+      (nowTokens.refresh && nowTokens.refresh !== startTokens.refresh);
+  }
+
+  function validate(trigger, force) {
+    if (redirecting || !navigator.onLine) return Promise.resolve(true);
+    // Single-flight session validation (MODULE_PERFORMANCE_STANDARD:
+    // repeated requests for the same route and options reuse one in-flight
+    // promise). Startup used to issue GET auth/v1/user twice: the startup
+    // timer's forced validation completed, then the pageshow handler ran a
+    // second forced validation because the old `checking` flag only blocked
+    // concurrent calls and force bypassed the 15s cooldown. Every trigger
+    // now joins the one in-flight validation instead.
+    if (validationPromise) return validationPromise;
     const now = Date.now();
-    if (!force && now - lastValidatedAt < 15000) return true;
-    checking = true;
+    if (!force && now - lastValidatedAt < 15000) return Promise.resolve(true);
+    const run = validateOnce(trigger);
+    validationPromise = run;
+    const clear = () => { if (validationPromise === run) validationPromise = null; };
+    run.then(clear, clear);
+    return run;
+  }
+
+  // One validation attempt. Returns 'ok' (session valid), 'defer'
+  // (transient failure — leave the session alone) or 'dead' (the server
+  // affirmatively rejected this session). Only validateOnce may turn a
+  // 'dead' result into requireSignIn, after the stale-context check.
+  async function attemptValidate(trigger) {
     try {
       const client = shared.ensure();
       const sessionResult = await client.auth.getSession();
       if (sessionResult.error) {
-        if (isSessionFailure(sessionResult.error)) return requireSignIn(sessionResult.error.message);
+        if (isSessionFailure(sessionResult.error)) return { status: 'dead', reason: sessionResult.error.message };
         throw sessionResult.error;
       }
       let session = sessionResult.data && sessionResult.data.session;
-      if (!session) return true;
+      if (!session) return { status: 'ok' };
 
       const expiresAtMs = Number(session.expires_at || 0) * 1000;
       if (expiresAtMs && expiresAtMs <= Date.now() + 60000) {
         const refreshed = await client.auth.refreshSession();
         if (refreshed.error || !refreshed.data?.session) {
-          return requireSignIn(refreshed.error?.message || 'Supabase session refresh failed.');
+          // Only a genuine session rejection destroys the session. A
+          // transient refresh failure (network drop, 5xx) keeps it — the
+          // token still has time left and the client's own auto-refresh
+          // retries. (2026-10-13 owner sign-in bounce: a mid-startup
+          // validation failure signed the owner out of a valid session
+          // seconds after the Office had already painted his Jobs.)
+          if (refreshed.error && !isSessionFailure(refreshed.error)) return { status: 'defer' };
+          return { status: 'dead', reason: refreshed.error?.message || 'Supabase session refresh failed.' };
         }
         session = refreshed.data.session;
       }
 
       const userResult = await client.auth.getUser(session.access_token);
       if (userResult.error || !userResult.data?.user) {
-        return requireSignIn(userResult.error?.message || 'Supabase session could not be verified.');
+        // Same rule for the server user check: sign out ONLY when the
+        // server affirmatively rejects the session. Any other error —
+        // offline blip, timeout, gateway 5xx — defers validation and
+        // leaves the working session alone.
+        if (userResult.error && !isSessionFailure(userResult.error)) return { status: 'defer' };
+        return { status: 'dead', reason: userResult.error?.message || 'Supabase session could not be verified.' };
       }
       lastValidatedAt = Date.now();
       window.dispatchEvent(new CustomEvent('h38:session-valid', {
         detail: { trigger: text(trigger), userId: userResult.data.user.id, validatedAt: new Date().toISOString() }
       }));
-      return true;
+      return { status: 'ok' };
     } catch (error) {
-      if (isSessionFailure(error)) return requireSignIn(error.message);
-      return false;
-    } finally {
-      checking = false;
+      if (isSessionFailure(error)) return { status: 'dead', reason: error.message };
+      return { status: 'defer' };
+    }
+  }
+
+  async function validateOnce(trigger) {
+    // Stale-context guard (2026-10-13 round 3): when a failure-class
+    // result arrives but the persisted tokens in storage have CHANGED
+    // since this validation began, another context (tab, installed app)
+    // rotated or refreshed the session mid-flight and this context raced
+    // it — its rejection says nothing about the fresh session. Validate
+    // the fresh persisted session once more instead of signing out.
+    const startTokens = persistedTokens();
+    for (let attempt = 0; ; attempt++) {
+      const outcome = await attemptValidate(trigger);
+      if (outcome.status === 'ok') return true;
+      if (outcome.status === 'defer') return false;
+      if (attempt === 0 && tokensChangedSince(startTokens)) continue;
+      return requireSignIn(outcome.reason);
     }
   }
 
@@ -1070,7 +1157,10 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
     });
   }
 
-  window.addEventListener('pageshow', () => { void validate('pageshow', true); });
+  // Not forced: the initial pageshow is covered by the startup validation
+  // (joined in flight, or inside its 15s cooldown). A later pageshow — e.g. a
+  // back/forward-cache restore after the cooldown — still revalidates.
+  window.addEventListener('pageshow', () => { void validate('pageshow', false); });
   window.addEventListener('online', () => { void validate('online', true); refreshServiceWorker(); });
   window.addEventListener('load', refreshServiceWorker, { once: true });
   document.addEventListener('visibilitychange', () => {
@@ -1088,6 +1178,7 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
     enabled: true,
     build: '20260807-2132',
     validate: function () { return validate('manual', true); },
+    singleFlightValidation: true,
     singleClientRequired: true,
     clearsRevokedMembershipState: true,
     preservesDrafts: true,
@@ -1203,7 +1294,6 @@ window.H38_BUSINESS_OFFICE_SUPABASE = Object.freeze({
   document.head.appendChild(script);
 })();
 ;
-
 /* --- ./auth-cache-guard.js --- */
 'use strict';
 

@@ -3,7 +3,7 @@
 const BUILD='20260924-ai-team-owner-polish-2';
 const PREVIOUS_ACCEPTED_BUILD='20260923-ai-team-owner-polish-1';
 const PLATFORM_BUILD='20261013-scout-alerts-office-1';
-const PLATFORM_DEEPEN_BUILD='20260924-platform-deepen-1';
+const PLATFORM_DEEPEN_BUILD='20261013-icon-session-bands-1';
 const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1';
 const TAX_CENTER_BUILD='20260924-tax-center-1';
 const CUSTOMER_SALES_BUILD='20260927-customer-sales-wave2-1';
