@@ -21,8 +21,12 @@
     return code.includes('refresh_token_not_found') ||
       code.includes('bad_jwt') ||
       code.includes('no_authorization') ||
+      code.includes('session_not_found') ||
+      code.includes('user_not_found') ||
       message.includes('invalid refresh token') ||
       message.includes('refresh token not found') ||
+      message.includes('invalid jwt') ||
+      message.includes('session not found') ||
       message.includes('jwt expired') ||
       message.includes('token is malformed') ||
       message.includes('session is invalid') ||
@@ -86,6 +90,13 @@
       if (expiresAtMs && expiresAtMs <= Date.now() + 60000) {
         const refreshed = await client.auth.refreshSession();
         if (refreshed.error || !refreshed.data?.session) {
+          // Only a genuine session rejection destroys the session. A
+          // transient refresh failure (network drop, 5xx) keeps it — the
+          // token still has time left and the client's own auto-refresh
+          // retries. (2026-10-13 owner sign-in bounce: a mid-startup
+          // validation failure signed the owner out of a valid session
+          // seconds after the Office had already painted his Jobs.)
+          if (refreshed.error && !isSessionFailure(refreshed.error)) return false;
           return requireSignIn(refreshed.error?.message || 'Supabase session refresh failed.');
         }
         session = refreshed.data.session;
@@ -93,6 +104,11 @@
 
       const userResult = await client.auth.getUser(session.access_token);
       if (userResult.error || !userResult.data?.user) {
+        // Same rule for the server user check: sign out ONLY when the
+        // server affirmatively rejects the session. Any other error —
+        // offline blip, timeout, gateway 5xx — defers validation and
+        // leaves the working session alone.
+        if (userResult.error && !isSessionFailure(userResult.error)) return false;
         return requireSignIn(userResult.error?.message || 'Supabase session could not be verified.');
       }
       lastValidatedAt = Date.now();

@@ -162,4 +162,9 @@ body.h38-auth-authorized #mainContent .pill.neutral{background:var(--h38-neutral
    office-polish.js polishCardBands pass; keep tenant-neutral (no business branding
    in the band — chip glyphs come from the card/page icon vocabulary only). */
 body.h38-auth-authorized #mainContent .card-band{background:#edf4f9;border-bottom:1px solid var(--h38-ui-border);border-radius:calc(var(--h38-ui-radius) - 1px) calc(var(--h38-ui-radius) - 1px) 0 0}
+/* Band margin fit for the non-.card surfaces the polish pass also bands:
+   platform cards and the job command card pad at 14px, the ops panel at 16px
+   (the base .card-band offsets assume standard card padding). */
+body.h38-auth-authorized #mainContent .h38-platform-card>.card-band,body.h38-auth-authorized #mainContent .h38-job-command-home>.card-band{margin:-14px -14px 12px}
+body.h38-auth-authorized #mainContent .h38-ops-panel>.card-band{margin:-16px -16px 12px}
 body.h38-auth-authorized #mainContent .pill.info{background:#e9f2fc!important;color:var(--h38-accent)!important}
