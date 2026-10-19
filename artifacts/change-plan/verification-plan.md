@@ -1,16 +1,16 @@
 # Scope-aware verification plan
 
-- Files changed: 4
-- Scopes: publicWebsite
-- Deployment workflows: .github/workflows/pages-branch-fallback.yml
+- Files changed: 1
+- Scopes: customerPortal
+- Deployment workflows: .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
 ## Fast checks
 - `node scripts/verify-change-governance.js`
-- `node scripts/verify-public-website-architecture.js`
-- `node scripts/verify-public-ecosystem-tools.js`
+- `node scripts/verify-customer-portal-security.js`
 
 ## Expensive or live checks
-- desktop and mobile public browser verification for affected routes
+- None identified.
 
 ## Evidence that may remain reusable
+- Public browser and image evidence is not invalidated by this change.
 - Authenticated browser and data-coverage evidence is not invalidated by this change.
