@@ -223,7 +223,7 @@ $('findPartsBtn').addEventListener('click', async () => {
     // Stash for the optional Office bridge (dormant without ?office_business=).
     window.H38_LAST_PARTS={input:{vehicle:vehicle,needed:needed},result:result};
     renderParts(result);
-    saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle,
+    saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle, kind: 'parts', result,
       topIssue: result && result.summary ? result.summary : '' });
   } catch (err) {
     $('partsLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
@@ -331,7 +331,7 @@ $('sourceBtn').addEventListener('click', async () => {
   try {
     const result = await requestParts({ vehicle: vehicle || 'Not specified', needed, mode: 'sourcing' });
     renderSourcing(result);
-    saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle,
+    saveRepair({ category: 'parts', symptoms: needed, unitInfo: vehicle, kind: 'sourcing', result,
       topIssue: result && result.summary ? result.summary : '' });
   } catch (err) {
     $('sourceLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
@@ -466,13 +466,36 @@ function renderRepairs() {
   }
   const labels = {car:'Car / Truck', atv:'ATV / UTV', 'small-engine':'Small Engine', appliance:'Appliance', photo:'📷 Photo Scan'};
   box.innerHTML = log.map((r, i) => `
-    <div class="repair-entry" data-i="${i}">
+    <div class="repair-entry" data-i="${i}"${r.result ? ' role="button" tabindex="0"' : ''}>
       <div class="repair-head"><strong>${labels[r.category] || r.category}</strong>
       <span class="repair-date">${new Date(r.when).toLocaleDateString()}</span></div>
       <div class="repair-symptoms">${escapeHtml(r.symptoms)}</div>
       ${r.unitInfo ? `<div class="repair-unit">${escapeHtml(r.unitInfo)}</div>` : ''}
       ${r.topIssue ? `<div class="repair-issue">→ ${escapeHtml(r.topIssue)}</div>` : ''}
+      ${r.result ? `<div class="repair-view">Tap to view the full result →</div>` : ''}
     </div>`).join('');
+  box.querySelectorAll('.repair-entry[data-i]').forEach(el => {
+    const entry = log[Number(el.dataset.i)];
+    if (!entry || !entry.result) return;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => reopenRepair(entry));
+  });
+}
+// Reopen a saved result exactly as it was shown the first time.
+function reopenRepair(entry) {
+  if (entry.kind === 'parts') {
+    renderParts(entry.result);
+    showScreen('partsResultScreen');
+    return;
+  }
+  if (entry.kind === 'sourcing') {
+    renderSourcing(entry.result);
+    showScreen('sourceResultScreen');
+    return;
+  }
+  currentDiagnosis = { category: entry.category, symptoms: entry.symptoms, unitInfo: entry.unitInfo || '', result: entry.result };
+  showScreen('resultScreen');
+  renderResult(entry.result);
 }
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -482,9 +505,43 @@ document.querySelectorAll('#categoryScreen .category-card').forEach(card => {
     state.category = card.dataset.category;
     const labels = {car:'Car / Truck', atv:'ATV / UTV', 'small-engine':'Small Engine', appliance:'Appliance'};
     $('symptomTitle').textContent = labels[state.category] + ' — describe the problem';
+    renderSymptomChips(state.category);
+    renderGarageChips();
     showScreen('symptomScreen');
   });
 });
+
+// Common-problem starter chips: the first screen should never be a blank
+// box (every leading AI-mechanic app offers tap-to-start symptoms).
+const SYMPTOM_CHIPS = {
+  car: ["Won't start — just clicks", "Won't start — cranks but won't catch", "Check engine light is on", "Grinding or squealing noise", "Overheating", "Battery keeps dying", "Brakes grind or feel soft", "Vibrates at highway speed"],
+  atv: ["No spark", "Won't start", "Starts then dies", "Won't idle", "Losing power", "Won't go into gear", "Battery keeps dying", "Smokes a lot"],
+  'small-engine': ["Won't start", "Starts then dies after a few seconds", "Runs rough / surges", "No spark", "Dies under load", "Smokes a lot", "Pull cord stuck or broken", "Leaks fuel"],
+  appliance: ["Washer won't drain", "Washer won't spin", "Dryer not heating", "Fridge not cooling", "Freezer cold but fridge warm", "Making a loud noise", "Leaking water", "Won't turn on at all"],
+};
+function renderSymptomChips(category) {
+  const wrap = $('symptomChipsWrap'), box = $('symptomChips');
+  const chips = SYMPTOM_CHIPS[category] || [];
+  if (!chips.length) { wrap.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = chips.map(c => `<button type="button" class="chip">${escapeHtml(c)}</button>`).join('');
+  wrap.hidden = false;
+  box.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
+    const cur = $('symptomInput').value.trim();
+    $('symptomInput').value = cur ? cur + ' ' + chip.textContent : chip.textContent;
+    $('symptomInput').focus();
+  }));
+}
+function renderGarageChips() {
+  const wrap = $('garageChipsWrap'), box = $('garageChips');
+  const list = getGarage();
+  if (!list.length) { wrap.hidden = true; box.innerHTML = ''; return; }
+  box.innerHTML = list.map((v, i) => `<button type="button" class="chip" data-gi="${i}">🚗 ${escapeHtml(v.vehicle || v.name || '')}</button>`).join('');
+  wrap.hidden = false;
+  box.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
+    const v = getGarage()[Number(chip.dataset.gi)];
+    if (v) $('unitInfo').value = v.vehicle || v.name || '';
+  }));
+}
 
 $('backToCategory').addEventListener('click', () => showScreen('categoryScreen'));
 $('backToSymptom').addEventListener('click', () => showScreen('symptomScreen'));
@@ -600,6 +657,31 @@ document.querySelectorAll('#scanCategoryChips .chip').forEach(chip => {
   });
 });
 
+// Rotating loading messages: a real diagnosis takes ~1 minute (the poller
+// runs every minute) — keep the user informed instead of a frozen spinner.
+let loadingTimer = null;
+function setLoading(el, messages) {
+  if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
+  let i = 0;
+  el.innerHTML = `<div class="spinner"></div><p class="loading-msg">${escapeHtml(messages[0])}</p><p><small>Real mechanic reasoning — this usually takes about a minute</small></p>`;
+  if (messages.length > 1) {
+    loadingTimer = setInterval(() => {
+      i = (i + 1) % messages.length;
+      const p = el.querySelector('.loading-msg');
+      if (p) p.textContent = messages[i];
+    }, 7000);
+  }
+}
+function clearLoading() {
+  if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
+}
+const DIAGNOSIS_LOADING_MSGS = [
+  'Kit is reading your symptoms...',
+  'Kit is ranking the likely causes, cheapest check first...',
+  'Still working — a careful answer beats a fast guess...',
+  'Kit is putting together your check plan and estimate...',
+];
+
 // Diagnosis
 $('diagnoseBtn').addEventListener('click', async () => {
   const symptoms = $('symptomInput').value.trim();
@@ -611,8 +693,8 @@ $('diagnoseBtn').addEventListener('click', async () => {
   showScreen('resultScreen');
   $('diagnosisLoading').hidden = false;
   $('diagnosisResult').hidden = true;
-  $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is analyzing...</p>';
-  
+  setLoading($('diagnosisLoading'), DIAGNOSIS_LOADING_MSGS);
+
   try {
     const result = await requestDiagnosis({
       category: state.category,
@@ -620,11 +702,15 @@ $('diagnoseBtn').addEventListener('click', async () => {
       unitInfo: $('unitInfo').value.trim(),
       photo: state.photo,
     });
+    clearLoading();
     const diagTop = result && (result.diagnosis || result);
+    currentDiagnosis = { category: state.category, symptoms, unitInfo: $('unitInfo').value.trim(), result };
     saveRepair({
       category: state.category,
       symptoms,
       unitInfo: $('unitInfo').value.trim(),
+      kind: 'diagnosis',
+      result,
       topIssue: diagTop && diagTop.likelyIssues && diagTop.likelyIssues[0]
         ? (diagTop.likelyIssues[0].issue || '')
         : '',
@@ -633,6 +719,7 @@ $('diagnoseBtn').addEventListener('click', async () => {
     window.H38_LAST_DIAGNOSIS={input:{category:state.category,symptoms:symptoms,unitInfo:$('unitInfo').value.trim()},result:result};
     renderResult(result);
   } catch (err) {
+    clearLoading();
     $('diagnosisLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
   }
 });
@@ -654,7 +741,7 @@ $('scanDiagnoseBtn').addEventListener('click', async () => {
   showScreen('resultScreen');
   $('diagnosisLoading').hidden = false;
   $('diagnosisResult').hidden = true;
-  $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is looking at your photo...</p>';
+  setLoading($('diagnosisLoading'), ['Kit is looking at your photo...', 'Kit is identifying what this is...', 'Kit is checking what usually goes wrong with it...']);
 
   try {
     const result = await requestDiagnosis({
@@ -664,11 +751,15 @@ $('scanDiagnoseBtn').addEventListener('click', async () => {
       photo: scanState.photo,
       source: 'repair-guide-photo-scan',
     });
+    clearLoading();
     const diagTop = result && (result.diagnosis || result);
+    currentDiagnosis = { category: scanState.category || 'photo', symptoms, unitInfo: '', result };
     saveRepair({
       category: scanState.category || 'photo',
       symptoms: note || 'Photo scan',
       unitInfo: (diagTop && diagTop.identifiedItem && diagTop.identifiedItem.name) || '',
+      kind: 'diagnosis',
+      result,
       topIssue: diagTop && diagTop.likelyIssues && diagTop.likelyIssues[0]
         ? (diagTop.likelyIssues[0].issue || '')
         : '',
@@ -676,6 +767,7 @@ $('scanDiagnoseBtn').addEventListener('click', async () => {
     window.H38_LAST_DIAGNOSIS = { input: { category: scanState.category, symptoms, unitInfo: '', photoScan: true }, result };
     renderResult(result);
   } catch (err) {
+    clearLoading();
     $('diagnosisLoading').innerHTML = `<p style="color:#ef9a9a">${friendlyError(err)}</p>`;
   }
 });
@@ -711,7 +803,7 @@ async function requestDiagnosis(data) {
   if (data.photo) {
     $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Sending photo to Kit...</p>';
     photoRef = await uploadRepairPhoto(data.photo);
-    $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is analyzing...<br><small>This usually takes under a minute</small></p>';
+    setLoading($('diagnosisLoading'), DIAGNOSIS_LOADING_MSGS);
   }
 
   // 1. Insert task into ai_handoff_tasks
@@ -728,6 +820,7 @@ async function requestDiagnosis(data) {
         photo: photoRef,
         hasPhoto: !!photoRef,
         source: data.source || 'repair-guide-diagnose',
+        priorDiagnosis: data.priorDiagnosis || null,
       },
     }),
   });
@@ -736,9 +829,9 @@ async function requestDiagnosis(data) {
   const taskId = tasks[0].id;
   
   // 2. Poll for result (Kit's poller runs every 1 min)
-  $('diagnosisLoading').innerHTML = '<div class="spinner"></div><p>Kit is analyzing...<br><small>This usually takes under a minute</small></p>';
-  
-  const maxAttempts = 30; // 5 minutes max
+  if (!data.photo) setLoading($('diagnosisLoading'), DIAGNOSIS_LOADING_MSGS);
+
+  const maxAttempts = 48; // 8 minutes max — agent answers can take a few poller cycles
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(r => setTimeout(r, 10000)); // wait 10s
     
@@ -758,10 +851,14 @@ async function requestDiagnosis(data) {
   throw new Error('Timed out waiting for diagnosis. Please try again.');
 }
 
+// The diagnosis currently on screen — the refine flow builds on it.
+let currentDiagnosis = null;
+
 function renderResult(result) {
+  clearLoading();
   $('diagnosisLoading').hidden = true;
   $('diagnosisResult').hidden = false;
-  
+
   const d = result.diagnosis || result;
 
   // Photo identification (present when the diagnosis came from a photo)
@@ -779,6 +876,37 @@ function renderResult(result) {
   } else {
     idBox.hidden = true;
     $('identifiedItem').innerHTML = '';
+  }
+
+  // Safety verdict — the first thing a competitor app tells you:
+  // is it safe to keep using this thing?
+  const sev = d.severity || null;
+  const sevBox = $('severityBox');
+  if (sev && sev.headline) {
+    const level = ['stop', 'soon', 'monitor'].includes(sev.level) ? sev.level : 'monitor';
+    const icon = level === 'stop' ? '🛑' : (level === 'soon' ? '⚠️' : '👀');
+    sevBox.className = 'severity ' + level;
+    sevBox.innerHTML = `<div class="severity-head">${icon} ${escapeHtml(sev.headline)}</div>` +
+      (sev.detail ? `<div class="severity-detail">${escapeHtml(sev.detail)}</div>` : '');
+    sevBox.hidden = false;
+  } else {
+    sevBox.hidden = true;
+    sevBox.innerHTML = '';
+  }
+
+  // DIY vs shop guidance
+  const diff = d.difficulty || null;
+  const diffBox = $('difficultyBox');
+  if (diff && (diff.level || diff.note)) {
+    const label = diff.level === 'easy-diy' ? '🟢 Easy DIY'
+      : diff.level === 'diy' ? '🟡 Doable DIY'
+      : diff.level === 'shop' ? '🔧 Best left to a shop' : '';
+    diffBox.innerHTML = (label ? `<strong>${label}</strong>` : '') +
+      (diff.note ? `<span>${label ? ' — ' : ''}${escapeHtml(diff.note)}</span>` : '');
+    diffBox.hidden = false;
+  } else {
+    diffBox.hidden = true;
+    diffBox.innerHTML = '';
   }
 
   // Likely issues
@@ -827,7 +955,76 @@ function renderResult(result) {
     </div>`;
   }).join('');
   $('partsList').innerHTML = partsLinksHtml || '<p>No parts listed.</p>';
+
+  // Follow-up questions + refine: a good mechanic asks questions back.
+  // Answering one re-runs the diagnosis with the added detail.
+  const questions = Array.isArray(d.followUpQuestions) ? d.followUpQuestions.filter(Boolean) : [];
+  const fuBox = $('followUpBox');
+  if (currentDiagnosis) {
+    $('followUpQuestions').innerHTML = questions.length
+      ? `<p class="muted" style="margin-top:0">Kit wants to know:</p>` +
+        questions.map(q => `<div class="followup-q">❓ ${escapeHtml(q)}</div>`).join('')
+      : '';
+    $('refineInput').value = '';
+    $('refineError').hidden = true;
+    fuBox.hidden = false;
+  } else {
+    fuBox.hidden = true;
+  }
 }
+
+// "Add detail & re-check": send the follow-up detail back with the
+// original context so Kit refines instead of starting over.
+$('refineBtn').addEventListener('click', async () => {
+  const errBox = $('refineError');
+  errBox.hidden = true;
+  if (!currentDiagnosis) return;
+  const extra = $('refineInput').value.trim();
+  if (!extra) {
+    errBox.textContent = 'Add a detail first — an answer to a question above, or anything else you noticed.';
+    errBox.hidden = false;
+    return;
+  }
+  const prev = currentDiagnosis;
+  const prevDiag = prev.result && (prev.result.diagnosis || prev.result);
+  const combinedSymptoms = prev.symptoms + ' Follow-up detail: ' + extra;
+  $('diagnosisResult').hidden = true;
+  $('diagnosisLoading').hidden = false;
+  setLoading($('diagnosisLoading'), DIAGNOSIS_LOADING_MSGS);
+  window.scrollTo(0, 0);
+  try {
+    const result = await requestDiagnosis({
+      category: prev.category,
+      symptoms: combinedSymptoms,
+      unitInfo: prev.unitInfo,
+      photo: null,
+      priorDiagnosis: prevDiag ? {
+        topIssue: prevDiag.likelyIssues && prevDiag.likelyIssues[0] ? prevDiag.likelyIssues[0].issue : '',
+        severity: prevDiag.severity ? prevDiag.severity.headline : '',
+      } : null,
+    });
+    clearLoading();
+    const diagTop = result && (result.diagnosis || result);
+    currentDiagnosis = { category: prev.category, symptoms: combinedSymptoms, unitInfo: prev.unitInfo, result };
+    saveRepair({
+      category: prev.category,
+      symptoms: combinedSymptoms,
+      unitInfo: prev.unitInfo,
+      kind: 'diagnosis',
+      result,
+      topIssue: diagTop && diagTop.likelyIssues && diagTop.likelyIssues[0]
+        ? (diagTop.likelyIssues[0].issue || '')
+        : '',
+    });
+    renderResult(result);
+  } catch (err) {
+    clearLoading();
+    $('diagnosisLoading').hidden = true;
+    $('diagnosisResult').hidden = false;
+    errBox.textContent = friendlyError(err);
+    errBox.hidden = false;
+  }
+});
 
 function escapeHtml(s) {
   const div = document.createElement('div');
