@@ -1,0 +1,28 @@
+-- Revoke anonymous EXECUTE on the AI-handoff usage trigger function
+-- (2026-10-17)
+--
+-- Problem: public.log_ai_handoff_usage() was created by
+-- 20261013060000_ai_handoff_usage_counting.sql with Postgres' default
+-- PUBLIC EXECUTE grant. It is a SECURITY DEFINER trigger function that
+-- only ever runs from the ai_handoff_tasks counting triggers — nothing
+-- calls it directly — yet the default grant left it executable by the
+-- anon role via /rest/v1/rpc/log_ai_handoff_usage.
+--
+-- Supabase's security advisor flagged it as
+-- anon_security_definer_function_executable, which is an unreviewed lint
+-- in supabase/acceptance/production-policy.json, so the daily Verify
+-- Supabase acceptance workflow failed Oct 15, 16, and 17 on exactly
+-- this check (replicated locally 2026-10-17: 33 pass / 1 fail / 3 warn).
+--
+-- Fix: trigger functions do not need caller EXECUTE grants (the trigger
+-- system invokes them), so revoking PUBLIC and anon changes nothing for
+-- the counting triggers. authenticated and service_role keep their
+-- explicit grants.
+--
+-- Already applied live 2026-10-17 via the Management API and verified:
+-- proacl = {postgres=X, authenticated=X, service_role=X},
+-- has_function_privilege('anon', ..., 'EXECUTE') = false, and the
+-- advisor no longer lists the function under the anon lint (the
+-- authenticated lint remains and is reviewed in the policy).
+
+REVOKE EXECUTE ON FUNCTION public.log_ai_handoff_usage() FROM PUBLIC, anon;
