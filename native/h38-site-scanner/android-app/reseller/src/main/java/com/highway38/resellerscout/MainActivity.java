@@ -87,7 +87,7 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " H38DealsAndroid/3.2.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " H38DealsAndroid/3.2.1");
 
         NativeBridge bridge = new NativeBridge();
         webView.addJavascriptInterface(bridge, "AndroidH38Deals");

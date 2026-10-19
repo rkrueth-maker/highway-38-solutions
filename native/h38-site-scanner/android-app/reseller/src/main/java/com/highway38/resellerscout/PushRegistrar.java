@@ -43,8 +43,12 @@ public final class PushRegistrar {
             "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-scout-push";
     // Browser-safe publishable key (already embedded in the public shell page;
     // it identifies the project, it is not a secret).
+    // v3.2.1 fix: the v3.2.0 build shipped a stale key from another project
+    // here, so the Supabase gateway rejected every register_device call with
+    // HTTP 401 "Invalid API key" and no device could ever register. This must
+    // be the live project key — the same one the shell page embeds.
     private static final String PUBLISHABLE_KEY =
-            "sb_publishable_CU5YZApPOiiCGC4S7TBzAg_WhbC__nM";
+            "sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1";
 
     private static final ExecutorService IO = Executors.newSingleThreadExecutor();
 

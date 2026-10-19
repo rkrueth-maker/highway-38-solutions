@@ -1,5 +1,12 @@
-name: H38 Deals v3.2.0 native FCM release
+name: H38 Deals v3.2.1 native FCM release
 
+# v3.2.1 (2026-10-19) is a one-line hotfix on v3.2.0: PushRegistrar shipped
+# a stale publishable key from another project, so the Supabase gateway
+# rejected every register_device call with HTTP 401 and no phone could ever
+# register for deal alerts. v3.2.1 embeds the live project key (the same one
+# the shell page uses) and bumps versionCode to 344 so it installs over
+# 3.2.0 in place (same persisted signing key).
+#
 # v3.2.0 adds native Firebase Cloud Messaging push to the H38 Deals app so
 # Scout penny/resale deal alerts buzz the phone from the Deals app itself
 # (the app WebView has no Web Push — see h38-scout-push register_device).
@@ -122,19 +129,19 @@ jobs:
           JSON
           echo "Stub google-services.json written (fake project h38-deals-stub-compile-only)."
 
-      - name: Validate the frozen v3.2.0 source
+      - name: Validate the frozen v3.2.1 source
         working-directory: source/native/h38-site-scanner/android-app
         run: |
           set -euo pipefail
-          grep -F "versionCode 343" reseller/build.gradle
-          grep -F "versionName '3.2.0'" reseller/build.gradle
+          grep -F "versionCode 344" reseller/build.gradle
+          grep -F "versionName '3.2.1'" reseller/build.gradle
           grep -F "id 'com.google.gms.google-services'" reseller/build.gradle
           grep -F "com.google.firebase:firebase-messaging" reseller/build.gradle
           grep -F "H38_DEALS_NATIVE_PUSH_V320" reseller/src/main/java/com/highway38/resellerscout/MainActivity.java
           grep -F "H38DealsMessagingService" reseller/src/main/AndroidManifest.xml
           grep -F "android.permission.POST_NOTIFICATIONS" reseller/src/main/AndroidManifest.xml
           grep -F "register_device" reseller/src/main/java/com/highway38/resellerscout/PushRegistrar.java
-          echo "Frozen v3.2.0 native-push source: OK"
+          echo "Frozen v3.2.1 native-push source: OK"
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -166,13 +173,13 @@ jobs:
           apk=$(find reseller/build/outputs/apk/owner -type f -name '*.apk' -print -quit)
           test -n "$apk" || { echo "Owner APK was not produced"; exit 1; }
           mkdir -p "$GITHUB_WORKSPACE/verified"
-          cp "$apk" "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk"
-          final="$GITHUB_WORKSPACE/verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk"
+          cp "$apk" "$GITHUB_WORKSPACE/verified/H38-Deals-3.2.1-COMPILE-ONLY-STUB-FIREBASE.apk"
+          final="$GITHUB_WORKSPACE/verified/H38-Deals-3.2.1-COMPILE-ONLY-STUB-FIREBASE.apk"
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$aapt" dump badging "$final" | tee /tmp/badging.txt
           grep -F "package: name='com.highway38.resellerscout.owner'" /tmp/badging.txt
-          grep -F "versionCode='343'" /tmp/badging.txt
-          grep -F "versionName='3.2.0'" /tmp/badging.txt
+          grep -F "versionCode='344'" /tmp/badging.txt
+          grep -F "versionName='3.2.1'" /tmp/badging.txt
           grep -F "application-label:'H38 Deals'" /tmp/badging.txt
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$final" | tee /tmp/certs.txt
           grep -F "Verified using v2 scheme (APK Signature Scheme v2): true" /tmp/certs.txt
@@ -180,13 +187,13 @@ jobs:
           grep -a -F "H38_DEALS_NATIVE_PUSH_V320" /tmp/all.dex >/dev/null || { echo "Native push marker missing from dex"; exit 1; }
           grep -a -F "H38DealsMessagingService" /tmp/all.dex >/dev/null || { echo "Messaging service missing from dex"; exit 1; }
           grep -a -F "com/google/firebase/messaging" /tmp/all.dex >/dev/null || { echo "Firebase Messaging missing from dex"; exit 1; }
-          echo "COMPILE GATE PASSED: v3.2.0 native-push source compiles and packages. Stub Firebase + ephemeral key: NEVER install this APK."
+          echo "COMPILE GATE PASSED: v3.2.1 native-push source compiles and packages. Stub Firebase + ephemeral key: NEVER install this APK."
 
       - name: Publish the compile-gate APK (proof only)
         uses: actions/upload-artifact@v4
         with:
-          name: H38-Deals-3.2.0-COMPILE-ONLY-do-not-install
-          path: verified/H38-Deals-3.2.0-COMPILE-ONLY-STUB-FIREBASE.apk
+          name: H38-Deals-3.2.1-COMPILE-ONLY-do-not-install
+          path: verified/H38-Deals-3.2.1-COMPILE-ONLY-STUB-FIREBASE.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -288,7 +295,7 @@ jobs:
           set -euo pipefail
           mkdir -p blocked
           {
-            echo "H38 Deals 3.2.0 release is BLOCKED — no APK was published."
+            echo "H38 Deals 3.2.1 release is BLOCKED — no APK was published."
             echo
             if [ "${{ steps.cfg.outputs.present }}" != "true" ]; then
               echo "Missing: a Firebase project for the Deals app."
@@ -318,7 +325,7 @@ jobs:
         if: steps.cfg.outputs.present != 'true' || steps.sign.outputs.mode == 'blocked'
         uses: actions/upload-artifact@v4
         with:
-          name: H38-Deals-3.2.0-RELEASE-BLOCKED
+          name: H38-Deals-3.2.1-RELEASE-BLOCKED
           path: blocked/RELEASE_BLOCKED.txt
           if-no-files-found: error
           retention-days: 30
@@ -361,14 +368,14 @@ jobs:
           apk=$(find reseller/build/outputs/apk/owner -type f -name '*.apk' -print -quit)
           test -n "$apk" || { echo "Owner APK was not produced"; exit 1; }
           mkdir -p "$GITHUB_WORKSPACE/verified"
-          if [ "$SIGN_MODE" = "fresh" ]; then name="H38-Deals-3.2.0-FRESH-KEY-REINSTALL-REQUIRED.apk"; else name="H38-Deals-3.2.0.apk"; fi
+          if [ "$SIGN_MODE" = "fresh" ]; then name="H38-Deals-3.2.1-FRESH-KEY-REINSTALL-REQUIRED.apk"; else name="H38-Deals-3.2.1.apk"; fi
           cp "$apk" "$GITHUB_WORKSPACE/verified/$name"
           final="$GITHUB_WORKSPACE/verified/$name"
           aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
           "$aapt" dump badging "$final" | tee /tmp/badging.txt
           grep -F "package: name='com.highway38.resellerscout.owner'" /tmp/badging.txt
-          grep -F "versionCode='343'" /tmp/badging.txt
-          grep -F "versionName='3.2.0'" /tmp/badging.txt
+          grep -F "versionCode='344'" /tmp/badging.txt
+          grep -F "versionName='3.2.1'" /tmp/badging.txt
           grep -F "application-label:'H38 Deals'" /tmp/badging.txt
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$final" | tee /tmp/certs.txt
           grep -F "Verified using v2 scheme (APK Signature Scheme v2): true" /tmp/certs.txt
@@ -386,13 +393,13 @@ jobs:
           unzip -p "$final" 'resources.arsc' > /tmp/resources.arsc || true
           grep -a -F "$FIREBASE_PROJECT" /tmp/resources.arsc >/dev/null || { echo "Firebase project id not embedded in APK resources"; exit 1; }
           sha256sum "$final" | tee "$GITHUB_WORKSPACE/verified/$name.sha256"
-          echo "RELEASE ACCEPTED: H38 Deals 3.2.0 (versionCode 343), Firebase project $FIREBASE_PROJECT, signing mode $SIGN_MODE"
+          echo "RELEASE ACCEPTED: H38 Deals 3.2.1 (versionCode 344), Firebase project $FIREBASE_PROJECT, signing mode $SIGN_MODE"
 
       - name: Publish the release APK
         if: steps.cfg.outputs.present == 'true' && steps.sign.outputs.mode != 'blocked'
         uses: actions/upload-artifact@v4
         with:
-          name: H38-Deals-3.2.0-release
+          name: H38-Deals-3.2.1-release
           path: verified/*
           if-no-files-found: error
           retention-days: 90
