@@ -19,11 +19,24 @@
 //   kept because app_sessions rows are consumed by the Office movement watch
 //   (see supabase/functions/h38-*-web heartbeat notes); only 'Last Seen At'
 //   freshness matters there, but 'Ended At' is preserved for parity.
+//
+// 2026-10-19 fix (measured live, 9/9 tenant x viewport combos):
+// - Repeat beats answered HTTP 409 (23505): the merge-duplicates POST named
+//   no on_conflict target, so PostgREST arbitrated on the primary key while
+//   the body's identity is the composite unique constraint
+//   (business_id, collection, record_key) — 'Last Seen At' never advanced
+//   past the first beat. Both writes now pass
+//   ?on_conflict=business_id,collection,record_key.
+// - The close write answered HTTP 400 (42P10): on_conflict=record_key alone
+//   matches no unique constraint, so 'Ended At' never persisted.
+// - 'Started At' is captured once per tab session; with upserts working it
+//   would otherwise drift to the latest beat on every merge.
 
 const CFG = window.H38_HEARTBEAT || {};
 const APP = CFG.app || 'office';
 const SESSION_KEY = 'h38-heartbeat-session';
-const BUILD = '20261013-fix-sweep-1';
+const STARTED_KEY = 'h38-heartbeat-started-at';
+const BUILD = '20261019-heartbeat-upsert-1';
 
 function getSessionId(){
   try {
@@ -31,6 +44,14 @@ function getSessionId(){
     if(!id){ id = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2,9); sessionStorage.setItem(SESSION_KEY, id); }
     return id;
   } catch(e){ return 'sess-' + Date.now(); }
+}
+
+function getStartedAt(){
+  try {
+    let started = sessionStorage.getItem(STARTED_KEY);
+    if(!started){ started = new Date().toISOString(); sessionStorage.setItem(STARTED_KEY, started); }
+    return started;
+  } catch(e){ return new Date().toISOString(); }
 }
 
 async function getToken(){
@@ -63,7 +84,7 @@ function sessionBody(patch){
       'App': APP,
       'User Email': user.email || '',
       'User ID': user.id || '',
-      'Started At': new Date().toISOString(),
+      'Started At': getStartedAt(),
       'Last Seen At': new Date().toISOString(),
     }, patch || {}),
   };
@@ -84,7 +105,7 @@ async function writeSession(patch){
   const token = await getToken();
   if(!token) return false;
   try{
-    await fetch(sb.url + '/rest/v1/business_records', {
+    await fetch(sb.url + '/rest/v1/business_records?on_conflict=business_id,collection,record_key', {
       method: 'POST',
       headers: authHeaders(sb, token),
       body: JSON.stringify(sessionBody(patch)),
@@ -124,7 +145,7 @@ window.addEventListener('beforeunload', ()=>{
   getToken().then(token=>{
     if(!token) return;
     try{
-      fetch(sb.url + '/rest/v1/business_records?on_conflict=record_key', {
+      fetch(sb.url + '/rest/v1/business_records?on_conflict=business_id,collection,record_key', {
         method: 'POST',
         headers: authHeaders(sb, token),
         body: JSON.stringify(sessionBody({ 'Ended At': new Date().toISOString(), 'Last Seen At': new Date().toISOString() })),

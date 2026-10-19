@@ -112,6 +112,20 @@ hydrateLocalStartup=async function(options={}){
       setFastBusinessId(selected?.businessId||'');
     }catch(error){console.warn(error.message);}
   }
+  if(urlBusinessKey&&!navigator.onLine){
+    // Offline with a tenant link (measured 2026-10-19): the bridge cannot
+    // resolve the key, and state.businessId stays empty, so loadCached below
+    // bailed and a fully cached, still-authorized tenant hit the sign-in
+    // gate. Map the key to the business id of the cached startup pack that
+    // carries the same key. loadCached re-validates user scope, active
+    // status, authorization freshness and the key itself before anything
+    // paints — the URL key stays authoritative, nothing is adopted blind.
+    try{
+      const packs=await withStartupTimeout(window.H38DB?.all?.('snapshots'),'resolving offline business key');
+      const match=(packs||[]).find(pack=>String(pack?.business?.businessKey||'').toLowerCase()===urlBusinessKey.toLowerCase());
+      if(match?.business?.businessId)setFastBusinessId(match.business.businessId);
+    }catch(error){console.warn(error.message);}
+  }
   // Online startup may use cached preferences/selection, but never paints cached business records.
   // Keep the startup cover up until the secure gateway returns the authoritative snapshot.
   if(navigator.onLine&&allowOnline)return false;
