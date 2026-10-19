@@ -319,6 +319,14 @@
         <label>What's it doing (or not doing)?</label>
         <textarea id="symptomInput" rows="4" placeholder="e.g. Won't start, just clicks when I turn the key"></textarea>
       </div>
+      <div class="input-group" id="symptomChipsWrap" hidden>
+        <label>Common problems <small>(tap one to start, then add your details)</small></label>
+        <div class="chip-row" id="symptomChips"></div>
+      </div>
+      <div class="input-group" id="garageChipsWrap" hidden>
+        <label>From My Garage <small>(tap to fill in Make / Model)</small></label>
+        <div class="chip-row" id="garageChips"></div>
+      </div>
       <div class="input-group">
         <label>Make / Model <small>(optional)</small></label>
         <input type="text" id="unitInfo" placeholder="e.g. 2018 Honda Rancher 420">
@@ -344,6 +352,8 @@
           <h2>What This Looks Like</h2>
           <div id="identifiedItem"></div>
         </div>
+        <div id="severityBox" hidden></div>
+        <div id="difficultyBox" hidden></div>
         <h2>Likely Issues</h2>
         <div id="issuesList"></div>
         <h2>What to Check</h2>
@@ -354,6 +364,16 @@
         <div id="estimateBox"></div>
         <h2>Parts</h2>
         <div id="partsList"></div>
+        <div id="followUpBox" hidden>
+          <h2>Still Not Sure?</h2>
+          <div id="followUpQuestions"></div>
+          <div class="input-group">
+            <label>Add more detail</label>
+            <textarea id="refineInput" rows="3" placeholder="Answer a question above, or add anything you noticed — sounds, smells, when it happens..."></textarea>
+          </div>
+          <p id="refineError" class="error" hidden></p>
+          <button id="refineBtn" class="secondary-btn">Add Detail &amp; Re-check →</button>
+        </div>
         <button id="newDiagnosisBtn" class="primary-btn">Start Over</button>
       </div>
     </section>
