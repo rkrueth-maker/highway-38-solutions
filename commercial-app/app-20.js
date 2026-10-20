@@ -114,7 +114,7 @@ function renderTierQuotePreview(){
     '<footer class="quote-document-footer"><strong>Highway 38 Solutions</strong><span>'+H38_PUBLIC_EMAIL+'</span></footer>'+
   '</article>';
   $('backToQuoteFromPreview').onclick=renderQuotes;
-  $('printQuoteButton').onclick=()=>window.print();
+  $('printQuoteButton').onclick=()=>{if(window.H38_SAFE_QUOTE_PRINT&&typeof window.H38_SAFE_QUOTE_PRINT.print==='function')window.H38_SAFE_QUOTE_PRINT.print();else window.print();};
 }
 function renderQuotePreview(){
   const row=h38CurrentQuoteRecord();
