@@ -107,7 +107,7 @@
       './tasks-page.js?build=20261011-phase4-1',
     ];
     const PAGE_SCHEDULE = [
-      './guided-schedule.js?build=20261011-phase3-1',
+      './guided-schedule.js?build=20261020-ws4-schedule-1',
       './plow-flow.js?build=20261011-plow-flow-1',
     ];
     const PAGE_MESSAGES = [
