@@ -192,7 +192,7 @@ function runJobCommand(command,job,context){
   preferredJobId=recordId(job,'Job ID','jobId');
   if(command==='site'||command==='field'){startSiteVisit(text(value(job,'Customer ID','customerId')),recordId(latest(context?.quotes||[]),'Quote ID','quoteId'));return;}
   if(command==='quote'){quoteForJob(job,context);return;}
-  if(command==='schedule'){openPageSafe('schedule');return;}
+  if(command==='schedule'){window.__h38ScheduleJobIntent=preferredJobId;openPageSafe('schedule');return;}
   if(command==='money'){const stage=upper(context?.stage),completeNoInvoice=upper(value(job,'Status','status'))==='COMPLETE'&&!(context?.invoices||[]).length;if((stage==='INVOICE'||completeNoInvoice)&&window.H38Flow?.startInvoiceFromJob)window.H38Flow.startInvoiceFromJob(preferredJobId);else moneyForJob(preferredJobId);return;}
   if(command==='files'){openPageSafe('documents');return;}
   if(command==='messages'){openPageSafe('messages');return;}

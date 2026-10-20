@@ -912,9 +912,6 @@ function renderOwnerControls(){
 
   return `
     <div class="grid">
-      <section class="card span12">
-        <p class="muted">Turn modules and features on or off for this business. Off means gone — no clutter, no dead ends. Changes apply immediately.</p>
-      </section>
       ${setupDetails(renderMachineShopCard(),'Machine Shop')}
       ${setupDetails(renderCustomerPortalCard(),'Customer portal')}
       ${setupDetails(renderOnlinePaymentsCard(),'Online payments (Stripe)')}
