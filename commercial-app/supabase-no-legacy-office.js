@@ -200,13 +200,13 @@
     if (!document.querySelector('link[data-h38-personal-assistant]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = './personal-assistant.css?build=20261013-desktop-sleekness-1';
+      link.href = './personal-assistant.css?build=20261020-myhank-settings-1';
       link.dataset.h38PersonalAssistant = '1';
       document.head.appendChild(link);
     }
     if (!window.H38_PERSONAL_ASSISTANT && !document.querySelector('script[data-h38-personal-assistant]')) {
       const script = document.createElement('script');
-      script.src = './personal-assistant.js?build=20261013-desktop-sleekness-1';
+      script.src = './personal-assistant.js?build=20261020-myhank-settings-1';
       script.dataset.h38PersonalAssistant = '1';
       document.body.appendChild(script);
     }
@@ -216,13 +216,13 @@
     if (!document.querySelector('link[data-h38-office-polish]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = './office-polish.css?build=20261013-icon-session-bands-1';
+      link.href = './office-polish.css?build=20261020-myhank-settings-1';
       link.dataset.h38OfficePolish = '1';
       document.head.appendChild(link);
     }
     if (!window.H38_OFFICE_POLISH && !document.querySelector('script[data-h38-office-polish]')) {
       const script = document.createElement('script');
-      script.src = './office-polish.js?build=20261013-icon-session-bands-1';
+      script.src = './office-polish.js?build=20261020-myhank-settings-1';
       script.dataset.h38OfficePolish = '1';
       document.body.appendChild(script);
     }

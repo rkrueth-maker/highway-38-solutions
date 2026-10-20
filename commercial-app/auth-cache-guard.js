@@ -38,7 +38,7 @@ function h38BootstrapAiTeam(){
   if(document.querySelector('script[data-h38-ai-team-bootstrap]'))return false;
   const script=document.createElement('script');script.src=`./ai-team-orchestrator.js?build=${H38_AI_TEAM_BUILD}`;script.async=false;script.dataset.h38AiTeamBootstrap='1';script.addEventListener('load',h38BootstrapOwnerCommandAuthority,{once:true});(document.head||document.documentElement).appendChild(script);return true;
 }
-function h38BootstrapAiTeamWhenNeeded(){if(String(window.state?.page||'').trim().toLowerCase()!=='assistant')return false;const loaded=h38BootstrapAiTeam();h38BootstrapOwnerCommandAuthority();return loaded;}
+function h38BootstrapAiTeamWhenNeeded(){const h38BootPage=String(window.state?.page||'').trim().toLowerCase();if(h38BootPage!=='assistant'&&h38BootPage!=='settings')return false;const loaded=h38BootstrapAiTeam();h38BootstrapOwnerCommandAuthority();return loaded;}
 
 async function h38RefreshTabletInstallRuntimeOnce(){
   if(!h38TabletLike()||!navigator.onLine||!('caches' in window))return false;

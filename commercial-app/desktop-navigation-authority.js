@@ -5,12 +5,12 @@ const PROFITABILITY_BUILD='20261013-startup-dedupe-1';
 const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
 const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
-const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant','settings','memberships']);
+const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','settings','memberships']);
 const NAV_GROUPS=Object.freeze([
   Object.freeze(['Daily work',Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field'])]),
   Object.freeze(['Money & accounting',Object.freeze(['money','accounting','payroll','tax','reports'])]),
   Object.freeze(['Team & assets',Object.freeze(['people','inventory','fleet','documents'])]),
-  Object.freeze(['Business',Object.freeze(['social','memberships','controls','ai','assistant','settings'])])
+  Object.freeze(['Business',Object.freeze(['social','memberships','controls','ai','settings'])])
 ]);
 const NAV_COLLAPSE_STORAGE_PREFIX='h38-desktop-nav-collapsed-groups-v1';
 function navCollapseStorageKey(){
@@ -108,7 +108,6 @@ function canonicalOfficePages(){
   const defs=definitions(),available=new Set(source);
   COMPLETE_OFFICE_ORDER.forEach(page=>{if(defs[page])available.add(page);});
   if(defs.meetings)available.add('meetings');
-  if(defs.assistant)available.add('assistant');
   const ordered=COMPLETE_OFFICE_ORDER.filter(page=>available.has(page));
   source.forEach(page=>{if(page!=='measure'&&!ordered.includes(page))ordered.push(page);});
   return Array.from(new Set(ordered));
@@ -121,7 +120,6 @@ function allowedPages(){
   }
   const role=roleName(user);
   return canonicalOfficePages().filter(page=>{
-    if(page==='assistant')return role!=='staff';
     const requirements=OFFICE_REQUIREMENTS[page];
     return !requirements||requirements.some(capability=>can(user,capability));
   });

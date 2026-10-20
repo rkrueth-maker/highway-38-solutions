@@ -442,7 +442,7 @@ function startInvoiceFromJob(jobId){
  * secondaries + <details> More. String-returning like pageHead; actions
  * {label,id?,handler?}|{label,page}|{label,focus}; id-only actions keep
  * the renderer's own id wiring (#newQuoteButton convention). */
-function headerActions(o){const l=[];if(o&&o.primary)l.push({...o.primary,primary:true});((o&&o.secondary)||[]).slice(0,2).forEach(a=>l.push({...a}));((o&&o.more)||[]).forEach(a=>l.push({...a,more:true}));return l;}
+function headerActions(o){const l=[];if(o&&o.primary)l.push({...o.primary,primary:true});((o&&o.secondary)||[]).slice(0,2).forEach(a=>l.push({...a}));((o&&o.more)||[]).forEach(a=>l.push({...a,more:true}));try{const pa=window.H38_PERSONAL_ASSISTANT;if(pa&&typeof pa.headerMoreAction==='function'){const extra=pa.headerMoreAction(o);if(extra&&extra.label&&!l.some(a=>a&&a.label===extra.label))l.push({...extra,more:true});}}catch(_){}return l;}
 function headerSignature(o){return [text(o&&o.page),text(o&&o.purpose),text(o&&o.primary&&o.primary.label),text(o&&o.status&&o.status.label)].join('|');}
 function screenHeader(o){
   o=o||{};const page=text(o.page);let title=text(o.title);

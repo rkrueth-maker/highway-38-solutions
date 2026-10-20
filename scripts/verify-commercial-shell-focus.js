@@ -16,10 +16,10 @@ check(/const OFFICE_PAGES=\[[^\]]*'quotes'[^\]]*\]/.test(app01),'Office pages mu
 const officeMatch=app01.match(/const OFFICE_PAGES=\[([^\]]*)\]/);
 check(officeMatch&&!officeMatch[1].includes("'measure'"),'Measure must not be a top-level regular Office page.');
 check(/quote:\['quotes'\]/.test(app01),'Standalone Quote Builder must expose only the shared Quotes workspace.');
-check(app01.includes("$('globalAiButton').onclick=openGlobalAi"),'Global H38 AI launcher must be bound.');
+check(!app01.includes("$('globalAiButton').onclick=openGlobalAi"),'The retired floating launcher must not be bound unguarded (My Hank moved into Settings, 2026-10-20).');
 check(app06.includes('id="quoteMeasureButton"')&&app06.includes("$('quoteMeasureButton').onclick=renderMeasure"),'Quote Builder must open Photos & Measure internally.');
 check(app07.includes("state.page==='quotes'")&&app07.includes('id="backToQuoteButton"'),'Measurement workspace must return to the active quote without changing navigation.');
-check(index.includes('id="globalAiButton"')&&index.includes('id="globalAiDialog"'),'Commercial shell must host the persistent H38 AI drawer.');
+check(!index.includes('id="globalAiButton"')&&index.includes('id="globalAiDialog"'),'Commercial shell must not carry the retired floating launcher element; the H38 AI drawer stays hosted.');
 check(index.includes('ai-drawer.css?build='),'Commercial shell must load the H38 AI drawer stylesheet.');
 check(app16.includes('function openGlobalAi()')&&app16.includes('function aiContext()')&&app16.includes('context,aiConversationId'),'H38 AI drawer must send active page and quote context.');
 check(drawerCss.includes('dialog.ai-drawer')&&drawerCss.includes('@media(max-width:760px)'),'H38 AI drawer must be responsive.');

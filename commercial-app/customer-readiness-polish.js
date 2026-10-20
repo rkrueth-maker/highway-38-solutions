@@ -46,7 +46,7 @@ function route(action,customerId=''){
   if(action==='receptionist'){window.H38_COMMUNICATIONS?.open({tab:'receptionist'});return;}
   if(action==='job'){openPage('work');return;}
   if(action==='expense'||action==='invoice'){openPage('money');return;}
-  if(action==='assistant'){document.getElementById('globalAiButton')?.click();return;}
+  if(action==='assistant'){if(window.H38_PERSONAL_ASSISTANT?.open)window.H38_PERSONAL_ASSISTANT.open();else openPage('settings');return;}
 }
 function quickDialog(){
   let dialog=document.getElementById('h38QuickCreateDialog');
@@ -85,7 +85,7 @@ function activityLabel(item){
   const cid=text(value(row,'Customer ID','customerId'));return`${labels[item.collection]} · ${cid?customerName(cid):title}${title&&cid?` — ${title}`:''}`;
 }
 function assistantPrompt(command){
-  document.getElementById('globalAiButton')?.click();setTimeout(()=>{const input=document.querySelector('#paCommandForm [name="command"]');if(input){input.value=command;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();}},80);
+  if(window.H38_PERSONAL_ASSISTANT?.open)window.H38_PERSONAL_ASSISTANT.open();else openPage('settings');setTimeout(()=>{const input=document.querySelector('#paCommandForm [name="command"]');if(input){input.value=command;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();}},350);
 }
 function enhanceToday(){
   if(!signedIn()){clearSignedOutPolish();return;}

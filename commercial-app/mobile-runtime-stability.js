@@ -9,12 +9,12 @@ const OWNER_MORE_GROUPS=[
   ['Work',['work','quotes','field','meetings','messages']],
   ['Money',['money','accounting','payroll','tax']],
   ['Records & Equipment',['documents','inventory','fleet','people']],
-  ['Office',['reports','social','controls','ai','assistant','settings']]
+  ['Office',['reports','social','controls','ai','settings']]
 ];
 const FIELD_MORE_GROUPS=[
   ['Work',['field','meetings','documents','inventory','fleet']],
   ['Team',['people']],
-  ['Office',['customers','quotes','money','accounting','payroll','tax','reports','social','controls','ai','assistant','settings']]
+  ['Office',['customers','quotes','money','accounting','payroll','tax','reports','social','controls','ai','settings']]
 ];
 let resizeTimer=0;
 let interactionUntil=0;

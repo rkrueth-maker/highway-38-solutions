@@ -154,13 +154,7 @@ function autoOpenInstallHelp(){
   return true;
 }
 function normalizeSharedToolLabels(){
-  const launcher=document.getElementById('globalAiButton');
-  if(launcher){
-    const displayName=assistantDisplayName();
-    if(launcher.getAttribute('aria-label')!==displayName)launcher.setAttribute('aria-label',displayName);
-    if(launcher.getAttribute('title')!==displayName)launcher.setAttribute('title',displayName);
-    launcher.querySelectorAll('.h38-floating-assistant-label,.ai-launcher-label').forEach(label=>{if(text(label.textContent)!==displayName)label.textContent=displayName;});
-  }
+  // #globalAiButton retired 2026-10-20 (My Hank moved into Settings); nothing to relabel.
   const aiDialog=document.getElementById('globalAiDialog');if(aiDialog&&aiDialog.getAttribute('aria-label')!=='Assistant')aiDialog.setAttribute('aria-label','Assistant');
   const voice=document.getElementById('voiceButton');if(voice&&voice.getAttribute('aria-label')!=='Talk to Assistant')voice.setAttribute('aria-label','Talk to Assistant');
   if(Array.isArray(window.PAGE_DEFS?.ai)&&window.PAGE_DEFS.ai[1]!=='AI')window.PAGE_DEFS.ai=['','AI'];
