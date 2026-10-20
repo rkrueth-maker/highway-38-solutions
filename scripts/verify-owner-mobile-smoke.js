@@ -100,9 +100,9 @@ requireText(polish,'quoteHistoryCollapse:true','Quote history remains collapsed'
 requireText(polish,'unavailableRoutesHidden:true','unavailable routes are suppressed');
 
 requireText(index,'mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1','native scroll authority is loaded');
-requireText(index,'mobile-runtime-stability.js?build=20261013-messages-entry-1','mobile stability layer loads after native scroll authority');
+requireText(index,'mobile-runtime-stability.js?build=20261020-myhank-settings-1','mobile stability layer loads after native scroll authority');
 const nativeScrollAt=index.indexOf('mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1');
-const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20261013-messages-entry-1');
+const stabilityAt=index.indexOf('mobile-runtime-stability.js?build=20261020-myhank-settings-1');
 if(nativeScrollAt>=0&&stabilityAt>nativeScrollAt)pass('native scroll authority installs before mobile stability');else fail('native scroll authority installs before mobile stability');
 requireText(nativeScroll,"main.dataset.h38ManualTouchScroll='2'",'manual touch fallback is prevented before attachment');
 requireText(nativeScroll,'nativeScrollOnly:true','native Office scroll is single authority');
@@ -147,7 +147,7 @@ requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final rea
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
 requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20261007-visual-run2-a-2'",'runtime loader pins final phone-first build');
-requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261013-my-hank-rename-1'",'runtime loader pins the shared tenant-neutral quick-action release');
+requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261020-myhank-settings-1'",'runtime loader pins the shared tenant-neutral quick-action release');
 requireText(ownerQuickActions,'personalAssistantUnderPlus:false','generic mobile + menu excludes Assistant');
 requireText(ownerQuickActions,'globalAssistantCanonical:true','global Assistant is the canonical mobile help launcher');
 requireText(ownerQuickActions,'clockInOutUnderPlusAllViewports:true','Clock In / Out is canonical under + on phone and desktop');

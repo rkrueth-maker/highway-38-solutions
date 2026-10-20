@@ -69,7 +69,7 @@ def test_owner_command_does_not_auto_execute_external_commitments_or_engine_chan
 
 
 def test_owner_ai_polish_explains_action_mode_without_adding_authority():
-    assert "const BUILD='20260924-ai-team-owner-polish-2'" in POLISH
+    assert "const BUILD='20261020-myhank-settings-1'" in POLISH
     assert 'Standard requests preview first' in POLISH
     assert 'Owner command executes supported Office changes with verification and proof' in POLISH
     assert 'Owner commands can act.' in POLISH
@@ -85,7 +85,7 @@ def test_owner_ai_polish_explains_action_mode_without_adding_authority():
 
 def test_supported_office_loads_owner_ai_polish_once():
     assert 'loadAiTeamOwnerPolish' in LOADER
-    assert './ai-team-owner-polish.js?build=20261011-ai-team-owner-polish-2' in LOADER
+    assert './ai-team-owner-polish.js?build=20261020-myhank-settings-1' in LOADER
     assert 'data-h38-ai-team-owner-polish' in LOADER
     assert 'aiTeamOwnerPolish: true' in LOADER
 

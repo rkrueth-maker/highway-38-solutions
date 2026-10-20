@@ -61,7 +61,7 @@ check('snapshot hydration fetches notifications explicitly + idKeys registered',
 
 /* ---- service worker receiving end ---- */
 const sw = read('commercial-app/service-worker.js');
-check('SW cache rolled to owner-notify build', sw.includes("const CACHE_NAME='h38-business-office-20261020-next-level-3'"));
+check('SW cache rolled to owner-notify build', sw.includes("const CACHE_NAME='h38-business-office-20261020-myhank-settings-1'"));
 check('SW precaches the module + css', sw.includes("'./owner-notifications.js'") && sw.includes("'./owner-notifications.css'"));
 check('SW has a push listener + generic notificationclick deep link', sw.includes("addEventListener('push'") && sw.includes('showNotification'));
 

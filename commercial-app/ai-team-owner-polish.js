@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260924-ai-team-owner-polish-2';
+const BUILD='20261020-myhank-settings-1';
 const PREVIOUS_ACCEPTED_BUILD='20260923-ai-team-owner-polish-1';
 const PLATFORM_BUILD='20261013-scout-alerts-office-1';
 const PLATFORM_DEEPEN_BUILD='20261013-icon-session-bands-1';
@@ -19,7 +19,7 @@ function owner(){const user=window.state?.snapshot?.user||{};return user.owner==
 function countsFrom(summary){const current=text(summary?.textContent);return current.split(/\s+·\s+(?:advisory until|standard requests preview first|ai can analyze)/i)[0]||'AI Team ready';}
 function ensureStyle(){if(document.getElementById('h38AiTeamOwnerPolishStyle'))return;const style=document.createElement('style');style.id='h38AiTeamOwnerPolishStyle';style.textContent='.h38-ai-owner-mode{display:inline-flex;align-items:center;gap:5px;margin-left:7px;padding:3px 7px;border-radius:999px;background:#e8f2f7;color:#173f56;font-size:.68rem;font-weight:700;vertical-align:middle}.h38-ai-owner-authority-note{margin:10px 0 0;padding:9px 10px;border:1px solid #d5e2ea;border-radius:10px;background:#fff;font-size:.78rem;line-height:1.35;color:#425d6e}.h38-ai-owner-authority-note strong{color:#173f56}@media(max-width:600px){.h38-ai-owner-authority-note{font-size:.76rem}.h38-ai-owner-mode{display:flex;width:max-content;margin:5px 0 0}}';document.head.appendChild(style);}
 function apply(){
-  if(text(window.state?.page)!=='assistant')return false;
+  if(!document.querySelector('[data-h38-ai-team]'))return false;
   const panel=document.querySelector('[data-h38-ai-team]');
   if(!panel)return false;
   ensureStyle();
