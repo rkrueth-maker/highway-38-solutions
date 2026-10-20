@@ -10,6 +10,12 @@
 .paystub-net{display:flex;justify-content:space-between;align-items:center;background:#f1f5f9;border-radius:8px;padding:10px 14px;font-size:1.1rem;margin-bottom:10px}
 .paystub-disc{margin:0}
 
+/* WS3 stub rows (additive only — print isolation rules unchanged) */
+.paystub-table tr.paystub-addl td{color:#334155}
+.paystub-table tr.paystub-ded td{color:#334155;font-style:italic}
+.paystub-table tr.paystub-reimb td{color:#334155}
+.paystub-contractor{border:1px dashed #94a3b8;border-radius:8px;padding:8px 10px;font-size:.9rem}
+
 /* Paycheck sheets (bank-supplied check-on-top stock) — print only. */
 #h38PayrollCheckPrintRoot{display:none}
 .paycheck-sheet{width:7.5in;color:#111;font-family:Arial,Helvetica,sans-serif}

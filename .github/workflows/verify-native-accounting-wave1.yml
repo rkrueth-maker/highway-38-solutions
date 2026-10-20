@@ -61,5 +61,5 @@ jobs:
       - name: Verify accounting modules are loaded by Office
         run: |
           grep -Fq './accounting-engine.js?build=20261020-payroll-engine-1' commercial-app/h38-script-loader.js
-          grep -Fq './accounting-workspace.js?build=20260927-wave1-accounting-workspace-1' commercial-app/h38-script-loader.js
+          grep -Fq './accounting-workspace.js?build=20261020-reports-launcher-1' commercial-app/h38-script-loader.js
           grep -Fq './accounting-posting-bridge.js?build=20260929-bank-csv-records-2' commercial-app/h38-script-loader.js

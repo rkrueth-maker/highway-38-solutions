@@ -41,7 +41,7 @@ function h38PayStubHTML(business, employee, period, line){
   const confirmed=!!v(period,'Estimates Confirmed Time');
   const snap=v(period,'Tax Config Snapshot');
   const configSource=(snap&&(snap.federal&&snap.federal.source||snap.Sources&&(snap.Sources.federal||snap.Sources.fica)))||'';
-  const row=(label,cur,ytd)=>`<tr><td>${label}</td><td class="r">${money(cur)}</td><td class="r">${money(ytd)}</td></tr>`;
+  const row=(label,cur,ytd,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${label}</td><td class="r">${money(cur)}</td><td class="r">${money(ytd)}</td></tr>`;
   const dedDetail=Array.isArray(v(line,'Deductions Detail'))?v(line,'Deductions Detail'):[];
   const reimb=num(v(line,'Reimbursements'));
   return `<div class="paystub">
@@ -49,22 +49,22 @@ function h38PayStubHTML(business, employee, period, line){
     <div class="r"><strong>Pay Date</strong><br>${esc(dateOnly(v(period,'Pay Date')))}</div></div>
     <div class="paystub-meta"><div><strong>Employee:</strong> ${empName}<br><strong>Filing status:</strong> ${esc(v(employee,'Filing Status')||'Single')}</div>
     <div><strong>Pay period:</strong> ${periodLabel}<br><strong>Pay type:</strong> ${esc(v(employee,'Pay Type')||'Hourly')}</div></div>
-    ${v(line,'Contractor')?'<p class="muted small"><strong>Contractor — 1099 path.</strong> No withholding was taken from this payment.</p>':''}
+    ${v(line,'Contractor')?'<p class="muted small paystub-contractor"><strong>Contractor — 1099 path.</strong> No withholding was taken from this payment.</p>':''}
     <table class="paystub-table"><thead><tr><th>Earnings</th><th class="r">Current</th><th class="r">YTD</th></tr></thead><tbody>
     ${row(`Regular (${num(v(line,'Regular Hours')).toFixed(2)} hrs @ ${money(v(line,'Hourly Rate'))})`,v(line,'Regular Pay'),'') }
     ${num(v(line,'Overtime Hours'))>0?row(`Overtime (${num(v(line,'Overtime Hours')).toFixed(2)} hrs)`,v(line,'Overtime Pay'),'') :''}
     ${num(v(line,'Salary Pay'))>0?row('Salary',v(line,'Salary Pay'),'') :''}
-    ${reimb>0?row('Reimbursements (not taxed)',reimb,''):''}
+    ${reimb>0?row('Reimbursements (not taxed)',reimb,'','paystub-reimb'):''}
     <tr class="total"><td><strong>Gross Pay</strong></td><td class="r"><strong>${money(v(line,'Gross Pay'))}</strong></td><td class="r"><strong>${money(v(line,'YTD Gross'))}</strong></td></tr>
     </tbody></table>
     <table class="paystub-table"><thead><tr><th>Deductions (estimated)</th><th class="r">Current</th><th class="r">YTD</th></tr></thead><tbody>
     ${row('Federal income tax',v(line,'Federal Withholding'),v(line,'YTD Federal'))}
     ${row('Social Security (6.2%)',v(line,'Social Security'),v(line,'YTD SS'))}
     ${row('Medicare (1.45%)',v(line,'Medicare'),v(line,'YTD Medicare'))}
-    ${num(v(line,'Additional Medicare'))>0?row('Additional Medicare (0.9%)',v(line,'Additional Medicare'),''):''}
+    ${num(v(line,'Additional Medicare'))>0?row('Additional Medicare (0.9%)',v(line,'Additional Medicare'),'','paystub-addl'):''}
     ${row('MN state tax',v(line,'State Withholding'),v(line,'YTD State'))}
-    ${num(v(line,'Other Withholding'))>0?row('Other withholding',v(line,'Other Withholding'),''):''}
-    ${dedDetail.map(d=>row(esc(d.name||'Deduction')+(d.kind==='pre-tax'?' (pre-tax)':' (post-tax)'),d.amount,'')).join('')}
+    ${num(v(line,'Other Withholding'))>0?row('Other withholding',v(line,'Other Withholding'),'','paystub-addl'):''}
+    ${dedDetail.map(d=>row(esc(d.name||'Deduction')+(d.kind==='pre-tax'?' (pre-tax)':' (post-tax)'),d.amount,'','paystub-ded')).join('')}
     <tr class="total"><td><strong>Total Deductions</strong></td><td class="r"><strong>${money(v(line,'Total Deductions'))}</strong></td><td class="r"></td></tr>
     </tbody></table>
     <div class="paystub-net"><span><strong>Net Pay</strong></span><span><strong>${money(v(line,'Net Pay'))}</strong></span></div>

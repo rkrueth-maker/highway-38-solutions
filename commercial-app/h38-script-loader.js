@@ -132,7 +132,7 @@
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
-      './accounting-workspace.js?build=20260927-wave1-accounting-workspace-1',
+      './accounting-workspace.js?build=20261020-reports-launcher-1',
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
       // WS3: payroll calc joins the accounting chain (loaded before the
       // bridge pulls in operations-ui) so Reports/accounting surfaces can
@@ -153,7 +153,11 @@
       './cpa-package.js?build=20261011-cpa-package-1',
     ];
     const PAGE_REPORTS = [
-      './reports-section.js?build=20261012-reports-section-2',
+      // WS3 library deps (loader dedupes): engine for R1/R2/R3/R8 ledger
+      // math, operations for R5 jobCost. R6 stays dependency-free.
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      './accounting-operations.js?build=20261002-payroll-approved-period-1',
+      './reports-section.js?build=20261020-reports-library-1',
     ];
     const PAGE_DOCUMENTS = [
       './smart-upload.js?build=20260920-final-real-office-1',
