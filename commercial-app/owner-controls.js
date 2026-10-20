@@ -2,7 +2,7 @@
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261008-inventory-module-1';
+const BUILD='20261020-ws4-header-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -154,6 +154,31 @@ function isModuleVisible(moduleId){
   const visibility=getModuleVisibility();
   return visibility[moduleId]!==false;
 }
+
+/* WS4 nav-scaling predicate (spec §7.2 R1, helper only — the nav
+ * authorities wire it in a later phase). A page is module-visible unless
+ * (a) Owner Controls module visibility hides it, or (b) a server
+ * business_module_settings row for it exists and is not enabled.
+ * Capabilities stay with allowedPages() in the nav renderers; this
+ * predicate covers the moduleSettings + visibility inputs only. */
+const PAGE_SERVER_MODULE_KEYS={inventory:'inventory_enabled',machineShop:'machine_shop',machine_shop:'machine_shop',repairGuide:'repair_guide',vendors:'recommended_vendors'};
+function h38ModuleVisible(pageKey){
+  const key=text(pageKey);
+  if(!key) return true;
+  const visibilityId={work:'jobs',people:'team'}[key]||key;
+  if(MODULES.some(m=>m.id===visibilityId)&&!isModuleVisible(visibilityId)) return false;
+  const serverKey=PAGE_SERVER_MODULE_KEYS[key]||key;
+  const candidates=[serverKey,serverKey+'_enabled'];
+  try{
+    const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+    for(const candidate of candidates){
+      const row=list.find(r=>text(r.moduleKey||r.module_key)===candidate);
+      if(row) return row.enabled===true;
+    }
+  }catch(e){}
+  return true;
+}
+window.H38ModuleVisible=h38ModuleVisible;
 
 // ---- Machine Shop: server-backed tenant setting ----
 // Stored in business_module_settings (module_key='machine_shop', enabled).
@@ -1036,6 +1061,7 @@ window.H38OwnerControls={
   setOwnerNotifyEnabled:setOwnerNotifyEnabled,
   ownerNotifyResolved:ownerNotifyResolved,
   isModuleVisible:isModuleVisible,
+  H38ModuleVisible:h38ModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,
   isCustomerPortalEnabled:isCustomerPortalEnabled,

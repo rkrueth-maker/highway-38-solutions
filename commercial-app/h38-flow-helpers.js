@@ -21,7 +21,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261010-money-flow-1';
+const BUILD='20261020-ws4-header-1';
 const STYLE_ID='h38FlowHelpersStyle';
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -62,7 +62,7 @@ function installStyle(){
 function panelRoot(){
   const main=document.getElementById('mainContent');
   if(!main)return null;
-  const head=main.querySelector('.page-head');
+  const head=main.querySelector('.h38-screen-head, .page-head');
   return{main,anchor:head};
 }
 
@@ -438,8 +438,80 @@ function startInvoiceFromJob(jobId){
   setTimeout(ready,120);
 }
 
+/* WS4 screen header (spec §3): title + purpose + one primary + <=2
+ * secondaries + <details> More. String-returning like pageHead; actions
+ * {label,id?,handler?}|{label,page}|{label,focus}; id-only actions keep
+ * the renderer's own id wiring (#newQuoteButton convention). */
+function headerActions(o){const l=[];if(o&&o.primary)l.push({...o.primary,primary:true});((o&&o.secondary)||[]).slice(0,2).forEach(a=>l.push({...a}));((o&&o.more)||[]).forEach(a=>l.push({...a,more:true}));return l;}
+function headerSignature(o){return [text(o&&o.page),text(o&&o.purpose),text(o&&o.primary&&o.primary.label),text(o&&o.status&&o.status.label)].join('|');}
+function screenHeader(o){
+  o=o||{};const page=text(o.page);let title=text(o.title);
+  if(!title&&page){try{const d=window.PAGE_DEFS||(typeof PAGE_DEFS!=='undefined'?PAGE_DEFS:null);if(d&&d[page])title=text(d[page][1]||d[page][0]);}catch(_){}}
+  const acts=headerActions(o),btn=(a,i)=>`<button type="button" data-h38-header-action="${i}"${a.id?` id="${esc(a.id)}"`:''}${a.hidden?' hidden':''} class="${a.primary?'primary':'secondary'}${a.className?' '+esc(a.className):''}">${esc(a.label)}</button>`;
+  const vis=acts.filter(a=>!a.more),more=acts.filter(a=>a.more);
+  const moreHtml=more.length?`<details class="h38-screen-head__more"><summary>More actions</summary><div class="h38-screen-head__more-menu">${more.map(a=>btn(a,acts.indexOf(a))).join('')}</div></details>`:'';
+  const status=o.status&&text(o.status.label)?`<span class="pill ${esc(text(o.status.kind))}">${esc(o.status.label)}</span>`:'';
+  return `<header class="h38-screen-head page-head" data-h38-page="${esc(page)}" data-h38-header-signature="${esc(headerSignature(o))}"><div class="h38-screen-head__titlerow"><h1>${esc(title)}</h1>${status}</div>${o.purpose?`<p class="h38-screen-head__purpose">${esc(o.purpose)}</p>`:''}<div class="h38-screen-head__actions">${vis.map(a=>btn(a,acts.indexOf(a))).join('')}${moreHtml}</div></header>`;
+}
+function bindScreenHeader(root,o){
+  const scope=root&&root.querySelector?root:document,header=scope.querySelector('.h38-screen-head');
+  if(!header)return null;
+  const acts=headerActions(o);
+  header.querySelectorAll('[data-h38-header-action]').forEach(node=>{
+    const a=acts[Number(node.dataset.h38HeaderAction)];
+    if(!a||node.dataset.h38HeaderBound)return;
+    if(typeof a.handler!=='function'&&!a.page&&!a.focus)return;
+    node.dataset.h38HeaderBound='1';
+    node.addEventListener('click',()=>{
+      try{
+        let r;
+        if(typeof a.handler==='function')r=a.handler();
+        else if(a.page)window.openPage?.(text(a.page));
+        else if(a.focus){const t=document.querySelector(text(a.focus));if(t){t.scrollIntoView?.({behavior:'smooth',block:'center'});(t.querySelector?.('input,select,textarea,button')||t).focus?.({preventScroll:true});}}
+        if(r&&typeof r.catch==='function')r.catch(e=>window.toast?.(e?.message||String(e),true));
+      }catch(e){window.toast?.(e?.message||String(e),true);}
+    });
+  });
+  return header;
+}
+/* Enhancer adoption: swap in the header unless an identical-signature
+ * one is already there (M1 dedupe — never stack two headers). */
+function renderScreenHeader(o){
+  const main=document.getElementById('mainContent');if(!main)return null;
+  const ex=main.querySelector('.h38-screen-head');
+  if(ex&&ex.dataset.h38HeaderSignature===headerSignature(o))return ex;
+  const hold=document.createElement('div');hold.innerHTML=screenHeader(o);
+  const fresh=hold.firstElementChild,old=main.querySelector('.h38-screen-head, .page-head');
+  if(old)old.replaceWith(fresh);else main.prepend(fresh);
+  bindScreenHeader(main,o);return fresh;
+}
+/* Money §5.8: preselect an invoice in #paymentForm, scroll + focus the
+ * amount (startInvoiceFromJob polling pattern when Money is unrendered). */
+function focusPaymentForInvoice(invoiceId){
+  const iid=text(invoiceId);let tries=0;
+  const ready=()=>{
+    const form=document.getElementById('paymentForm');
+    if(!form){
+      if(tries===0&&window.state&&window.state.page!=='money')window.openPage?.('money');
+      if(++tries<40)setTimeout(ready,100);else window.toast?.('Open Money to record the payment.',true);
+      return;
+    }
+    document.querySelector('[data-h38-create="paymentForm"]')?.click();
+    const sel=form.querySelector('[name="invoiceId"]');let ok=false;
+    if(sel&&iid){const opt=Array.from(sel.options||[]).find(x=>text(x.value)===iid);if(opt){sel.value=opt.value;ok=true;sel.dispatchEvent(new Event('change',{bubbles:true}));}}
+    form.scrollIntoView?.({behavior:'smooth',block:'center'});
+    (form.querySelector('[name="amount"]')||sel)?.focus?.({preventScroll:true});
+    if(iid&&!ok)window.toast?.('This invoice has no open balance to pay.',true);
+  };
+  ready();
+}
+
 window.H38Flow=Object.freeze({
   build:BUILD,
+  screenHeader,
+  bindScreenHeader,
+  renderScreenHeader,
+  focusPaymentForInvoice,
   showNextStep,
   ask,
   confirm:confirmFlow,
