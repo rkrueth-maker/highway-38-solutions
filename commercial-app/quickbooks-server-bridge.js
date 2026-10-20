@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260924-qbo-server-bridge-1';
+const BUILD='20261019-qbo-server-bridge-2';
 const ENDPOINT='h38-quickbooks-bridge';
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 let db=null,scheduled=false,statusCache=new Map();
@@ -18,14 +18,6 @@ function client(){
   db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'},global:{headers:{'x-client-info':`h38-qbo-browser-${BUILD}`}}});
   return db;
 }
-async function functionError(error){
-  let detail='';
-  const context=error&&error.context;
-  if(context&&typeof context.clone==='function'){
-    try{const payload=await context.clone().json();detail=text(payload?.error||payload?.message);}catch(_){}
-  }
-  return detail||text(error?.message||error||'QuickBooks request failed.');
-}
 async function invoke(action,extra={}){
   const businessId=text(window.state?.businessId);
   if(!businessId)throw new Error('Open a business before using QuickBooks.');
@@ -33,9 +25,14 @@ async function invoke(action,extra={}){
   if(authError)throw authError;
   const token=auth?.session?.access_token;
   if(!token)throw new Error('Sign in again before using QuickBooks.');
-  if(api.functions&&typeof api.functions.setAuth==='function')api.functions.setAuth(token);
-  const {data,error}=await api.functions.invoke(ENDPOINT,{body:{action,businessId,...extra},headers:{authorization:`Bearer ${token}`,'x-client-info':`h38-qbo-browser-${BUILD}`}});
-  if(error)throw new Error(await functionError(error));
+  // Direct fetch with exactly one Authorization header. Routing this through the
+  // second client's invoke helper merged its default anon-key Authorization
+  // ahead of the user token, so the bridge function received the publishable key
+  // as the bearer and rejected every call as an invalid session (HTTP 401).
+  const response=await fetch(`${cfg.url}/functions/v1/${ENDPOINT}`,{method:'POST',headers:{authorization:`Bearer ${token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':`h38-qbo-browser-${BUILD}`},body:JSON.stringify({action,businessId,...extra})});
+  let data=null;
+  try{data=await response.json();}catch(_){}
+  if(!response.ok)throw new Error(text(data?.error||data?.message||'QuickBooks request failed.'));
   if(!data||data.status!=='PASS')throw new Error(text(data?.error||'QuickBooks request did not complete.'));
   return data;
 }

@@ -36,7 +36,7 @@ const CFG = window.H38_HEARTBEAT || {};
 const APP = CFG.app || 'office';
 const SESSION_KEY = 'h38-heartbeat-session';
 const STARTED_KEY = 'h38-heartbeat-started-at';
-const BUILD = '20261019-heartbeat-upsert-1';
+const BUILD = '20261019-qb-bridge-auth-1';
 
 function getSessionId(){
   try {
