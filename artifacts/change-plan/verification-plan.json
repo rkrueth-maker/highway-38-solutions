@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-20T08:45:43.375Z",
+  "generatedAt": "2026-10-20T08:46:36.986Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
@@ -8,6 +8,9 @@
     ".github/workflows/verify-payroll-ws3.yml",
     "apps-script/business-office/BusinessOffice_ActionContract.gs",
     "apps-script/business-office/BusinessOffice_ModuleContract.gs",
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/accounting-engine.js",
     "commercial-app/accounting-operations-ui.js",
     "commercial-app/accounting-posting-bridge.js",
@@ -31,6 +34,7 @@
     "commercial-app/app-20.js",
     "commercial-app/customer-360-authority.js",
     "commercial-app/customer-portal.html",
+    "commercial-app/desktop-navigation-authority.js",
     "commercial-app/field-operations-next.js",
     "commercial-app/field-operations-ui.js",
     "commercial-app/flow-tightening.js",
@@ -44,6 +48,8 @@
     "commercial-app/job-centered-flow.js",
     "commercial-app/kits-workspace.js",
     "commercial-app/membership-engine.js",
+    "commercial-app/mobile-flow-polish-v2.js",
+    "commercial-app/mobile-runtime-stability.js",
     "commercial-app/owner-controls.js",
     "commercial-app/owner-customer-workflow-polish.js",
     "commercial-app/owner-flow-polish.js",
@@ -79,7 +85,7 @@
     "tests/test_quote_reproduction_deep_polish_20260823.py",
     "tests/test_site_visit_identity_authority_phone_failure.py"
   ],
-  "fileCount": 74,
+  "fileCount": 80,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

@@ -16,7 +16,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261005-machine-shop-2';
+const BUILD='20261020-ws4-placeholders-1';
 const TOGGLE='machine_shop';
 
 function shopEnabled(){
@@ -442,8 +442,12 @@ function renderSuppliersCard(){
 /* ---------- render ---------- */
 function renderShop(){
   if(!shopEnabled()){
-    $('mainContent').innerHTML=pageHead('Machine Shop','This module is off.')+
-      '<div class="notice">The Machine Shop module is disabled. Enable it in Settings → Owner Controls.</div>';
+    /* WS4 B13 (spec §5.13/§7.2 Pattern 2): off state says why it is off
+     * and exactly where to turn it on — Settings → Add-ons & features,
+     * the Machine Shop switch. */
+    const offHead=(window.H38Flow&&window.H38Flow.screenHeader)?window.H38Flow.screenHeader({page:'shop',title:'Machine Shop',purpose:'Price shop work from a request: supplier quotes, your markup, then an approved order.'}):pageHead('Machine Shop','Price shop work from a request: supplier quotes, your markup, then an approved order.');
+    $('mainContent').innerHTML=offHead+
+      '<section class="card"><h2>Machine Shop is off</h2><p class="muted">This module is turned off for this business. Turn it on in Settings → Add-ons &amp; features — find the Machine Shop switch.</p><div class="actions"><button type="button" onclick="openPage(\'settings\')">Open Settings</button></div></section>';
     return;
   }
   const rfqs=R('shopRfqs').slice(0,50),pos=shopPos().slice(0,50),
@@ -457,7 +461,10 @@ function renderShop(){
   const qcForPo=selectedPoId?R('shopQcChecks').filter(q=>String(v(q,'PO ID'))===String(selectedPoId)):[];
   const templates=(window.H38MachineShopTemplates?window.H38MachineShopTemplates.templateRows():[]);
 
-  $('mainContent').innerHTML=pageHead('Machine Shop','RFQ intake → supplier quotes → markup → owner-approved PO → QC → ship → reorder.')+
+  /* WS4 B13 (spec §5.13): standard header; the pipeline words move to an
+   * on-screen stepper note below the header, not the purpose line. */
+  const shopHead=(window.H38Flow&&window.H38Flow.screenHeader)?window.H38Flow.screenHeader({page:'shop',title:'Machine Shop',purpose:'Price shop work from a request: supplier quotes, your markup, then an approved order.',primary:{label:'＋ New RFQ',handler:()=>{const f=document.getElementById('shopRfqForm');if(f){f.scrollIntoView({behavior:'smooth',block:'start'});const inp=f.querySelector('select,input');if(inp)inp.focus({preventScroll:true});}}},more:[{label:'Shop price templates',handler:()=>{const el=document.getElementById('h38ShopTemplatesSection');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});else if(typeof toast==='function')toast('Shop price templates appear here when template rows exist.');}}]}):pageHead('Machine Shop','Price shop work from a request: supplier quotes, your markup, then an approved order.');
+  $('mainContent').innerHTML=shopHead+'<p class="muted" style="margin:2px 2px 10px">How shop work flows: <strong>RFQ intake → supplier quotes → markup → owner-approved PO → QC → ship → reorder.</strong></p>'+
   '<div class="grid">'+
   '<section class="card"><div class="stats">'+
     '<div class="stat"><strong>'+openRfqCount+'</strong><span>Open RFQs</span></div>'+
@@ -507,7 +514,7 @@ function renderShop(){
   '<section class="card span6"><h2>Reorder tracking</h2><form id="shopPartForm"><div class="two"><div><label>Part name</label><input name="partName" required></div><div><label>Part number</label><input name="partNumber"></div></div><div class="three"><div><label>Supplier</label><input name="supplier"></div><div><label>On hand</label><input name="onHand" type="number"></div><div><label>Reorder point</label><input name="reorderPoint" type="number"></div></div><label>Last order date</label><input name="lastOrder" type="date"><div class="actions"><button>Save part</button></div></form>'+
   '<div class="list">'+(parts.length?parts.map(p=>{const low=num(v(p,'On Hand'))<=num(v(p,'Reorder Point'));return '<div class="row"><div class="row-top"><strong>'+esc(v(p,'Part Name'))+'</strong>'+(low?pill('Reorder','bad'):pill('OK','good'))+'</div><small>'+esc(v(p,'Part Number'))+' · '+esc(v(p,'Supplier'))+' · on hand '+esc(v(p,'On Hand'))+' / reorder at '+esc(v(p,'Reorder Point'))+'</small></div>';}).join(''):empty('No tracked parts.'))+'</div></section>'+
 
-  '<section class="card span6"><h2>Shop price-book templates</h2><p class="muted small">Owner-review drafts from the queued machining rates. They cannot be used in live quotes until you approve each one.</p><div class="list">'+
+  '<section class="card span6" id="h38ShopTemplatesSection"><h2>Shop price-book templates</h2><p class="muted small">Owner-review drafts from the queued machining rates. They cannot be used in live quotes until you approve each one.</p><div class="list">'+
     (templates.length?templates.map(t=>'<div class="row"><div class="row-top"><strong>'+esc(t.code)+'</strong>'+pill(t.status,'pending')+'</div><small>'+esc(t.description)+' · '+money(t.rate)+'/'+esc(t.unit)+'</small></div>').join(''):empty('Templates not loaded.'))+
   '</div><div class="actions"><button type="button" id="shopInstallTemplates" class="secondary">Install owner-review templates</button></div></section>'+
 

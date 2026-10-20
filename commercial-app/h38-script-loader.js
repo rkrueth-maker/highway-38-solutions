@@ -60,7 +60,7 @@
       './field-visit-finish-build.js?build=20260821-finish-site-visit-build-quote-4',
       './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
       './site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5',
-      './repair-guide-integration.js?build=20261004-repair-guide-1',
+      './repair-guide-integration.js?build=20261020-ws4-placeholders-1',
     ];
     const PAGE_QUOTES = [
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
@@ -118,7 +118,7 @@
       './customer-comms.js?build=20261007-mark-complete-fix-2',
     ];
     const PAGE_FLEET = [
-      './route-manager.js?build=20261013-route-optimize-proof-1',
+      './route-manager.js?build=20261020-ws4-placeholders-1',
       './northern-bouncie-fleet.js?build=20261013-bouncie-reminder-1',
       './gps-dispatch.js?build=20261004-dispatch-2',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',

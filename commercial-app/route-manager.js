@@ -511,7 +511,7 @@ function renderCard(card) {
 
   if (!bouncie) {
     html += '<div class="h38-coming-soon-note">📍 <strong>Live phone tracking — coming soon.</strong> ' +
-      'Connect a tracking device like Bouncie for live vehicle positions on the map.</div>';
+      'Connect a tracking device like Bouncie for live vehicle positions today.</div>';
   }
 
   html += '<div class="h38-route-actions" style="margin-bottom:12px">' +
@@ -892,7 +892,7 @@ function renderRouteDetailBody(overlay, route) {
   if (bouncie) {
     html += '<p class="h38-route-note">🚚 Live Bouncie vehicle positions shown on the map.</p>';
   } else if (isOwner()) {
-    html += '<div class="h38-coming-soon-note">📍 <strong>Live phone tracking — coming soon.</strong> Connect Bouncie for live vehicle positions.</div>';
+    html += '<div class="h38-coming-soon-note">📍 <strong>Live phone tracking — coming soon.</strong> Connect Bouncie for live vehicle positions today.</div>';
   }
 
   html += '<div style="margin-top:8px">' + stops.map(function(s, i) {
