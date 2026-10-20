@@ -451,7 +451,7 @@ function screenHeader(o){
   const vis=acts.filter(a=>!a.more),more=acts.filter(a=>a.more);
   const moreHtml=more.length?`<details class="h38-screen-head__more"><summary>More actions</summary><div class="h38-screen-head__more-menu">${more.map(a=>btn(a,acts.indexOf(a))).join('')}</div></details>`:'';
   const status=o.status&&text(o.status.label)?`<span class="pill ${esc(text(o.status.kind))}">${esc(o.status.label)}</span>`:'';
-  return `<header class="h38-screen-head page-head" data-h38-page="${esc(page)}" data-h38-header-signature="${esc(headerSignature(o))}"><div class="h38-screen-head__titlerow"><h1>${esc(title)}</h1>${status}</div>${o.purpose?`<p class="h38-screen-head__purpose">${esc(o.purpose)}</p>`:''}<div class="h38-screen-head__actions">${vis.map(a=>btn(a,acts.indexOf(a))).join('')}${moreHtml}</div></header>`;
+  return `<header class="h38-screen-head page-head" data-h38-page="${esc(page)}" data-h38-header-signature="${esc(headerSignature(o))}"><div class="h38-screen-head__titlerow"><h1>${esc(title)}</h1>${status}</div>${o.purpose?`<p class="h38-screen-head__purpose">${esc(o.purpose)}</p>`:''}<div class="h38-screen-head__actions page-tools">${vis.map(a=>btn(a,acts.indexOf(a))).join('')}${moreHtml}</div></header>`;
 }
 function bindScreenHeader(root,o){
   const scope=root&&root.querySelector?root:document,header=scope.querySelector('.h38-screen-head');
