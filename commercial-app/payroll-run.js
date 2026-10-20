@@ -186,7 +186,7 @@
   /* Build Draft run records (header + lines) from a payrollPreparation
    * result + calc. Pure: no persistence, no DOM. */
   function buildRunRecords({businessId,runId,periodStart,periodEnd,payDate,source='payroll-page',
-    preparation,employees=[],existingLines=[],existingRuns=[],config,configSnapshot,createdBy='',nowIso}){
+    preparation,employees=[],existingLines=[],existingRuns=[],config,configSnapshot,createdBy='',nowIso,sourcePreparationId=''}){
     if(!preparation||!Array.isArray(preparation.Items))throw new Error('A payrollPreparation result is required to build a run.');
     const CALC=calcMod();
     if(!CALC)throw new Error('Payroll calc module is unavailable.');
@@ -246,12 +246,20 @@
         'YTD Gross':money(ytdBefore+lineGross),'YTD Federal':money(wh.federal),
         'YTD SS':money(wh.ficaSS),'YTD Medicare':money(wh.ficaMed+wh.additionalMedicare),
         'YTD State':money(wh.state),'YTD Net':money(calc.net),
+        /* D10 root cause: this literal once carried the shorthand
+         * `ytdWagesBefore`, which resolved to the module FUNCTION of that
+         * name (the numeric local is `ytdBefore`). A function inside the
+         * record makes IndexedDB's structured clone throw DataCloneError
+         * inside queueOperation's put(), so the first payrollLines save
+         * rejected, saveDraft aborted, and no line was ever queued — while
+         * the header (no such field) saved fine. Keep every value in this
+         * record plain, cloneable data. */
         'Calc Inputs':{filingStatus:text(employee['Filing Status'])||'Single',
           step2Checked:employee['W-4 Step 2 Checked']===true,
           step3Credits:num(employee['W-4 Step 3 Credits']),step4a:num(employee['W-4 Step 4a Other Income']),
           step4b:num(employee['W-4 Step 4b Deductions']),extraWithholding:num(employee['Extra Withholding']),
           mnAllowances:num(employee['MN Allowances']??employee['Withholding Allowances']),
-          mnAdditional:num(employee['MN Additional Withholding']),ytdWagesBefore,
+          mnAdditional:num(employee['MN Additional Withholding']),ytdWagesBefore:ytdBefore,
           w4Path:calc.trace&&calc.trace.federal?calc.trace.federal.path:'contractor'},
         'Calc Trace':calc.trace,
         'Approval Status':'Owner Approval Required',
@@ -268,7 +276,12 @@
       'Period Start':periodStart,'Period End':periodEnd,'Pay Date':payDate,
       'Pay Frequency':lines.length?lines[0]['Pay Frequency']:'Biweekly',
       Status:'Draft','Approval Status':'Owner Approval Required','Export Allowed':'No',
-      'Run Source':source,'Source Preparation ID':preparation['Payroll Period ID']||preparation.id||'',
+      'Run Source':source,
+      /* 'Source Preparation ID' names the payrollPreparations record this
+       * run was seeded from — set ONLY when one actually seeded it. The
+       * preparation result's own period id is this run's id, so deriving
+       * the field from it made every header point at itself (D10). */
+      ...(text(sourcePreparationId)?{'Source Preparation ID':text(sourcePreparationId)}:{}),
       'Gross Pay':grossTotal,'Deductions':sum(lines,'Total Deductions'),'Prepared Net Amount':netTotal,
       'Net Pay':netTotal,'Reimbursements':reimbTotal,
       'Withholding Totals':withholdingTotals,'Employer Taxes':employerTaxes,
@@ -420,34 +433,65 @@
     return next;
   }
   /* Attempt MARK_TIME_PAID through the audited-action queue (same pattern as
-   * APPROVE_TIME_ENTRY). Any failure ⇒ honest fallback string, never a fake
-   * stamp. The entry ids stay on the run lines either way. */
+   * APPROVE_TIME_ENTRY), then VERIFY with a fresh read of the entries: a
+   * queued action being accepted is NOT proof the server stamped anything.
+   * Today the server canonicalizes timeEntries at save and strips
+   * Paid/'Payroll Period ID', so the stamp cannot persist yet — the honest
+   * outcome is STAMP_PENDING until the MARK_TIME_PAID server action lands.
+   * The header may read 'Stamped' only when the stamp is actually present
+   * on the entries, using the same markers payrollPreparation treats as
+   * paid: Paid === true, or the entry's 'Payroll Period ID' naming this run.
+   * The entry ids stay on the run lines either way (double-pay guard). */
+  function entryStamped(entry,runId){
+    return !!entry&&(entry.Paid===true||text(entry['Payroll Period ID'])===text(runId));
+  }
   async function stampTimeEntries(header){
     const runId=text(header['Payroll Period ID']||header.id);
     const lines=snapRows('payrollLines').filter(l=>text(l['Payroll Period ID'])===runId);
     const entryIds=Array.from(new Set(lines.flatMap(l=>Array.isArray(l['Time Entry IDs'])?l['Time Entry IDs']:[]).map(text).filter(Boolean)));
     if(!entryIds.length)return STAMP_DONE; // nothing to stamp (salary-only run)
-    if(typeof window.queueOperation!=='function')return STAMP_PENDING;
-    try{
-      await window.queueOperation('MARK_TIME_PAID','Time Entry',runId,
-        {payrollPeriodId:runId,timeEntryIds:entryIds,batch:true,idempotent:true},
-        {collection:'timeEntries',record:{'Payroll Period ID':runId,Paid:true},idKeys:['Time Entry ID']},false);
-      return STAMP_DONE;
-    }catch(e){
-      return STAMP_PENDING;
+    if(typeof window.queueOperation==='function'){
+      try{
+        await window.queueOperation('MARK_TIME_PAID','Time Entry',runId,
+          {payrollPeriodId:runId,timeEntryIds:entryIds,batch:true,idempotent:true},
+          {collection:'timeEntries',record:{'Payroll Period ID':runId,Paid:true},idKeys:['Time Entry ID']},false);
+      }catch(e){/* the re-read below decides the label honestly */}
     }
+    await syncQuiet();
+    const byId=new Map(snapRows('timeEntries').map(e=>[rowIdOf(e,'Time Entry ID'),e]));
+    return entryIds.every(id=>entryStamped(byId.get(id),runId))?STAMP_DONE:STAMP_PENDING;
   }
   async function postRun(runId,{by=''}={}){
-    const header=await persistTransition(runId,'Posted',{by});
-    const lines=snapRows('payrollLines').filter(l=>text(l['Payroll Period ID'])===runId);
+    const row=snapRows('payrollPeriods').find(r=>rowIdOf(r,'Payroll Period ID')===text(runId));
+    if(!row)throw new Error('Pay run not found.');
+    /* Validate the Finalized → Posted transition WITHOUT saving it: the
+     * header may flip to Posted (and gain its 'Ledger Transaction ID') only
+     * AFTER the GL transaction is safely stored. The old order transitioned
+     * first, so a GL failure — or an empty line set — still left a "Posted"
+     * header claiming a ledger entry that did not exist (D10). */
+    const header=applyTransition(row,'Posted',{by});
+    /* Build the GL from the PERSISTED lines (reloaded from the snapshot)
+     * and prove they still add up to the header before writing anything.
+     * A mismatch fails loudly and the run stays Finalized. */
+    const lines=snapRows('payrollLines').filter(l=>text(l['Payroll Period ID'])===text(runId));
+    const linesGross=sum(lines,'Gross Pay'),linesNet=sum(lines,'Net Pay');
+    if(!lines.length||linesGross!==money(header['Gross Pay'])||linesNet!==money(header['Net Pay'])){
+      const msg=`The lines stored for this run add up to gross ${money(linesGross)} / net ${money(linesNet)}, but the run header says gross ${money(header['Gross Pay'])} / net ${money(header['Net Pay'])}. Nothing was posted. Re-save or rebuild the run so its lines are stored, then post again.`;
+      try{if(typeof window!=='undefined'&&window.H38Flow&&typeof window.H38Flow.fail==='function')window.H38Flow.fail({what:'Pay run was not posted to the books.',why:msg});}catch(e){}
+      throw new Error(msg);
+    }
     const tx=postingForRun(header,lines);
     const existing=snapRows('accountingTransactions').some(r=>text(r['Transaction ID']||r.id)===tx.id);
     if(!existing){
       const record={...tx,id:tx.id,'Transaction ID':tx.id,'Business ID':tx.businessId,'Transaction Date':tx.date,
         'Transaction Type':tx.type,'Source Type':tx.sourceType,'Source ID':tx.sourceId,'Memo':tx.memo,
         'Status':tx.status,'Total':tx.total,'Lines':tx.lines,'Created Time':tx.createdAt||new Date().toISOString(),'Record Version':1};
+      /* If this save errors, postRun rejects here: the run stays Finalized
+       * (the list shows it as not posted) and the error surfaces — never a
+       * silent fake Posted. */
       await saveRunRecord('accountingTransactions','Accounting Transaction',tx.id,record,['Transaction ID','id']);
     }
+    await saveRunRecord('payrollPeriods','Payroll Period',text(runId),header,['Payroll Period ID']);
     await syncQuiet();
     return {header,transaction:tx,alreadyPosted:existing};
   }

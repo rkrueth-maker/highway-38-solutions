@@ -239,10 +239,15 @@ async function h38ConfirmPayrollRun(){
   const pv=state.payrollPreview;
   if(!pv||!pv.lines.length){toast('Nothing to save.',true);return;}
   if(!window.H38_PAYROLL_RUN){toast('Payroll run module is still loading.',true);return;}
-  const header=await window.H38_PAYROLL_RUN.saveDraft({header:pv.header,lines:pv.lines});
-  state.payrollPreview=null;state.payrollReviewRun=v(header,'Payroll Period ID');
-  await sync(false);
-  toast('Draft pay run saved. Review the estimates, then finalize. No funds moved.');renderPayrollPrep();
+  /* D10: a saveDraft rejection (e.g. an uncloneable line record) used to
+   * escape as an unhandled promise rejection — the header still synced, so
+   * the run looked saved while its lines were never queued. Surface it. */
+  try{
+    const header=await window.H38_PAYROLL_RUN.saveDraft({header:pv.header,lines:pv.lines});
+    state.payrollPreview=null;state.payrollReviewRun=v(header,'Payroll Period ID');
+    await sync(false);
+    toast('Draft pay run saved. Review the estimates, then finalize. No funds moved.');renderPayrollPrep();
+  }catch(e){toast(`Draft pay run could not be saved completely: ${e.message||e}`,true);}
 }
 /* Run state machine actions — all delegate to payroll-run.js. */
 async function h38MarkPayRunReviewed(periodId){
