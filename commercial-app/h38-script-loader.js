@@ -131,12 +131,22 @@
       './card-vault.js?build=20261005-cardvault-1',
     ];
     const PAGE_ACCOUNTING = [
-      './accounting-engine.js?build=20260927-wave1-accounting-core-1',
+      './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-workspace.js?build=20260927-wave1-accounting-workspace-1',
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
+      // WS3: payroll calc joins the accounting chain (loaded before the
+      // bridge pulls in operations-ui) so Reports/accounting surfaces can
+      // share the one withholding module. Loader dedupes repeat loads.
+      './payroll-calc.js?build=20261020-payroll-calc-1',
     ];
     const PAGE_PAYROLL = [
-      './payroll-workflow.js?build=20261005-payroll-v2-1',
+      // WS3 run pipeline deps first (loader dedupes if Accounting ran first):
+      // engine → operations (payrollPreparation) → calc → run → presentation.
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      './accounting-operations.js?build=20261002-payroll-approved-period-1',
+      './payroll-calc.js?build=20261020-payroll-calc-1',
+      './payroll-run.js?build=20261020-payroll-run-1',
+      './payroll-workflow.js?build=20261020-payroll-presentation-1',
     ];
     const PAGE_TAX = [
       './tax-packet.js?build=20261005-tax-packet-2',

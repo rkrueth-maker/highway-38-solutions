@@ -82,9 +82,12 @@ function renderPeople(){
   if(h38EditingEmployeeId&&!editingRow){h38EditingEmployeeId='';editingRow=null;}
   const employees=records('employees'),users=records('users'),time=records('timeEntries'),active=employees.filter(row=>String(v(row,'Status')).toUpperCase()!=='INACTIVE');
   const hours=time.reduce((sum,row)=>sum+num(v(row,'Regular Hours','Hours','Duration Hours'))+num(v(row,'Overtime Hours')),0);
-  $('mainContent').innerHTML=pageHead('People & Employees','Manage exact-email Office access, employee records, crews, and approved time without mixing payroll funding into sign-in setup.')+`<div class="grid"><section id="h38TeamAccessMount" class="card h38-team-access-mount"><h2>Team Access</h2><p class="muted">Opening secure employee and site-manager access controls…</p></section><section class="card"><div class="stats"><div class="stat"><strong>${active.length}</strong><span>Active employees</span></div><div class="stat"><strong>${users.length}</strong><span>Business users</span></div><div class="stat"><strong>${hours.toFixed(1)}</strong><span>Recorded hours</span></div><div class="stat"><strong>${time.length}</strong><span>Time entries</span></div></div></section><section class="card span5"><h2>Employment record</h2><p class="muted small">This records HR and payroll-preparation details. Use Team Access above to prepare a secure H38 Office sign-in.</p>${editingRow?`<div class="notice">Editing <strong>${esc(v(editingRow,'Display Name'))}</strong> — saving updates this record in place; no duplicate is created. Bank fields left blank keep what is on file.</div>`:''}<form id="employeeForm"><label>Display name</label><input name="displayName" required><label>Email</label><input name="email" type="email"><label>Linked user</label><select name="userId">${optionRows(users,['User ID'],row=>v(row,'Display Name','Email'),'Not linked')}</select><div class="two"><div><label>Employment type</label><select name="employmentType"><option>Employee</option><option>Contractor</option><option>Seasonal</option></select></div><div><label>Crew</label><input name="crew"></div></div><div class="three"><div><label>Pay type</label><select name="payType"><option>Hourly</option><option>Salary</option><option>Contract</option></select></div><div><label>Hourly rate</label><input name="hourlyRate" type="number" step="0.01"></div><div><label>Salary per period</label><input name="salaryRate" type="number" step="0.01"></div></div><div class="three"><div><label>Pay frequency</label><select name="payFrequency"><option>Weekly</option><option selected>Biweekly</option><option>Semimonthly</option><option>Monthly</option></select></div><div><label>Filing status</label><select name="filingStatus"><option>Single</option><option>Married Filing Jointly</option><option>Head of Household</option></select></div><div><label>W-4 allowances</label><input name="withholdingAllowances" type="number" min="0" value="0"></div></div><div class="two"><div><label>Extra withholding / period</label><input name="extraWithholding" type="number" step="0.01" value="0"></div><div><label>Overtime multiplier</label><input name="overtimeMultiplier" type="number" step="0.05" value="1.5"></div></div><div class="three"><div><label>Bank routing #</label><input name="bankRouting" inputmode="numeric" placeholder="For direct deposit"></div><div><label>Bank account #</label><input name="bankAccount" inputmode="numeric" placeholder="For direct deposit"></div><div><label>Account type</label><select name="accountType"><option>Checking</option><option>Savings</option></select></div></div><label>Start date</label><input name="startDate" type="date"><label>Notes</label><textarea name="notes"></textarea><div class="actions"><button>${editingRow?'Update employee':'Save employee'}</button>${editingRow?'<button type="button" class="secondary" id="employeeEditCancel">Cancel edit</button>':''}</div></form>${serverSafeguard()}</section><section class="card span7"><h2>Employees</h2><div class="list">${employees.length?employees.map(row=>`<div class="row"><div class="row-top"><strong>${esc(v(row,'Display Name'))}</strong>${pill(v(row,'Status')||'Active')}</div><small>${esc(v(row,'Employment Type'))} · ${esc(v(row,'Pay Type'))} · crew ${esc(v(row,'Crew')||'unassigned')} · ${esc(v(row,'Email'))}</small><div class="row-actions"><button type="button" class="secondary" data-employee-edit="${esc(rowId(row,'Employee ID'))}">Edit</button></div></div>`).join(''):empty('No employee records yet.')}</div></section><section class="card"><h2>Recent time</h2><div class="list">${time.length?time.slice(0,80).map(row=>`<div class="row"><div class="row-top"><strong>${esc(userName(v(row,'User ID','Employee ID')))}</strong>${pill(v(row,'Approval Status','Status')||'Recorded')}</div><small>${dateOnly(v(row,'Date','Start Time'))} · ${num(v(row,'Regular Hours','Hours','Duration Hours')).toFixed(2)} regular · ${num(v(row,'Overtime Hours')).toFixed(2)} overtime</small></div>`).join(''):empty('No time entries.')}</div></section></div>`;
+  $('mainContent').innerHTML=pageHead('People & Employees','Manage exact-email Office access, employee records, crews, and approved time without mixing payroll funding into sign-in setup.')+`<div class="grid"><section id="h38TeamAccessMount" class="card h38-team-access-mount"><h2>Team Access</h2><p class="muted">Opening secure employee and site-manager access controls…</p></section><section class="card"><div class="stats"><div class="stat"><strong>${active.length}</strong><span>Active employees</span></div><div class="stat"><strong>${users.length}</strong><span>Business users</span></div><div class="stat"><strong>${hours.toFixed(1)}</strong><span>Recorded hours</span></div><div class="stat"><strong>${time.length}</strong><span>Time entries</span></div></div></section><section class="card span5"><h2>Employment record</h2><p class="muted small">This records HR and payroll-preparation details. Use Team Access above to prepare a secure H38 Office sign-in.</p>${editingRow?`<div class="notice">Editing <strong>${esc(v(editingRow,'Display Name'))}</strong> — saving updates this record in place; no duplicate is created. Bank fields left blank keep what is on file.</div>`:''}<form id="employeeForm"><label>Display name</label><input name="displayName" required><label>Email</label><input name="email" type="email"><label>Linked user</label><select name="userId">${optionRows(users,['User ID'],row=>v(row,'Display Name','Email'),'Not linked')}</select><div class="two"><div><label>Employment type</label><select name="employmentType"><option>Employee</option><option>Contractor</option><option>Seasonal</option></select></div><div><label>Crew</label><input name="crew"></div></div><div class="three"><div><label>Pay type</label><select name="payType"><option>Hourly</option><option>Salary</option><option>Contract</option></select></div><div><label>Hourly rate</label><input name="hourlyRate" type="number" step="0.01"></div><div><label>Salary per period</label><input name="salaryRate" type="number" step="0.01"></div></div><div class="three"><div><label>Pay frequency</label><select name="payFrequency"><option>Weekly</option><option selected>Biweekly</option><option>Semimonthly</option><option>Monthly</option></select></div><div><label>Filing status</label><select name="filingStatus"><option>Single</option><option>Married Filing Jointly</option><option>Head of Household</option></select></div><div><label>W-4 allowances</label><input name="withholdingAllowances" type="number" min="0" value="0"></div></div><div class="two"><div><label>Extra withholding / period</label><input name="extraWithholding" type="number" step="0.01" value="0"></div><div><label>Overtime multiplier</label><input name="overtimeMultiplier" type="number" step="0.05" value="1.5"></div></div><div class="three"><div><label>Bank routing #</label><input name="bankRouting" inputmode="numeric" placeholder="For direct deposit"></div><div><label>Bank account #</label><input name="bankAccount" inputmode="numeric" placeholder="For direct deposit"></div><div><label>Account type</label><select name="accountType"><option>Checking</option><option>Savings</option></select></div></div><div class="three"><div><label>W-4 Step 2 (multiple jobs)</label><select name="w4Step2"><option value="no">Not checked</option><option value="yes">Checked</option></select></div><div><label>W-4 Step 3 credits ($/yr)</label><input name="w4Step3" type="number" step="0.01" min="0" value="0"></div><div><label>W-4 Step 4a other income ($/yr)</label><input name="w4Step4a" type="number" step="0.01" min="0" value="0"></div></div><div class="three"><div><label>W-4 Step 4b deductions ($/yr)</label><input name="w4Step4b" type="number" step="0.01" min="0" value="0"></div><div><label>MN allowances</label><input name="mnAllowances" type="number" min="0" placeholder="Defaults to W-4 allowances"></div><div><label>MN extra withholding / period</label><input name="mnAdditional" type="number" step="0.01" value="0"></div></div><label>Deductions — one per line: Name | pre-tax or post-tax | amount | period or percent-gross</label><textarea name="deductions" placeholder="HSA | pre-tax | 50 | period"></textarea><label>Start date</label><input name="startDate" type="date"><label>Notes</label><textarea name="notes"></textarea><div class="actions"><button>${editingRow?'Update employee':'Save employee'}</button>${editingRow?'<button type="button" class="secondary" id="employeeEditCancel">Cancel edit</button>':''}</div></form>${serverSafeguard()}</section><section class="card span7"><h2>Employees</h2><div class="list">${employees.length?employees.map(row=>`<div class="row"><div class="row-top"><strong>${esc(v(row,'Display Name'))}</strong>${pill(v(row,'Status')||'Active')}</div><small>${esc(v(row,'Employment Type'))} · ${esc(v(row,'Pay Type'))} · crew ${esc(v(row,'Crew')||'unassigned')} · ${esc(v(row,'Email'))}</small><div class="row-actions"><button type="button" class="secondary" data-employee-edit="${esc(rowId(row,'Employee ID'))}">Edit</button></div></div>`).join(''):empty('No employee records yet.')}</div></section><section class="card"><h2>Recent time</h2><div class="list">${time.length?time.slice(0,80).map(row=>`<div class="row"><div class="row-top"><strong>${esc(userName(v(row,'User ID','Employee ID')))}</strong>${pill(v(row,'Approval Status','Status')||'Recorded')}</div><small>${dateOnly(v(row,'Date','Start Time'))} · ${num(v(row,'Regular Hours','Hours','Duration Hours')).toFixed(2)} regular · ${num(v(row,'Overtime Hours')).toFixed(2)} overtime</small></div>`).join(''):empty('No time entries.')}</div></section></div>`;
   bindForm('employeeForm',async(data,form)=>{
-    const fields={'Display Name':requireValue(data.displayName,'Employee name is required.'),'Email':data.email,'User ID':data.userId,'Employment Type':data.employmentType,'Pay Type':data.payType,'Hourly Rate':num(data.hourlyRate),'Salary Rate':num(data.salaryRate),'Overtime Multiplier':num(data.overtimeMultiplier)||1.5,'Pay Frequency':data.payFrequency||'Biweekly','Filing Status':data.filingStatus||'Single','Withholding Allowances':num(data.withholdingAllowances),'Extra Withholding':num(data.extraWithholding),'Account Type':data.accountType||'Checking','Crew':data.crew,'Start Date':data.startDate,'Notes':data.notes};
+    const fields={'Display Name':requireValue(data.displayName,'Employee name is required.'),'Email':data.email,'User ID':data.userId,'Employment Type':data.employmentType,'Pay Type':data.payType,'Hourly Rate':num(data.hourlyRate),'Salary Rate':num(data.salaryRate),'Overtime Multiplier':num(data.overtimeMultiplier)||1.5,'Pay Frequency':data.payFrequency||'Biweekly','Filing Status':data.filingStatus||'Single','Withholding Allowances':num(data.withholdingAllowances),'Extra Withholding':num(data.extraWithholding),'Account Type':data.accountType||'Checking','Crew':data.crew,'Start Date':data.startDate,'Notes':data.notes,
+      'W-4 Step 2 Checked':data.w4Step2==='yes','W-4 Step 3 Credits':num(data.w4Step3),'W-4 Step 4a Other Income':num(data.w4Step4a),'W-4 Step 4b Deductions':num(data.w4Step4b),
+      'MN Allowances':String(data.mnAllowances||'').trim()===''?num(data.withholdingAllowances):num(data.mnAllowances),'MN Additional Withholding':num(data.mnAdditional),
+      'Deductions':h38ParseDeductions(data.deductions)};
     if(h38EditingEmployeeId){
       const existing=records('employees').find(row=>rowId(row,'Employee ID')===h38EditingEmployeeId);
       if(!existing){h38EditingEmployeeId='';toast('That employee record no longer exists — edit cancelled.',true);renderPeople();return;}
@@ -98,6 +101,19 @@ function renderPeople(){
   $('mainContent').querySelectorAll('[data-employee-edit]').forEach(button=>button.onclick=()=>h38EditEmployee(button.dataset.employeeEdit));
   const cancelBtn=$('employeeEditCancel');if(cancelBtn)cancelBtn.onclick=()=>{h38EditingEmployeeId='';renderPeople();};
   void h38LoadTeamAccessCompanion().catch(error=>{const mount=$('h38TeamAccessMount');if(mount)mount.innerHTML=`<div class="notice warn">${esc(error.message||error)}</div>`;});
+}
+
+/* Employee deduction lines (§4.4): owner-entered as
+ * "Name | pre-tax|post-tax | amount | period|percent-gross" per line. */
+function h38ParseDeductions(textValue){
+  return String(textValue||'').split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{
+    const parts=line.split('|').map(p=>p.trim());
+    return {name:parts[0]||'Deduction',kind:/pre/i.test(parts[1]||'')?'pre-tax':'post-tax',
+      amount:num(parts[2]),per:/percent/i.test(parts[3]||'')?'percent-gross':'period',active:true};
+  }).filter(d=>d.name&&d.amount>0);
+}
+function h38DeductionsToText(list){
+  return (Array.isArray(list)?list:[]).map(d=>`${d.name||'Deduction'} | ${d.kind||'post-tax'} | ${num(d.amount)} | ${d.per||'period'}`).join('\n');
 }
 
 function h38EditEmployee(employeeId){
@@ -119,6 +135,13 @@ function h38EditEmployee(employeeId){
   h38SetEmployeeFormValue(form,'extraWithholding',v(row,'Extra Withholding'));
   h38SetEmployeeFormValue(form,'overtimeMultiplier',v(row,'Overtime Multiplier')||1.5);
   h38SetEmployeeFormValue(form,'accountType',v(row,'Account Type')||'Checking');
+  h38SetEmployeeFormValue(form,'w4Step2',v(row,'W-4 Step 2 Checked')===true||v(row,'W-4 Step 2 Checked')==='Yes'?'yes':'no');
+  h38SetEmployeeFormValue(form,'w4Step3',v(row,'W-4 Step 3 Credits'));
+  h38SetEmployeeFormValue(form,'w4Step4a',v(row,'W-4 Step 4a Other Income'));
+  h38SetEmployeeFormValue(form,'w4Step4b',v(row,'W-4 Step 4b Deductions'));
+  h38SetEmployeeFormValue(form,'mnAllowances',v(row,'MN Allowances'));
+  h38SetEmployeeFormValue(form,'mnAdditional',v(row,'MN Additional Withholding'));
+  h38SetEmployeeFormValue(form,'deductions',h38DeductionsToText(v(row,'Deductions')));
   h38SetEmployeeFormValue(form,'startDate',parityDate(row,'Start Date'));
   h38SetEmployeeFormValue(form,'notes',v(row,'Notes'));
   const nameField=form.querySelector('[name="displayName"]');if(nameField)nameField.focus();
@@ -135,8 +158,13 @@ function renderAccounting(){
 }
 
 /* ============ H38 PAYROLL WORKFLOW ============
- * Full payroll: time approval → pay calc (weekly OT) → tax estimates →
- * owner finalize → pay stubs → CSV/NACHA export.
+ * Full payroll (WS3): time approval → run builder (payroll-run.js reuses
+ * payrollPreparation() for selection — entry-level OT splits are the single
+ * source of truth; the old weekly-40 recomputation is RETIRED) →
+ * payroll-calc.js withholding (Pub. 15-T 2026) → Draft → Reviewed →
+ * Finalized (time-entry stamping attempted via MARK_TIME_PAID, honest
+ * fallback on the run header) → Posted (one balanced GL transaction,
+ * GL-PAYROLL-<runId>) → pay stubs → CSV/NACHA export.
  * The Office never files returns or moves funds. All tax figures are estimates.
  */
 function h38PayrollYTD(employeeId, year){
@@ -177,82 +205,63 @@ async function h38ApproveAllTime(){
   }
   await sync(false);toast(`${pending.length} time entries approved.`);renderPayrollPrep();
 }
-/* Build pay-run preview from approved time only */
-function h38BuildPayrollPreview(start,end,payDate){
-  const employees=records('employees').filter(row=>String(v(row,'Status')).toUpperCase()!=='INACTIVE');
-  const time=records('timeEntries');
-  const year=String(payDate||start).slice(0,4);
-  const preview={start,end,payDate,lines:[],totals:{gross:0,deductions:0,net:0,employerCost:0}};
-  employees.forEach(employee=>{
-    const empId=rowId(employee,'Employee ID'), userId=String(v(employee,'User ID')||'');
-    const entries=time.filter(row=>{
-      const match=String(v(row,'Employee ID'))===empId||(userId&&String(v(row,'User ID'))===userId);
-      return match&&String(v(row,'Approval Status')).toUpperCase()==='APPROVED'&&within(v(row,'Date','Start Time'),start,end);
-    });
-    if(!entries.length&&String(v(employee,'Pay Type')).toLowerCase()!=='salary')return;
-    // Weekly overtime: group hours by ISO week, OT = hours over 40/week
-    const weeks={};
-    entries.forEach(row=>{
-      const wk=h38WeekKey(v(row,'Date','Start Time'));
-      weeks[wk]=(weeks[wk]||0)+num(v(row,'Regular Hours','Hours','Duration Hours'))+num(v(row,'Overtime Hours'));
-    });
-    let regular=0,overtime=0;
-    Object.values(weeks).forEach(h=>{regular+=Math.min(h,40);overtime+=Math.max(0,h-40);});
-    const ytd=h38PayrollYTD(empId,year);
-    const calc=h38CalculatePaycheck(employee,regular,overtime,ytd);
-    preview.lines.push({employeeId:empId,calc,entryCount:entries.length});
-    preview.totals.gross+=calc.grossPay;preview.totals.deductions+=calc.totalDeductions;
-    preview.totals.net+=calc.netPay;preview.totals.employerCost+=calc.employerCost;
-  });
-  ['gross','deductions','net','employerCost'].forEach(k=>preview.totals[k]=Math.round(preview.totals[k]*100)/100);
-  return preview;
+/* Build pay-run preview — delegates to the canonical run builder
+ * (payroll-run.js): selection comes from payrollPreparation() (approved,
+ * in-period, not-already-paid; entry-level OT splits), withholding from
+ * payroll-calc.js. Returns {header, lines, preparation} in stored shape. */
+async function h38BuildPayrollPreview(start,end,payDate){
+  if(!window.H38_PAYROLL_RUN)throw new Error('Payroll run module is still loading. Try again in a moment.');
+  const built=await window.H38_PAYROLL_RUN.buildRun({start,end,payDate,source:'payroll-page'});
+  const totals={gross:num(v(built.header,'Gross Pay')),deductions:num(v(built.header,'Deductions')),
+    net:num(v(built.header,'Net Pay')),employerCost:num(v(built.header,'Employer Cost Estimate'))};
+  return {start,end,payDate,header:built.header,lines:built.lines,preparation:built.preparation,totals};
 }
 async function h38ConfirmPayrollRun(){
   const pv=state.payrollPreview;
   if(!pv||!pv.lines.length){toast('Nothing to save.',true);return;}
-  const periodId=newId('PAYROLL');
-  const period={'Payroll Period ID':periodId,'Business ID':state.businessId,'Period Start':pv.start,'Period End':pv.end,
-    'Pay Date':pv.payDate,'Status':'Prepared','Approval Status':'Owner Approval Required','Export Allowed':'No',
-    'Gross Pay':pv.totals.gross,'Deductions':pv.totals.deductions,'Prepared Net Amount':pv.totals.net,
-    'Employer Tax Estimate':Math.round((pv.totals.employerCost-pv.totals.gross)*100)/100,
-    'Employer Cost Estimate':pv.totals.employerCost,
-    'Created By':state.snapshot.user.userId,'Created Time':now(),'Updated Time':now(),'Record Version':1};
-  await saveParity('payrollPeriods','Payroll Period',periodId,period,'payrollPeriods',['Payroll Period ID']);
-  for(const item of pv.lines){
-    const c=item.calc, lineId=newId('PAYLINE');
-    const line={'Payroll Line ID':lineId,'Business ID':state.businessId,'Payroll Period ID':periodId,
-      'Employee ID':item.employeeId,'Pay Date':pv.payDate,
-      'Regular Hours':c.regularHours,'Overtime Hours':c.overtimeHours,'Hourly Rate':c.hourlyRate,
-      'Regular Pay':c.regularPay,'Overtime Pay':c.overtimePay,'Salary Pay':c.salaryPay,
-      'Gross Pay':c.grossPay,'Federal Withholding':c.federalWithholding,'Social Security':c.socialSecurity,
-      'Medicare':c.medicare,'State Withholding':c.stateWithholding,'Total Deductions':c.totalDeductions,
-      'Net Pay':c.netPay,'Deductions':c.totalDeductions,'Prepared Net Amount':c.netPay,
-      'Employer SS':c.employerSS,'Employer Medicare':c.employerMedicare,'FUTA':c.futa,'SUTA':c.suta,
-      'Employer Tax Estimate':c.employerTax,'Employer Cost Estimate':c.employerCost,
-      'YTD Gross':c.ytdGross,'YTD Federal':c.ytdFederal,'YTD SS':c.ytdSS,'YTD Medicare':c.ytdMedicare,
-      'YTD State':c.ytdState,'YTD Net':c.ytdNet,
-      'Approval Status':'Owner Approval Required','Time Entries':item.entryCount,
-      'Notes':'Tax figures are estimates. No funds moved.','Created Time':now(),'Updated Time':now(),'Record Version':1};
-    await saveParity('payrollLines','Payroll Line',lineId,line,'payrollLines',['Payroll Line ID']);
-  }
-  state.payrollPreview=null;await sync(false);
-  toast('Pay run saved for owner review. No funds moved.');renderPayrollPrep();
+  if(!window.H38_PAYROLL_RUN){toast('Payroll run module is still loading.',true);return;}
+  const header=await window.H38_PAYROLL_RUN.saveDraft({header:pv.header,lines:pv.lines});
+  state.payrollPreview=null;state.payrollReviewRun=v(header,'Payroll Period ID');
+  await sync(false);
+  toast('Draft pay run saved. Review the estimates, then finalize. No funds moved.');renderPayrollPrep();
+}
+/* Run state machine actions — all delegate to payroll-run.js. */
+async function h38MarkPayRunReviewed(periodId){
+  if(!window.H38_PAYROLL_RUN){toast('Payroll run module is still loading.',true);return;}
+  try{
+    await window.H38_PAYROLL_RUN.markReviewed(periodId,state.snapshot.user.userId);
+    toast('Run marked reviewed. Confirm the estimates to finalize.');renderPayrollPrep();
+  }catch(e){toast(e.message||String(e),true);}
 }
 async function h38FinalizePayRun(periodId){
-  const confirmed=typeof h38ConfirmDialog==='function'?await h38ConfirmDialog('Finalize this pay run? This marks it approved and unlocks export. No funds are moved by the Office.','Finalize pay run','Finalize'):confirm('Finalize this pay run? This marks it approved and unlocks export. No funds are moved by the Office.');
+  const box=document.getElementById('payrollEstimatesConfirm');
+  const estimatesConfirmed=!!(box&&box.checked);
+  if(!estimatesConfirmed){toast('Check "I reviewed these estimates" on the review panel before finalizing.',true);return;}
+  const confirmed=typeof h38ConfirmDialog==='function'?await h38ConfirmDialog('Finalize this pay run? This marks it approved, unlocks export, and stamps the selected time entries as paid (or tracks them on the run if the server action is pending). No funds are moved by the Office.','Finalize pay run','Finalize'):confirm('Finalize this pay run? No funds are moved by the Office.');
   if(!confirmed)return;
-  const row=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===periodId);
-  if(!row)return;
-  const updated=Object.assign({},row,{'Approval Status':'Approved','Status':'Finalized','Export Allowed':'Yes',
-    'Finalized By':state.snapshot.user.userId,'Finalized Time':now(),'Updated Time':now(),'Record Version':num(v(row,'Record Version'))+1});
-  await saveParity('payrollPeriods','Payroll Period',periodId,updated,'payrollPeriods',['Payroll Period ID']);
-  const lines=records('payrollLines').filter(l=>v(l,'Payroll Period ID')===periodId);
-  for(const line of lines){
-    const lid=rowId(line,'Payroll Line ID');
-    const lu=Object.assign({},line,{'Approval Status':'Approved','Updated Time':now(),'Record Version':num(v(line,'Record Version'))+1});
-    await saveParity('payrollLines','Payroll Line',lid,lu,'payrollLines',['Payroll Line ID']);
-  }
-  await sync(false);toast('Pay run finalized. Export unlocked.');renderPayrollPrep();
+  if(!window.H38_PAYROLL_RUN){toast('Payroll run module is still loading.',true);return;}
+  try{
+    const header=await window.H38_PAYROLL_RUN.finalizeRun(periodId,{by:state.snapshot.user.userId,estimatesConfirmed});
+    toast(`Pay run finalized. Export unlocked. Time entries: ${v(header,'Time Entry Stamping')}.`);
+    renderPayrollPrep();
+  }catch(e){toast(e.message||String(e),true);}
+}
+async function h38PostPayRun(periodId){
+  const confirmed=typeof h38ConfirmDialog==='function'?await h38ConfirmDialog('Post this pay run to the books? This writes one balanced ledger entry (GL-PAYROLL) for wages, employer taxes, withholdings and net-pay payable. It does not pay anyone.','Post to books','Post'):confirm('Post this pay run to the books?');
+  if(!confirmed)return;
+  if(!window.H38_PAYROLL_RUN){toast('Payroll run module is still loading.',true);return;}
+  try{
+    const out=await window.H38_PAYROLL_RUN.postRun(periodId,{by:state.snapshot.user.userId});
+    toast(out.alreadyPosted?'Already posted — ledger entry kept (no duplicate).':`Posted to books as ${out.transaction.id}.`);
+    renderPayrollPrep();
+  }catch(e){toast(e.message||String(e),true);}
+}
+async function h38VoidPayRun(periodId){
+  const confirmed=typeof h38ConfirmDialog==='function'?await h38ConfirmDialog('Void this pay run? The run stays on record as Void and its time entries become available again (unless already stamped).','Void pay run','Void'):confirm('Void this pay run?');
+  if(!confirmed)return;
+  if(!window.H38_PAYROLL_RUN){toast('Payroll run module is still loading.',true);return;}
+  try{await window.H38_PAYROLL_RUN.voidRun(periodId);toast('Pay run voided.');renderPayrollPrep();}
+  catch(e){toast(e.message||String(e),true);}
 }
 function h38ExportPayrollCSV(periodId){
   const period=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===periodId);
@@ -271,7 +280,9 @@ function h38ExportPayrollNACHA(periodId){
     return num(v(line,'Net Pay'))>0&&(!v(emp,'Bank Routing')||!v(emp,'Bank Account'));
   });
   if(missing.length){toast(`${missing.length} employee(s) missing bank details — NACHA skipped for them. Add routing/account in People.`,true);}
-  const nacha=h38PayrollNACHA(state.snapshot.business||{},period,lines,employees);
+  let nacha;
+  try{nacha=h38PayrollNACHA(state.snapshot.business||{},period,lines,employees);}
+  catch(e){toast(e.message||String(e),true);return;} // fails closed: no placeholder routing/EIN, ever
   h38DownloadFile(`payroll-${v(period,'Pay Date')||'export'}.ach`,nacha,'text/plain');
   toast('NACHA file exported. Verify with your bank before submitting.');
 }
@@ -492,6 +503,91 @@ async function h38ReissuePayrollCheck(checkId){
   renderPayrollPrep();
 }
 
+/* Payroll tax liability summary (spec §3.6) — accrued from POSTED runs;
+ * balances read from the ledger so manual clearing entries reduce them. */
+function h38PayrollLiabilitySection(periods,allLines){
+  if(!window.H38_PAYROLL_RUN||!window.H38_ACCOUNTING_ENGINE)return '';
+  const txs=records('accountingTransactions').map(r=>({id:rowId(r,'Transaction ID'),businessId:state.businessId,
+    date:dateOnly(v(r,'Transaction Date','date')),type:v(r,'Transaction Type','type'),sourceType:v(r,'Source Type','sourceType'),
+    sourceId:v(r,'Source ID','sourceId'),memo:v(r,'Memo','memo'),status:v(r,'Status','status')||'Posted',
+    lines:Array.isArray(v(r,'Lines'))?v(r,'Lines'):(r.lines||[])})).filter(x=>x.id&&x.date&&x.lines.length>=2);
+  let s;try{s=window.H38_PAYROLL_RUN.liabilitySummary({runs:periods,lines:allLines,transactions:txs,accounts:records('accountingAccounts')});}catch(e){return '';}
+  return `<section class="card"><h2>4 · Payroll tax liabilities</h2>
+    <p class="muted small">Accrued from <strong>posted</strong> runs only. Balances come from the general ledger, so tax payments recorded against accounts 2400–2450 reduce them — and these balances must match the Balance Sheet liability lines for the same accounts.</p>
+    <div class="list">${s.rows.map(row=>`<div class="row"><div class="row-top"><strong>${esc(row.label)}</strong><span>accrued ${money(row.accrued)}</span></div><small>${esc(row.accountId)}${row.balance==null?' · shared employer-taxes account (2450)':` · ledger balance ${money(row.balance)}`}</small></div>`).join('')}</div></section>`;
+}
+/* Payroll tax tables settings (spec §4.5) — one payrollTaxConfigs record per
+ * business. Federal (Pub. 15-T 2026) + FICA ship enabled with verified
+ * tables. MN + FUTA/SUTA stay OFF (warning pill) until the owner confirms. */
+function h38PayrollTaxSettingsSection(){
+  const C=window.H38_PAYROLL_CALC;if(!C)return '';
+  const cfg=window.H38_PAYROLL_RUN?window.H38_PAYROLL_RUN.loadConfig():C.createConfig();
+  const mnOn=!!(cfg.minnesota&&cfg.minnesota.enabled&&cfg.minnesota.confirmed);
+  const futaOn=!!(cfg.employer&&cfg.employer.futaEnabled), sutaOn=!!(cfg.employer&&cfg.employer.sutaEnabled);
+  const pillFor=on=>on?pill('On'):`<span class="pill warn">⚠ Unverified — OFF</span>`;
+  return `<section class="card"><h2>5 · Payroll tax tables</h2>
+    <p class="muted small">Withholding tables used by every new run. Each run stores a snapshot of the tables it used, so editing here never rewrites history.</p>
+    <div class="list">
+      <div class="row"><div class="row-top"><strong>Federal income tax</strong>${pill('On')}</div><small>${esc(cfg.federal.source||'IRS Pub. 15-T (2026)')}. Percentage Method (automated tables), built-in $12,900 MFJ / $8,600 other, pre-2020 allowance $4,300.</small></div>
+      <div class="row"><div class="row-top"><strong>FICA</strong>${pill('On')}</div><small>${esc(cfg.fica.source||'IRS Topic 751 + SSA')}. SS 6.2% to $${Number(cfg.fica.ssWageBase).toLocaleString()}, Medicare 1.45%, Additional Medicare 0.9% over $200,000 paid.</small></div>
+      <div class="row"><div class="row-top"><strong>Minnesota withholding</strong>${pillFor(mnOn)}</div><small>${esc(cfg.minnesota.source||'')}. Allowance value $${Number(cfg.minnesota.allowanceValue).toLocaleString()}. While OFF, state withholding computes $0 and every run flags it for review — never a guessed number. MN Paid Leave is modeled here too and stays off until enabled.</small></div>
+      <div class="row"><div class="row-top"><strong>FUTA / SUTA (employer)</strong>${pillFor(futaOn&&sutaOn)}</div><small>${esc(cfg.employer.source||'')}. Enter your confirmed FUTA rate/base and your MN DEED SUTA rate/base, then confirm each section.</small></div>
+    </div>
+    <form id="payrollTaxConfigForm">
+      <div class="three">
+        <div><label>FUTA rate (e.g. 0.006)</label><input name="futaRate" type="number" step="0.0001" min="0" value="${futaOn||cfg.employer.futaRate!=null?esc(cfg.employer.futaRate):''}"></div>
+        <div><label>FUTA wage base</label><input name="futaWageBase" type="number" step="1" min="0" value="${cfg.employer.futaWageBase!=null?esc(cfg.employer.futaWageBase):''}"></div>
+        <div><label>Confirm FUTA</label><select name="futaConfirmed"><option value="no"${futaOn?'':' selected'}>Not confirmed (OFF)</option><option value="yes"${futaOn?' selected':''}>Confirmed — enable</option></select></div>
+      </div>
+      <div class="three">
+        <div><label>SUTA rate (your DEED rate)</label><input name="sutaRate" type="number" step="0.0001" min="0" value="${cfg.employer.sutaRate!=null?esc(cfg.employer.sutaRate):''}" placeholder="No default — enter yours"></div>
+        <div><label>SUTA wage base</label><input name="sutaWageBase" type="number" step="1" min="0" value="${cfg.employer.sutaWageBase!=null?esc(cfg.employer.sutaWageBase):''}" placeholder="No default"></div>
+        <div><label>Confirm SUTA</label><select name="sutaConfirmed"><option value="no"${sutaOn?'':' selected'}>Not confirmed (OFF)</option><option value="yes"${sutaOn?' selected':''}>Confirmed — enable</option></select></div>
+      </div>
+      <div class="two">
+        <div><label>Minnesota tables</label><select name="mnConfirmed"><option value="no"${mnOn?'':' selected'}>Not confirmed (OFF)</option><option value="yes"${mnOn?' selected':''}>Confirmed vs MN Revenue booklet — enable</option></select></div>
+        <div><label>MN allowance value</label><input name="mnAllowanceValue" type="number" step="1" min="0" value="${esc(cfg.minnesota.allowanceValue)}"></div>
+      </div>
+      <div class="actions"><button>Save tax tables</button><button type="button" class="secondary" data-payroll-taxreset="1">Reset to 2026 defaults</button></div>
+    </form>
+    <p class="muted small">Sources: federal — IRS Pub. 15-T (2026), verified 2026-10-20; FICA — IRS Topic 751 + SSA, verified 2026-10-20; Minnesota + FUTA/SUTA — corroborated only until you confirm them above.</p>
+  </section>`;
+}
+async function h38SavePayrollTaxConfig(data){
+  const C=window.H38_PAYROLL_CALC;if(!C){toast('Payroll calc module is still loading.',true);return;}
+  const cfg=window.H38_PAYROLL_RUN?window.H38_PAYROLL_RUN.loadConfig():C.createConfig();
+  const existing=records('payrollTaxConfigs').find(r=>String(v(r,'Business ID'))===String(state.businessId));
+  const id=existing?rowId(existing,'Payroll Tax Config ID'):newId('TAXCFG');
+  const mnConfirmed=data.mnConfirmed==='yes';
+  const record={'Payroll Tax Config ID':id,'Business ID':state.businessId,'Tax Year':2026,
+    'FICA':cfg.fica,
+    'Federal':{builtInMFJ:cfg.federal.builtInMFJ,builtInOther:cfg.federal.builtInOther,pre2020AllowanceValue:cfg.federal.pre2020AllowanceValue,tables:cfg.federal.tables},
+    'Minnesota':{allowanceValue:num(data.mnAllowanceValue)||cfg.minnesota.allowanceValue,tables:cfg.minnesota.tables,paidLeave:cfg.minnesota.paidLeave,confirmed:mnConfirmed},
+    'Employer':{futaRate:data.futaRate===''?null:num(data.futaRate),futaWageBase:data.futaWageBase===''?null:num(data.futaWageBase),
+      sutaRate:data.sutaRate===''?null:num(data.sutaRate),sutaWageBase:data.sutaWageBase===''?null:num(data.sutaWageBase),stateOtherRate:cfg.employer.stateOtherRate||0},
+    'Minnesota Confirmed':mnConfirmed,'FUTA Confirmed':data.futaConfirmed==='yes','SUTA Confirmed':data.sutaConfirmed==='yes',
+    'Sources':{fica:cfg.fica.source,federal:cfg.federal.source,minnesota:mnConfirmed?'Owner-confirmed in Office settings':'UNVERIFIED — confirm MN Revenue booklet'},
+    'Updated By':state.snapshot.user.userId,
+    'Created Time':existing?v(existing,'Created Time'):now(),'Updated Time':now(),'Record Version':num(v(existing,'Record Version'))+1};
+  await saveParity('payrollTaxConfigs','Payroll Tax Config',id,record,'payrollTaxConfigs',['Payroll Tax Config ID']);
+  await sync(false);toast('Payroll tax tables saved. New runs will use them; saved runs keep their snapshot.');renderPayrollPrep();
+}
+async function h38ResetPayrollTaxConfig(){
+  const C=window.H38_PAYROLL_CALC;if(!C)return;
+  const d=C.defaultConfig();
+  const existing=records('payrollTaxConfigs').find(r=>String(v(r,'Business ID'))===String(state.businessId));
+  const id=existing?rowId(existing,'Payroll Tax Config ID'):newId('TAXCFG');
+  const record={'Payroll Tax Config ID':id,'Business ID':state.businessId,'Tax Year':2026,
+    'FICA':d.fica,'Federal':{builtInMFJ:d.federal.builtInMFJ,builtInOther:d.federal.builtInOther,pre2020AllowanceValue:d.federal.pre2020AllowanceValue,tables:d.federal.tables},
+    'Minnesota':{allowanceValue:d.minnesota.allowanceValue,tables:d.minnesota.tables,paidLeave:d.minnesota.paidLeave,confirmed:false},
+    'Employer':{futaRate:d.employer.futaRate,futaWageBase:d.employer.futaWageBase,sutaRate:null,sutaWageBase:null,stateOtherRate:0},
+    'Minnesota Confirmed':false,'FUTA Confirmed':false,'SUTA Confirmed':false,
+    'Sources':{fica:d.fica.source,federal:d.federal.source,minnesota:d.minnesota.source},
+    'Updated By':state.snapshot.user.userId,'Created Time':existing?v(existing,'Created Time'):now(),'Updated Time':now(),'Record Version':num(v(existing,'Record Version'))+1};
+  await saveParity('payrollTaxConfigs','Payroll Tax Config',id,record,'payrollTaxConfigs',['Payroll Tax Config ID']);
+  await sync(false);toast('Payroll tax tables reset to the 2026 defaults (MN + FUTA/SUTA off until confirmed).');renderPayrollPrep();
+}
+
 function renderPayrollPrep(){
   const employees=records('employees'),periods=records('payrollPeriods'),allLines=records('payrollLines'),time=records('timeEntries');
   const active=employees.filter(row=>String(v(row,'Status')).toUpperCase()!=='INACTIVE');
@@ -531,20 +627,50 @@ function renderPayrollPrep(){
     }
   }
 
-  // Preview section (two-phase prepare)
+  // Preview section (two-phase prepare) — built by payroll-run.js from
+  // payrollPreparation() selection + payroll-calc.js withholding.
   let previewSection='';
   if(state.payrollPreview){
     const pv=state.payrollPreview;
-    previewSection=`<section class="card"><h2>Preview pay run — confirm to save</h2>
-      <div class="notice warn"><strong>Review carefully.</strong> This preview uses <strong>approved time only</strong> (${pv.lines.reduce((s,l)=>s+l.entryCount,0)} entries). Tax figures are estimates.</div>
-      <div class="list">${pv.lines.map(item=>{const emp=employees.find(e=>rowId(e,'Employee ID')===item.employeeId)||{};
-        const c=item.calc;
-        return `<div class="row"><div class="row-top"><strong>${esc(v(emp,'Display Name')||item.employeeId)}</strong><span>${money(c.netPay)} net</span></div>
-        <small>${c.regularHours.toFixed(2)} reg · ${c.overtimeHours.toFixed(2)} OT · gross ${money(c.grossPay)} · fed ${money(c.federalWithholding)} · SS ${money(c.socialSecurity)} · med ${money(c.medicare)} · MN ${money(c.stateWithholding)} · deductions ${money(c.totalDeductions)}</small></div>`;}).join('')}</div>
+    const entryTotal=pv.lines.reduce((s,l)=>s+((v(l,'Time Entry IDs')||[]).length||0),0);
+    const excludedCount=((pv.preparation&&v(pv.preparation,'Excluded Sources'))||[]).length;
+    previewSection=`<section class="card"><h2>Preview pay run — confirm to save as Draft</h2>
+      <div class="notice warn"><strong>Review carefully.</strong> This preview uses <strong>approved time only</strong> (${entryTotal} entries${excludedCount?`, ${excludedCount} source(s) excluded — see run after saving`:''}). Tax figures are estimates from the payroll tax tables in Settings.</div>
+      <div class="notice"><strong>OT note:</strong> ${esc(v(pv.header,'OT Migration Note'))}</div>
+      <div class="list">${pv.lines.map(line=>{const emp=employees.find(e=>rowId(e,'Employee ID')===v(line,'Employee ID'))||{};
+        const trace=v(line,'Calc Trace')||{};const fedPath=trace.federal?trace.federal.path:'';
+        return `<div class="row"><div class="row-top"><strong>${esc(v(emp,'Display Name')||v(line,'Employee ID'))}</strong><span>${money(v(line,'Net Pay'))} net</span></div>
+        <small>${num(v(line,'Regular Hours')).toFixed(2)} reg · ${num(v(line,'Overtime Hours')).toFixed(2)} OT · gross ${money(v(line,'Gross Pay'))} · fed ${money(v(line,'Federal Withholding'))} · SS ${money(v(line,'Social Security'))} · med ${money(v(line,'Medicare'))}${num(v(line,'Additional Medicare'))>0?` · addl med ${money(v(line,'Additional Medicare'))}`:''} · MN ${money(v(line,'State Withholding'))} · deductions ${money(v(line,'Total Deductions'))}${v(line,'Contractor')?' · <strong>Contractor — 1099, no withholding</strong>':''}${fedPath?` · W-4: ${esc(fedPath)}`:''}</small></div>`;}).join('')}</div>
       <div class="row-top" style="margin-top:8px"><strong>Totals</strong><span>Gross ${money(pv.totals.gross)} · Deductions ${money(pv.totals.deductions)} · <strong>Net ${money(pv.totals.net)}</strong> · Employer cost ${money(pv.totals.employerCost)}</span></div>
-      <div class="actions"><button type="button" data-payroll-confirm="1">Confirm & save for owner review</button>
+      <div class="actions"><button type="button" data-payroll-confirm="1">Confirm & save Draft</button>
       <button type="button" class="secondary" data-payroll-cancelpreview="1">Discard preview</button></div>
     </section>`;
+  }
+
+  // Review section — the §4.6 estimates gate for Draft/Reviewed runs.
+  let reviewSection='';
+  if(state.payrollReviewRun){
+    const run=periods.find(p=>rowId(p,'Payroll Period ID')===state.payrollReviewRun);
+    if(run&&['Draft','Reviewed'].includes(String(v(run,'Status')))){
+      const runLines=allLines.filter(l=>v(l,'Payroll Period ID')===state.payrollReviewRun);
+      const status=String(v(run,'Status'));
+      reviewSection=`<section class="card"><h2>Review pay run — pay ${esc(dateOnly(v(run,'Pay Date')))} (${esc(status)})</h2>
+      <div class="notice warn"><strong>Withholding figures are estimates</strong> calculated from the tax tables in Settings (sources shown there). They are not a tax filing. Confirm the amounts — or edit any line — before finalizing.</div>
+      <div class="notice"><strong>OT note:</strong> ${esc(v(run,'OT Migration Note')||'OT now follows approved entry splits.')}</div>
+      <div class="list">${runLines.map(line=>{const emp=employees.find(e=>rowId(e,'Employee ID')===v(line,'Employee ID'))||{};
+        const trace=v(line,'Calc Trace')||{};const fed=trace.federal||{};
+        return `<div class="row"><div class="row-top"><strong>${esc(v(emp,'Display Name')||v(line,'Employee ID'))}</strong><span>${money(v(line,'Net Pay'))} net</span></div>
+        <small>gross ${money(v(line,'Gross Pay'))} · fed ${money(v(line,'Federal Withholding'))} · FICA ${money(num(v(line,'Social Security'))+num(v(line,'Medicare'))+num(v(line,'Additional Medicare')))} · MN ${money(v(line,'State Withholding'))}${v(line,'Contractor')?' · <strong>Contractor — 1099, no withholding</strong>':''}${fed.annualizedWages!=null?`<br>Calc: annualized ${money(fed.annualizedWages)} → adjusted ${money(fed.adjustedAnnualWage)} · ${esc(fed.path||'')} · bracket base ${money(fed.bracketRow?fed.bracketRow.baseTax:0)} + ${fed.bracketRow?Math.round(fed.bracketRow.rate*1000)/10:0}% over ${money(fed.bracketRow?fed.bracketRow.excessOver:0)}`:''}${(trace.reviewFlags||[]).length?`<br>⚠ ${trace.reviewFlags.map(esc).join('<br>⚠ ')}`:''}</small></div>`;}).join('')||empty('No lines in this run.')}</div>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="payrollEstimatesConfirm" style="width:auto;margin-top:3px" ${v(run,'Estimates Confirmed Time')?'checked disabled':''}> <span><strong>I reviewed these estimates</strong> — withholding was calculated from the tax tables in Settings and I confirm the amounts before finalizing.</span></label>
+      <div class="actions">
+        ${status==='Draft'?`<button type="button" data-payroll-review="${esc(state.payrollReviewRun)}">Mark reviewed</button>`:''}
+        ${status==='Reviewed'?`<button type="button" data-payroll-finalize="${esc(state.payrollReviewRun)}">Finalize run</button>`:''}
+        <button type="button" class="secondary" data-payroll-closereview="1">Close review</button>
+        <button type="button" class="secondary" data-payroll-void="${esc(state.payrollReviewRun)}">Void run</button>
+      </div>
+      <p class="muted small">Finalizing stamps the selected time entries via the audited MARK_TIME_PAID action when available; otherwise the run header records “Server action pending — entries tracked on this run” and the entry IDs stay on the run lines so they can never be paid twice.</p>
+      </section>`;
+    }
   }
 
   $('mainContent').innerHTML=pageHead('Payroll','Run payroll from approved time: calculate pay, estimate withholding, finalize, print stubs, and export for your bank or accountant. The Office never files returns or moves funds.')+`<div class="grid">
@@ -579,19 +705,27 @@ function renderPayrollPrep(){
 
   ${previewSection}
 
+  ${reviewSection}
+
   <section class="card"><h2>3 · Pay runs & history</h2>
     <div class="list">${periods.length?periods.slice().reverse().map(row=>{const pid=rowId(row,'Payroll Period ID');
+      const status=String(v(row,'Status')||'');
       const st=String(v(row,'Approval Status','Status'));
-      const finalized=st.toUpperCase()==='APPROVED';
-      return `<div class="row"><div class="row-top"><strong>Pay ${esc(dateOnly(v(row,'Pay Date')))}</strong>${pill(st,finalized?'':'warn')}</div>
-      <small>${esc(dateOnly(v(row,'Period Start')))}–${esc(dateOnly(v(row,'Period End')))} · gross ${money(v(row,'Gross Pay'))} · net ${money(v(row,'Prepared Net Amount'))} · employer cost ${money(v(row,'Employer Cost Estimate'))}</small>
+      const finalized=st.toUpperCase()==='APPROVED'&&status!=='Void';
+      const posted=status==='Posted';
+      return `<div class="row"><div class="row-top"><strong>Pay ${esc(dateOnly(v(row,'Pay Date')))}</strong>${pill(status||st,finalized||posted?'':'warn')}</div>
+      <small>${esc(dateOnly(v(row,'Period Start')))}–${esc(dateOnly(v(row,'Period End')))} · gross ${money(v(row,'Gross Pay'))} · net ${money(v(row,'Net Pay','Prepared Net Amount'))} · employer cost ${money(v(row,'Employer Cost Estimate'))}${finalized||posted?`<br>Time entries: ${esc(v(row,'Time Entry Stamping')||'—')}`:''}${posted?`<br>Ledger: ${esc(v(row,'Ledger Transaction ID'))} · posted ${esc(dateOnly(v(row,'Posted Time')))}`:(finalized?'<br><strong>Not posted to books</strong> — post when ready; liabilities accrue only after posting.':'')}</small>
       <div class="row-actions">
-        ${!finalized?`<button type="button" data-payroll-finalize="${esc(pid)}">Approve & finalize</button>`:''}
+        ${status==='Draft'||status==='Reviewed'?`<button type="button" data-payroll-openreview="${esc(pid)}">Review & finalize</button>`:''}
+        ${status==='Finalized'?`<button type="button" data-payroll-post="${esc(pid)}">Post to books</button>`:''}
         <button type="button" class="secondary" data-payroll-view="${esc(pid)}">View stubs</button>
         ${finalized?`<button type="button" class="secondary" data-payroll-csv="${esc(pid)}">CSV</button><button type="button" class="secondary" data-payroll-nacha="${esc(pid)}">NACHA</button>`:''}
         ${finalized?(checkPrintingOn?`<button type="button" data-payroll-checkprint="${esc(pid)}">Print checks</button>`:`<button type="button" disabled title="Turn on Payroll check printing in Settings → Owner Controls">Print checks</button>`):''}
       </div>${finalized&&!checkPrintingOn?'<small class="muted">Check printing is off — enable <strong>Payroll check printing</strong> in Settings → Owner Controls to print on your bank check stock.</small>':''}</div>`;}).join(''):empty('No pay runs yet. Approve time, then prepare a run.')}
     </div></section>
+
+  ${h38PayrollLiabilitySection(periods,allLines)}
+  ${h38PayrollTaxSettingsSection()}
 
   ${stubSection}
 
@@ -624,6 +758,13 @@ function renderPayrollPrep(){
   bind('[data-payroll-confirm]',()=>h38ConfirmPayrollRun());
   bind('[data-payroll-cancelpreview]',()=>{state.payrollPreview=null;renderPayrollPrep();});
   bind('[data-payroll-finalize]',e=>h38FinalizePayRun(e.target.dataset.payrollFinalize));
+  bind('[data-payroll-openreview]',e=>{state.payrollReviewRun=e.target.dataset.payrollOpenreview;renderPayrollPrep();});
+  bind('[data-payroll-review]',e=>h38MarkPayRunReviewed(e.target.dataset.payrollReview));
+  bind('[data-payroll-closereview]',()=>{state.payrollReviewRun=null;renderPayrollPrep();});
+  bind('[data-payroll-post]',e=>h38PostPayRun(e.target.dataset.payrollPost));
+  bind('[data-payroll-void]',e=>h38VoidPayRun(e.target.dataset.payrollVoid));
+  bind('[data-payroll-taxreset]',()=>h38ResetPayrollTaxConfig());
+  bindForm('payrollTaxConfigForm',data=>h38SavePayrollTaxConfig(data));
   bind('[data-payroll-view]',e=>{state.payrollViewRun=e.target.dataset.payrollView;state.payrollPrintRun=null;renderPayrollPrep();});
   bind('[data-payroll-closestubs]',()=>{state.payrollViewRun=null;state.payrollPrintRun=null;renderPayrollPrep();});
   bind('[data-payroll-print]',e=>h38PrintStubs(e.target.dataset.payrollPrint));
@@ -640,7 +781,9 @@ function renderPayrollPrep(){
     const start=requireValue(data.periodStart,'Period start is required.');
     const end=requireValue(data.periodEnd,'Period end is required.');
     const payDate=requireValue(data.payDate,'Pay date is required.');
-    const pv=h38BuildPayrollPreview(start,end,payDate);
+    let pv;
+    try{pv=await h38BuildPayrollPreview(start,end,payDate);}
+    catch(e){toast(e.message||String(e),true);return;}
     if(!pv.lines.length){toast('No approved time or salaried employees for this period. Approve time first.',true);return;}
     state.payrollPreview=pv;state.payrollViewRun=null;renderPayrollPrep();
     toast('Preview ready — review, then confirm.');
@@ -667,7 +810,7 @@ async function preparePayrollPeriod(data){
   const start=requireValue(data.periodStart,'Period start is required.');
   const end=requireValue(data.periodEnd,'Period end is required.');
   const payDate=requireValue(data.payDate,'Pay date is required.');
-  const pv=h38BuildPayrollPreview(start,end,payDate);
+  const pv=await h38BuildPayrollPreview(start,end,payDate);
   if(!pv.lines.length){toast('No approved time or salaried employees for this period. Approve time first.',true);return;}
   state.payrollPreview=pv;renderPayrollPrep();
 }
