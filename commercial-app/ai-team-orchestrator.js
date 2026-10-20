@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260929-ai-team-customer-source-1';
+const BUILD='20261020-myhank-settings-1';
 let initialized=false,lastScan=null,renderQueued=false;
 const text=v=>String(v==null?'':v).trim();
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};

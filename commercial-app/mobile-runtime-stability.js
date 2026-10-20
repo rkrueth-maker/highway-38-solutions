@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260918-one-shell-role-nav-1';
+const BUILD='20261020-myhank-settings-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];

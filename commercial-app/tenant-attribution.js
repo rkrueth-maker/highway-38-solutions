@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261012-mobile-polish-1';
+const BUILD='20261020-myhank-settings-1';
 const NORTH_KEY='northern-lakes';
 const H38_NAME='Highway 38 Solutions';
 const H38_URL='https://highway38solutions.com/';

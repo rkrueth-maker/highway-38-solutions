@@ -231,7 +231,7 @@
   function loadAiTeamOwnerPolish() {
     if (window.H38_AI_TEAM_OWNER_POLISH || document.querySelector('script[data-h38-ai-team-owner-polish]')) return false;
     const script = document.createElement('script');
-    script.src = './ai-team-owner-polish.js?build=20261011-ai-team-owner-polish-2';
+    script.src = './ai-team-owner-polish.js?build=20261020-myhank-settings-1';
     script.async = false;
     script.dataset.h38AiTeamOwnerPolish = '1';
     document.body.appendChild(script);

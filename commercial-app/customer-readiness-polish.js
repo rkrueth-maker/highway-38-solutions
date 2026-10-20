@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261013-complete-scan-fixes-1';
+const BUILD='20261020-myhank-settings-1';
 let installed=false,layoutOrderQueued=false,customerTab='overview';
 const text=v=>String(v==null?'':v).trim();
 const statusText=v=>{const t=text(v).replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'';};

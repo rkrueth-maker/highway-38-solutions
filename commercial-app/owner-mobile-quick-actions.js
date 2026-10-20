@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260927-install-links-7';
+const BUILD='20261020-myhank-settings-1';
 const MOBILE='(max-width: 760px)';
 const INSTALL_HELP_PARAM='installHelp';
 const INSTALL_TARGETS=new Set(['iphone','android']);

@@ -76,4 +76,4 @@ def test_build_roll_pins():
     assert "const CACHE_NAME='h38-business-office-20261020-myhank-settings-1'" in SW
     assert f"./app-09.js?build={BUILD}" in INDEX
     for script in ["app-01.js", "app-08.js", "mobile-runtime-stability.js", "job-centered-flow.js"]:
-        assert f"./{script}?build=20261013-messages-entry-1" in INDEX, script
+        assert f"./{script}?build=20261020-myhank-settings-1" in INDEX, script

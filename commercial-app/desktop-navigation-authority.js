@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261013-desktop-sleekness-1';
+const BUILD='20261020-myhank-settings-1';
 const PROFITABILITY_BUILD='20261013-startup-dedupe-1';
 const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
 const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';

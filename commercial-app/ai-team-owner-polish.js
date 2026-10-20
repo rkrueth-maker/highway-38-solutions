@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260924-ai-team-owner-polish-2';
+const BUILD='20261020-myhank-settings-1';
 const PREVIOUS_ACCEPTED_BUILD='20260923-ai-team-owner-polish-1';
 const PLATFORM_BUILD='20261013-scout-alerts-office-1';
 const PLATFORM_DEEPEN_BUILD='20261013-icon-session-bands-1';

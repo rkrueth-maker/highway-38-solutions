@@ -137,4 +137,4 @@ def test_index_build_tags_match_polish_build():
     assert './offline-status-runtime.js?build=20261013-fix-sweep-1' in INDEX
     # mobile-runtime-stability.js rolled with the 2026-10-13 rescan fixes
     # (F2 brand-flicker guard in polishChrome).
-    assert './mobile-runtime-stability.js?build=20261013-messages-entry-1' in INDEX
+    assert './mobile-runtime-stability.js?build=20261020-myhank-settings-1' in INDEX
