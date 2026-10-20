@@ -132,7 +132,7 @@
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
-      './accounting-workspace.js?build=20261020-reports-launcher-1',
+      './accounting-workspace.js?build=20261020-ws4-accounting-1',
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
       // WS3: payroll calc joins the accounting chain (loaded before the
       // bridge pulls in operations-ui) so Reports/accounting surfaces can
