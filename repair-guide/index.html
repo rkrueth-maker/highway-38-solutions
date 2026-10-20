@@ -37,6 +37,16 @@
 
     <!-- Home: choose what to do -->
     <section id="homeScreen" class="screen">
+      <!-- Cody, the resident agent: his maintenance board summary lives here -->
+      <div id="codyCard" class="cody-card">
+        <img class="cody-face" src="img/cody.webp" alt="Cody, H38's AI repair guide" onerror="this.style.display='none'">
+        <div class="cody-card-body">
+          <div class="cody-name">Cody — H38's AI repair guide</div>
+          <p class="cody-line">Snap a photo — I'll rank the likely causes. I also keep an eye on your upkeep, so small stuff doesn't turn into big stuff.</p>
+          <div id="codyDueSummary" class="small"></div>
+          <button id="codyGoMaint" class="secondary-btn" style="margin-top:8px">🛠️ My Maintenance →</button>
+        </div>
+      </div>
       <div class="category-grid">
         <button class="category-card" id="goDiagnose">
           <span class="cat-icon">🔧</span>
@@ -64,9 +74,9 @@
           <small>Past diagnoses on this phone</small>
         </button>
         <button class="category-card" id="goGarage">
-          <span class="cat-icon">🚗</span>
-          <span class="cat-label">My Garage</span>
-          <small>Vehicles + maintenance reminders</small>
+          <span class="cat-icon">🛠️</span>
+          <span class="cat-label">Maintenance</span>
+          <small>Vehicles, equipment + upkeep — Cody keeps the schedule</small>
         </button>
         <button class="category-card" id="goVideos">
           <span class="cat-icon">📹</span>
@@ -81,25 +91,83 @@
       <p id="obd2OffNote" class="small muted" style="text-align:center;margin-top:16px" hidden>🔌 OBD2 diagnostics is <button id="obd2EnableLink" class="link-btn">turned off</button> — tap to set it up.</p>
     </section>
 
-    <!-- My Garage: vehicles + maintenance reminders -->
+    <!-- Maintenance: Cody's board — garage + service-due for everything -->
     <section id="garageScreen" class="screen">
       <button class="back-btn" id="backToHomeFromGarage">← Home</button>
-      <h2>My Garage</h2>
+      <h2>🛠️ Maintenance</h2>
+      <div id="codyBoard" class="cody-board"></div>
       <div id="garageList"></div>
-      <h3>Add vehicle</h3>
+      <h3>Add to your garage</h3>
+      <div class="input-group">
+        <label>What kind?</label>
+        <select id="garageType">
+          <option value="car">🚗 Car / Truck</option>
+          <option value="atv">🏍️ ATV / UTV</option>
+          <option value="small-engine">⚙️ Small Engine (mower, snowblower…)</option>
+          <option value="appliance">🧺 Appliance</option>
+        </select>
+      </div>
       <div class="input-group">
         <label>Nickname</label>
         <input type="text" id="garageName" placeholder="e.g. My Jeep">
       </div>
       <div class="input-group">
-        <label>Vehicle</label>
+        <label>What is it?</label>
         <input type="text" id="garageVehicle" placeholder="e.g. 2004 Jeep Grand Cherokee">
       </div>
-      <div class="input-group">
-        <label>Current mileage <small>(optional)</small></label>
+      <div class="input-group" id="garageMilesWrap">
+        <label id="garageMilesLabel">Current mileage <small>(optional)</small></label>
         <input type="number" id="garageMiles" placeholder="e.g. 150000" min="0">
       </div>
-      <button id="garageAddBtn" class="primary-btn">Add Vehicle</button>
+      <button id="garageAddBtn" class="primary-btn">Add</button>
+    </section>
+
+    <!-- Maintenance: one vehicle/equipment, full board -->
+    <section id="maintDetailScreen" class="screen">
+      <button class="back-btn" id="backToGarageFromDetail">← Maintenance</button>
+      <h2 id="maintDetailTitle">Vehicle</h2>
+      <div id="maintDetailBody"></div>
+    </section>
+
+    <!-- Maintenance: log a service (form — replaces the old prompt flow) -->
+    <section id="maintLogScreen" class="screen">
+      <button class="back-btn" id="backFromLog">← Back</button>
+      <h2>Log service</h2>
+      <p class="muted" id="logForLine"></p>
+      <div class="input-group">
+        <label>What got done?</label>
+        <select id="logItemSelect"></select>
+      </div>
+      <div class="input-group" id="logItemOtherWrap" hidden>
+        <label>Service name</label>
+        <input type="text" id="logItemOther" placeholder="e.g. Replaced starter">
+      </div>
+      <div class="input-group">
+        <label>Date</label>
+        <input type="date" id="logDate">
+      </div>
+      <div class="input-group" id="logMeterWrap">
+        <label id="logMeterLabel">Odometer at service</label>
+        <input type="number" id="logMeter" min="0">
+      </div>
+      <div class="input-group">
+        <label>Cost <small>(optional)</small></label>
+        <input type="number" id="logCost" min="0" step="0.01" placeholder="e.g. 65">
+      </div>
+      <div class="input-group">
+        <label>Notes <small>(optional)</small></label>
+        <textarea id="logNotes" rows="2" placeholder="e.g. 5W-30 full synthetic, did it in the driveway"></textarea>
+      </div>
+      <p id="logError" class="error" hidden></p>
+      <div id="logDone" class="notice good" hidden></div>
+      <button id="logSaveBtn" class="primary-btn">Save — tell Cody it's done</button>
+    </section>
+
+    <!-- Maintenance: per-vehicle history timeline -->
+    <section id="maintHistoryScreen" class="screen">
+      <button class="back-btn" id="backFromHistory">← Back</button>
+      <h2 id="maintHistoryTitle">History</h2>
+      <div id="maintHistoryList"></div>
     </section>
 
     <!-- Quick parts sourcing: just prices, no job guide -->
@@ -287,7 +355,7 @@
     <section id="photoScanScreen" class="screen">
       <button class="back-btn" id="backToHomeFromPhotoScan">← Home</button>
       <h2>📷 Scan a Photo</h2>
-      <p class="muted">Take or upload a photo of the vehicle, part, or equipment. Kit will identify what it likely is and what to check.</p>
+      <p class="muted">Take or upload a photo of the vehicle, part, or equipment. Cody will identify what it likely is and what to check.</p>
       <div class="photo-section">
         <button id="scanPhotoBtn" class="secondary-btn">📷 Take / Upload Photo</button>
         <input type="file" id="scanPhotoInput" accept="image/*" capture="environment" hidden>
@@ -348,6 +416,7 @@
         <p>Analyzing...</p>
       </div>
       <div id="diagnosisResult" hidden>
+        <div class="cody-byline">🧑‍🔧 <strong>Cody's read</strong> — ranked most likely first. Cody is H38's AI repair guide; a hands-on check confirms anything serious.</div>
         <div id="identifiedBox" hidden>
           <h2>What This Looks Like</h2>
           <div id="identifiedItem"></div>
@@ -378,6 +447,21 @@
       </div>
     </section>
   </main>
+
+  <!-- Cody, resident agent: help from anywhere in the app -->
+  <button id="codyHelpBtn" class="cody-help-btn" hidden>🧑‍🔧 Ask Cody</button>
+  <div id="codyPanel" class="cody-panel" hidden>
+    <div class="cody-panel-head">
+      <img class="cody-face-sm" src="img/cody.webp" alt="" onerror="this.style.display='none'">
+      <div class="cody-panel-title"><strong>Cody</strong>
+        <div class="small" style="color:#a5d6a7">H38's AI repair guide — I don't turn the wrench; I rank what's likely and keep your upkeep straight.</div>
+      </div>
+      <button id="codyPanelClose" class="link-btn">Close ✕</button>
+    </div>
+    <p id="codyPanelWhere"></p>
+    <p id="codyPanelNext"></p>
+    <div id="codyPanelActions" class="actions-row"></div>
+  </div>
 </div>
 <script>
 window.H38_HEARTBEAT = {
