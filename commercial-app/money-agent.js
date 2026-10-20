@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261020-tally-money-1';
+  const BUILD='20261020-tally-coldfix-1';
   const PAGES=['money','accounting','payroll','tax','reports'];
   const $=id=>document.getElementById(id);
   const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
@@ -251,6 +251,30 @@
     if(window.innerWidth<1200)return null; // pop-out is a wide-screen surface; phones get the brief card
     return {label:'✦ Ask Tally',handler:()=>openPanel()};
   }
+
+  // ---------- cold-mount guarantee for the Money screen ----------
+  // Root cause of the cold-render defect (E2E 2026-10-20): every sibling
+  // screen's mountBrief call lives in that screen's own renderer (app-19
+  // payroll, reports-section, accounting-workspace's own render), but the
+  // only mountBrief('money') call sat in accounting-workspace.js's
+  // renderMoney wrapper — and accounting-workspace lazy-loads ONLY with
+  // the Accounting page group. A cold first navigation straight to Money
+  // (PAGE_MONEY loads this file, not accounting-workspace) therefore never
+  // fired a mount; the brief appeared only after an Accounting visit had
+  // installed the wrapper. Wrap renderMoney here instead: money-agent
+  // loads with EVERY money page group (money/accounting/payroll/tax/
+  // reports), so the brief now mounts on every Money render, cold or
+  // warm. Chain-friendly like the other renderMoney wrappers (card-vault,
+  // flow-tightening, accounting-workspace): mountBrief is idempotent, so
+  // composing with the accounting-workspace wrapper is harmless.
+  function wrapMoneyRender(){
+    const base=window.renderMoney;
+    if(typeof base!=='function'||base.__h38TallyMoneyWrap)return;
+    const wrapped=function(){const r=base.apply(this,arguments);mountBrief('money');return r;};
+    wrapped.__h38TallyMoneyWrap=true;
+    window.renderMoney=wrapped;
+  }
+  wrapMoneyRender();
 
   const api=Object.freeze({build:BUILD,name:'Tally',mountBrief,openPanel,closePanel,headerMoreAction,brief:computeBrief});
   window.H38_TALLY=api;
