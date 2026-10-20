@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261020-reports-library-1';
+  const BUILD='20261020-tally-money-1';
 
   // ---------- helpers (match Office conventions) ----------
   const $=id=>document.getElementById(id);
@@ -644,6 +644,7 @@
       <p class="muted small" style="margin-top:10px">Built live from this business's Office records. Estimates only — review with your accountant before tax filing.</p>
     </section></div>`;
     if(window.H38Flow)window.H38Flow.bindScreenHeader(main,h38ReportsHead);
+    window.H38_TALLY?.mountBrief?.('reports');
     // wire tabs
     main.querySelectorAll('[data-rep-tab]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.repTab;render();});
     // wire preset
