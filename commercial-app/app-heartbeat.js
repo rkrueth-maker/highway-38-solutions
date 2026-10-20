@@ -36,7 +36,7 @@ const CFG = window.H38_HEARTBEAT || {};
 const APP = CFG.app || 'office';
 const SESSION_KEY = 'h38-heartbeat-session';
 const STARTED_KEY = 'h38-heartbeat-started-at';
-const BUILD = '20261020-tally-money-1';
+const BUILD = '20261020-tally-coldfix-1';
 
 function getSessionId(){
   try {
