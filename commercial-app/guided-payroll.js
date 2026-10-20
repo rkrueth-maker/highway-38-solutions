@@ -359,7 +359,7 @@
       if (!window.H38_PAYROLL_RUN && window.H38ScriptLoader) await window.H38ScriptLoader.loadPageScripts('payroll');
       if (!window.H38_PAYROLL_RUN || !window.H38_PAYROLL_CALC) throw new Error('Payroll modules could not be loaded. Open the Payroll page once, then try again.');
       var built = await window.H38_PAYROLL_RUN.buildRun({ start: h38GP.periodStart, end: h38GP.periodEnd, payDate: h38GP.payDate, source: 'guided' });
-      if (!built.lines.length) throw new Error('No approved time or salaried employees in this period. Approve time on the Payroll page first.');
+      if (!built.lines.length) throw new Error(built.unlinkedCount > 0 ? built.unlinkedCount + ' time entries couldn\'t be matched to an employee — check People & Employees and link each employee to their sign-in user.' : 'No approved time or salaried employees were selected for this period — check time approvals and the period dates on the Payroll page.');
       await window.H38_PAYROLL_RUN.saveDraft(built);
       var runId = built.header['Payroll Period ID'];
       var finalLines = built.lines;

@@ -218,7 +218,22 @@ async function h38BuildPayrollPreview(start,end,payDate){
   const built=await window.H38_PAYROLL_RUN.buildRun({start,end,payDate,source:'payroll-page'});
   const totals={gross:num(v(built.header,'Gross Pay')),deductions:num(v(built.header,'Deductions')),
     net:num(v(built.header,'Net Pay')),employerCost:num(v(built.header,'Employer Cost Estimate'))};
-  return {start,end,payDate,header:built.header,lines:built.lines,preparation:built.preparation,totals};
+  return {start,end,payDate,header:built.header,lines:built.lines,preparation:built.preparation,totals,unlinkedCount:num(built.unlinkedCount)};
+}
+/* Phase D fix (D3): honest empty-preview diagnosis. Time that was approved
+ * but could not be matched to an employee record must say so — never the
+ * old misleading "Approve time first" line. */
+function h38PayrollUnlinkedCount(source){
+  const excluded=(source&&(v(source,'Excluded Sources')||v(source&&source.preparation,'Excluded Sources')))||[];
+  return (Array.isArray(excluded)?excluded:[]).filter(x=>x&&x.reason==='Not linked to an employee record').length;
+}
+function h38PayrollUnlinkedWarning(count){
+  return count>0?`<div class="notice warn"><strong>${count} time ${count===1?'entry':'entries'} couldn't be matched to an employee</strong> — they were left out of this run. Check People &amp; Employees and link each employee to their sign-in user.</div>`:'';
+}
+function h38PayrollEmptyMessage(pv){
+  const unlinked=Math.max(num(pv&&pv.unlinkedCount),h38PayrollUnlinkedCount(pv&&pv.preparation));
+  if(unlinked>0)return `${unlinked} time ${unlinked===1?'entry':'entries'} couldn't be matched to an employee — check People & Employees and link each employee to their sign-in user.`;
+  return 'No approved time or salaried employees were selected for this period — check time approvals and the period dates.';
 }
 async function h38ConfirmPayrollRun(){
   const pv=state.payrollPreview;
@@ -641,6 +656,7 @@ function renderPayrollPrep(){
     previewSection=`<section class="card"><h2>Preview pay run — confirm to save as Draft</h2>
       <div class="notice warn"><strong>Review carefully.</strong> This preview uses <strong>approved time only</strong> (${entryTotal} entries${excludedCount?`, ${excludedCount} source(s) excluded — see run after saving`:''}). Tax figures are estimates from the payroll tax tables in Settings.</div>
       <div class="notice"><strong>OT note:</strong> ${esc(v(pv.header,'OT Migration Note'))}</div>
+      ${h38PayrollUnlinkedWarning(h38PayrollUnlinkedCount(pv.preparation))}
       <div class="list">${pv.lines.map(line=>{const emp=employees.find(e=>rowId(e,'Employee ID')===v(line,'Employee ID'))||{};
         const trace=v(line,'Calc Trace')||{};const fedPath=trace.federal?trace.federal.path:'';
         return `<div class="row"><div class="row-top"><strong>${esc(v(emp,'Display Name')||v(line,'Employee ID'))}</strong><span>${money(v(line,'Net Pay'))} net</span></div>
@@ -661,6 +677,7 @@ function renderPayrollPrep(){
       reviewSection=`<section class="card"><h2>Review pay run — pay ${esc(dateOnly(v(run,'Pay Date')))} (${esc(status)})</h2>
       <div class="notice warn"><strong>Withholding figures are estimates</strong> calculated from the tax tables in Settings (sources shown there). They are not a tax filing. Confirm the amounts — or edit any line — before finalizing.</div>
       <div class="notice"><strong>OT note:</strong> ${esc(v(run,'OT Migration Note')||'OT now follows approved entry splits.')}</div>
+      ${h38PayrollUnlinkedWarning(h38PayrollUnlinkedCount(run))}
       <div class="list">${runLines.map(line=>{const emp=employees.find(e=>rowId(e,'Employee ID')===v(line,'Employee ID'))||{};
         const trace=v(line,'Calc Trace')||{};const fed=trace.federal||{};
         return `<div class="row"><div class="row-top"><strong>${esc(v(emp,'Display Name')||v(line,'Employee ID'))}</strong><span>${money(v(line,'Net Pay'))} net</span></div>
@@ -793,7 +810,7 @@ function renderPayrollPrep(){
     let pv;
     try{pv=await h38BuildPayrollPreview(start,end,payDate);}
     catch(e){toast(e.message||String(e),true);return;}
-    if(!pv.lines.length){toast('No approved time or salaried employees for this period. Approve time first.',true);return;}
+    if(!pv.lines.length){toast(h38PayrollEmptyMessage(pv),true);return;}
     state.payrollPreview=pv;state.payrollViewRun=null;renderPayrollPrep();
     toast('Preview ready — review, then confirm.');
   });
@@ -820,7 +837,7 @@ async function preparePayrollPeriod(data){
   const end=requireValue(data.periodEnd,'Period end is required.');
   const payDate=requireValue(data.payDate,'Pay date is required.');
   const pv=await h38BuildPayrollPreview(start,end,payDate);
-  if(!pv.lines.length){toast('No approved time or salaried employees for this period. Approve time first.',true);return;}
+  if(!pv.lines.length){toast(h38PayrollEmptyMessage(pv),true);return;}
   state.payrollPreview=pv;renderPayrollPrep();
 }
 

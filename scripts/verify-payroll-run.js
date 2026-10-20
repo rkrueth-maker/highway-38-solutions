@@ -123,4 +123,54 @@ ok('liability summary: posted runs accrue; balances read from the ledger', () =>
   assert.equal(draftOnly.accrued.netPay, 0); // Draft runs never accrue
 });
 
+/* Phase D fix (D3): the REAL server-canonicalized shape. A probe save
+ * carrying 'Date' and 'Employee ID' came back from the server with both
+ * stripped (phase-d payroll_probe4); persisted timeEntries carry only
+ * {Time Entry ID, User ID (recorder), Start Time, End Time, Hours,
+ * Approval Status, …} and employees link via their 'User ID' (the People
+ * page "Linked user" field). Selection must work from THIS shape. */
+const canonEmployees = [
+  { 'Employee ID': 'CE1', 'Display Name': 'Canonical Carla', 'User ID': 'AUTH-UUID-1', 'Pay Type': 'Hourly', 'Hourly Rate': 30, 'Overtime Multiplier': 1.5, 'Pay Frequency': 'Biweekly', 'Filing Status': 'Single', 'Status': 'Active' },
+  { 'Employee ID': 'CE2', 'Display Name': 'Legacy Larry', 'Pay Type': 'Hourly', 'Hourly Rate': 20, 'Pay Frequency': 'Biweekly', 'Status': 'Active' }
+];
+const canonEntries = [
+  { 'Time Entry ID': 'CT1', 'Business ID': businessId, 'User ID': 'AUTH-UUID-1', 'Start Time': '2026-10-12T08:00:00.000Z', 'End Time': '2026-10-12T16:00:00.000Z', 'Hours': 8, 'Approval Status': 'Approved', 'Status': 'Recorded', 'Job ID': 'J9' },
+  { 'Time Entry ID': 'CT2', 'Business ID': businessId, 'User ID': 'AUTH-UUID-1', 'Start Time': '2026-10-13T08:00:00.000Z', 'End Time': '2026-10-13T16:00:00.000Z', 'Hours': 8, 'Approval Status': 'Approved', 'Status': 'Recorded' },
+  { 'Time Entry ID': 'CT3', 'Business ID': businessId, 'Display Name': 'Legacy Larry', 'Start Time': '2026-10-12T07:00:00.000Z', 'End Time': '2026-10-12T12:00:00.000Z', 'Hours': 5, 'Approval Status': 'Approved', 'Status': 'Recorded' },
+  { 'Time Entry ID': 'CT4', 'Business ID': businessId, 'User ID': 'AUTH-UUID-UNKNOWN', 'Start Time': '2026-10-12T08:00:00.000Z', 'End Time': '2026-10-12T16:00:00.000Z', 'Hours': 8, 'Approval Status': 'Approved', 'Status': 'Recorded' }
+];
+
+ok('D3 normalization: Date derived from Start Time; Employee ID supplied via User ID link', () => {
+  const norm = RUN.normalizeTimeEntries(canonEntries, canonEmployees);
+  assert.equal(norm[0].Date, '2026-10-12');
+  assert.equal(norm[0]['Employee ID'], 'CE1');
+  assert.equal(norm[0].__h38PayrollLink, 'User ID');
+  assert.equal(norm[2]['Employee ID'], 'CE2'); // legacy name-carrying row links by exact unique name
+  assert.equal(norm[2].__h38PayrollLink, 'Display Name');
+  assert.equal(norm[3].__h38PayrollUnlinked, true);
+  assert.ok(!('Date' in canonEntries[0]) && !('Employee ID' in canonEntries[0]), 'inputs must not be mutated');
+});
+
+ok('D3 selection: canonical-shape approved time now selects (2 x 8h @ $30 = $480 for CE1)', () => {
+  const sel = RUN.prepareSelection({ businessId, periodId: 'RUN-CANON', startDate: '2026-10-01', endDate: '2026-10-14', employees: canonEmployees, timeEntries: canonEntries, reimbursements: [], mileage: [] });
+  const ce1 = sel.preparation.Items.find(i => i.employeeId === 'CE1');
+  assert.ok(ce1); assert.equal(ce1.regularHours, 16); assert.equal(ce1.grossPay, 480);
+  const ce2 = sel.preparation.Items.find(i => i.employeeId === 'CE2');
+  assert.ok(ce2); assert.equal(ce2.grossPay, 100);
+  const builtCanon = RUN.buildRunRecords({ businessId, runId: 'RUN-CANON', periodStart: '2026-10-01', periodEnd: '2026-10-14', payDate: '2026-10-16', preparation: sel.preparation, employees: canonEmployees, existingLines: [], existingRuns: [] });
+  const line = builtCanon.lines.find(l => l['Employee ID'] === 'CE1');
+  assert.ok(line); assert.deepEqual(line['Time Entry IDs'], ['CT1', 'CT2']);
+  assert.equal(line['Gross Pay'], 480);
+});
+
+ok('D3 unlinked entry: excluded with the honest reason, never silently dropped or guessed', () => {
+  const sel = RUN.prepareSelection({ businessId, periodId: 'RUN-CANON', startDate: '2026-10-01', endDate: '2026-10-14', employees: canonEmployees, timeEntries: canonEntries, reimbursements: [], mileage: [] });
+  assert.equal(sel.unlinkedCount, 1);
+  assert.deepEqual(sel.unlinkedIds, ['CT4']);
+  const ex = sel.preparation['Excluded Sources'].find(x => x.id === 'CT4');
+  assert.ok(ex, 'CT4 must appear in Excluded Sources');
+  assert.equal(ex.reason, 'Not linked to an employee record');
+  assert.ok(!sel.preparation.Items.some(i => (i.sourceIds || []).some(x => x.id === 'CT4')), 'CT4 must not be attached to any employee');
+});
+
 console.log(`\nPayroll run acceptance complete: ${passed} passed.`);

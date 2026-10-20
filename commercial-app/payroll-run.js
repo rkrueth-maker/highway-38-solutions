@@ -89,6 +89,74 @@
     return used;
   }
 
+  /* ================= read-side time-entry normalization =================
+   * Phase D fix (D3): the server canonicalizes saved timeEntries — 'Date'
+   * and 'Employee ID' are stripped at save time; the persisted shape is
+   * {Time Entry ID, User ID (the recorder's account id), Start Time,
+   * End Time, Hours, Approval Status, …}. payrollPreparation() (pinned)
+   * reads the work date only from Date/date/'Work Date' and links entries
+   * by 'Employee ID'/'User ID', so raw server rows can never be selected.
+   * This normalizer bridges the two contracts READ-SIDE only (inputs are
+   * never mutated, nothing is written back):
+   *   (a) 'Date' is derived from the 'Start Time' date part when absent;
+   *   (b) 'Employee ID' is supplied from the strongest linkage key that
+   *       actually exists, in order: the entry's own 'Employee ID'; the
+   *       entry's 'User ID' matched against an employee's 'User ID' (the
+   *       People page "Linked user" field — the designed link); the
+   *       entry's 'Display Name' matched exactly against exactly one
+   *       employee's 'Display Name' (legacy rows carry the name only).
+   *   (c) entries with no unambiguous link are flagged
+   *       (__h38PayrollUnlinked) — never guessed onto a person — and
+   *       prepareSelection() rewrites their preparation exclusion reason
+   *       to the honest 'Not linked to an employee record'. */
+  const UNLINKED_REASON='Not linked to an employee record';
+  function employeeIdOf(emp){return text(emp&&(emp['Employee ID']||emp.employeeId||emp.id));}
+  function normalizeTimeEntries(entries,employees){
+    const byId=new Map(),byUser=new Map(),byName=new Map();
+    const push=(map,key,emp)=>{if(!key)return;const list=map.get(key)||[];list.push(emp);map.set(key,list);};
+    for(const emp of employees||[]){
+      const id=employeeIdOf(emp);if(!id)continue;
+      push(byId,id,emp);
+      push(byUser,text(emp['User ID']||emp.userId),emp);
+      push(byName,text(emp['Display Name']||emp['Employee Name']||emp.Name).toLowerCase(),emp);
+    }
+    const unique=list=>list&&list.length===1?list[0]:null;
+    return (entries||[]).map(entry=>{
+      const out={...(entry||{})};
+      if(!text(out.Date||out.date||out['Work Date'])){
+        const stamp=text(out['Start Time']||out.startTime||out['Start Date']);
+        const day=stamp.slice(0,10);
+        if(/^\d{4}-\d{2}-\d{2}$/.test(day)&&!Number.isNaN(Date.parse(day)))out.Date=day;
+      }
+      let emp=null,via='';
+      const directId=text(out['Employee ID']||out.employeeId);
+      if(directId&&byId.has(directId)){emp=byId.get(directId)[0];via='Employee ID';}
+      if(!emp){const uid=text(out['User ID']||out.userId);const hit=uid?unique(byUser.get(uid)):null;if(hit){emp=hit;via='User ID';}}
+      if(!emp){const nm=text(out['Display Name']||out['Employee Name']||out.Name).toLowerCase();const hit=nm?unique(byName.get(nm)):null;if(hit){emp=hit;via='Display Name';}}
+      if(emp){out['Employee ID']=employeeIdOf(emp);out.__h38PayrollLink=via;}
+      else out.__h38PayrollUnlinked=true;
+      return out;
+    });
+  }
+  /* Selection bridge (pure apart from the pinned preparation call):
+   * normalize → payrollPreparation → honest exclusion reasons. Returns
+   * {preparation, unlinkedCount, unlinkedIds} so callers can warn plainly
+   * instead of misdiagnosing unlinked time as "not approved". */
+  function prepareSelection({businessId,periodId,startDate,endDate,employees=[],timeEntries=[],reimbursements=[],mileage=[]}){
+    const O=ops();if(!O)throw new Error('Payroll operations module is unavailable.');
+    const normalized=normalizeTimeEntries(timeEntries,employees);
+    const unlinkedIds=new Set(normalized.filter(e=>e.__h38PayrollUnlinked)
+      .map(e=>text(e['Time Entry ID']||e.id)).filter(Boolean));
+    const preparation=O.payrollPreparation({businessId,periodId,startDate,endDate,employees,
+      timeEntries:normalized,reimbursements,mileage});
+    if(unlinkedIds.size&&Array.isArray(preparation['Excluded Sources'])){
+      preparation['Excluded Sources']=preparation['Excluded Sources'].map(x=>
+        x&&x.kind==='time'&&unlinkedIds.has(text(x.id))&&x.reason==='Employee not in payroll selection'
+          ?{...x,reason:UNLINKED_REASON}:x);
+    }
+    return {preparation,unlinkedCount:unlinkedIds.size,unlinkedIds:[...unlinkedIds]};
+  }
+
   /* Run-aware exclusion arm (pure): remove entry ids that already appear on
    * a Finalized/Posted run from a preparation's items, recomputing hours and
    * gross from the surviving job allocations. This is the guaranteed
@@ -311,13 +379,14 @@
     const businessId=text(window.state&&window.state.businessId);
     const employees=snapRows('employees').filter(r=>text(r.Status).toUpperCase()!=='INACTIVE');
     const rid=runId||(typeof window.newId==='function'?window.newId('PAYROLL'):`PAYROLL-${Date.now()}`);
-    const preparation=O.payrollPreparation({businessId,periodId:rid,startDate:start,endDate:end,
+    const selection=prepareSelection({businessId,periodId:rid,startDate:start,endDate:end,
       employees,timeEntries:snapRows('timeEntries'),reimbursements:snapRows('reimbursements'),mileage:snapRows('mileage')});
+    const preparation=selection.preparation;
     const cfg=loadConfig();
     const built=buildRunRecords({businessId,runId:rid,periodStart:start,periodEnd:end,payDate,source,
       preparation,employees,existingLines:snapRows('payrollLines'),existingRuns:snapRows('payrollPeriods'),config:cfg,
       configSnapshot:cfg,createdBy:text(window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.userId)});
-    return {...built,preparation};
+    return {...built,preparation,unlinkedCount:selection.unlinkedCount,unlinkedIds:selection.unlinkedIds};
   }
 
   async function saveDraft(built){
@@ -386,6 +455,7 @@
 
   return {BUILD,TRANSITIONS,STAMP_PENDING,STAMP_DONE,
     isContractor,employeeDeductions,ytdWagesBefore,runsContainingEntries,applyRunExclusion,
+    normalizeTimeEntries,prepareSelection,UNLINKED_REASON,
     buildRunRecords,transition,applyTransition,postingForRun,ledgerTxId,liabilitySummary,
     buildRun,saveDraft,markReviewed,finalizeRun,postRun,voidRun,stampTimeEntries,loadConfig};
 });
