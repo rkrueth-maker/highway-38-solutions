@@ -1,0 +1,90 @@
+name: Verify Payroll WS3 (calc + run + reports)
+
+on:
+  pull_request:
+    paths:
+      - 'commercial-app/payroll-calc.js'
+      - 'commercial-app/payroll-run.js'
+      - 'commercial-app/payroll-workflow.js'
+      - 'commercial-app/payroll-print.css'
+      - 'commercial-app/accounting-engine.js'
+      - 'commercial-app/accounting-posting-bridge.js'
+      - 'commercial-app/reports-section.js'
+      - 'commercial-app/accounting-workspace.js'
+      - 'commercial-app/app-19.js'
+      - 'commercial-app/guided-payroll.js'
+      - 'commercial-app/h38-script-loader.js'
+      - 'scripts/verify-payroll-calc.js'
+      - 'scripts/verify-payroll-run.js'
+      - '.github/workflows/verify-payroll-ws3.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'commercial-app/payroll-calc.js'
+      - 'commercial-app/payroll-run.js'
+      - 'commercial-app/payroll-workflow.js'
+      - 'commercial-app/payroll-print.css'
+      - 'commercial-app/accounting-engine.js'
+      - 'commercial-app/accounting-posting-bridge.js'
+      - 'commercial-app/reports-section.js'
+      - 'commercial-app/accounting-workspace.js'
+      - 'commercial-app/app-19.js'
+      - 'commercial-app/guided-payroll.js'
+      - 'commercial-app/h38-script-loader.js'
+      - 'scripts/verify-payroll-calc.js'
+      - 'scripts/verify-payroll-run.js'
+      - '.github/workflows/verify-payroll-ws3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  payroll-ws3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check payroll module syntax
+        run: |
+          node --check commercial-app/payroll-calc.js
+          node --check commercial-app/payroll-run.js
+          node --check commercial-app/payroll-workflow.js
+          node --check commercial-app/accounting-engine.js
+          node --check commercial-app/reports-section.js
+          node --check commercial-app/accounting-workspace.js
+          node --check commercial-app/app-19.js
+          node --check commercial-app/guided-payroll.js
+          node --check scripts/verify-payroll-calc.js
+          node --check scripts/verify-payroll-run.js
+      - name: Verify payroll calc fixtures (Pub. 15-T 2026 hand-computed)
+        run: node scripts/verify-payroll-calc.js
+      - name: Verify payroll run pipeline (selection, state machine, GL posting)
+        run: node scripts/verify-payroll-run.js
+      - name: Verify pinned payrollPreparation contract is untouched
+        run: node scripts/verify-accounting-operations.js
+      - name: Verify loader pins and stamps moved together
+        run: |
+          grep -Fq './accounting-engine.js?build=20261020-payroll-engine-1' commercial-app/h38-script-loader.js
+          grep -Fq './accounting-workspace.js?build=20261020-reports-launcher-1' commercial-app/h38-script-loader.js
+          grep -Fq './accounting-operations.js?build=20261002-payroll-approved-period-1' commercial-app/h38-script-loader.js
+          grep -Fq './payroll-calc.js?build=20261020-payroll-calc-1' commercial-app/h38-script-loader.js
+          grep -Fq './payroll-run.js?build=20261020-payroll-run-1' commercial-app/h38-script-loader.js
+          grep -Fq './payroll-workflow.js?build=20261020-payroll-presentation-1' commercial-app/h38-script-loader.js
+          grep -Fq './reports-section.js?build=20261020-reports-library-1' commercial-app/h38-script-loader.js
+          grep -Fq './guided-payroll.js?build=20261020-payroll-run-1' commercial-app/index.html
+          grep -Fq "VERSION='20261020-payroll-engine-1'" commercial-app/accounting-engine.js
+          grep -Fq "VERSION='20261020-payroll-calc-1'" commercial-app/payroll-calc.js
+          grep -Fq "BUILD='20261020-payroll-run-1'" commercial-app/payroll-run.js
+          grep -Fq "BUILD='20261020-reports-library-1'" commercial-app/reports-section.js
+          grep -Fq "BUILD='20261020-reports-launcher-1'" commercial-app/accounting-workspace.js
+          grep -Fq 'payroll-calc.js?build=20261020-payroll-calc-1' commercial-app/accounting-posting-bridge.js
+      - name: Verify legacy estimators and NACHA placeholders are gone
+        run: |
+          ! grep -Eq 'const H38_TAX|function h38CalculatePaycheck|function h38Estimate|121042882|123456789' commercial-app/payroll-workflow.js
+          grep -Fq 'MARK_TIME_PAID' apps-script/business-office/BusinessOffice_ActionContract.gs
+          grep -Fq 'payrollTaxConfigs' apps-script/business-office/BusinessOffice_ModuleContract.gs
