@@ -40,7 +40,7 @@ def test_inbox_is_the_default_messages_tab():
     assert "tab==='inbox'?'Customer inbox'" in APP08
     assert "state.messageTab==='inbox'?customerInboxView()" in APP08
     assert "if(state.messageTab==='inbox'){bindCustomerInbox();}" in APP08
-    assert "pageHead('Messages','Customer conversations first" in APP08
+    assert "purpose:'Talk to customers in one place. Nothing sends until you approve it.'" in APP08
 
 
 def test_inbox_aggregates_existing_customer_threads_only():
