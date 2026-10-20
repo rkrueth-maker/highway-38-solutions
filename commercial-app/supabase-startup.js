@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20261013-owner-notify-4';
+const H38_SUPABASE_STARTUP_BUILD='20261020-myhank-settings-1';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -163,7 +163,7 @@ bindGlobal=function(){
   };
   $('syncButton').onclick=()=>state.bridgeReady&&state.businessId?loadBusiness(state.businessId,false):window.h38Authorize();
   $('voiceButton').onclick=toggleVoice;
-  $('globalAiButton').onclick=openGlobalAi;
+  const h38GlobalAiBtn=$('globalAiButton');if(h38GlobalAiBtn)h38GlobalAiBtn.onclick=openGlobalAi;
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&navigator.onLine&&!state.bridgeReady)state.bridge?.connect();});
 };
 

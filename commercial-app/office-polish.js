@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260911-cross-platform-assistant-polish-3-launch-stability';
+const BUILD='20261020-myhank-settings-1';
 let lastSearchTrigger=null;
 let shellSyncTimer=0;
 let applyScheduled=false;
@@ -8,8 +8,6 @@ let applyScheduled=false;
 function text(value){return String(value==null?'':value).trim();}
 function setText(node,value){const next=String(value==null?'':value);if(node&&node.textContent!==next)node.textContent=next;}
 function northernTenant(){try{const b=window.state?.snapshot?.business||{};const key=text(b.businessKey||b['Business Key']||window.state?.businessKey||new URLSearchParams(location.search).get('businessKey')||'').toLowerCase();return key==='northern-lakes';}catch(_){return false;}}
-function assistantDisplayName(){return northernTenant()?'Assistant':'My Hank';}
-function assistantPageTitle(){return northernTenant()?'Personal Assistant':'My Hank';}
 function searchDialog(){return document.getElementById('h38OfficeSearchDialog');}
 function androidNative(){return /H38SiteScannerAndroid\//.test(String(navigator.userAgent||''))||!!window.AndroidH38Native;}
 function iosLike(){return /iPhone|iPad|iPod/i.test(String(navigator.userAgent||''));}
@@ -91,87 +89,13 @@ function syncShellTop(){
     }
   },0);
 }
-function openUnifiedAssistant(event){
-  if(isStaff())return;
-  event?.preventDefault?.();
-  event?.stopImmediatePropagation?.();
-  try{
-    if(window.H38_PERSONAL_ASSISTANT&&typeof window.openPage==='function'){
-      window.openPage('assistant');
-      return true;
-    }
-  }catch(_){}
-  try{
-    if(typeof window.openPage==='function'){
-      window.openPage('assistant');
-      if(window.state?.page==='assistant')return true;
-    }
-  }catch(_){}
-  try{window.openGlobalAi?.();return true;}catch(_){return false;}
-}
-function syncAssistantBadge(){
-  const source=document.querySelector('#personalAssistantButton .pa-due-dot');
-  const launcher=document.getElementById('globalAiButton');
-  if(!launcher)return;
-  let badge=launcher.querySelector('.h38-floating-due');
-  // The top-bar Personal Assistant button no longer exists (desktop
-  // sleekness, 2026-10-13); personal-assistant.js now publishes its due
-  // count on window.H38_PA_DUE_COUNT and badges the pill directly. Keep
-  // the legacy fixture/button source working when one is present.
-  const count=text(source?.textContent)||(Number(window.H38_PA_DUE_COUNT||0)>0?String(Math.min(99,Number(window.H38_PA_DUE_COUNT))):'');
-  if(!count){badge?.remove();return;}
-  if(!badge){badge=document.createElement('span');badge.className='h38-floating-due';launcher.appendChild(badge);}
-  setText(badge,count);
-}
-function polishAssistantLauncher(){
+function retireAssistantLaunchers(){
+  // My Hank lives in Settings now (Rick, 2026-10-20): no floating pill and
+  // no duplicate top-bar assistant button. A stale cached shell may still
+  // carry the old elements; remove them so the button is gone everywhere.
   const personal=document.getElementById('personalAssistantButton');
-  if(personal){
-    if(personal.hidden!==true)personal.hidden=true;
-    if(personal.tabIndex!==-1)personal.tabIndex=-1;
-    if(personal.getAttribute('aria-hidden')!=='true')personal.setAttribute('aria-hidden','true');
-  }
-  const launcher=document.getElementById('globalAiButton');
-  if(launcher){
-    const displayName=assistantDisplayName();
-    // The launcher is styled position:fixed, but it ships inside the top bar.
-    // On phone widths the mobile shell styles give .topbar a transform, which
-    // makes the header the containing block for fixed descendants — the pill
-    // anchored to the header and rendered above the viewport (complete scan
-    // 2026-10-13, rect y=-74 at 390px). A viewport-floating launcher belongs
-    // at body level; move it there once so fixed positioning is always
-    // viewport-relative. Listeners and ID lookups are unaffected by the move.
-    if(document.body&&launcher.parentElement!==document.body)document.body.appendChild(launcher);
-    launcher.classList.add('h38-floating-assistant','h38-polish-touch');
-    if(launcher.getAttribute('aria-label')!==displayName)launcher.setAttribute('aria-label',displayName);
-    if(launcher.getAttribute('title')!==displayName)launcher.setAttribute('title',displayName);
-    if(launcher.dataset.h38UnifiedAssistant!=='1'){
-      launcher.dataset.h38UnifiedAssistant='1';
-      launcher.innerHTML='<span class="h38-floating-assistant-icon" aria-hidden="true">✦</span><span class="h38-floating-assistant-label">'+displayName+'</span>';
-      launcher.addEventListener('click',openUnifiedAssistant,true);
-    }else{
-      const label=launcher.querySelector('.h38-floating-assistant-label,.ai-launcher-label');
-      if(label&&text(label.textContent)!==displayName)label.textContent=displayName;
-    }
-  }
-  syncAssistantBadge();
-  bindFabCollapse();
-}
-function bindFabCollapse(){
-  // Shrink the assistant pill to an icon button once the user scrolls into
-  // page content, so it never sits on top of right-edge content. Expands
-  // again near the top. Bound once; rAF-throttled passive listener.
-  const launcher=document.getElementById('globalAiButton');
-  if(!launcher||launcher.dataset.h38FabCollapse==='1')return;
-  launcher.dataset.h38FabCollapse='1';
-  let ticking=false;
-  const update=()=>{
-    ticking=false;
-    const y=window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0;
-    launcher.classList.toggle('h38-fab-collapsed',y>140);
-  };
-  const onScroll=()=>{if(ticking)return;ticking=true;if(typeof requestAnimationFrame==='function')requestAnimationFrame(update);else update();};
-  window.addEventListener('scroll',onScroll,{passive:true});
-  update();
+  if(personal){personal.hidden=true;personal.tabIndex=-1;personal.setAttribute('aria-hidden','true');}
+  document.getElementById('globalAiButton')?.remove();
 }
 function commandButton(label,command){
   const button=document.createElement('button');
@@ -187,26 +111,22 @@ function commandButton(label,command){
   });
   return button;
 }
-function ensureOwnerNote(main){
-  let note=main.querySelector('.h38-owner-assistant-note');
+function ensureOwnerNote(shell){
+  let note=shell.querySelector('.h38-owner-assistant-note');
   if(note)return note;
   note=document.createElement('div');
   note.className='h38-owner-assistant-note';
   const strong=document.createElement('strong');strong.textContent='Your private assistant';
   const span=document.createElement('span');
   note.append(strong,span);
-  main.querySelector('.pa-shell')?.prepend(note);
+  shell.prepend(note);
   return note;
 }
 function decorateAssistantPage(){
-  if(window.state?.page!=='assistant')return;
-  const main=document.getElementById('mainContent');
-  const form=document.getElementById('paCommandForm');
-  if(!main||!form)return;
-  const heading=main.querySelector('.page-head h1');
-  setText(heading,assistantPageTitle());
-  const intro=main.querySelector('.page-head p');
-  setText(intro,'Private to your sign-in. Ask questions, manage personal reminders, or give H38 Business Office commands.');
+  const main=document.querySelector('#mainContent .pa-shell, #h38MyHankPopout .pa-shell');
+  if(!main)return;
+  const form=main.querySelector('#paCommandForm');
+  if(!form)return;
   const label=form.querySelector('label');
   setText(label,'Ask or command H38');
   const input=form.querySelector('[name="command"]');
@@ -401,7 +321,7 @@ function apply(){
     installPlatformClasses();
     polishSearch();
     polishTouchTargets();
-    polishAssistantLauncher();
+    retireAssistantLaunchers();
     decorateAssistantPage();
     syncShellTop();
     polishCardBands();
@@ -432,7 +352,9 @@ window.H38_OFFICE_POLISH=Object.freeze({
   closeSearch,
   quoteAiChanged:false,
   navigationAuthority:false,
-  unifiedAssistantLauncher:true,
+  unifiedAssistantLauncher:false,
+  myHankInSettings:true,
+  myHankDesktopPopout:true,
   personalAssistantPrivatePerUser:true,
   businessCommandBusPreserved:true,
   androidSafeArea:true,
