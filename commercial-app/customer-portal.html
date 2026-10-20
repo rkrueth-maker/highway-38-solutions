@@ -195,7 +195,7 @@ function loadSession(token){
   fetch(FN_URL+'?action=session&token='+encodeURIComponent(token))
     .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
     .then(function(r){
-      if(r.ok&&r.o&&r.o.customer){bundle=r.o;window.__h38OnlinePayments=!!(r.o.payments&&r.o.payments.onlineEnabled);renderPortal();}
+      if(r.ok&&r.o&&r.o.customer){bundle=r.o;window.__h38PortalBundle=r.o;window.__h38OnlinePayments=!!(r.o.payments&&r.o.payments.onlineEnabled);renderPortal();}
       else{sessionStorage.removeItem('h38-portal-session');sessionToken='';showRedeemError((r.o&&r.o.error)||'Your session expired. Please sign in again.');}
     })
     .catch(function(){showRedeemError('Could not reach the portal. Please try again.');});
@@ -266,7 +266,7 @@ function renderPortal(){
       tiersHtml=q.tiers.map(function(t,i){
         return '<div class="tier'+(i===1?' popular':'')+'">'+(i===1?'<div class="tag">Most popular</div>':'')+'<div class="tname">'+esc(t.name)+'</div><div class="tprice">'+money(t.total)+'</div><div class="muted small">'+esc(t.description||'')+'</div>'+
         (t.items||[]).map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join('')+
-        (canAct?'<button class="block" style="margin-top:10px" data-approve="'+esc(q.id)+'" data-tier="'+esc(t.name)+'">Approve '+esc(t.name)+'</button>':'')+'</div>';
+        (canAct?'<button class="block" style="margin-top:10px" data-approve="'+esc(q.id)+'" data-tier-index="'+i+'">Approve '+esc(t.name)+'</button>':'')+'</div>';
       }).join('');
     }
     var linesHtml=(q.lines||[]).length?'<h3>Line items</h3>'+q.lines.map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join(''):'';
@@ -300,16 +300,19 @@ document.addEventListener('click',function(e){
   var g=e.target.closest('[data-goto]');
   if(g){var b=document.querySelector('#tabBar button[data-view="'+g.dataset.goto+'"]');if(b)b.click();return;}
   var ap=e.target.closest('[data-approve]');
-  if(ap){approveQuote(ap.dataset.approve,ap.dataset.tier||'');return;}
+  if(ap){var qid=ap.dataset.approve;var found=((typeof bundle!=='undefined'&&bundle&&bundle.quotes)||[]).find(function(x){return x.id===qid;})||null;approveQuote(qid,ap.dataset.tierIndex!==undefined&&ap.dataset.tierIndex!==''?Number(ap.dataset.tierIndex):null,found);return;}
   var dc=e.target.closest('[data-decline]');
   if(dc){declineQuote(dc.dataset.decline);return;}
   var py=e.target.closest('[data-pay]');
   if(py){payInvoice(py.dataset.pay,py.dataset.amount);return;}
 });
 
-function approveQuote(quoteId,tier){
-  if(!confirm('Approve this quote'+(tier?' ('+tier+' option)':'')+'? We will contact you to schedule the work.'))return;
-  api('approve-quote',{session_token:sessionToken,quote_id:quoteId,tier:tier}).then(function(r){
+function tierTotalClient(tier){return (tier&&tier.items||[]).reduce(function(sum,l){return sum+(Number(l.quantity)||0)*(Number(l.unitPrice)||0);},0);}
+function approveQuote(quoteId,tierIndex,quote){
+  var tier=(quote&&quote.tiers&&typeof tierIndex==='number')?quote.tiers[tierIndex]:null;
+  var label=tier?('Approve the '+tier.name+' option at '+money(tierTotalClient(tier))+'? We will contact you to schedule the work.'):'Approve this quote? We will contact you to schedule the work.';
+  if(!confirm(label))return;
+  api('approve-quote',{session_token:sessionToken,quote_id:quoteId,tier_index:(typeof tierIndex==='number'?tierIndex:null),expected_revision:(quote?quote.revision:null)}).then(function(r){
     alert((r.o&&(r.o.message||r.o.error))||'Done.');
     if(r.ok)loadSession(sessionToken);
   });
