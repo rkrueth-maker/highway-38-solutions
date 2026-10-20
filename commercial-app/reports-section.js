@@ -593,9 +593,10 @@
     let built;
     try{built=builders[S.tab]();}catch(e){built={html:`<div class="notice warn"><strong>Report failed to load:</strong> ${esc(e.message||e)}</div>`,csv:null};}
     currentCsv=built.csv;
+    const h38ReportsHead={page:'reports',title:'Reports',purpose:'Plain-language answers about your money and work. Nothing here files or moves anything.',primary:{label:'Run a report',handler:()=>{const b=document.querySelector('.h38-rep-tabs button');if(b){b.scrollIntoView({behavior:'smooth',block:'center'});b.focus({preventScroll:true});}}},more:[{label:'Saved snapshots',handler:()=>{window.toast?.('Use Print or Download CSV on a report to save a snapshot of it.');}},{label:'Accountant package',handler:()=>{if(typeof window.openPage==='function')window.openPage('tax');}}]};
     const main=$('mainContent');
     if(!main)return;
-    main.innerHTML=(typeof window.pageHead==='function'?window.pageHead('Reports','Accounting › Reports — plain-language summaries from your Office records. Nothing here files anything or moves money.'):'<h1>Reports</h1>')+`
+    main.innerHTML=(window.H38Flow?window.H38Flow.screenHeader(h38ReportsHead):(typeof window.pageHead==='function'?window.pageHead('Reports',h38ReportsHead.purpose):'<h1>Reports</h1>'))+`
     <style>
       .h38-rep-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
       .h38-rep-tabs button{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer;white-space:normal;overflow:visible;text-overflow:clip}
@@ -642,6 +643,7 @@
       </div>
       <p class="muted small" style="margin-top:10px">Built live from this business's Office records. Estimates only — review with your accountant before tax filing.</p>
     </section></div>`;
+    if(window.H38Flow)window.H38Flow.bindScreenHeader(main,h38ReportsHead);
     // wire tabs
     main.querySelectorAll('[data-rep-tab]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.repTab;render();});
     // wire preset

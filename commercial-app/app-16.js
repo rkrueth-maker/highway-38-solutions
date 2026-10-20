@@ -9,7 +9,9 @@ function renderAi(){
   }
   /* Fallback if the workspace module failed to load: simple chat. */
   const chat = (window.state && window.state.aiChat) || [];
+  const h38AiHead={page:'ai',title:'Hank',purpose:'Hank is your office worker. See what Hank did, and ask for the next thing.',primary:{label:'Ask Hank',handler:()=>{const f=document.getElementById('kwAiForm');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});f.querySelector('textarea')?.focus({preventScroll:true});}}}};
   document.getElementById('mainContent').innerHTML =
+    (window.H38Flow?window.H38Flow.screenHeader(h38AiHead):'') +
     '<div class="kw-workspace"><section class="card kw-chat"><h2>Ask Hank</h2>' +
     '<div id="kwAiChat" class="ai-chat">' +
     (chat.length ? chat.map(function (m) {
@@ -18,6 +20,7 @@ function renderAi(){
     '</div><form id="kwAiForm"><label>Question</label>' +
     '<textarea name="question" required placeholder="What should I work on next?"></textarea>' +
     '<div class="actions"><button>Ask Hank</button></div></form></section></div>';
+  if(window.H38Flow)window.H38Flow.bindScreenHeader(document.getElementById('mainContent'),h38AiHead);
   var form = document.getElementById('kwAiForm');
   if (form) bindForm(form, askAi);
 }

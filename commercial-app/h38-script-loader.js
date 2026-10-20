@@ -127,7 +127,7 @@
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './membership-engine.js?build=20261005-membership-1',
+      './membership-engine.js?build=20261020-ws4-remaining-1',
       './card-vault.js?build=20261005-cardvault-1',
     ];
     const PAGE_ACCOUNTING = [
@@ -157,17 +157,17 @@
       // math, operations for R5 jobCost. R6 stays dependency-free.
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
-      './reports-section.js?build=20261020-reports-library-1',
+      './reports-section.js?build=20261020-ws4-remaining-1',
     ];
     const PAGE_DOCUMENTS = [
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
     ];
     const PAGE_AI = [
-      './kits-workspace.js?build=20261011-kits-workspace-1',
+      './kits-workspace.js?build=20261020-ws4-hank-1',
     ];
     const PAGE_ASSISTANT = [
-      './kits-workspace.js?build=20261011-kits-workspace-1',
+      './kits-workspace.js?build=20261020-ws4-hank-1',
     ];
     const PAGE_SOCIAL = [
       './deal-alerts.js?build=20261008-inventory-module-1',
