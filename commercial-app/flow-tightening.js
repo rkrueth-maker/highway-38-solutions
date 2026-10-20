@@ -131,6 +131,17 @@ function enhanceCreationFlow(page){
   actions.querySelectorAll('[data-h38-create]').forEach(button=>button.onclick=()=>{choose(button.dataset.h38Create);const form=document.getElementById(button.dataset.h38Create);form?.scrollIntoView({behavior:'smooth',block:'nearest'});form?.querySelector('input,select,textarea')?.focus({preventScroll:true});});
   choose(cards.some(entry=>entry.item.id===creationChoice[page])?creationChoice[page]:cards[0].item.id);
 }
+/* WS4: let a screen header choose which creation form the chooser shows
+ * (e.g. Jobs header "+ New job" arrives with the job form chosen). The
+ * chooser's own defaults are untouched — this only sets the choice for
+ * the current arrival, then re-applies the chooser and focuses the form. */
+function chooseCreation(page,formId){
+  if(formId)creationChoice[page]=formId;
+  enhanceCreationFlow(page);
+  const form=formId?document.getElementById(formId):null;
+  if(form){form.scrollIntoView({behavior:'smooth',block:'nearest'});form.querySelector('input,select,textarea')?.focus({preventScroll:true});}
+}
+window.H38ChooseCreation=chooseCreation;
 function nextActionLabel(command,context){
   const stage=upper(context?.stage);
   if(command==='site')return stage==='SITE_VISIT'?'Continue Site Visit':'Start Site Visit';
@@ -182,7 +193,7 @@ function runJobCommand(command,job,context){
   if(command==='site'||command==='field'){startSiteVisit(text(value(job,'Customer ID','customerId')),recordId(latest(context?.quotes||[]),'Quote ID','quoteId'));return;}
   if(command==='quote'){quoteForJob(job,context);return;}
   if(command==='schedule'){openPageSafe('schedule');return;}
-  if(command==='money'){moneyForJob(preferredJobId);return;}
+  if(command==='money'){const stage=upper(context?.stage),completeNoInvoice=upper(value(job,'Status','status'))==='COMPLETE'&&!(context?.invoices||[]).length;if((stage==='INVOICE'||completeNoInvoice)&&window.H38Flow?.startInvoiceFromJob)window.H38Flow.startInvoiceFromJob(preferredJobId);else moneyForJob(preferredJobId);return;}
   if(command==='files'){openPageSafe('documents');return;}
   if(command==='messages'){openPageSafe('messages');return;}
   document.querySelector('.h38-life-work')?.scrollIntoView({behavior:'smooth',block:'start'});
