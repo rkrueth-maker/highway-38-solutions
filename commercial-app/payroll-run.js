@@ -35,6 +35,12 @@
   'use strict';
   const BUILD='20261020-payroll-run-1';
   const ENGINE=deps.engine, OPS=deps.operations, CALC=deps.calc;
+  /* Lazy fallbacks: in the browser the loader group guarantees order, but
+   * resolving through window at call time keeps posting/liability working
+   * even if the accounting group loaded after this module. */
+  function engine(){return ENGINE||(typeof window!=='undefined'?window.H38_ACCOUNTING_ENGINE:null);}
+  function ops(){return OPS||(typeof window!=='undefined'?window.H38_ACCOUNTING_OPERATIONS:null);}
+  function calcMod(){return CALC||(typeof window!=='undefined'?window.H38_PAYROLL_CALC:null);}
   const text=v=>String(v==null?'':v).trim();
   const num=v=>{const n=Number(v||0);return Number.isFinite(n)?n:0;};
   const money=v=>Math.round(num(v)*100)/100;
@@ -114,6 +120,7 @@
   function buildRunRecords({businessId,runId,periodStart,periodEnd,payDate,source='payroll-page',
     preparation,employees=[],existingLines=[],existingRuns=[],config,configSnapshot,createdBy='',nowIso}){
     if(!preparation||!Array.isArray(preparation.Items))throw new Error('A payrollPreparation result is required to build a run.');
+    const CALC=calcMod();
     if(!CALC)throw new Error('Payroll calc module is unavailable.');
     const cfg=config||CALC.createConfig();
     const stamp=nowIso||new Date().toISOString();
@@ -236,7 +243,7 @@
 
   /* GL transaction for a run (pure, via the engine) — deterministic id. */
   function postingForRun(header,lines){
-    if(!ENGINE)throw new Error('Accounting engine is unavailable.');
+    const ENGINE=engine();if(!ENGINE)throw new Error('Accounting engine is unavailable.');
     const allocCost=(lines||[]).reduce((s,l)=>s+(Array.isArray(l['Job Allocations'])?l['Job Allocations'].reduce((a,j)=>a+num(j.cost),0):0),0);
     const gross=sum(lines||[],'Gross Pay');
     const directLaborShare=gross>0?money(Math.min(gross,allocCost)):0;
@@ -260,8 +267,9 @@
       other:money(sum(posted,'Other Withholding')+posted.reduce((s,l)=>s+(Array.isArray(l['Deductions Detail'])?l['Deductions Detail'].reduce((a,d)=>a+num(d.amount),0):0),0)),
       netPay:sum(posted,'Net Pay')};
     let balances={};
-    if(ENGINE&&Array.isArray(transactions)){
-      try{const grouped=ENGINE.trialBalance(transactions,accounts||[]);
+    const ENG=engine();
+    if(ENG&&Array.isArray(transactions)){
+      try{const grouped=ENG.trialBalance(transactions,accounts||[]);
         const byId={};grouped.forEach(r=>{byId[r.account.id]=r.balance;});
         balances={'ACCT-2400':money(byId['ACCT-2400']||0),'ACCT-2410':money(byId['ACCT-2410']||0),
           'ACCT-2420':money(byId['ACCT-2420']||0),'ACCT-2430':money(byId['ACCT-2430']||0),
@@ -290,19 +298,20 @@
   async function syncQuiet(){try{if(typeof window.sync==='function')await window.sync(false);}catch(e){}}
 
   function loadConfig(){
-    if(!CALC)return null;
+    const C=calcMod();if(!C)return null;
     const rowsForBusiness=snapRows('payrollTaxConfigs').filter(r=>text(r['Business ID'])===text(window.state&&window.state.businessId));
     const record=rowsForBusiness[0];
-    return CALC.createConfig(record||undefined);
+    return C.createConfig(record||undefined);
   }
 
   /* Full build: selection via payrollPreparation + run-aware exclusion. */
   async function buildRun({start,end,payDate,source='payroll-page',runId}){
-    if(!OPS||!CALC)throw new Error('Payroll modules are still loading. Try again in a moment.');
+    const O=ops(),C=calcMod();
+    if(!O||!C)throw new Error('Payroll modules are still loading. Try again in a moment.');
     const businessId=text(window.state&&window.state.businessId);
     const employees=snapRows('employees').filter(r=>text(r.Status).toUpperCase()!=='INACTIVE');
     const rid=runId||(typeof window.newId==='function'?window.newId('PAYROLL'):`PAYROLL-${Date.now()}`);
-    const preparation=OPS.payrollPreparation({businessId,periodId:rid,startDate:start,endDate:end,
+    const preparation=O.payrollPreparation({businessId,periodId:rid,startDate:start,endDate:end,
       employees,timeEntries:snapRows('timeEntries'),reimbursements:snapRows('reimbursements'),mileage:snapRows('mileage')});
     const cfg=loadConfig();
     const built=buildRunRecords({businessId,runId:rid,periodStart:start,periodEnd:end,payDate,source,
