@@ -668,7 +668,7 @@
 
   function enhanceWork() {
     const title = document.querySelector('#mainContent .page-head h1');
-    if (title) title.textContent='Work & Task Assignment';
+    if (title) title.textContent='Jobs';
     const grid = document.querySelector('#mainContent .grid');
     if (!grid || document.getElementById('supabaseTaskBoard')) return;
     const tasks = window.state.snapshot.tasks || [];

@@ -470,7 +470,7 @@
   function pushCard(cards, icon, title, data) {
     if (!data) return;
     const idx = registerAction(data.actionFn);
-    cards.push({ urgent: !!data.urgent, html: actionCard(icon, title, data, idx) });
+    cards.push({ urgent: !!data.urgent, html: actionCard(icon, title, data, idx), actionLabel: data.action || '', actionIdx: idx });
   }
 
   /* ================= Type-specific quick actions ================= */
@@ -713,12 +713,28 @@
         </div>
       </section>`;
 
-    /* ---- Header ---- */
+    /* ---- Header (WS4 §5.1): standard screen header; the primary action
+     * is the top (urgent-first) action card's own action, falling back to
+     * New quote when nothing needs the owner. ---- */
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     const businessName = state.snapshot?.business?.businessName || 'Your Business';
     const userName = state.snapshot?.user?.name || state.snapshot?.user?.email || '';
-    const headerHtml = `
+    const topCard = cards[0] || null;
+    const headerOpts = {
+      page: 'today', title: 'Today',
+      purpose: 'See what needs you today, and do the most important thing first.',
+      status: { label: TYPE_LABEL[type] || TYPE_LABEL.default, kind: '' },
+      primary: topCard
+        ? { label: String(topCard.actionLabel || 'Open').replace(/\s*→\s*$/, ''), handler: () => { const fn = actionHandlers[topCard.actionIdx]; if (fn) fn(); } }
+        : { label: '＋ New quote', handler: () => openPage('quotes') },
+      secondary: [{ label: '＋ New job', handler: () => openPage('work') }],
+      more: [
+        { label: 'Read my day', handler: () => { if (typeof window.readMyDay === 'function') window.readMyDay(); else document.getElementById('readDayButton')?.click(); } },
+        { label: 'Daily digest settings', handler: () => openPage('settings') }
+      ]
+    };
+    const headerHtml = window.H38Flow ? window.H38Flow.screenHeader(headerOpts) : `
       <header class="page-head h38-owner-head">
         <h1>${esc(greeting)}${userName ? ', ' + esc(String(userName).split(' ')[0]) : ''}</h1>
         <p>${esc(businessName)}</p>
@@ -769,6 +785,8 @@
         ${tasksHtml}
         ${scheduleHtml}
       </div>`;
+
+    if (window.H38Flow) window.H38Flow.bindScreenHeader($('mainContent'), headerOpts);
 
     /* ---- While You Were Away feed (reads real state.snapshot.proofLog) ---- */
     try {

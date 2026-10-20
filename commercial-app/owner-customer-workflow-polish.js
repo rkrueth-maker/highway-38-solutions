@@ -84,6 +84,80 @@ function h38ConfirmDialog(message){
     dialog.showModal();
   });
 }
+function quoteTiers(row){const tiers=row&&(row.tiers||row.Tiers);return Array.isArray(tiers)&&tiers.length===3?tiers:null;}
+function isTieredQuote(row){return text(val(row,'Tier Mode','tierMode'))==='Good-Better-Best'&&!!quoteTiers(row);}
+function tierTotalOf(tier){return Math.round((Array.isArray(tier&&tier.items)?tier.items:[]).reduce((sum,line)=>sum+(Number(line&&line.quantity)||0)*(Number(line&&(line.unitPrice!=null?line.unitPrice:line.UnitPrice))||0),0)*100)/100;}
+function applyAcceptedOptionSnapshot(quote,optionIndex,statusText){
+  const tiers=quoteTiers(quote);if(!tiers)throw new Error('This quote has no saved options to accept.');
+  const tier=tiers[optionIndex];if(!tier||!(tier.items||[]).length)throw new Error('The chosen option has no line items.');
+  const chosenTotal=tierTotalOf(tier);
+  const updated={...quote,
+    lines:JSON.parse(JSON.stringify(tier.items)),
+    'Subtotal':chosenTotal,
+    'Total':Math.round((chosenTotal+(Number(val(quote,'Tax','tax'))||0))*100)/100,
+    'Accepted Option ID':text(tier.id)||['good','better','best'][optionIndex],
+    'Accepted Option Index':optionIndex,
+    'Accepted Option Name':text(tier.name),
+    'Accepted Option Total':chosenTotal,
+    'Accepted At Revision':val(quote,'Locked Revision','lockedRevision')||val(quote,'Revision','revision'),
+    'Customer Decision':'Accepted',
+    'Status':statusText,
+    'Updated Time':now(),
+    'Record Version':Math.max(1,Number(val(quote,'Record Version','recordVersion')||0)+1)};
+  delete updated.__localPending;
+  return updated;
+}
+function h38OptionPickerDialog(quote){
+  return new Promise(resolve=>{
+    const tiers=quoteTiers(quote)||[];
+    let dialog=document.getElementById('h38OwnerOptionDialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');dialog.id='h38OwnerOptionDialog';
+      dialog.innerHTML='<form method="dialog"><h2>Which option did the customer choose?</h2><p>Record the exact option the customer accepted. The quote lines and total update to that option.</p><label>Accepted option</label><select id="h38OwnerOptionSelect" style="width:100%;min-height:44px"></select><div class="actions"><button value="cancel" class="secondary">Cancel</button><button id="h38OwnerOptionOk" value="ok" class="primary">Record acceptance</button></div></form>';
+      document.body.appendChild(dialog);
+    }
+    const select=dialog.querySelector('#h38OwnerOptionSelect');
+    select.innerHTML=tiers.map((tier,i)=>`<option value="${i}">${esc(text(tier.name)||['Good','Better','Best'][i])} — ${esc(new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(tierTotalOf(tier)))}</option>`).join('');
+    select.value='1';
+    const onClose=()=>{dialog.removeEventListener('close',onClose);resolve(dialog.returnValue==='ok'?Number(select.value):null);};
+    dialog.addEventListener('close',onClose);
+    dialog.showModal();
+  });
+}
+async function saveQuoteDecisionWrite(quote,updated,verb){
+  const qid=recordId(quote,'Quote ID','quoteId');
+  await window.queueOperation?.('SAVE_ENTITY','Quote',qid,{entity:'quotes',record:updated},{collection:'quotes',record:updated,idKeys:['Quote ID']},true);
+  const snap=window.state?.snapshot?.quotes;
+  if(Array.isArray(snap)){const idx=snap.findIndex(row=>recordId(row,'Quote ID','quoteId')===qid);if(idx>=0)snap[idx]=updated;}
+  window.toast?.(`Customer ${verb} decision recorded. Nothing was sent.`);
+  if(typeof window.renderQuotes==='function')window.renderQuotes();else schedule();
+}
+function portalDecisionForQuote(quote){
+  const portalId=text(val(quote,'Customer Portal Quote ID','customerPortalQuoteId'));if(!portalId)return null;
+  const row=rows('quotes').find(item=>recordId(item,'Quote ID','quoteId')===portalId&&item['Supabase Portal Record']);if(!row)return null;
+  return /APPROV/i.test(text(val(row,'Customer Decision','customerDecision')))?row:null;
+}
+async function recordPortalAcceptance(){
+  const quote=currentQuoteRecord();if(!quote){window.toast?.('Save the quote first.',true);return;}
+  const portalRow=portalDecisionForQuote(quote);if(!portalRow){window.toast?.('No portal acceptance is recorded for this quote yet.',true);return;}
+  const confirmed=await h38ConfirmDialog('Record the customer portal acceptance on this quote? This applies the option the customer chose in the portal. Nothing is sent and no job is created automatically.');
+  if(!confirmed)return;
+  try{
+    const user=text(window.state?.user?.email||window.state?.user?.id||'owner');
+    let optionIndex=null;
+    if(isTieredQuote(quote)){
+      const selectedId=text(val(portalRow,'Selected Option','selectedOption'));
+      const tiers=quoteTiers(quote);
+      if(selectedId)optionIndex=tiers.findIndex(tier=>text(tier.id)===selectedId);
+      if(optionIndex==null||optionIndex<0)optionIndex=await h38OptionPickerDialog(quote);
+      if(optionIndex==null)return;
+    }
+    const base=isTieredQuote(quote)?applyAcceptedOptionSnapshot(quote,optionIndex,'Customer Accepted — Owner Recorded'):{...quote,'Status':'Customer Accepted — Owner Recorded','Customer Decision':'Accepted','Updated Time':now(),'Record Version':Math.max(1,Number(val(quote,'Record Version','recordVersion')||0)+1)};
+    delete base.__localPending;
+    const updated={...base,'Customer Decision Recorded By':user,'Customer Decision Time':now(),'Portal Acceptance Recorded':true};
+    await saveQuoteDecisionWrite(quote,updated,'accepted');
+  }catch(error){window.toast?.(error?.message||String(error),true);}
+}
 async function recordQuoteDecision(decision){
   const quote=currentQuoteRecord();if(!quote){window.toast?.('Save the quote first.',true);return;}
   const qid=recordId(quote,'Quote ID','quoteId'),approved=decision==='accepted',verb=approved?'accepted':'declined';
@@ -91,20 +165,24 @@ async function recordQuoteDecision(decision){
   if(!confirmed)return;
   try{
     const user=text(window.state?.user?.email||window.state?.user?.id||'owner');
-    const updated={...quote,'Status':approved?'Customer Accepted — Owner Recorded':'Customer Declined — Owner Recorded','Customer Decision':approved?'Accepted':'Declined','Customer Decision Recorded By':user,'Customer Decision Time':now(),'Updated Time':now(),'Record Version':Math.max(1,Number(val(quote,'Record Version','recordVersion')||0)+1)};
-    delete updated.__localPending;
-    await window.queueOperation?.('SAVE_ENTITY','Quote',qid,{entity:'quotes',record:updated},{collection:'quotes',record:updated,idKeys:['Quote ID']},true);
-    // Update local snapshot so the panel refreshes immediately
-    const snap=window.state?.snapshot?.quotes;
-    if(Array.isArray(snap)){const idx=snap.findIndex(row=>recordId(row,'Quote ID','quoteId')===qid);if(idx>=0)snap[idx]=updated;}
-    window.toast?.(`Customer ${verb} decision recorded. Nothing was sent.`);
-    if(typeof window.renderQuotes==='function')window.renderQuotes();else schedule();
+    let updated;
+    if(approved&&isTieredQuote(quote)){
+      const optionIndex=await h38OptionPickerDialog(quote);
+      if(optionIndex==null)return;
+      updated={...applyAcceptedOptionSnapshot(quote,optionIndex,'Customer Accepted — Owner Recorded'),'Customer Decision Recorded By':user,'Customer Decision Time':now()};
+    }else{
+      updated={...quote,'Status':approved?'Customer Accepted — Owner Recorded':'Customer Declined — Owner Recorded','Customer Decision':approved?'Accepted':'Declined','Customer Decision Recorded By':user,'Customer Decision Time':now(),'Updated Time':now(),'Record Version':Math.max(1,Number(val(quote,'Record Version','recordVersion')||0)+1)};
+      delete updated.__localPending;
+    }
+    await saveQuoteDecisionWrite(quote,updated,verb);
   }catch(error){window.toast?.(error?.message||String(error),true);}
 }
-function addQuoteJobHandoff(){const main=document.getElementById('mainContent');if(currentPage()!=='quotes'||!main)return;const quote=currentQuoteRecord();if(!quote)return;const job=linkedJobForQuote(quote),accepted=acceptedQuote(quote),declined=/DECLIN|REJECT/.test(text(val(quote,'Customer Decision','customerDecision')).toUpperCase()),presented=/PRESENT|SENT/i.test(text(val(quote,'Status','status'))),signature=[recordId(quote,'Quote ID','quoteId'),job?recordId(job,'Job ID','jobId')+':'+text(val(job,'Status')):'',accepted?'accepted':declined?'declined':presented?'presented':'pending'].join('|'),existingPanel=main.querySelector('#h38QuoteJobHandoff');if(existingPanel&&existingPanel.dataset.h38HandoffSignature===signature)return;existingPanel?.remove();const panel=document.createElement('section');panel.id='h38QuoteJobHandoff';panel.className='card h38-quote-job-handoff';panel.dataset.h38HandoffSignature=signature;
+function addQuoteJobHandoff(){const main=document.getElementById('mainContent');if(currentPage()!=='quotes'||!main)return;const quote=currentQuoteRecord();if(!quote)return;const job=linkedJobForQuote(quote),accepted=acceptedQuote(quote),declined=/DECLIN|REJECT/.test(text(val(quote,'Customer Decision','customerDecision')).toUpperCase()),presented=/PRESENT|SENT/i.test(text(val(quote,'Status','status'))),signature=[recordId(quote,'Quote ID','quoteId'),job?recordId(job,'Job ID','jobId')+':'+text(val(job,'Status')):'',accepted?'accepted':declined?'declined':presented?'presented':'pending',text(val(quote,'Accepted Option ID','acceptedOptionId')),portalDecisionForQuote(quote)?'portal-approved':''].join('|'),existingPanel=main.querySelector('#h38QuoteJobHandoff');if(existingPanel&&existingPanel.dataset.h38HandoffSignature===signature)return;existingPanel?.remove();const panel=document.createElement('section');panel.id='h38QuoteJobHandoff';panel.className='card h38-quote-job-handoff';panel.dataset.h38HandoffSignature=signature;
 const presentedWhen=(()=>{const raw=text(val(quote,'Presented Time','presentedTime','Sent Time','sentTime'));if(!raw)return'';try{const d=new Date(raw);return isNaN(d)?'':d.toLocaleDateString([],{month:'short',day:'numeric'});}catch(_){return'';}})();
-panel.innerHTML=job?`<div><span>QUOTE → JOB</span><strong>${esc(text(val(job,'Project Title'))||'Linked job')}</strong><small>${esc(text(val(job,'Status'))||'Job')}</small></div><button type="button" data-quote-job="open">Open job</button>`:accepted?`<div><span>NEXT STEP</span><strong>Customer accepted this quote</strong><small>Create the internal job when you are ready. Nothing is scheduled or sent automatically.</small></div><button type="button" data-quote-job="create">Create job</button>`:declined?`<div><span>QUOTE → JOB</span><strong>Customer declined this quote</strong><small>Recorded ${esc(text(val(quote,'Customer Decision Time','customerDecisionTime'))||'by owner')}. No job will be created from this quote.</small></div><div class="row-actions"><button type="button" class="secondary" data-quote-decision="accepted">Change to accepted</button></div>`:presented?`<div><span>QUOTE → JOB</span><strong>Sent for review — waiting on the customer</strong><small>Presented${presentedWhen?' '+presentedWhen:''}. Record their decision when they reply. Job creation stays locked until acceptance.</small></div><div class="row-actions"><button type="button" data-quote-decision="accepted">Record customer accepted</button><button type="button" class="secondary" data-quote-decision="declined">Record customer declined</button></div>`
-:`<div><span>QUOTE → JOB</span><strong>Job creation stays locked until acceptance</strong><small>Record the customer decision first. H38 will not convert a draft/presented quote into approved work.</small></div><div class="row-actions"><button type="button" data-quote-decision="accepted">Record customer accepted</button><button type="button" class="secondary" data-quote-decision="declined">Record customer declined</button></div>`;const anchor=main.querySelector('#h38OwnerCustomerContext')||main.querySelector('.page-head');anchor?.insertAdjacentElement('afterend',panel);panel.querySelector('[data-quote-job="create"]')?.addEventListener('click',()=>createJobFromAcceptedQuote().catch(error=>window.toast?.(error.message||String(error),true)));panel.querySelector('[data-quote-job="open"]')?.addEventListener('click',()=>{setContext(recordId(job,'Customer ID','customerId'),{jobId:recordId(job,'Job ID','jobId'),source:'quote-job'});window.openPage?.('work');});panel.querySelectorAll('[data-quote-decision]').forEach(button=>button.addEventListener('click',()=>recordQuoteDecision(button.dataset.quoteDecision).catch(error=>window.toast?.(error.message||String(error),true))));}
+const portalDecision=!job&&!accepted&&!declined?portalDecisionForQuote(quote):null;
+panel.innerHTML=job?`<div><span>QUOTE → JOB</span><strong>${esc(text(val(job,'Project Title'))||'Linked job')}</strong><small>${esc(text(val(job,'Status'))||'Job')}</small></div><button type="button" data-quote-job="open">Open job</button>`:accepted?`<div><span>NEXT STEP</span><strong>Customer accepted this quote</strong><small>Create the internal job when you are ready. Nothing is scheduled or sent automatically.</small></div><button type="button" data-quote-job="create">Create job</button>`:declined?`<div><span>QUOTE → JOB</span><strong>Customer declined this quote</strong><small>Recorded ${esc(text(val(quote,'Customer Decision Time','customerDecisionTime'))||'by owner')}. No job will be created from this quote.</small></div><div class="row-actions"><button type="button" class="secondary" data-quote-decision="accepted">Change to accepted</button></div>`:portalDecision?`<div><span>QUOTE → JOB</span><strong>Customer accepted in the portal</strong><small>Portal decision recorded${text(val(portalDecision,'Selected Option','selectedOption'))?' — option: '+esc(text(val(portalDecision,'Selected Option','selectedOption'))):''}. Record it here to unlock job creation at the chosen option.</small></div><div class="row-actions"><button type="button" data-quote-portal-accept="1">Record portal acceptance</button></div>`
+:presented?`<div><span>QUOTE → JOB</span><strong>Sent for review — waiting on the customer</strong><small>Presented${presentedWhen?' '+presentedWhen:''}. Record their decision when they reply. Job creation stays locked until acceptance.</small></div><div class="row-actions"><button type="button" data-quote-decision="accepted">Record customer accepted</button><button type="button" class="secondary" data-quote-decision="declined">Record customer declined</button></div>`
+:`<div><span>QUOTE → JOB</span><strong>Job creation stays locked until acceptance</strong><small>Record the customer decision first. H38 will not convert a draft/presented quote into approved work.</small></div><div class="row-actions"><button type="button" data-quote-decision="accepted">Record customer accepted</button><button type="button" class="secondary" data-quote-decision="declined">Record customer declined</button></div>`;const anchor=main.querySelector('.h38-screen-head, .page-head')||main.querySelector('#h38OwnerCustomerContext');anchor?.insertAdjacentElement('afterend',panel);panel.querySelector('[data-quote-job="create"]')?.addEventListener('click',()=>createJobFromAcceptedQuote().catch(error=>window.toast?.(error.message||String(error),true)));panel.querySelector('[data-quote-job="open"]')?.addEventListener('click',()=>{setContext(recordId(job,'Customer ID','customerId'),{jobId:recordId(job,'Job ID','jobId'),source:'quote-job'});window.openPage?.('work');});panel.querySelectorAll('[data-quote-decision]').forEach(button=>button.addEventListener('click',()=>recordQuoteDecision(button.dataset.quoteDecision).catch(error=>window.toast?.(error.message||String(error),true))));panel.querySelector('[data-quote-portal-accept]')?.addEventListener('click',()=>recordPortalAcceptance().catch(error=>window.toast?.(error.message||String(error),true)));}
 function visibleCustomers(){const policy=c360Policy();return policy?.visibleCustomers?.()||rows('customers').filter(row=>!isInternalCustomer(row));}
 function propertiesFor(customerId){return rows('properties').filter(row=>recordId(row,'Customer ID','customerId')===text(customerId));}
 function quickHistory(customerId,propertyId){const bundle=bundleFor(customerId);if(!bundle)return{counts:{quotes:0,measurements:0,files:0,meetings:0},text:''};const sameProperty=row=>!propertyId||!val(row,'Property ID','propertyId')||recordId(row,'Property ID','propertyId')===propertyId;const quotes=(bundle.groups?.quotes||[]).filter(sameProperty).slice(-4),measurements=(bundle.groups?.siteMeasurements||[]).filter(sameProperty).slice(-12),meetings=(bundle.groups?.meetings||[]).filter(sameProperty).slice(-4),files=(bundle.groups?.documents||[]).filter(sameProperty);const property=propertiesFor(customerId).find(row=>recordId(row,'Property ID','propertyId')===propertyId)||primaryProperty(bundle);const pieces=[`HISTORICAL REFERENCE ONLY — reuse only if same location/scope and still valid.`,property?`Location: ${text(val(property,'Address','address','Property Name'))}`:'',...quotes.map(row=>`Prior quote: ${text(val(row,'Project Title'))} | ${text(val(row,'Scope'))}`),...measurements.map(row=>`Prior measurement: ${text(val(row,'Label','Measurement Name','Description'))} ${text(val(row,'Value','Measured Value'))} ${text(val(row,'Unit'))} [${text(val(row,'Verification Status','Provenance','Source Type'))||'historical'}]`),...meetings.map(row=>`Prior conversation: ${text(val(row,'Title','Purpose'))} | ${text(val(row,'Summary','Notes','Body'))}`)].filter(Boolean);return{counts:{quotes:quotes.length,measurements:measurements.length,files:files.length,meetings:meetings.length},text:pieces.join('\n').slice(0,7000)};}
@@ -120,13 +198,13 @@ async function attachQuickPhotos(qid){if(!quick.files.length)return;if(typeof wi
 function applyDraftLines(draft){const suggested=Array.isArray(draft?.suggestedLines)?draft.suggestedLines:[];return suggested.map(line=>({quoteLineId:newid('QUOTE-LINE'),description:text(line.description)||'Suggested work item',quantity:Math.max(.01,Number(line.quantity||1)||1),unit:text(line.unit)||'each',unitPrice:Number(line.rate||line.unitPrice||0)||0,priceSource:text(line.priceSource)||'Current researched pricing — owner review',priceStatus:'Owner review required'}));}
 function applyPhotoDraft(partial){if(!quick.draft)return;const draft=quick.draft,missing=Array.isArray(draft.missingInformation)?draft.missingInformation:[];window.state.quote.projectTitle=text(draft.projectTitle)||derivedTitle(quick.scope,quick.customerId);window.state.quote.scope=text(draft.scope)||quick.scope;window.state.quote.customerId=quick.customerId;window.state.quote.lines=applyDraftLines(draft);window.state.quote.possibleMissingCosts=Array.isArray(draft.possibleMissingCosts)?draft.possibleMissingCosts:[];window.state.quote.measurementNotes=[quick.notes,...(draft.photoObservations||[]).map(x=>`Photo observation: ${x}`),...(partial?missing:[]).map(x=>`Needs confirmation: ${text(x)}`)].filter(Boolean).join('\n');window.state.quote.ownerEdited=true;quick.open=false;quick.result={ready:true,message:partial?'Partial photo draft loaded. Every missing item remains marked Needs confirmation for owner review.':'Photo quote draft loaded. Review quantities, prices and evidence before saving or sending.'};window.renderQuotes?.();setTimeout(()=>{injectContext();addQuoteJobHandoff();addPhotoQuotePath();window.toast?.(quick.result.message);},0);}
 async function buildPhotoQuote(){syncQuickFields();if(quick.busy)return;if(!quick.files.length&&!quick.uploaded)throw new Error('Add at least one photo for the photo-only quote path.');if(!navigator.onLine||!window.state?.bridgeReady)throw new Error('Photo quote analysis needs an online secure Office connection.');quick.busy=true;quick.result=null;const qid=await ensureQuoteForPhotos();addPhotoQuotePath();await attachQuickPhotos(qid);const history=quickHistory(quick.customerId,quick.propertyId);const result=await window.state.bridge.request('aiBuildQuoteDraft',{businessId:window.state.businessId,customerId:quick.customerId,quoteId:qid,projectTitle:derivedTitle(quick.scope,quick.customerId),scope:quick.scope,measurementNotes:quick.notes,notes:`PHOTO_ONLY_WEB_QUOTE. Do not require a Site Visit merely because this came from the web. Use linked quote photos first. Reuse customer history only if it clearly matches the same location and scope. Never promote recalled/historical measurements to field verified. Return missingInformation as exact owner directions. Price Catalog first.\n${history.text}`},180000);if(result?.status!=='PASS')throw new Error(result?.message||'Photo quote analysis did not complete.');quick.draft=result.draft||{};const missing=Array.isArray(quick.draft.missingInformation)?quick.draft.missingInformation.filter(Boolean):[];quick.busy=false;if(missing.length){quick.result={ready:false,directions:missing.map(directionForMissing)};addPhotoQuotePath();return;}quick.result={ready:true,message:'Current photos, scope and reusable evidence are sufficient for an owner-review draft. No Site Visit is required by this intake path.'};applyPhotoDraft(false);}
-function polishHeaders(){const main=document.getElementById('mainContent'),page=currentPage();if(!main)return;const h1=main.querySelector('.page-head h1'),p=main.querySelector('.page-head p');if(page==='work'){if(h1)h1.textContent='Jobs';if(p)p.textContent='Customer-linked jobs, next actions and completion controls in one place.';}if(page==='quotes'&&p)p.textContent='Start with photos + scope or build manually. Site Visit is only required when the evidence is not enough.';if(page==='documents'&&h1)h1.textContent='Files';if(page==='field'&&h1&&/field/i.test(text(h1.textContent)))h1.textContent='Site Visits';}
+function polishHeaders(){const main=document.getElementById('mainContent'),page=currentPage();if(!main)return;/* WS4: adopted screens own their header copy via H38Flow.screenHeader — never rewrite a screen-head purpose line post-paint. */if((page==='quotes'||page==='work')&&main.querySelector('.h38-screen-head'))return;const h1=main.querySelector('.page-head h1'),p=main.querySelector('.page-head p');if(page==='work'){if(h1)h1.textContent='Jobs';if(p)p.textContent='Customer-linked jobs, next actions and completion controls in one place.';}if(page==='quotes'&&p)p.textContent='Start with photos + scope or build manually. Site Visit is only required when the evidence is not enough.';if(page==='documents'&&h1)h1.textContent='Files';if(page==='field'&&h1&&/field/i.test(text(h1.textContent)))h1.textContent='Site Visits';}
 function customerScopedWork(){const ctx=deriveContext();if(currentPage()!=='work'||!ctx.customerId)return;const jobs=rows('jobs').filter(row=>recordId(row,'Customer ID','customerId')===ctx.customerId&&!/CANCEL|ARCHIV/.test(text(val(row,'Status')).toUpperCase()));const select=document.getElementById('h38LifecycleJob');if(select&&jobs.length){const preferred=text(ctx.jobId),target=jobs.find(row=>recordId(row,'Job ID','jobId')===preferred)||jobs[0];const id=recordId(target,'Job ID','jobId');if(Array.from(select.options||[]).some(o=>o.value===id)&&select.value!==id){select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));}}
 }
 function patchQuoteRenderer(){const base=window.renderQuotes;if(typeof base!=='function'||base.__h38OwnerCustomerPolish)return;const wrapped=function(...args){const result=base.apply(this,args);schedule();return result;};wrapped.__h38OwnerCustomerPolish=true;wrapped.__h38OwnerCustomerPolishBase=base;window.renderQuotes=wrapped;}
 function run(){scheduled=false;patchOpenPage();patchQuoteRenderer();pageNames();polishNav();polishHeaders();injectContext();if(currentPage()==='quotes'){addQuoteJobHandoff();addPhotoQuotePath();}customerScopedWork();lastPage=currentPage();}
 function schedule(){if(scheduled)return;scheduled=true;setTimeout(run,40);}
 function install(){document.addEventListener('click',captureContextClicks,true);window.addEventListener?.('h38:business-snapshot-updated',schedule);window.addEventListener?.('h38:owner-context-changed',schedule);window.addEventListener?.('pageshow',schedule);window.addEventListener?.('h38:office-page-rendered',schedule);schedule();}
-window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH={build:BUILD,setContext,clearContext,deriveContext,quickHistory,directionForMissing,applyDraftLines,acceptedQuote,linkedJobForQuote,createJobFromAcceptedQuote,recordQuoteDecision,photoQuoteWithoutSiteVisit:true,photoQuoteRequiresEvidence:true,reuseCustomerHistoryWithProvenance:true,acceptedQuoteToJobOwnerTap:true,customerContextPersistsAcrossOperationalPages:true,mobilePrimaryNavigationDelegated:true,noStartupPollingLoop:true,internalFinanceExcluded:true,automaticCustomerSending:false,automaticApproval:false,automaticScheduling:false,automaticPurchasing:false,automaticPayment:false};
+window.H38_OWNER_CUSTOMER_WORKFLOW_POLISH={build:BUILD,setContext,clearContext,deriveContext,quickHistory,directionForMissing,applyDraftLines,acceptedQuote,linkedJobForQuote,createJobFromAcceptedQuote,recordQuoteDecision,recordPortalAcceptance,applyAcceptedOptionSnapshot,portalDecisionForQuote,photoQuoteWithoutSiteVisit:true,photoQuoteRequiresEvidence:true,reuseCustomerHistoryWithProvenance:true,acceptedQuoteToJobOwnerTap:true,customerContextPersistsAcrossOperationalPages:true,mobilePrimaryNavigationDelegated:true,noStartupPollingLoop:true,internalFinanceExcluded:true,automaticCustomerSending:false,automaticApproval:false,automaticScheduling:false,automaticPurchasing:false,automaticPayment:false};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();

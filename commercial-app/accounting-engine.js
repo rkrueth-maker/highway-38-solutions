@@ -4,14 +4,15 @@
   if(root)root.H38_ACCOUNTING_ENGINE=Object.freeze(api);
 })(typeof window!=='undefined'?window:null,function(){
   'use strict';
-  const VERSION='20260927-wave1-accounting-core-1';
+  const VERSION='20261020-payroll-engine-1';
   const TYPES=Object.freeze(['asset','liability','equity','income','cogs','expense','other-income','other-expense']);
   const DEFAULT_ACCOUNTS=Object.freeze([
     ['1000','Operating Checking','asset','Banking'],['1010','Savings','asset','Banking'],['1100','Accounts Receivable','asset','Receivables'],['1200','Undeposited Funds','asset','Receivables'],['1300','Inventory','asset','Inventory'],['1500','Equipment & Fixed Assets','asset','Assets'],
     ['2000','Accounts Payable','liability','Payables'],['2100','Credit Cards Payable','liability','Cards'],['2200','Loans Payable','liability','Loans'],['2300','Customer Deposits','liability','Deposits'],
+    ['2400','Federal Withholding Payable','liability','Payroll'],['2410','FICA Payable','liability','Payroll'],['2420','State Withholding Payable','liability','Payroll'],['2430','Other Payroll Deductions Payable','liability','Payroll'],['2440','Net Pay Payable','liability','Payroll'],['2450','Employer Payroll Taxes Payable','liability','Payroll'],
     ['3000','Owner Equity','equity','Equity'],['4000','Service Revenue','income','Revenue'],['4100','Other Revenue','other-income','Revenue'],
     ['5000','Materials / Cost of Goods Sold','cogs','Job Cost'],['5100','Direct Labor / Cost of Goods Sold','cogs','Job Cost'],['5200','Equipment / Cost of Goods Sold','cogs','Job Cost'],
-    ['6000','Operating Expense','expense','Operating'],['6100','Fuel','expense','Operating'],['6200','Insurance','expense','Operating'],['6300','Rent','expense','Operating'],['6400','Software & Subscriptions','expense','Operating'],['6500','Bank & Processor Fees','expense','Operating'],['6600','Mileage & Reimbursements','expense','Operating'],['6700','Repairs & Maintenance','expense','Operating']
+    ['6000','Operating Expense','expense','Operating'],['6100','Fuel','expense','Operating'],['6200','Insurance','expense','Operating'],['6300','Rent','expense','Operating'],['6400','Software & Subscriptions','expense','Operating'],['6500','Bank & Processor Fees','expense','Operating'],['6600','Mileage & Reimbursements','expense','Operating'],['6700','Repairs & Maintenance','expense','Operating'],['6800','Wages Expense','expense','Payroll'],['6900','Employer Payroll Taxes','expense','Payroll']
   ].map(([code,name,type,group])=>Object.freeze({id:`ACCT-${code}`,code,name,type,group,active:true})));
   function text(v){return String(v==null?'':v).trim();}
   function cents(v){const n=Number(v||0);if(!Number.isFinite(n))throw new Error('Amount must be a finite number.');return Math.round(n*100);}
@@ -30,6 +31,35 @@
   function vendorBillPosting({businessId,billId,date,total,vendorId,jobId,expenseAccountId='ACCT-6000',apAccountId='ACCT-2000',memo}){const a=amount(cents(total));if(a<=0)throw new Error('Vendor bill total must be greater than zero.');return transaction({businessId,date,type:'vendor-bill',sourceType:'Vendor Bill',sourceId:billId,memo:memo||`Vendor bill ${billId}`,lines:[{accountId:expenseAccountId,debit:a,vendorId,jobId,description:'Expense / cost recognized'},{accountId:apAccountId,credit:a,vendorId,jobId,description:'Vendor balance due'}]});}
   function vendorPaymentPosting({businessId,paymentId,date,amount:raw,vendorId,billIds=[],bankAccountId='ACCT-1000',apAccountId='ACCT-2000',memo}){const a=amount(cents(raw));if(a<=0)throw new Error('Vendor payment amount must be greater than zero.');return transaction({businessId,date,type:'vendor-payment',sourceType:'Vendor Payment',sourceId:paymentId,memo:memo||`Vendor payment ${paymentId}`,lines:[{accountId:apAccountId,debit:a,vendorId,description:`Bills ${billIds.join(', ')}`},{accountId:bankAccountId,credit:a,vendorId,description:'Cash paid'}]});}
   function expensePosting({businessId,expenseId,date,total,vendorId,jobId,expenseAccountId='ACCT-6000',fundingAccountId='ACCT-1000',memo}){const a=amount(cents(total));if(a<=0)throw new Error('Expense total must be greater than zero.');return transaction({businessId,date,type:'expense-paid',sourceType:'Expense',sourceId:expenseId,memo:memo||`Expense ${expenseId}`,lines:[{accountId:expenseAccountId,debit:a,vendorId,jobId,description:'Expense'},{accountId:fundingAccountId,credit:a,vendorId,jobId,description:'Paid'}]});}
+  /* WS3 payroll posting (spec §3.5): one balanced transaction per posted run,
+   * deterministic id GL-PAYROLL-<runId> so a retry can never double-post.
+   * Dr Direct Labor (job-allocated share) / Wages Expense (remainder) /
+   * Employer Payroll Taxes / Mileage & Reimbursements; Cr the payroll
+   * liability accounts; Cr Net Pay Payable for Σ net. Zero lines omitted. */
+  function payrollPosting({businessId,runId,date,grossWages,directLaborShare=0,employerTaxes={},withholdings={},deductionsTotal=0,reimbursements=0,netPay,memo}){
+    const gross=amount(cents(grossWages));if(gross<=0)throw new Error('Payroll gross wages must be greater than zero.');
+    const rid=requireText(runId,'Payroll run ID is required.');
+    const direct=Math.min(gross,Math.max(0,amount(cents(directLaborShare))));
+    const wagesRemainder=amount(cents(gross-direct));
+    const emp={ss:amount(cents(employerTaxes.ss||0)),medicare:amount(cents(employerTaxes.medicare||0)),futa:amount(cents(employerTaxes.futa||0)),suta:amount(cents(employerTaxes.suta||0)),stateOther:amount(cents(employerTaxes.stateOther||0))};
+    const empTotal=amount(cents(emp.ss+emp.medicare+emp.futa+emp.suta+emp.stateOther));
+    const wh={federal:amount(cents(withholdings.federal||0)),ficaSS:amount(cents(withholdings.ficaSS||0)),ficaMed:amount(cents(withholdings.ficaMed||0)),additionalMed:amount(cents(withholdings.additionalMed||withholdings.additionalMedicare||0)),state:amount(cents(withholdings.state||0)),other:amount(cents(withholdings.other||0))};
+    const ded=amount(cents(deductionsTotal)),reimb=amount(cents(reimbursements)),net=amount(cents(netPay));
+    const lines=[];
+    const dr=(accountId,value,description)=>{if(value>0)lines.push({accountId,debit:value,description});};
+    const cr=(accountId,value,description)=>{if(value>0)lines.push({accountId,credit:value,description});};
+    dr('ACCT-5100',direct,'Direct labor — job-allocated share of gross wages');
+    dr('ACCT-6800',wagesRemainder,'Wages expense');
+    dr('ACCT-6900',empTotal,'Employer payroll taxes');
+    dr('ACCT-6600',reimb,'Mileage & reimbursements');
+    cr('ACCT-2400',wh.federal,'Federal withholding payable');
+    cr('ACCT-2410',amount(cents(wh.ficaSS+wh.ficaMed+wh.additionalMed+emp.ss+emp.medicare)),'FICA payable — employee + employer SS/Medicare');
+    cr('ACCT-2420',wh.state,'State withholding payable');
+    cr('ACCT-2430',amount(cents(wh.other+ded)),'Other withholdings + employee deductions payable');
+    cr('ACCT-2450',amount(cents(emp.futa+emp.suta+emp.stateOther)),'Employer FUTA/SUTA/state taxes payable');
+    cr('ACCT-2440',net,'Net pay payable');
+    return transaction({transactionId:`GL-PAYROLL-${rid}`,businessId,date,type:'payroll',sourceType:'Payroll Run',sourceId:rid,memo:memo||`Payroll run ${rid}`,lines});
+  }
   function groupedBalance(transactions=[],accounts=[]){const amap=accountMap(accounts),out={};chart(accounts).forEach(a=>out[a.id]={account:a,debits:0,credits:0,balance:0});for(const raw of transactions||[]){const tx=validateTransaction(raw,accounts);if(text(tx.status).toLowerCase()==='void')continue;for(const line of tx.lines){if(!out[line.accountId])out[line.accountId]={account:amap.get(line.accountId)||{id:line.accountId,name:line.accountId,type:'asset'},debits:0,credits:0,balance:0};out[line.accountId].debits+=line.debit;out[line.accountId].credits+=line.credit;}}Object.values(out).forEach(row=>{const t=row.account.type;row.balance=['liability','equity','income','other-income'].includes(t)?amount(cents(row.credits-row.debits)):amount(cents(row.debits-row.credits));row.debits=amount(cents(row.debits));row.credits=amount(cents(row.credits));});return out;}
   function trialBalance(transactions=[],accounts=[]){return Object.values(groupedBalance(transactions,accounts)).filter(r=>r.debits||r.credits).sort((a,b)=>String(a.account.code).localeCompare(String(b.account.code)));}
   function profitAndLoss(transactions=[],accounts=[]){const rows=Object.values(groupedBalance(transactions,accounts));let income=0,cogs=0,expense=0,otherIncome=0,otherExpense=0;rows.forEach(r=>{if(r.account.type==='income')income+=r.balance;else if(r.account.type==='cogs')cogs+=r.balance;else if(r.account.type==='expense')expense+=r.balance;else if(r.account.type==='other-income')otherIncome+=r.balance;else if(r.account.type==='other-expense')otherExpense+=r.balance;});const grossProfit=income-cogs,operatingProfit=grossProfit-expense,netIncome=operatingProfit+otherIncome-otherExpense;return {income:amount(cents(income)),cogs:amount(cents(cogs)),grossProfit:amount(cents(grossProfit)),operatingExpenses:amount(cents(expense)),operatingProfit:amount(cents(operatingProfit)),otherIncome:amount(cents(otherIncome)),otherExpense:amount(cents(otherExpense)),netIncome:amount(cents(netIncome))};}
@@ -50,5 +80,5 @@
   function quickBooksAdapterState({connected=false,lastSync='',pending=0,conflicts=0,error='',companyId='' }={}){return{provider:'QuickBooks Online',mode:connected?'connected':'external-gate',connected:!!connected,companyId:text(companyId),lastSync:text(lastSync),pending:Number(pending||0),conflicts:Number(conflicts||0),error:text(error),sourceOfTruth:'H38 Office remains operational; QuickBooks is optional synchronization/accountant ledger.',liveActivationRequired:!connected};}
   function duplicateKey(record,kind){const norm=s=>text(s).toLowerCase().replace(/[^a-z0-9]/g,'');if(kind==='vendor-bill')return[norm(record.vendorId||record['Vendor ID']),norm(record.billNumber||record['Bill Number']),cents(record.total||record.Total||0),String(record.billDate||record['Bill Date']||'').slice(0,10)].join('|');if(kind==='bank')return[norm(record.accountId||record['Bank Account ID']),String(record.date||record.Date||'').slice(0,10),cents(record.amount||record.Amount||0),norm(record.description||record.Description)].join('|');return JSON.stringify(record);}
   function findDuplicates(rows=[],kind){const seen=new Map(),dupes=[];(rows||[]).forEach((r,i)=>{const key=duplicateKey(r,kind);if(seen.has(key))dupes.push({key,firstIndex:seen.get(key),duplicateIndex:i,row:r});else seen.set(key,i);});return dupes;}
-  return {VERSION,TYPES,DEFAULT_ACCOUNTS,chart,validateTransaction,transaction,reverse,invoicePosting,customerPaymentPosting,vendorBillPosting,vendorPaymentPosting,expensePosting,trialBalance,profitAndLoss,balanceSheet,arAging,apAging,billsToPay,prepareCheck,prepareElectronicPayment,reconcile,creditCardReview,jobProfitability,cashProjection,monthEndChecklist,quickBooksAdapterState,duplicateKey,findDuplicates};
+  return {VERSION,TYPES,DEFAULT_ACCOUNTS,chart,validateTransaction,transaction,reverse,invoicePosting,customerPaymentPosting,vendorBillPosting,vendorPaymentPosting,expensePosting,payrollPosting,trialBalance,profitAndLoss,balanceSheet,arAging,apAging,billsToPay,prepareCheck,prepareElectronicPayment,reconcile,creditCardReview,jobProfitability,cashProjection,monthEndChecklist,quickBooksAdapterState,duplicateKey,findDuplicates};
 });

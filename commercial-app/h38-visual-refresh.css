@@ -42,39 +42,13 @@
   --h38-shadow-sm: 0 4px 14px rgba(11, 36, 56, .06);
 }
 
-/* ---------- Page head (guided flows) ---------- */
-.h38-flow-view .page-head {
-  background: linear-gradient(135deg, #0b2438 0%, #174a70 70%, #1d5a86 100%);
-  border-radius: var(--h38-r-lg);
-  padding: 22px 20px;
-  margin-bottom: 18px;
-  box-shadow: var(--h38-shadow);
-  display: block;
-}
-.h38-flow-view .page-head h1 {
-  color: #fff;
-  font-size: 1.45rem;
-  letter-spacing: -.02em;
-  margin: 0;
-}
-.h38-flow-view .page-head p {
-  color: rgba(255, 255, 255, .78);
-  font-size: .92rem;
-  margin: 6px 0 0;
-  max-width: 100%;
-}
-.h38-flow-view .page-head .page-tools {
-  margin-top: 12px;
-  justify-content: flex-start;
-}
-.h38-flow-view .page-head .page-tools .secondary {
-  background: rgba(255, 255, 255, .14) !important;
-  border-color: rgba(255, 255, 255, .3) !important;
-  color: #fff !important;
-}
-.h38-flow-view .page-head .page-tools .secondary:hover {
-  background: rgba(255, 255, 255, .24) !important;
-}
+/* ---------- Page head (guided flows) ----------
+ * WS4 Phase C: the navy-hero treatment for flow headers is REMOVED.
+ * The pageHead shim and H38Flow.screenHeader now emit the standard
+ * dual-class header (h38-screen-head page-head) inside guided flows
+ * too, styled by the shared screen-head rules — no separate hero.
+ * (Legacy .page-head rules in styles.css intentionally remain: they
+ * still style the shared header chrome on un-adopted surfaces.) */
 
 /* ---------- Cards ---------- */
 .h38-flow-view .card {
@@ -483,10 +457,6 @@
 
 /* ---------- Mobile ---------- */
 @media (max-width: 760px) {
-  .h38-flow-view .page-head {
-    border-radius: 16px;
-    padding: 20px 18px;
-  }
   .h38-flow-view .card {
     padding: 18px 16px;
   }

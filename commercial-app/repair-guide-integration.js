@@ -33,7 +33,8 @@ function diagnosisLink(row){
 }
 function hubHtml(){
   const jobs=rgJobs().slice(0,25);
-  const head=typeof pageHead==='function'?pageHead('Repair Guide','Diagnoses sent from the standalone Repair Guide app land here as job drafts for owner review.'):'<header class="page-head"><div><h1>Repair Guide</h1></div></header>';
+  /* WS4 B13 (spec §5.13): standard header; primary deep-links to the first pending diagnosis. */
+  const head=(window.H38Flow&&window.H38Flow.screenHeader)?window.H38Flow.screenHeader({page:'repairGuide',title:'Repair Guide',purpose:'Diagnoses from the Repair Guide app, waiting for your review as job drafts.',primary:{label:'Review diagnoses',handler:()=>{const el=document.getElementById('h38RepairDrafts');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}}}):(typeof pageHead==='function'?pageHead('Repair Guide','Diagnoses from the Repair Guide app, waiting for your review as job drafts.'):'<header class="page-head"><div><h1>Repair Guide</h1></div></header>');
   const how='<section class="card span12"><h2>How it works</h2>'+
     '<ol class="small">'+
     '<li>The Repair Guide stays a separate app — techs keep using it on its own.</li>'+
@@ -49,7 +50,7 @@ function hubHtml(){
     return '<div class="row"><div class="row-top"><strong>'+esc(title)+'</strong><span class="muted small">'+esc(st)+'</span></div>'+
       '<small>'+esc(num)+'</small><div class="row-actions">'+diagnosisLink(j)+'</div></div>';
   }).join(''):'<p class="muted">No diagnoses have been sent to the Office yet.</p>';
-  const drafts='<section class="card span12"><h2>Repair Guide job drafts ('+jobs.length+')</h2><div class="list">'+list+'</div></section>';
+  const drafts='<section class="card span12" id="h38RepairDrafts"><h2>Repair Guide job drafts ('+jobs.length+')</h2><div class="list">'+list+'</div></section>';
   return '<div class="grid">'+head+how+drafts+'</div>';
 }
 function renderHub(){

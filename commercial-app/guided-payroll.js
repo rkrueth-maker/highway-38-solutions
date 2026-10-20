@@ -13,8 +13,10 @@
  *   timeEntries     (read + write) — hours per employee in the pay period;
  *                            writes corrective/manual entries when the owner
  *                            fixes hours
- *   payrollPeriods  (write) — one finalized period record on "Finalize Payroll"
- *   payrollLines    (write) — one line per employee on "Finalize Payroll"
+ *   payrollPeriods  (write) — WS3: one DRAFT run built by payroll-run.js on
+ *                            finalize (same builder + taxes as the Payroll
+ *                            page); review/finalize/post happen there
+ *   payrollLines    (write) — one stored line per employee in that run
  *   tasks           (write) — "Send reminder" creates a submit-hours task
  *
  * EXISTING HELPERS USED (globals from app-01.js / app-02.js / app-19.js):
@@ -43,24 +45,12 @@
     fixMode: false,     // "Fix hours" edit inputs visible
     kitAdvice: '',      // optional AI advisory text (non-blocking)
     remindersSent: {},  // employeeId -> true
-    manualEntryFor: ''  // employeeId with the "Enter manually" form open
+    manualEntryFor: '', // employeeId with the "Enter manually" form open
+    runLines: null,     // stored lines of the Draft run built at finalize (WS3)
+    runHeader: null     // header of that Draft run
   };
 
   /* ---------------- small helpers ---------------- */
-
-  /* Monday-based week key for overtime grouping (YYYY-Www) */
-  function h38GPWeekKey(dateStr) {
-    try {
-      var d = new Date(String(dateStr).slice(0, 10) + 'T12:00:00');
-      var day = (d.getDay() + 6) % 7; // Monday = 0
-      d.setDate(d.getDate() - day + 3);
-      var firstThursday = new Date(d.getFullYear(), 0, 4);
-      var fday = (firstThursday.getDay() + 6) % 7;
-      firstThursday.setDate(firstThursday.getDate() - fday + 3);
-      var week = 1 + Math.round((d - firstThursday) / 604800000);
-      return d.getFullYear() + '-W' + (week < 10 ? '0' + week : week);
-    } catch (e) { return 'W0'; }
-  }
 
   function h38GPWithin(value, start, end) {
     if (!value) return false;
@@ -109,16 +99,16 @@
           (userId && String(v(row, 'User ID')) === userId);
         return match && h38GPWithin(v(row, 'Date', 'Start Time'), range.start, range.end);
       });
-      var weeks = {};
-      entries.forEach(function (row) {
-        var wk = h38GPWeekKey(v(row, 'Date', 'Start Time'));
-        var hrs = num(v(row, 'Regular Hours', 'Hours', 'Duration Hours')) + num(v(row, 'Overtime Hours'));
-        weeks[wk] = (weeks[wk] || 0) + hrs;
-      });
+      /* Entry-level OT split (WS3): overtime follows the approved entry
+       * splits — the same rule payrollPreparation() uses. The old weekly-40
+       * recomputation is retired (single source of truth). */
       var regular = 0, overtime = 0;
-      Object.keys(weeks).forEach(function (k) {
-        regular += Math.min(weeks[k], 40);
-        overtime += Math.max(weeks[k] - 40, 0);
+      entries.forEach(function (row) {
+        var hasSplit = row['Regular Hours'] != null || row['Overtime Hours'] != null;
+        var hrs = num(v(row, 'Hours', 'Duration Hours')) || (num(v(row, 'Regular Hours')) + num(v(row, 'Overtime Hours')));
+        if (hasSplit) { regular += num(v(row, 'Regular Hours')); overtime += num(v(row, 'Overtime Hours')); }
+        else if (/overtime/i.test(String(v(row, 'Type') || ''))) { overtime += hrs; }
+        else { regular += hrs; }
       });
       var unapproved = entries.filter(function (row) {
         return String(v(row, 'Approval Status', 'Status')).toUpperCase() !== 'APPROVED';
@@ -340,7 +330,7 @@
       '<div class="stats"><div class="stat"><strong>' + totals.count + '</strong><span>Paychecks</span></div>' +
       '<div class="stat"><strong>' + money(totals.gross) + '</strong><span>Gross total</span></div>' +
       '<div class="stat"><strong>' + dateOnly(h38GP.payDate) + '</strong><span>Pay date</span></div></div>' +
-      '<div class="notice warn"><strong>This creates pay stubs. It does NOT send money</strong> — you pay your team as usual. Tax figures are not estimated here; use the full Payroll page for tax worksheets.</div>' +
+      '<div class="notice warn"><strong>This creates a pay run. It does NOT send money</strong> — you pay your team as usual. The run is built by the same builder as the full Payroll page (approved-time selection + tax estimates) and saved as a <strong>Draft</strong> — review and finalize it on the Payroll page to stamp time, unlock export, and post to the books.</div>' +
       '<div class="list">' + lines.map(function (l) {
         return '<div class="row"><div class="row-top"><strong>' + esc(l.name) + '</strong><span>' + money(l.gross) + '</span></div>' +
           '<small>' + (l.payType.toLowerCase() === 'salary' ? 'Salary' : l.regularHours.toFixed(2) + ' reg · ' + l.overtimeHours.toFixed(2) + ' OT') +
@@ -355,71 +345,126 @@
     $('h38GPFinalize').onclick = h38GPFinalize;
   }
 
+  /* WS3: finalize delegates to the canonical run builder (payroll-run.js) —
+   * same approved-time selection, same tax estimates as the full Payroll
+   * page. The guided flow saves a DRAFT run; review/finalize/post happen on
+   * the Payroll page. Owner hour overrides are applied to the Draft lines
+   * (Draft adjustment, noted on the line) and re-run through payroll-calc. */
   async function h38GPFinalize() {
     var lines = h38GPComputeLines();
     if (!lines.length) { toast('No employees to finalize.', true); return; }
-    var confirmed = confirm('Finalize payroll for ' + lines.length + ' people, ' + money(lines.reduce(function (s, l) { return s + l.gross; }, 0)) + ' total? This creates pay stubs. It does NOT send money.');
+    var confirmed = confirm('Build the pay run for ' + lines.length + ' people, ' + money(lines.reduce(function (s, l) { return s + l.gross; }, 0)) + ' gross? It is saved as a Draft with tax estimates for your review on the Payroll page. It does NOT send money.');
     if (!confirmed) return;
     try {
-      var totals = lines.reduce(function (s, l) {
-        return { gross: s.gross + l.gross };
-      }, { gross: 0 });
-      var periodId = newId('PAYROLL');
-      var period = {
-        'Payroll Period ID': periodId, 'Business ID': state.businessId,
-        'Period Start': h38GP.periodStart, 'Period End': h38GP.periodEnd,
-        'Pay Date': h38GP.payDate,
-        'Status': 'Finalized', 'Approval Status': 'Approved', 'Export Allowed': 'Yes',
-        'Gross Pay': Math.round(totals.gross * 100) / 100,
-        'Finalized By': (state.snapshot && state.snapshot.user && state.snapshot.user.userId) || '',
-        'Finalized Time': now(),
-        'Notes': 'Finalized from the guided Run Payroll flow. No funds moved.',
-        'Created Time': now(), 'Updated Time': now(), 'Record Version': 1
-      };
-      await saveParity('payrollPeriods', 'Payroll Period', periodId, period, 'payrollPeriods', ['Payroll Period ID']);
-      for (var i = 0; i < lines.length; i++) {
-        var l = lines[i], lineId = newId('PAYLINE');
-        var line = {
-          'Payroll Line ID': lineId, 'Business ID': state.businessId,
-          'Payroll Period ID': periodId, 'Employee ID': l.employeeId,
-          'Pay Date': h38GP.payDate,
-          'Regular Hours': l.regularHours, 'Overtime Hours': l.overtimeHours,
-          'Hourly Rate': l.rate, 'Regular Pay': l.regularPay, 'Overtime Pay': l.overtimePay,
-          'Salary Pay': l.salaryPay, 'Gross Pay': l.gross, 'Net Pay': l.gross,
-          'Approval Status': 'Approved', 'Time Entries': l.entryCount,
-          'Notes': 'Tax figures not estimated in the guided flow. No funds moved.' + (l.adjusted ? ' Owner-adjusted hours.' : ''),
-          'Created Time': now(), 'Updated Time': now(), 'Record Version': 1
-        };
-        await saveParity('payrollLines', 'Payroll Line', lineId, line, 'payrollLines', ['Payroll Line ID']);
-      }
-      h38GP.periodId = periodId;
+      if (!window.H38_PAYROLL_RUN && window.H38ScriptLoader) await window.H38ScriptLoader.loadPageScripts('payroll');
+      if (!window.H38_PAYROLL_RUN || !window.H38_PAYROLL_CALC) throw new Error('Payroll modules could not be loaded. Open the Payroll page once, then try again.');
+      var built = await window.H38_PAYROLL_RUN.buildRun({ start: h38GP.periodStart, end: h38GP.periodEnd, payDate: h38GP.payDate, source: 'guided' });
+      if (!built.lines.length) throw new Error(built.unlinkedCount > 0 ? built.unlinkedCount + ' time entries couldn\'t be matched to an employee — check People & Employees and link each employee to their sign-in user.' : 'No approved time or salaried employees were selected for this period — check time approvals and the period dates on the Payroll page.');
+      await window.H38_PAYROLL_RUN.saveDraft(built);
+      var runId = built.header['Payroll Period ID'];
+      var finalLines = built.lines;
+      if (Object.keys(h38GP.overrides).length) finalLines = await h38GPApplyOverrides(runId, built);
+      h38GP.periodId = runId;
+      h38GP.runLines = finalLines;
+      h38GP.runHeader = built.header;
       h38GP.step = 3; h38GPRenderStep3();
-      toast('Payroll finalized. ' + lines.length + ' pay stub' + (lines.length === 1 ? '' : 's') + ' created.');
-    } catch (e) { toast('Could not finalize: ' + (e && e.message || e), true); }
+      toast('Pay run saved as a Draft with tax estimates. Review & finalize it on the Payroll page.');
+    } catch (e) { toast('Could not build the pay run: ' + (e && e.message || e), true); }
+  }
+
+  /* Apply guided "Fix hours" overrides to Draft lines and recompute the
+   * affected lines through payroll-calc.js, then refresh header totals. */
+  async function h38GPApplyOverrides(runId, built) {
+    var C = window.H38_PAYROLL_CALC, R = window.H38_PAYROLL_RUN;
+    var employees = records('employees') || [];
+    var allLines = (records('payrollLines') || []).filter(function (l) { return v(l, 'Payroll Period ID') !== runId; });
+    var out = [];
+    for (var i = 0; i < built.lines.length; i++) {
+      var line = built.lines[i];
+      var ov = h38GP.overrides[v(line, 'Employee ID')];
+      var emp = employees.find(function (e) { return rowId(e, 'Employee ID') === v(line, 'Employee ID'); }) || {};
+      if (!ov || String(v(emp, 'Pay Type') || '').toLowerCase() === 'salary') { out.push(line); continue; }
+      var rate = num(v(emp, 'Hourly Rate'));
+      var otRate = v(emp, 'Overtime Rate') != null && v(emp, 'Overtime Rate') !== '' ? num(v(emp, 'Overtime Rate')) : rate * (num(v(emp, 'Overtime Multiplier')) || 1.5);
+      var regularPay = Math.round(num(ov.regular) * rate * 100) / 100;
+      var overtimePay = Math.round(num(ov.overtime) * otRate * 100) / 100;
+      var gross = Math.round((regularPay + overtimePay) * 100) / 100;
+      var calc = C.calculateLine({ grossPay: gross, reimbursements: num(v(line, 'Reimbursements')), frequency: v(line, 'Pay Frequency') || 'Biweekly',
+        employee: emp, deductions: R.employeeDeductions(emp), contractor: R.isContractor(emp),
+        ytd: { gross: R.ytdWagesBefore(allLines, v(line, 'Employee ID'), h38GP.payDate, runId) } }, R.loadConfig());
+      var wh = calc.withholdings, et = calc.employerTaxes;
+      var updated = Object.assign({}, line, {
+        'Regular Hours': num(ov.regular), 'Overtime Hours': num(ov.overtime),
+        'Regular Pay': regularPay, 'Overtime Pay': overtimePay, 'Gross Pay': gross,
+        'Federal Withholding': wh.federal, 'Social Security': wh.ficaSS, 'Medicare': wh.ficaMed,
+        'Additional Medicare': wh.additionalMedicare, 'State Withholding': wh.state, 'Other Withholding': wh.other,
+        'Total Deductions': calc.totalWithholdings + calc.totalDeductions, 'Deductions': calc.totalWithholdings + calc.totalDeductions,
+        'Net Pay': calc.net, 'Prepared Net Amount': calc.net,
+        'Deductions Detail': calc.deductions,
+        'Pre-Tax Deductions': calc.deductions.filter(function (d) { return d.kind === 'pre-tax'; }),
+        'Post-Tax Deductions': calc.deductions.filter(function (d) { return d.kind === 'post-tax'; }),
+        'Employer SS': et.ss, 'Employer Medicare': et.medicare, 'FUTA': et.futa, 'SUTA': et.suta, 'Employer State Tax': et.stateOther,
+        'Employer Tax Estimate': calc.employerTaxTotal, 'Employer Cost Estimate': calc.employerCost,
+        'Calc Trace': calc.trace,
+        'Notes': (v(line, 'Notes') || '') + ' Owner-adjusted hours in the guided flow.',
+        'Updated Time': now(), 'Record Version': num(v(line, 'Record Version')) + 1
+      });
+      await saveParity('payrollLines', 'Payroll Line', v(line, 'Payroll Line ID'), updated, 'payrollLines', ['Payroll Line ID']);
+      out.push(updated);
+    }
+    var sumF = function (k) { return Math.round(out.reduce(function (s, l) { return s + num(v(l, k)); }, 0) * 100) / 100; };
+    var header = Object.assign({}, built.header, {
+      'Gross Pay': sumF('Gross Pay'), 'Deductions': sumF('Total Deductions'),
+      'Net Pay': sumF('Net Pay'), 'Prepared Net Amount': sumF('Net Pay'),
+      'Withholding Totals': { federal: sumF('Federal Withholding'), ficaSS: sumF('Social Security'), ficaMed: sumF('Medicare'), additionalMedicare: sumF('Additional Medicare'), state: sumF('State Withholding'), other: sumF('Other Withholding') },
+      'Employer Taxes': { ss: sumF('Employer SS'), medicare: sumF('Employer Medicare'), futa: sumF('FUTA'), suta: sumF('SUTA'), stateOther: sumF('Employer State Tax') },
+      'Employer Tax Estimate': sumF('Employer Tax Estimate'), 'Employer Cost Estimate': sumF('Employer Cost Estimate'),
+      'Updated Time': now(), 'Record Version': num(v(built.header, 'Record Version')) + 1
+    });
+    await saveParity('payrollPeriods', 'Payroll Period', runId, header, 'payrollPeriods', ['Payroll Period ID']);
+    h38GP.runHeader = header;
+    try { await sync(false); } catch (e) {}
+    return out;
   }
 
   /* ---------------- Step 3: DONE ---------------- */
 
   function h38GPRenderStep3() {
-    var lines = h38GP.lines;
-    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Run Payroll — Done', 'Payroll finalized.') +
-      '<div class="grid"><section class="card span8"><h2>✅ Payroll finalized</h2>' +
-      '<p>' + lines.length + ' pay stub' + (lines.length === 1 ? '' : 's') + ' created for ' +
-      dateOnly(h38GP.periodStart) + ' – ' + dateOnly(h38GP.periodEnd) + ', pay date ' + dateOnly(h38GP.payDate) + '.</p>' +
-      '<p class="muted">Tax figures are not estimated here — use the full Payroll page if you need tax worksheets.</p>' +
+    var lines = h38GP.runLines || h38GP.lines;
+    $('mainContent').innerHTML = '<div class="h38-flow-view">' + pageHead('Run Payroll — Done', 'Pay run saved as a Draft.') +
+      '<div class="grid"><section class="card span8"><h2>✅ Pay run saved (Draft)</h2>' +
+      '<p>' + lines.length + ' pay line' + (lines.length === 1 ? '' : 's') + ' built for ' +
+      dateOnly(h38GP.periodStart) + ' – ' + dateOnly(h38GP.periodEnd) + ', pay date ' + dateOnly(h38GP.payDate) + ', with tax estimates from the same tables as the full Payroll page.</p>' +
+      '<p class="muted">Next: open the <strong>Payroll</strong> page to review the estimates, finalize (stamps time + unlocks export), and post the run to the books. Nothing has been paid or sent.</p>' +
       '<div class="actions"><button id="h38GPStubs">Download Stubs</button>' +
-      '<button class="secondary" id="h38GPExport">Export for accountant</button></div>' +
+      '<button class="secondary" id="h38GPExport">Export for accountant</button>' +
+      '<button class="secondary" data-open-page="payroll">Open Payroll page →</button></div>' +
       '<div class="actions" style="margin-top:10px"><button class="secondary" id="h38GPDone">Done → Home</button></div>' +
       '</section></div>' + '</div>';
     $('h38GPStubs').onclick = h38GPDownloadStubs;
     $('h38GPExport').onclick = h38GPExportCSV;
     $('h38GPDone').onclick = function () { openPage('today'); };
+    document.querySelectorAll('[data-open-page]').forEach(function (b) { b.onclick = function () { openPage(b.getAttribute('data-open-page')); }; });
   }
 
   function h38GPDownloadStubs() {
     var biz = (state.snapshot && state.snapshot.business) || {};
     var bizName = esc(String(v(biz, 'Name', 'Business Name') || 'Business'));
     var lines = h38GP.lines;
+    // Prefer the built Draft run's stored lines (tax estimates included).
+    if (h38GP.runLines && typeof h38PayStubHTML === 'function') {
+      var employees = records('employees') || [];
+      var period = h38GP.runHeader || { 'Period Start': h38GP.periodStart, 'Period End': h38GP.periodEnd, 'Pay Date': h38GP.payDate };
+      var html2 = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pay Stubs — ' + esc(dateOnly(h38GP.payDate)) + '</title>' +
+        '<link rel="stylesheet" href="./payroll-print.css"></head><body>' +
+        h38GP.runLines.map(function (l) {
+          var emp = employees.find(function (e) { return rowId(e, 'Employee ID') === v(l, 'Employee ID'); }) || {};
+          return h38PayStubHTML(biz, emp, period, l);
+        }).join('') + '</body></html>';
+      h38GPDownload('pay-stubs-' + h38GP.payDate + '.html', html2, 'text/html');
+      toast('Stubs downloaded. Open the file and print to PDF.');
+      return;
+    }
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pay Stubs — ' +
       esc(dateOnly(h38GP.payDate)) + '</title>' +
       '<style>body{font-family:Arial,sans-serif;margin:40px;color:#222}h1{font-size:22px}.stub{border:1px solid #999;padding:20px;margin:24px 0;page-break-inside:avoid}table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:6px 0;border-bottom:1px dotted #ccc}.tot{font-weight:bold;border-bottom:none}.note{color:#666;font-size:12px;margin-top:12px}</style></head><body>' +
@@ -439,6 +484,12 @@
   }
 
   function h38GPExportCSV() {
+    if (h38GP.runLines && typeof h38PayrollCSV === 'function') {
+      var period = h38GP.runHeader || { 'Pay Date': h38GP.payDate };
+      h38GPDownload('payroll-export-' + h38GP.payDate + '.csv', h38PayrollCSV(period, h38GP.runLines, records('employees') || []), 'text/csv');
+      toast('Payroll export downloaded for your accountant.');
+      return;
+    }
     var lines = h38GP.lines;
     var csv = ['Employee,Pay Type,Regular Hours,Overtime Hours,Hourly Rate,Regular Pay,Overtime Pay,Salary Pay,Gross Pay,Period Start,Period End,Pay Date']
       .concat(lines.map(function (l) {
@@ -461,6 +512,8 @@
     h38GP.kitAdvice = '';
     h38GP.remindersSent = {};
     h38GP.manualEntryFor = '';
+    h38GP.runLines = null;
+    h38GP.runHeader = null;
     h38GP.payDate = new Date().toISOString().slice(0, 10);
     h38GPRenderStep1();
   }
