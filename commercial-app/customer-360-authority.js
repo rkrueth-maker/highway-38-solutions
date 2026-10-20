@@ -178,8 +178,13 @@ function renderCustomer360(root){
   const setupCards=oldCards.filter(card=>['Add customer','Add or update customer','Add property'].includes(text(card.querySelector('h2')?.textContent)));
   oldCards.forEach(card=>card.remove());
   const grid=main.querySelector('.grid');
-  const head=main.querySelector('.page-head');
-  if(head){const p=head.querySelector('p');if(p)p.textContent='One customer workspace. Overview, Work, Money and Files keep the customer story together without stacked legacy sections.';}
+  const flow=root.H38Flow||window.H38Flow;
+  if(flow&&typeof flow.renderScreenHeader==='function'){
+    /* WS4 §5.2: the Customers screen header. Handlers read the live
+     * selection (api.selectedCustomerId) at click time, so the
+     * signature-deduped header never acts on a stale customer. */
+    flow.renderScreenHeader({page:'customers',title:'Customers',purpose:'Find a customer, add a new one, and start their quote, job, or visit.',primary:{label:'＋ Add customer',handler:()=>flow.openCustomerSetup?.('customer')},secondary:[{label:'Start a quote',handler:()=>{const sel=text(api.selectedCustomerId);if(sel&&typeof flow.startQuoteForCustomer==='function')flow.startQuoteForCustomer(sel);else main.querySelector('#h38Customer360Search')?.focus();}}],more:[{label:'Import customers',handler:()=>{const g=main.querySelector('.h38-c360-guide');if(g)g.scrollIntoView({behavior:'smooth',block:'start'});else if(typeof root.openPage==='function')root.openPage('settings');}},{label:'Add property',handler:()=>flow.openCustomerSetup?.('property',text(api.selectedCustomerId)||'')} ]});
+  }else{const head=main.querySelector('.page-head');if(head){const p=head.querySelector('p');if(p)p.textContent='One customer workspace. Overview, Work, Money and Files keep the customer story together without stacked legacy sections.';}}
   const phone=text(value(c,'Phone','phone','Mobile Phone')),address=customerServiceAddress(c)||text(value((g.properties||[])[0],'Address','address','Service Address'));
   const master=root.document.createElement('div');master.className='h38-c360-master-detail';master.dataset.h38CanonicalCustomerLayout='1';
   if(Number(root.innerWidth||0)>900){master.style.display='grid';master.style.gridTemplateColumns='minmax(230px,290px) minmax(0,1fr)';master.style.width='100%';master.style.minWidth='0';}
