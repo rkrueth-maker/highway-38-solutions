@@ -31,7 +31,7 @@ const scripts=[
   ['./site-visit-wide-acceptance-final.js','20260826-site-visit-wide-acceptance-final-4-stable-jobs','H38_SITE_VISIT_WIDE_ACCEPTANCE_FINAL'],
   ['./spoken-measurement-authority-final.js','20260825-spoken-measurement-authority-final-2-persisted-only','H38_SPOKEN_MEASUREMENT_AUTHORITY_FINAL'],
   ['./quote-reproduction-authority.js','20260823-quote-reproduction-authority-1','H38_QUOTE_REPRODUCTION_AUTHORITY_BOOT'],
-  ['./quote-revision-authority.js','20260823-quote-revision-authority-1','H38_QUOTE_REVISION_AUTHORITY'],
+  ['./quote-revision-authority.js','20261020-gbb-ws1-1','H38_QUOTE_REVISION_AUTHORITY'],
   ['./site-visit-deep-polish.js','20260825-site-visit-deep-polish-3-phone','H38_SITE_VISIT_DEEP_POLISH'],
   ['./quote-rerender-source-picker.js','20260823-quote-rerender-source-picker-1','H38_QUOTE_RERENDER_SOURCE_PICKER'],
   ['./quote-historical-assets-polish.js','20260823-quote-historical-assets-polish-1','H38_QUOTE_HISTORICAL_ASSETS_POLISH'],

@@ -42,6 +42,11 @@ function boGetUnifiedApiActionContract_(){
     {actions:/^prepareCustomerAction$/,resolve:function(args){return[boModuleFromRecordTypeContract_(args.recordType)];}},
     {actions:/^(prepareJournal|postJournal|reverseJournal|lockPeriod|accountingReports|validateLedger)$/,modules:['accounting']},
     {actions:/^(preparePayroll|exportPayroll)$/,modules:['payroll']},
+    // WS3 (2026-10-20) — DECLARATION ONLY; the server handler is not deployed
+    // yet. The client (payroll-run.js) attempts this audited action at run
+    // finalize through the same queue pattern as APPROVE_TIME_ENTRY and
+    // falls back honestly (run header 'Time Entry Stamping') on any failure.
+    {actions:/^MARK_TIME_PAID$/,modules:['payroll'],roles:['owner'],batch:true,scope:'payroll-run',idempotent:true,description:'Stamp the approved time entries of ONE finalized payroll run as Paid with its Payroll Period ID. Batch, run-id-scoped, idempotent: re-running for the same run changes nothing.'},
     {actions:/^(prepareSalesTax|finalizeTax|taxSummary)$/,modules:['tax']},
     {actions:/^(uploadDocument|previewDocument|extractDocument|reviewOcrField|approveDocument|voidDocument|generatePdf)$/,modules:['documents']},
     {actions:/^(backup|prepareRestore)$/,modules:['backups']},

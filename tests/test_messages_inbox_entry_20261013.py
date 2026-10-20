@@ -40,7 +40,7 @@ def test_inbox_is_the_default_messages_tab():
     assert "tab==='inbox'?'Customer inbox'" in APP08
     assert "state.messageTab==='inbox'?customerInboxView()" in APP08
     assert "if(state.messageTab==='inbox'){bindCustomerInbox();}" in APP08
-    assert "pageHead('Messages','Customer conversations first" in APP08
+    assert "purpose:'Talk to customers in one place. Nothing sends until you approve it.'" in APP08
 
 
 def test_inbox_aggregates_existing_customer_threads_only():
@@ -73,7 +73,7 @@ def test_inbox_aggregates_existing_customer_threads_only():
 def test_build_roll_pins():
     # SW cache rolled past BUILD by the 2026-10-13 card-top band pass; the
     # app-09 script stamp below still carries this PR's BUILD value.
-    assert "const CACHE_NAME='h38-business-office-20261019-qb-bridge-auth-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261020-next-level-3'" in SW
     assert f"./app-09.js?build={BUILD}" in INDEX
     for script in ["app-01.js", "app-08.js", "mobile-runtime-stability.js", "job-centered-flow.js"]:
         assert f"./{script}?build=20261013-messages-entry-1" in INDEX, script

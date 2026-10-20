@@ -24,7 +24,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261011-kits-workspace-1';
+  var BUILD = '20261020-ws4-hank-1';
 
   /* ---------- safe globals ---------- */
 
@@ -461,7 +461,9 @@
       ? suggestions.map(renderSuggestion).join('')
       : '<p class="kw-empty">All caught up. Hank is watching quotes, invoices, and your schedule.</p>';
 
+    var kwHead = (window.H38Flow && window.H38Flow.screenHeader) ? {page:'ai',title:'Hank',purpose:'Hank is your office worker. See what Hank did, and ask for the next thing.',status:{label:todayCount + ' action' + (todayCount === 1 ? '' : 's') + ' today'},primary:{label:'Ask Hank',handler:function(){var f=document.getElementById('kwAiForm');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});var ta=f.querySelector('textarea');if(ta)ta.focus({preventScroll:true});}}},more:[{label:'Activity history',handler:function(){var el=document.getElementById('kwDidToday');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}}]} : null;
     main.innerHTML =
+      (kwHead ? window.H38Flow.screenHeader(kwHead) : '') +
       '<div class="kw-workspace">' +
       '<section class="kw-hero">' +
         '<div><h1>Hank\u2019s Workspace</h1><p>Your AI office worker — what got done, what needs you.</p></div>' +
@@ -484,6 +486,7 @@
       '</div>';
 
     bindAll();
+    if (kwHead && window.H38Flow) window.H38Flow.bindScreenHeader(main, kwHead);
     var chat = document.getElementById('kwAiChat');
     if (chat) chat.scrollTop = chat.scrollHeight;
   }

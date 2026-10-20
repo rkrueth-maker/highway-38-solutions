@@ -29,7 +29,7 @@ function mobile(){return !!window.matchMedia?.(MOBILE).matches;}
 function interacting(){return Date.now()<interactionUntil;}
 function markInteraction(){interactionUntil=Date.now()+700;}
 function statePage(){try{return text(window.state?.page);}catch(_){return'';}}
-function allowed(){try{return typeof window.allowedPages==='function'?window.allowedPages():[];}catch(_){return[];}}
+function allowed(){try{const base=typeof window.allowedPages==='function'?window.allowedPages():[];/* WS4 B12 (spec §7.2 R1/R2): the phone primary nav and the More sheet render only module-visible pages — OFF pages are not rendered. Global allowedPages() is untouched, so openPage deep links still distinguish capability from module-off (R5). */return (typeof window.H38ModuleVisible==='function')?base.filter(page=>window.H38ModuleVisible(page)):base;}catch(_){return[];}}
 function currentUser(){try{return window.state?.snapshot?.user||null;}catch(_){return null;}}
 function roleName(){const u=currentUser()||{};return text(u.roleId||u.roleName||u.role).toLowerCase();}
 function fieldRole(){const u=currentUser();if(!u||u.owner===true||u.permissions?.all===true)return false;const role=roleName();return role==='staff'||role==='field staff'||role==='field'||role==='foreman'||role==='site-manager'||role==='site manager'||/foreman|crew lead|field/.test(text(u.jobTitle||u.title).toLowerCase());}

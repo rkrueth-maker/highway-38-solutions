@@ -60,7 +60,7 @@
       './field-visit-finish-build.js?build=20260821-finish-site-visit-build-quote-4',
       './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
       './site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5',
-      './repair-guide-integration.js?build=20261004-repair-guide-1',
+      './repair-guide-integration.js?build=20261020-ws4-placeholders-1',
     ];
     const PAGE_QUOTES = [
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
@@ -70,14 +70,14 @@
       './quote-mobile-stabilization.js?build=20261013-quote-trust-clutter-1',
       './quote-ai-live-fix.js?build=20260807-1115',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
-      './quote-total-lock.js?build=20261013-fix-sweep-1',
+      './quote-total-lock.js?build=20261020-gbb-ws1-1',
       './quote-drift-control.js?build=20261013-fix-sweep-1',
       './quote-render-approval.js?build=20260821-render-saved-action-picture-2-phone',
       './quote-final-acceptance-fix.js?build=20260807-1230',
       './quote-photo-restore.js?build=20260816-explicit-quote-photo-selection-2',
-      './supabase-quote-delivery.js?build=20261013-quote-trust-clutter-1',
-      './quote-pdf-send-live-fix.js?build=20260806-2245',
-      './quote-delivery-final-fix.js?build=20260807-0105',
+      './supabase-quote-delivery.js?build=20261020-gbb-ws1-1',
+      './quote-pdf-send-live-fix.js?build=20261020-gbb-ws1-1',
+      './quote-delivery-final-fix.js?build=20261020-gbb-ws1-1',
       './quote-print-safe.js?build=20260815-2105',
       './owner-flow-polish.js?build=20260929-1738',
       './quote-customer-options.js?build=20260815-2045',
@@ -107,7 +107,7 @@
       './tasks-page.js?build=20261011-phase4-1',
     ];
     const PAGE_SCHEDULE = [
-      './guided-schedule.js?build=20261011-phase3-1',
+      './guided-schedule.js?build=20261020-ws4-schedule-1',
       './plow-flow.js?build=20261011-plow-flow-1',
     ];
     const PAGE_MESSAGES = [
@@ -118,7 +118,7 @@
       './customer-comms.js?build=20261007-mark-complete-fix-2',
     ];
     const PAGE_FLEET = [
-      './route-manager.js?build=20261013-route-optimize-proof-1',
+      './route-manager.js?build=20261020-ws4-placeholders-1',
       './northern-bouncie-fleet.js?build=20261013-bouncie-reminder-1',
       './gps-dispatch.js?build=20261004-dispatch-2',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
@@ -127,33 +127,47 @@
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './membership-engine.js?build=20261005-membership-1',
+      './membership-engine.js?build=20261020-ws4-remaining-1',
       './card-vault.js?build=20261005-cardvault-1',
     ];
     const PAGE_ACCOUNTING = [
-      './accounting-engine.js?build=20260927-wave1-accounting-core-1',
-      './accounting-workspace.js?build=20260927-wave1-accounting-workspace-1',
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      './accounting-workspace.js?build=20261020-ws4-accounting-1',
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
+      // WS3: payroll calc joins the accounting chain (loaded before the
+      // bridge pulls in operations-ui) so Reports/accounting surfaces can
+      // share the one withholding module. Loader dedupes repeat loads.
+      './payroll-calc.js?build=20261020-payroll-calc-1',
     ];
     const PAGE_PAYROLL = [
-      './payroll-workflow.js?build=20261005-payroll-v2-1',
+      // WS3 run pipeline deps first (loader dedupes if Accounting ran first):
+      // engine → operations (payrollPreparation) → calc → run → presentation.
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      './accounting-operations.js?build=20261002-payroll-approved-period-1',
+      './payroll-calc.js?build=20261020-payroll-calc-1',
+      './payroll-run.js?build=20261020-payroll-run-1',
+      './payroll-workflow.js?build=20261020-payroll-presentation-1',
     ];
     const PAGE_TAX = [
       './tax-packet.js?build=20261005-tax-packet-2',
       './cpa-package.js?build=20261011-cpa-package-1',
     ];
     const PAGE_REPORTS = [
-      './reports-section.js?build=20261012-reports-section-2',
+      // WS3 library deps (loader dedupes): engine for R1/R2/R3/R8 ledger
+      // math, operations for R5 jobCost. R6 stays dependency-free.
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      './accounting-operations.js?build=20261002-payroll-approved-period-1',
+      './reports-section.js?build=20261020-ws4-remaining-1',
     ];
     const PAGE_DOCUMENTS = [
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
     ];
     const PAGE_AI = [
-      './kits-workspace.js?build=20261011-kits-workspace-1',
+      './kits-workspace.js?build=20261020-ws4-hank-1',
     ];
     const PAGE_ASSISTANT = [
-      './kits-workspace.js?build=20261011-kits-workspace-1',
+      './kits-workspace.js?build=20261020-ws4-hank-1',
     ];
     const PAGE_SOCIAL = [
       './deal-alerts.js?build=20261008-inventory-module-1',

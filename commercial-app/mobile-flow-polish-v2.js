@@ -10,7 +10,7 @@ const GROUPS=[
 const text=value=>String(value==null?'':value).trim();
 function state(){try{return typeof window.state!=='undefined'?window.state:null;}catch(_){return null;}}
 function page(){return text(state()?.page);}
-function allowed(){try{return new Set(typeof window.allowedPages==='function'?window.allowedPages():[]);}catch(_){return new Set();}}
+function allowed(){try{const base=typeof window.allowedPages==='function'?window.allowedPages():[];/* WS4 B12: More grouping and in-content route checks share the same module-visibility predicate as both nav authorities. */return new Set((typeof window.H38ModuleVisible==='function')?base.filter(page=>window.H38ModuleVisible(page)):base);}catch(_){return new Set();}}
 function heading(node){return text(node?.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > .row-top h2,:scope > .row-top h3')?.textContent||'');}
 function style(){if(document.getElementById('h38WideMobilePolishStyle'))return;const s=document.createElement('style');s.id='h38WideMobilePolishStyle';s.textContent=`
 .h38-more-sections{display:grid;gap:14px}.h38-more-section{display:grid;gap:8px}.h38-more-section>strong{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.h38-more-section-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.h38-more-section-grid button{min-height:58px}

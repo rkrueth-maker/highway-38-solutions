@@ -273,6 +273,50 @@ async function readJsonBody(req: Request): Promise<JsonObject> {
   }
 }
 
+function round2(v: number): number { return Math.round(v * 100) / 100; }
+function lineTotalOf(line: JsonObject): number {
+  return numberValue(pick(line, "quantity", "Quantity")) * numberValue(pick(line, "unitPrice", "Unit Price", "rate"));
+}
+function tierTotalOf(tier: JsonObject): number {
+  const items = Array.isArray(tier?.items) ? tier.items : [];
+  return round2(items.reduce((sum: number, line: JsonObject) => sum + lineTotalOf(line), 0));
+}
+const TIER_IDS = ["good", "better", "best"];
+function quoteTiersOf(q: JsonObject): JsonObject[] {
+  return Array.isArray(q.tiers) ? q.tiers : [];
+}
+function isTieredQuotePayload(q: JsonObject): boolean {
+  return clean(pick(q, "Tier Mode", "tierMode"), 40) === "Good-Better-Best" && quoteTiersOf(q).length === 3;
+}
+function quoteRevisionOf(q: JsonObject): number {
+  return Math.max(1, Math.trunc(numberValue(pick(q, "Locked Revision", "lockedRevision")) || numberValue(pick(q, "Revision", "revision")) || 1));
+}
+// §3.1 acceptance snapshot: normalize the canonical quote to the chosen option.
+function applyAcceptedOption(q: JsonObject, optionIndex: number, now: string): { updated: JsonObject; tier: JsonObject; chosenTotal: number } {
+  const tiers = quoteTiersOf(q);
+  const tier = tiers[optionIndex];
+  const chosenTotal = tierTotalOf(tier);
+  const tax = numberValue(pick(q, "Tax", "tax"));
+  const updated: JsonObject = {
+    ...q,
+    lines: JSON.parse(JSON.stringify(Array.isArray(tier.items) ? tier.items : [])),
+    "Subtotal": chosenTotal,
+    "Total": round2(chosenTotal + tax),
+    "Accepted Option ID": clean(pick(tier, "id"), 20) || TIER_IDS[optionIndex],
+    "Accepted Option Index": optionIndex,
+    "Accepted Option Name": clean(pick(tier, "name"), 40),
+    "Accepted Option Total": chosenTotal,
+    "Accepted At Revision": pick(q, "Locked Revision", "lockedRevision") || pick(q, "Revision", "revision"),
+    "Customer Decision": "Accepted",
+    "Status": "Approved",
+    "Customer Approved Time": now,
+    "Updated Time": now,
+    "Record Version": numberValue(pick(q, "Record Version", "recordVersion")) + 1,
+  };
+  delete updated.__localPending;
+  return { updated, tier, chosenTotal };
+}
+
 async function writeProof(
   service: ReturnType<typeof serviceClient>,
   businessId: string,
@@ -433,15 +477,18 @@ async function buildSessionBundle(
         title: clean(pick(p, "Project Title", "projectTitle"), 120),
         status: clean(pick(p, "Status", "status"), 40),
         total: numberValue(pick(p, "Total", "total")),
+        revision: numberValue(pick(p, "Locked Revision", "lockedRevision")) || numberValue(pick(p, "Revision", "revision")),
         tierMode: clean(pick(p, "Tier Mode", "tierMode"), 40),
         scope: clean(pick(p, "Scope", "scope"), 2000),
-        tiers: tiers.slice(0, 3).map((t: JsonObject) => ({
+        tiers: tiers.slice(0, 3).map((t: JsonObject, ti: number) => ({
+          id: clean(pick(t, "id"), 20) || TIER_IDS[ti] || "",
           name: clean(pick(t, "name"), 40),
           description: clean(pick(t, "description"), 500),
           total: numberValue(pick(t, "total")),
           items: (Array.isArray(t.items) ? t.items : []).slice(0, 50).map((l: JsonObject) => ({
             description: clean(pick(l, "description", "Description"), 160),
             quantity: numberValue(pick(l, "quantity", "Quantity")),
+            unit: clean(pick(l, "unit", "Unit"), 30),
             unitPrice: numberValue(pick(l, "unitPrice", "Unit Price", "rate")),
           })),
         })),
@@ -789,7 +836,10 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
     // ---- approve-quote ----
     if (postAction === "approve-quote") {
       const quoteId = clean(body.quote_id || body.quoteId, 120);
-      const tier = clean(body.tier, 40); // optional: Good/Better/Best tier name
+      const tierIndexRaw = body.tier_index ?? body.tierIndex;
+      const tierIndex = tierIndexRaw === undefined || tierIndexRaw === null || tierIndexRaw === "" ? null : Math.trunc(numberValue(tierIndexRaw));
+      const expectedRevisionRaw = body.expected_revision ?? body.expectedRevision;
+      const expectedRevision = expectedRevisionRaw === undefined || expectedRevisionRaw === null || expectedRevisionRaw === "" ? null : Math.trunc(numberValue(expectedRevisionRaw));
       if (!quoteId) return reply(req, 400, { error: "Invalid request." });
       const { data: row, error } = await sb
         .from("business_records")
@@ -809,15 +859,41 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
       if (!["PRESENTED", "SENT"].includes(status)) {
         return reply(req, 409, { error: "This quote can no longer be approved online. Please call us." });
       }
+      const currentRevision = quoteRevisionOf(q);
+      if (expectedRevision === null || expectedRevision !== currentRevision) {
+        return reply(req, 409, { error: "This quote changed since you opened it. Please reload and review the current version before approving." });
+      }
       const now = new Date().toISOString();
-      const updated = {
-        ...q,
-        "Status": "Approved",
-        "Customer Approved Time": now,
-        "Approved Tier": tier || clean(pick(q, "Tier Mode", "tierMode"), 40),
-        "Updated Time": now,
-        "Record Version": numberValue(pick(q, "Record Version", "recordVersion")) + 1,
-      };
+      const tiered = isTieredQuotePayload(q);
+      let updated: JsonObject;
+      let approvalTierId = "";
+      let approvalTierName = "";
+      let approvalTotal = numberValue(pick(q, "Total", "total"));
+      if (tiered) {
+        if (tierIndex === null || tierIndex < 0 || tierIndex > 2) {
+          return reply(req, 400, { error: "Choose which option you are approving." });
+        }
+        const tiers = quoteTiersOf(q);
+        const tier = tiers[tierIndex];
+        if (!tier || !Array.isArray(tier.items) || !tier.items.length) {
+          return reply(req, 400, { error: "That option has no line items and cannot be approved." });
+        }
+        const applied = applyAcceptedOption(q, tierIndex, now);
+        updated = applied.updated;
+        approvalTierId = clean(pick(applied.tier, "id"), 20) || TIER_IDS[tierIndex];
+        approvalTierName = clean(pick(applied.tier, "name"), 40);
+        approvalTotal = applied.chosenTotal;
+      } else {
+        updated = {
+          ...q,
+          "Status": "Approved",
+          "Customer Approved Time": now,
+          "Customer Decision": "Accepted",
+          "Updated Time": now,
+          "Record Version": numberValue(pick(q, "Record Version", "recordVersion")) + 1,
+        };
+        delete updated.__localPending;
+      }
       const { error: upErr } = await sb.from("business_records").update({
         payload: updated,
         updated_at: now,
@@ -835,15 +911,16 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
           "Quote ID": quoteId,
           "Customer ID": session.customerKey,
           "Decision": "Approved",
-          "Tier": tier || "",
-          "Total": numberValue(pick(q, "Total", "total")),
+          "Tier": approvalTierId,
+          "Tier Name": approvalTierName,
+          "Total": approvalTotal,
           "Status": "New — owner converts to job",
           "Business ID": session.businessId,
           "Created Time": now,
           "Record Version": 1,
         },
       });
-      await writeProof(sb, session.businessId, "PORTAL_QUOTE_APPROVED", "Quote", quoteId, "OK", { tier: tier || "" });
+      await writeProof(sb, session.businessId, "PORTAL_QUOTE_APPROVED", "Quote", quoteId, "OK", { tier: approvalTierName, tierId: approvalTierId, chosenTotal: approvalTotal });
       return reply(req, 200, { ok: true, message: "Quote approved. We will contact you to schedule the work." });
     }
 

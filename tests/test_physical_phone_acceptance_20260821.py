@@ -164,7 +164,7 @@ def test_phone_repair_builds_are_live_first():
     assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in LOADER
     assert "ASSET_BUILD='20260823-quote-revision-polish-1'" in LOADER
     assert "quote-reproduction-authority-1" in LOADER
-    assert "quote-revision-authority-1" in LOADER
+    assert "20261020-gbb-ws1-1" in LOADER
     assert "spoken-measurement-authority-final-1" in LOADER
     assert "site-visit-deep-polish-1" in LOADER
     assert "quote-regression-runner-1" in LOADER

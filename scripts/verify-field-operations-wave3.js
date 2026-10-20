@@ -13,4 +13,59 @@ assert.equal(F.locationAllowed('field',{assignedDriver:false}),false);assert.equ
 const projection=F.fieldProjection({jobs:[{'Job ID':'J1','Assigned User ID':'U1','Pay Rate':50,'Gross Margin':40},{'Job ID':'J2','Assigned User ID':'U2'}]},{id:'U1',role:'field'});assert.equal(projection.jobs.length,1);assert.equal(projection.jobs[0]['Pay Rate'],undefined);assert.equal(projection.ownerFinancialVisible,false);
 const due=F.maintenanceDue({'Asset ID':'A1','Current Meter':1200,'Next Service Meter':1000});assert.equal(due.due,true);
 const plan=F.dispatchProposal({businessId:BID,jobs:[{'Business ID':BID,'Job ID':'J1',Status:'Open',Priority:'Urgent',Latitude:47.2,Longitude:-93.5}],events:[],employees:[],assets:[]});assert.equal(plan.unscheduled.length,1);assert.equal(plan.priority.length,1);assert.equal(plan.automaticScheduling,false);assert.equal(plan.requiresDispatcherApproval,true);
+/* WS2 dispatch board engine (spec §4.1/§4.3/§4.4 + §1.8 defect fix). */
+const canon=(id,start,end,user,businessId=BID)=>({'Schedule Event ID':id,'Business ID':businessId,'Job ID':`J-${id}`,'Related Record ID':`J-${id}`,Title:`Work ${id}`,'Start Time':start,'End Time':end,'Assigned User ID':user,Status:'Scheduled'});
+/* §1.8: normalizeEvent folds the canonical singular assignee into employeeIds. */
+assert.deepEqual(F.normalizeEvent(canon('S1','2026-09-28T08:00:00','2026-09-28T10:00:00','U9')).employeeIds,['U9']);
+assert.deepEqual(F.normalizeEvent({...canon('S2','2026-09-28T08:00:00','2026-09-28T10:00:00','U9'),'Assigned User IDs':['U8','U9']}).employeeIds,['U9','U8']);
+/* Two canonical (singular-assignee) events for the same user now conflict… */
+const canonConflicts=F.scheduleConflicts([canon('C1','2026-09-28T08:00:00','2026-09-28T10:00:00','U1'),canon('C2','2026-09-28T09:00:00','2026-09-28T11:00:00','U1')]);
+assert.equal(canonConflicts.length,1);assert.deepEqual(canonConflicts[0].employees,['U1']);
+/* …different users do not, and different businesses do not. */
+assert.equal(F.scheduleConflicts([canon('C3','2026-09-28T08:00:00','2026-09-28T10:00:00','U1'),canon('C4','2026-09-28T09:00:00','2026-09-28T11:00:00','U2')]).length,0);
+assert.equal(F.scheduleConflicts([canon('C5','2026-09-28T08:00:00','2026-09-28T10:00:00','U1'),canon('C6','2026-09-28T09:00:00','2026-09-28T11:00:00','U1','OTHER')]).length,0);
+/* boardEvents: job link resolves Related Record ID first, then Job ID;
+ * assignees union singular + array; cancelled excluded; bad dates tolerated. */
+const board=F.boardEvents([
+ canon('B1','2026-09-28T08:00:00','2026-09-28T10:00:00','U1'),
+ {...canon('B2','2026-09-28T11:00:00','','U2'),'Related Record ID':'','Assigned User IDs':['U3']},
+ {...canon('B3','2026-09-28T12:00:00','2026-09-28T13:00:00','U1'),Status:'Cancelled'},
+ {'Schedule Event ID':'B4','Business ID':BID,'Start Time':'not-a-date','Assigned User ID':'U1',Status:'Scheduled'},
+]);
+assert.equal(board.length,2);assert.equal(board.needsTime,1);
+assert.equal(board[0].jobId,'J-B1');assert.deepEqual(board[0].assigneeIds,['U1']);assert.equal(board[0].hasEnd,true);
+assert.equal(board[1].jobId,'J-B2');assert.deepEqual(board[1].assigneeIds,['U2','U3']);assert.equal(board[1].hasEnd,false);
+/* DISPATCH_CHIP mapping (spec §4.3 table). */
+assert.deepEqual(F.DISPATCH_CHIP('Scheduled',{assigned:false}),{label:'Unassigned',kind:'bad'});
+assert.deepEqual(F.DISPATCH_CHIP('Done',{assigned:true}),{label:'Done',kind:'good'});
+assert.deepEqual(F.DISPATCH_CHIP('Complete',{assigned:true}),{label:'Done',kind:'good'});
+assert.deepEqual(F.DISPATCH_CHIP('En Route',{assigned:true}),{label:'En route',kind:'pending'});
+assert.deepEqual(F.DISPATCH_CHIP('On Site',{assigned:true}),{label:'On site',kind:'pending'});
+assert.deepEqual(F.DISPATCH_CHIP('In Progress',{assigned:true}),{label:'Working',kind:'pending'});
+assert.deepEqual(F.DISPATCH_CHIP('Scheduled',{assigned:true}),{label:'Scheduled',kind:'info'});
+assert.deepEqual(F.DISPATCH_CHIP('Assigned',{assigned:true}),{label:'Scheduled',kind:'info'});
+assert.deepEqual(F.DISPATCH_CHIP('Cancelled',{assigned:true}),{label:'Cancelled',kind:'neutral'});
+assert.deepEqual(F.DISPATCH_CHIP('Something Else',{assigned:true}),{label:'Something Else',kind:''});
+/* dailyLoad sums counts and booked minutes per assignee; open-ended = 0 min. */
+const load=F.dailyLoad(board);
+assert.deepEqual(load.U1,{count:1,minutes:120});assert.deepEqual(load.U2,{count:1,minutes:0});assert.deepEqual(load.U3,{count:1,minutes:0});
+const load2=F.dailyLoad(F.boardEvents([canon('L1','2026-09-28T08:00:00','2026-09-28T09:30:00','U1'),canon('L2','2026-09-28T10:00:00','2026-09-28T10:45:00','U1')]));
+assert.deepEqual(load2.U1,{count:2,minutes:135});
+/* Phase D fix (D4): a poison row must not kill the conflict check. The
+ * server creates zero-duration rows (a save with no End Time stores
+ * End = Start) and normalizeEvent() throws on them; scheduleConflicts()
+ * now sanitizes per row, so a real overlap is still detected alongside a
+ * zero-duration row and an unparseable row. */
+assert.throws(()=>F.normalizeEvent(canon('P0','2026-09-28T08:00:00','2026-09-28T08:00:00','U1')),/end must be after start/);
+const poisoned=[
+ canon('P1','2026-09-28T08:00:00','2026-09-28T10:00:00','U1'),
+ canon('P2','2026-09-28T09:00:00','2026-09-28T11:00:00','U1'),
+ canon('PZ','2026-09-28T09:30:00','2026-09-28T09:30:00','U1'), // zero-duration poison row
+ canon('PB','not-a-time','2026-09-28T11:00:00','U1')          // unparseable poison row
+];
+const poisonConflicts=F.scheduleConflicts(poisoned);
+assert.equal(poisonConflicts.length,1);
+assert.deepEqual([poisonConflicts[0].eventA,poisonConflicts[0].eventB],['P1','P2']);
+assert.deepEqual(F.sanitizeScheduleRows(poisoned).map(r=>r['Schedule Event ID']),['P1','P2']);
+assert.equal(F.sanitizeScheduleRows([]).length,0);
 console.log('Field operations Wave 3 engine acceptance complete.');

@@ -28,6 +28,13 @@
 (function(){
 'use strict';
 
+/* WS4 header alignment: guided steps keep their .h38-steps progress, but
+ * the page header is the standard screen header when H38Flow is present. */
+function schedHead(title,desc){
+  if(window.H38Flow&&typeof window.H38Flow.screenHeader==='function')return window.H38Flow.screenHeader({page:'schedule',title:title,purpose:desc});
+  return pageHead(title,desc);
+}
+
 var sched={step:1,jobId:null,quickCustomerId:'',crewIds:[],dateMode:'today',customDate:'',startTime:'09:00',endTime:'12:00',results:null,overrideConflicts:false};
 
 function bizName(){
@@ -91,7 +98,7 @@ function stepHeader(step,of,title){
 /* ================= STEP 1: WHAT JOB ================= */
 function renderStep1(){
   var jobs=openJobs();
-  var html=pageHead('Schedule Job','Pick the job, pick the crew, pick the time. Four steps, done.');
+  var html=schedHead('Schedule Job','Pick the job, pick the crew, pick the time. Four steps, done.');
   html+='<section class="card">'+stepHeader(1,4,'What job are we scheduling?')+'<div class="list">';
   if(!jobs.length) html+='<p class="muted">No open jobs. Create a quick one below.</p>';
   html+=jobs.slice(0,40).map(function(row){
@@ -135,7 +142,7 @@ function renderStep1(){
 function renderStep2(){
   var users=crewUsers();
   var todayStr=localDateStr(new Date());
-  var html=pageHead('Schedule Job','Pick the crew. Availability is checked against today\'s schedule.');
+  var html=schedHead('Schedule Job','Pick the crew. Availability is checked against today\'s schedule.');
   html+='<section class="card">'+stepHeader(2,4,'Who\'s doing it?');
   var job=jobRow(sched.jobId);
   html+='<p class="muted small">Job: <strong>'+esc(job?v(job,'Project Title'):'')+'</strong></p><div class="list">';
@@ -170,7 +177,7 @@ function renderStep2(){
 /* ================= STEP 3: WHEN ================= */
 function renderStep3(){
   var dateStr=chosenDateStr();
-  var html=pageHead('Schedule Job','Pick the day and time. Conflicts are flagged before you confirm.');
+  var html=schedHead('Schedule Job','Pick the day and time. Conflicts are flagged before you confirm.');
   html+='<section class="card">'+stepHeader(3,4,'When?');
   var job=jobRow(sched.jobId);
   var crewNames=sched.crewIds.map(function(id){var u=userRow(id);return u?String(v(u,'Display Name','Email')||''):id;});
@@ -299,7 +306,7 @@ async function confirmSchedule(){
 /* ================= STEP 4: DONE ================= */
 function renderStep4(){
   var r=sched.results||{summary:'',events:0,notified:[],failed:[]};
-  var html=pageHead('Job Scheduled','Everything is in place. Here is exactly what happened.');
+  var html=schedHead('Job Scheduled','Everything is in place. Here is exactly what happened.');
   html+='<section class="card"><h2>✅ Job scheduled</h2><p><strong>'+esc(r.summary)+'</strong></p>';
   html+='<p class="muted small">'+r.events+' schedule event'+(r.events===1?'':'s')+' created.</p>';
   if(r.notified.length){

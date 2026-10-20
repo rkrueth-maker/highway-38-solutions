@@ -1,26 +1,21 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-20T02:25:37.257Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-20T11:43:49.805Z",
+  "base": "HEAD",
   "head": "HEAD",
   "files": [
-    "commercial-app/ai-team-owner-polish.js",
     "commercial-app/app-heartbeat.js",
-    "commercial-app/bundle-features.js",
     "commercial-app/index.html",
-    "commercial-app/quickbooks-server-bridge.js",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-final-startup.js",
     "commercial-app/version.json",
     "scripts/verify-owner-notifications.js",
     "tests/test_messages_inbox_entry_20261013.py",
     "tests/test_offline_mode_polish_20261012.py",
     "tests/test_owner_notifications.py",
     "tests/test_platform_push_deepening.py",
-    "tests/test_task_manager_training_videos.py",
-    "tests/test_tax_only_accounting.py"
+    "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 15,
+  "fileCount": 10,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

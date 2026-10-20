@@ -97,7 +97,7 @@ function renderTierQuotePreview(){
   const revision=v(row,'Revision','revision')||state.quote.revision||1;
   const status=v(row,'Status','status')||'Draft';
   const demo=h38QuoteIsDemo(row);
-  $('mainContent').innerHTML=pageHead('Customer Quote Preview','Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.','<button id="backToQuoteFromPreview" class="secondary">Back to Quote</button><button id="printQuoteButton">Print / Save PDF</button>')+'<article id="quotePreviewDocument" class="quote-document" data-quote-id="'+esc(quoteId)+'" data-demo-record="'+(demo?'true':'false')+'">'+
+  $('mainContent').innerHTML=(window.H38Flow?window.H38Flow.screenHeader({page:'',title:'Customer Quote Preview',purpose:'Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.',primary:{label:'Print / Save PDF',id:'printQuoteButton'},secondary:[{label:'Back to Quote',id:'backToQuoteFromPreview'}]}):pageHead('Customer Quote Preview','Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.','<button id="backToQuoteFromPreview" class="secondary">Back to Quote</button><button id="printQuoteButton">Print / Save PDF</button>'))+'<article id="quotePreviewDocument" class="quote-document" data-quote-id="'+esc(quoteId)+'" data-demo-record="'+(demo?'true':'false')+'">'+
     '<header class="quote-document-header">'+
       '<div class="quote-brand"><img class="quote-logo" src="'+H38_APPROVED_LOGO+'" alt="Highway 38 Solutions"><div><strong>HIGHWAY 38 SOLUTIONS</strong><span>Professional Quote</span></div></div>'+
       '<div class="quote-document-number"><span>Quote</span><strong>'+esc(quoteNumber)+'</strong><small>Revision '+esc(revision)+'</small></div>'+
@@ -114,7 +114,7 @@ function renderTierQuotePreview(){
     '<footer class="quote-document-footer"><strong>Highway 38 Solutions</strong><span>'+H38_PUBLIC_EMAIL+'</span></footer>'+
   '</article>';
   $('backToQuoteFromPreview').onclick=renderQuotes;
-  $('printQuoteButton').onclick=()=>window.print();
+  $('printQuoteButton').onclick=()=>{if(window.H38_SAFE_QUOTE_PRINT&&typeof window.H38_SAFE_QUOTE_PRINT.print==='function')window.H38_SAFE_QUOTE_PRINT.print();else window.print();};
 }
 function renderQuotePreview(){
   const row=h38CurrentQuoteRecord();
@@ -133,7 +133,7 @@ function renderQuotePreview(){
   const revision=v(row,'Revision','revision')||state.quote.revision||1;
   const status=v(row,'Status','status')||'Draft';
   const demo=h38QuoteIsDemo(row);
-  $('mainContent').innerHTML=pageHead('Customer Quote Preview','Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.',`<button id="backToQuoteFromPreview" class="secondary">← Back to Quote</button><button id="printQuoteButton">Print / Save PDF</button>`)+`<article id="quotePreviewDocument" class="quote-document" data-quote-id="${esc(quoteId)}" data-demo-record="${demo?'true':'false'}">
+  $('mainContent').innerHTML=(window.H38Flow?window.H38Flow.screenHeader({page:'',title:'Customer Quote Preview',purpose:'Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.',primary:{label:'Print / Save PDF',id:'printQuoteButton'},secondary:[{label:'← Back to Quote',id:'backToQuoteFromPreview'}]}):pageHead('Customer Quote Preview','Review the customer-facing document, then print or save it as a PDF. Internal price sources and owner notes are not shown.',`<button id="backToQuoteFromPreview" class="secondary">← Back to Quote</button><button id="printQuoteButton">Print / Save PDF</button>`))+`<article id="quotePreviewDocument" class="quote-document" data-quote-id="${esc(quoteId)}" data-demo-record="${demo?'true':'false'}">
     <header class="quote-document-header">
       <div class="quote-brand"><img class="quote-logo" src="${H38_APPROVED_LOGO}" alt="Highway 38 Solutions"><div><strong>HIGHWAY 38 SOLUTIONS</strong><span>Professional Quote</span></div></div>
       <div class="quote-document-number"><span>Quote</span><strong>${esc(quoteNumber)}</strong><small>Revision ${esc(revision)}</small></div>

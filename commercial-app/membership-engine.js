@@ -287,7 +287,8 @@
     const preselect=window.__h38MembershipPreselect||'';
     window.__h38MembershipPreselect='';
 
-    $('mainContent').innerHTML=pageHead('Memberships','Sell service plans, enroll customers, bill on the cycle and track fulfillment visits. Billing prepares drafts — nothing is charged without owner approval.')+
+    const h38MembershipHead={page:'memberships',title:'Memberships',purpose:'Sell service plans, enroll customers, and bill them on schedule.',primary:{label:'＋ New plan',handler:()=>{const f=document.getElementById('planForm');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});f.querySelector('input')?.focus({preventScroll:true});}}},secondary:[{label:'Enroll a customer',handler:()=>{const f=document.getElementById('enrollForm');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});f.querySelector('select')?.focus({preventScroll:true});}}}]};
+    $('mainContent').innerHTML=(window.H38Flow?window.H38Flow.screenHeader(h38MembershipHead):pageHead('Memberships',h38MembershipHead.purpose))+
     `<div class="grid">`+
     `<section class="card span12"><div class="stats">`+
       `<div class="stat"><strong>${money(planMRR())}</strong><span>Monthly recurring revenue</span></div>`+
@@ -343,6 +344,7 @@
 
     if(preselect){const sel=document.querySelector('#enrollForm select[name="customerId"]');if(sel)sel.value=preselect;}
 
+    if(window.H38Flow)window.H38Flow.bindScreenHeader($('mainContent'),h38MembershipHead);
     bindForm('planForm',async(data,form)=>{await savePlan(data);form.reset();if(navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);toast('Service plan saved.');renderMemberships();});
     bindForm('enrollForm',async(data,form)=>{await enrollMembership(data);form.reset();if(navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);toast('Member enrolled. Plan visits scheduled. First billing draft will appear on the next billing run.');renderMemberships();});
 
