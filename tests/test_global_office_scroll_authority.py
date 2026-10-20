@@ -15,7 +15,7 @@ def test_cosmetic_mobile_polish_delegates_scroll_authority():
 
 
 def test_final_runtime_is_the_only_global_mobile_scroll_authority():
-    assert "20260918-one-shell-role-nav-1" in RUNTIME
+    assert "20261020-myhank-settings-1" in RUNTIME
     assert "publishedOfficeAuthority:true" in RUNTIME
     assert "officeFixedViewportScroller:true" in RUNTIME
     assert "manualTouchScrollFallback:true" in RUNTIME

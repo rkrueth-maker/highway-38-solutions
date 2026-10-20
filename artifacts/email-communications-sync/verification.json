@@ -1,5 +1,10 @@
 {
-  "status": "PASS",
-  "passes": 43,
-  "failures": []
+  "status": "HOLD",
+  "passes": 42,
+  "failures": [
+    {
+      "name": "branch changes stay inside Business Office, authenticated app, Supabase, tests, docs, and accepted workflows",
+      "evidence": "tests/test_messages_inbox_entry_20261013.py, tests/test_offline_mode_polish_20261012.py, tests/test_owner_notifications.py, tests/test_platform_push_deepening.py, tests/test_task_manager_training_videos.py"
+    }
+  ]
 }

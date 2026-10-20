@@ -1,16 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-20T19:42:59.511Z",
+  "generatedAt": "2026-10-20T19:48:59.917Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "repair-guide/css/styles.css",
     "repair-guide/img/cody.webp",
     "repair-guide/index.html",
     "repair-guide/js/app.js",
     "repair-guide/sw.js"
   ],
-  "fileCount": 5,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
