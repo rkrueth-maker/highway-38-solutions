@@ -129,6 +129,13 @@
       './email-send-runtime.js?build=20261011-email-send-1',
       './membership-engine.js?build=20261020-ws4-remaining-1',
       './card-vault.js?build=20261005-cardvault-1',
+      // Tally cold-mount fix (2026-10-20): money-agent's brief reads its
+      // books state from the accounting workspace or, failing that, this
+      // engine's snapshot fallback — neither was in the Money group, so a
+      // cold Money render mounted the card with an empty state sentence.
+      // The engine is a pure calc module (no DOM side effects); the loader
+      // dedupes it when Accounting/Payroll/Reports load it too.
+      './accounting-engine.js?build=20261020-payroll-engine-1',
       './money-agent.js?build=20261020-tally-coldfix-1',
     ];
     const PAGE_ACCOUNTING = [
