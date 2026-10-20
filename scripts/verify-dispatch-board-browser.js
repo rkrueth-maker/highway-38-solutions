@@ -23,7 +23,16 @@
  *     demo tenant or any customer tenant). Seeded records carry a unique
  *     `WS2TEST-<runId>` prefix in every id/title and are left in the sandbox
  *     for inspection; they are safe to delete by prefix afterwards.
- *  5. Chromium relay note: headless Chromium against the live app can fail
+ *  5. ACCOUNT USERS (Phase D fix D8): the app's assign surfaces (Schedule
+ *     form, action sheet) list ACCOUNT users only — snapshot users from
+ *     memberships, the same source userOptions()/activeUsers() read. The
+ *     seed therefore assigns events to the tenant's first three ACTIVE
+ *     account users read from the live snapshot; it never fabricates
+ *     'users' business records (the WS2-era seeded techs could render as
+ *     board columns via their assignee ids but could never be picked in
+ *     the action sheet). The tenant needs >= 3 active account users or
+ *     the seed aborts with a clear message.
+ *  6. Chromium relay note: headless Chromium against the live app can fail
  *     with net::ERR_EMPTY_RESPONSE on some hosts. If that happens, set
  *     H38_BROWSER=firefox — Firefox is the established engine for this app's
  *     browser checks (see AGENTS.md mobile-viewport method). The phone pass
@@ -83,9 +92,15 @@ async function main() {
     if (typeof q !== 'function') throw new Error('queueOperation unavailable in app context.');
     const save = (collection, type, idValue, record, idKeys) =>
       q('SAVE_PARITY_ENTITY', type, idValue, { entityKey: collection, record }, { collection, record, idKeys }, false);
-    const U = n => `${RUN}-U${n}`;
-    const users = [1, 2, 3].map(n => ({ 'User ID': U(n), 'Business ID': businessId, 'Display Name': `${RUN} Tech ${'ABC'[n - 1]}`, Email: '', Status: 'Active', 'Record Version': 1 }));
-    for (const u of users) await save('users', 'User', u['User ID'], u, ['User ID']);
+    /* D8: assign to ACCOUNT users — the snapshot's users are the account /
+     * membership users the Schedule form and action sheet list. No fake
+     * 'users' records are written. */
+    const accountUsers = (window.state.snapshot?.users || [])
+      .filter(u => !['ARCHIVED', 'INACTIVE', 'CANCELLED'].includes(String(u.Status || '').toUpperCase()))
+      .map(u => u['User ID']).filter(Boolean);
+    if (accountUsers.length < 3) throw new Error(`D8 fixture needs >= 3 active ACCOUNT users on this tenant (found ${accountUsers.length}). Add real members in Team Access first — do not seed fake user records.`);
+    const U = n => accountUsers[n - 1];
+    const users = accountUsers.slice(0, 3).map(id => ({ 'User ID': id }));
     const job = n => ({ 'Job ID': `${RUN}-J${n}`, 'Business ID': businessId, 'Customer ID': '', 'Project Title': `${RUN} Job ${n}`, Status: 'Scheduled', 'Service Address': '1 Sandbox Way', 'Record Version': 1 });
     for (let n = 1; n <= 6; n++) await save('jobs', 'Job', `${RUN}-J${n}`, job(n), ['Job ID']);
     const unscheduled = { ...job(7), Status: 'Approved', 'Project Title': `${RUN} Unscheduled job` };

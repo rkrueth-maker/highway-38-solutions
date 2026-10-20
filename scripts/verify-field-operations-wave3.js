@@ -51,4 +51,21 @@ const load=F.dailyLoad(board);
 assert.deepEqual(load.U1,{count:1,minutes:120});assert.deepEqual(load.U2,{count:1,minutes:0});assert.deepEqual(load.U3,{count:1,minutes:0});
 const load2=F.dailyLoad(F.boardEvents([canon('L1','2026-09-28T08:00:00','2026-09-28T09:30:00','U1'),canon('L2','2026-09-28T10:00:00','2026-09-28T10:45:00','U1')]));
 assert.deepEqual(load2.U1,{count:2,minutes:135});
+/* Phase D fix (D4): a poison row must not kill the conflict check. The
+ * server creates zero-duration rows (a save with no End Time stores
+ * End = Start) and normalizeEvent() throws on them; scheduleConflicts()
+ * now sanitizes per row, so a real overlap is still detected alongside a
+ * zero-duration row and an unparseable row. */
+assert.throws(()=>F.normalizeEvent(canon('P0','2026-09-28T08:00:00','2026-09-28T08:00:00','U1')),/end must be after start/);
+const poisoned=[
+ canon('P1','2026-09-28T08:00:00','2026-09-28T10:00:00','U1'),
+ canon('P2','2026-09-28T09:00:00','2026-09-28T11:00:00','U1'),
+ canon('PZ','2026-09-28T09:30:00','2026-09-28T09:30:00','U1'), // zero-duration poison row
+ canon('PB','not-a-time','2026-09-28T11:00:00','U1')          // unparseable poison row
+];
+const poisonConflicts=F.scheduleConflicts(poisoned);
+assert.equal(poisonConflicts.length,1);
+assert.deepEqual([poisonConflicts[0].eventA,poisonConflicts[0].eventB],['P1','P2']);
+assert.deepEqual(F.sanitizeScheduleRows(poisoned).map(r=>r['Schedule Event ID']),['P1','P2']);
+assert.equal(F.sanitizeScheduleRows([]).length,0);
 console.log('Field operations Wave 3 engine acceptance complete.');
