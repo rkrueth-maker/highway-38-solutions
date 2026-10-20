@@ -53,7 +53,9 @@ def test_edge_connector_encrypts_provider_tokens_and_keeps_writes_fail_closed():
 
 def test_browser_quickbooks_surface_has_no_provider_secret_material():
     assert "const ENDPOINT='h38-quickbooks-bridge'" in QBO_BROWSER
-    assert "functions.invoke(ENDPOINT" in QBO_BROWSER
+    assert "functions/v1/${ENDPOINT}" in QBO_BROWSER
+    assert "authorization:`Bearer ${token}`" in QBO_BROWSER
+    assert "functions.invoke" not in QBO_BROWSER
     assert 'serverManagedTokens:true' in QBO_BROWSER
     assert 'browserSecrets:false' in QBO_BROWSER
     assert 'externalAccountingWrites:false' in QBO_BROWSER
@@ -108,19 +110,19 @@ def test_ai_deepening_remains_read_only_and_delegates_existing_bus():
 
 def test_extensions_load_through_existing_live_first_startup_without_cache_bump():
     assert "./platform-deepen.js?build=20261013-icon-session-bands-1" in FINAL_STARTUP
-    assert "./quickbooks-server-bridge.js?build=20260924-qbo-server-bridge-1" in FINAL_STARTUP
+    assert "./quickbooks-server-bridge.js?build=20261019-qbo-server-bridge-2" in FINAL_STARTUP
     assert 'platformExtensionLoader:true' in FINAL_STARTUP
     assert "'supabase-final-startup.js'" in SERVICE_WORKER
     assert "'platform-next.js'" in SERVICE_WORKER
     assert "'platform-deepen.js'" in SERVICE_WORKER
     # Cache rolled by the 2026-10-13 startup-deferral pass (loader build changed).
-    assert "const CACHE_NAME='h38-business-office-20261019-heartbeat-upsert-1'" in SERVICE_WORKER
+    assert "const CACHE_NAME='h38-business-office-20261019-qb-bridge-auth-1'" in SERVICE_WORKER
 
 
 def test_ai_team_loader_also_knows_the_new_platform_slices():
     assert "const PLATFORM_BUILD='20261013-scout-alerts-office-1'" in OWNER_POLISH
     assert "const PLATFORM_DEEPEN_BUILD='20261013-icon-session-bands-1'" in OWNER_POLISH
-    assert "const QBO_SERVER_BUILD='20260924-qbo-server-bridge-1'" in OWNER_POLISH
+    assert "const QBO_SERVER_BUILD='20261019-qbo-server-bridge-2'" in OWNER_POLISH
     assert 'noWritePath:true' in OWNER_POLISH
     assert 'noPermissionChanges:true' in OWNER_POLISH
     assert 'noEngineChanges:true' in OWNER_POLISH

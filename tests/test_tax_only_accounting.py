@@ -68,7 +68,7 @@ def test_optional_qbo_status_does_not_surface_stale_auth_errors():
 
 
 def test_tax_center_loads_after_secure_quickbooks_bridge_and_is_live_first():
-    assert "./quickbooks-server-bridge.js?build=20260924-qbo-server-bridge-1" in FINAL_STARTUP
+    assert "./quickbooks-server-bridge.js?build=20261019-qbo-server-bridge-2" in FINAL_STARTUP
     assert "./tax-center.js?build=20260924-tax-center-1" in FINAL_STARTUP
     assert FINAL_STARTUP.index('quickbooks-server-bridge.js') < FINAL_STARTUP.index('tax-center.js')
     assert "const TAX_CENTER_BUILD='20260924-tax-center-1'" in OWNER_POLISH

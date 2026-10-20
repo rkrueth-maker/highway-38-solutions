@@ -1,18 +1,32 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-19T20:30:18.391Z",
-  "base": null,
+  "generatedAt": "2026-10-20T02:25:37.257Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "supabase/functions/h38-deal-engine-web/index.ts"
+    "commercial-app/ai-team-owner-polish.js",
+    "commercial-app/app-heartbeat.js",
+    "commercial-app/bundle-features.js",
+    "commercial-app/index.html",
+    "commercial-app/quickbooks-server-bridge.js",
+    "commercial-app/service-worker.js",
+    "commercial-app/supabase-final-startup.js",
+    "commercial-app/version.json",
+    "scripts/verify-owner-notifications.js",
+    "tests/test_messages_inbox_entry_20261013.py",
+    "tests/test_offline_mode_polish_20261012.py",
+    "tests/test_owner_notifications.py",
+    "tests/test_platform_push_deepening.py",
+    "tests/test_task_manager_training_videos.py",
+    "tests/test_tax_only_accounting.py"
   ],
-  "fileCount": 1,
+  "fileCount": 15,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
-    "customerPortal": true,
+    "publicWebsite": true,
+    "authenticatedApp": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -20,23 +34,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
-    "externalActionBoundary": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
+    "externalActionBoundary": true,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
-  "expensiveChecks": [],
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
+  ],
   "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
