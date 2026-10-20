@@ -135,13 +135,11 @@ function saveModuleVisibility(visibility){
 }
 
 function applyModuleVisibility(visibility){
-  // Hide nav items for disabled modules
-  MODULES.forEach(m=>{
-    const navItem=document.querySelector(`[data-nav="${m.id}"]`);
-    if(navItem){
-      navItem.style.display=visibility[m.id]===false?'none':'';
-    }
-  });
+  /* WS4 B12 (spec §7.2 R1/R2): retired. Nav items for OFF modules are
+   * not rendered at all — both nav authorities filter with
+   * window.H38ModuleVisible — so there is nothing to hide after the fact.
+   * Applying visibility now means asking the nav to re-render. */
+  try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
 }
 
 function isFeatureEnabled(featureId){

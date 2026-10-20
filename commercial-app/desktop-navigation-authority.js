@@ -143,6 +143,11 @@ function updateActive(page=officeState()?.page){
   ensureActiveNavGroupExpanded();
 }
 function groupedNavigationHtml(pages,defs,current){
+  /* WS4 B12 (spec §7.2 R1/R2): nav renders only module-visible pages —
+   * OFF means not rendered at all, never greyed or hidden after the fact.
+   * The predicate is window.H38ModuleVisible (owner-controls.js); when it
+   * is unavailable the previous behavior is preserved exactly. */
+  if(typeof window!=='undefined'&&typeof window.H38ModuleVisible==='function')pages=pages.filter(page=>window.H38ModuleVisible(page));
   const pageSet=new Set(pages),rendered=new Set(),chunks=[];
   const collapsedGroups=effectiveCollapsedNavGroups();
   NAV_GROUPS.forEach(([group,keys],groupIndex)=>{
@@ -164,7 +169,8 @@ function renderDesktopNavigation(){
   installNavigationStyle();
   const pages=allowedPages();
   if(!s?.snapshot?.user||!pages.length){nav.replaceChildren();delete nav.dataset.h38AccessSignature;return;}
-  const signature=`${s.shell||'office'}|${pages.join('|')}|complete-office-3-late-auth`;
+  const navVisiblePages=(typeof window.H38ModuleVisible==='function')?pages.filter(page=>window.H38ModuleVisible(page)):pages;
+  const signature=`${s.shell||'office'}|${navVisiblePages.join('|')}|complete-office-3-late-auth`;
   if(nav.dataset.h38AccessSignature===signature){updateActive();return;}
   const defs=definitions();
   nav.classList.remove('h38-five-primary-nav','h38-operator-scroll-nav');
