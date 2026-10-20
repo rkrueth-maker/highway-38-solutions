@@ -64,3 +64,29 @@
   .h38-tier-present.is-popular .h38-tier-present-head{background:#0b2438!important;color:#fff!important}
   .h38-tier-popular{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ---- GBB completion (WS1): summary strip, tier picker, copy, inline edit ---- */
+.h38-tier-summary{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fbfdfc}
+.h38-tier-summary strong{font-size:1rem}
+.h38-tier-summary small{color:var(--muted)}
+.h38-tier-summary-warn{color:#8a4f00;font-weight:700;width:100%}
+.h38-tier-picker{display:grid;gap:6px}
+.h38-tier-picker>input{min-height:44px;width:100%}
+.h38-tier-picker-results{display:grid;gap:6px;max-height:220px;overflow:auto}
+.h38-tier-picker-row{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff}
+.h38-tier-picker-row small{color:var(--muted)}
+.h38-tier-line input{min-height:40px;width:100%}
+.h38-tier-line .two,.h38-tier-line .three{display:grid;gap:8px}
+.h38-tier-line .two{grid-template-columns:1fr 1fr}
+.h38-tier-line .three{grid-template-columns:1fr 1fr 1fr;margin-top:6px}
+.h38-tier-add .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.h38-tier-copy{border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px}
+.h38-tier-copy-row{display:flex;gap:8px}
+.h38-tier-copy-row select{flex:1;min-height:44px;min-width:0}
+.h38-tier-copy-row button{min-height:44px}
+@media(max-width:900px){
+  .h38-tier-picker-results{max-height:none}
+  .h38-tier-copy-row{flex-direction:column}
+  .h38-tier-copy-row select,.h38-tier-copy-row button{width:100%}
+  .h38-tier-summary{flex-direction:column;align-items:flex-start}
+}

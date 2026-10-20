@@ -118,12 +118,14 @@ $('quoteFromPhotosButton').onclick=()=>quoteFromPhotos();$('quotePhotoInput').on
 
 function addQuoteLine(){const descInput=$('lineDescription'),priceInput=$('linePrice'),qtyInput=$('lineQuantity'),unitInput=$('lineUnit');const description=String(descInput.value||'').trim(),quantity=num(qtyInput.value),unitPrice=num(priceInput.value),unit=unitInput.value||'each';const sig=description?[description,quantity,unit,unitPrice].join('|'):'';if(!description){if(h38LineAddReplay(''))return;throw new Error('Line description is required.');}if(quantity<=0)throw new Error('Quantity must be greater than zero.');if(h38LineAddReplay(sig))return;h38LineAddStamp(sig);descInput.value='';priceInput.value='';state.quote.lines.push({quoteLineId:newId('QUOTE-LINE'),description,quantity,unit,unitPrice,priceSource:'Typed in',priceStatus:'Check before sending',inventoryItemId:(window.H38InventoryModule?window.H38InventoryModule.takePendingItem():'')||undefined});renderQuoteLines();}
 function renderQuoteLines(){if(!$('quoteLines'))return;const lines=state.quote.lines||[];$('quoteLines').innerHTML=lines.length?lines.map((line,index)=>`<div class="row quote-edit-row"><div class="two"><div><label>Description</label><input data-line-field="description" data-line-index="${index}" value="${esc(line.description)}"></div><div><label>Unit</label><input data-line-field="unit" data-line-index="${index}" value="${esc(line.unit||'each')}"></div></div><div class="three"><div><label>Quantity</label><input data-line-field="quantity" data-line-index="${index}" type="number" min="0.01" step="0.01" value="${esc(line.quantity)}"></div><div><label>Unit price</label><input data-line-field="unitPrice" data-line-index="${index}" type="number" min="0" step="0.01" value="${esc(line.unitPrice)}"></div><div><label>Line total</label><strong data-line-total="${index}">${money(num(line.quantity)*num(line.unitPrice))}</strong></div></div><div class="row-actions">${line.inventoryItemId?'<small>📦 stock item</small>':''}<small>${esc(h38QuoteLineSourceLabel(line))}</small><button class="secondary" data-remove-line="${index}">Remove</button></div></div>`).join(''):empty('No quote lines.');const refreshTotal=()=>{$('quoteTotal').textContent=money((state.quote.lines||[]).reduce((sum,line)=>sum+num(line.quantity)*num(line.unitPrice),0));document.querySelectorAll('[data-line-total]').forEach(node=>{const index=num(node.dataset.lineTotal),line=state.quote.lines[index];if(line)node.textContent=money(num(line.quantity)*num(line.unitPrice));});};document.querySelectorAll('[data-line-field]').forEach(input=>input.oninput=()=>{const index=num(input.dataset.lineIndex),field=input.dataset.lineField,line=state.quote.lines[index];if(!line)return;if(field==='quantity'||field==='unitPrice'){const value=num(input.value);if(field==='quantity'&&value<=0)return;line[field]=value;}else line[field]=input.value;state.quote.ownerEdited=true;state.quote.ownerEditedAt=new Date().toISOString();refreshTotal();});document.querySelectorAll('[data-remove-line]').forEach(button=>button.onclick=()=>{state.quote.lines.splice(num(button.dataset.removeLine),1);state.quote.ownerEdited=true;state.quote.ownerEditedAt=new Date().toISOString();renderQuoteLines();});refreshTotal();}
-function renderPriceResults(){if(!$('priceResults'))return;const search=$('priceSearch').value.toLowerCase().trim(),rows=records('priceBook').filter(row=>!search||`${v(row,'SKU','sku')} ${v(row,'Description','description')}`.toLowerCase().includes(search)).slice(0,80);$('priceResults').innerHTML=rows.length?rows.map(row=>`<div class="row"><div class="row-top"><strong>${esc(v(row,'Description','description'))}</strong><button data-use-price="${esc(rowId(row,'Item ID','itemId'))}">Use</button></div><small>${esc(v(row,'SKU','sku'))} · ${money(v(row,'Selling Price','unitPrice'))} / ${esc(v(row,'Unit of Measure','unit')||'each')}</small></div>`).join(''):empty('No matching cached prices.');document.querySelectorAll('[data-use-price]').forEach(button=>button.onclick=()=>{const row=records('priceBook').find(item=>rowId(item,'Item ID','itemId')===button.dataset.usePrice);$('lineDescription').value=v(row,'Description','description');$('lineUnit').value=v(row,'Unit of Measure','unit')||'each';$('linePrice').value=num(v(row,'Selling Price','unitPrice')).toFixed(2);if(window.H38InventoryModule)window.H38InventoryModule.notePendingItem(row);});}
-async function saveQuote(){const title=requireValue($('quoteTitle').value,'Project title is required.'),quoteId=state.quote.quoteId||newId('QUOTE'),tierMode=!!state.quote.tierMode,tiers=tierMode?h38EnsureTiers().map(t=>({name:t.name,description:t.description||'',total:Math.round(h38TierTotal(t)*100)/100,items:(t.items||[]).map(l=>({...l}))})):null,lines=tierMode?[]:(state.quote.lines||[]),total=tierMode?tiers[1].total:lines.reduce((sum,line)=>sum+num(line.quantity)*num(line.unitPrice),0),previousRevision=num(state.quote.revision||0),record={'Quote ID':quoteId,'Business ID':state.businessId,'Customer ID':$('quoteCustomer').value,'Quote Number':state.quote.quoteNumber||`LOCAL-${Date.now()}`,'Project Title':title,'Scope':$('quoteScope').value,'Measurement Notes':$('quoteMeasurements').value,'Status':'Draft','Revision':previousRevision+1,'Previous Revision':previousRevision||'','Tier Mode':tierMode?'Good-Better-Best':'Single','Subtotal':total,'Tax':0,'Total':total,'Created Time':now(),'Updated Time':now(),'Record Version':1,lines,tiers};await queueOperation('SAVE_QUOTE','Quote',quoteId,{quoteId,customerId:$('quoteCustomer').value,projectTitle:title,scope:$('quoteScope').value,measurementNotes:$('quoteMeasurements').value,lines,tiers,tierMode,tax:0},{collection:'quotes',record,idKeys:['Quote ID']});state.quote={...state.quote,quoteId,customerId:$('quoteCustomer').value,projectTitle:title,scope:$('quoteScope').value,measurementNotes:$('quoteMeasurements').value,revision:record.Revision,savedTotal:total,loadedSavedTotal:total,loadedRevision:record.Revision,hydrationComplete:true,savedLineSnapshot:JSON.parse(JSON.stringify(tierMode?tiers:lines)),ownerEdited:false};renderQuotes();
+function h38PriceBookFilter(searchText){const search=String(searchText||'').toLowerCase().trim();return records('priceBook').filter(row=>!search||`${v(row,'SKU','sku')} ${v(row,'Description','description')}`.toLowerCase().includes(search)).slice(0,80);}
+window.h38PriceBookFilter=h38PriceBookFilter;
+function renderPriceResults(){if(!$('priceResults'))return;const rows=h38PriceBookFilter($('priceSearch').value);$('priceResults').innerHTML=rows.length?rows.map(row=>`<div class="row"><div class="row-top"><strong>${esc(v(row,'Description','description'))}</strong><button data-use-price="${esc(rowId(row,'Item ID','itemId'))}">Use</button></div><small>${esc(v(row,'SKU','sku'))} · ${money(v(row,'Selling Price','unitPrice'))} / ${esc(v(row,'Unit of Measure','unit')||'each')}</small></div>`).join(''):empty('No matching cached prices.');document.querySelectorAll('[data-use-price]').forEach(button=>button.onclick=()=>{const row=records('priceBook').find(item=>rowId(item,'Item ID','itemId')===button.dataset.usePrice);$('lineDescription').value=v(row,'Description','description');$('lineUnit').value=v(row,'Unit of Measure','unit')||'each';$('linePrice').value=num(v(row,'Selling Price','unitPrice')).toFixed(2);if(window.H38InventoryModule)window.H38InventoryModule.notePendingItem(row);});}
+async function saveQuote(){const title=requireValue($('quoteTitle').value,'Project title is required.'),quoteId=state.quote.quoteId||newId('QUOTE'),tierMode=!!state.quote.tierMode,tiers=tierMode?h38EnsureTiers().map((t,ti)=>({id:t.id||['good','better','best'][ti],name:t.name,description:t.description||'',total:Math.round(h38TierTotal(t)*100)/100,items:(t.items||[]).map(l=>({...l}))})):null,lines=tierMode?[]:(state.quote.lines||[]),total=tierMode?tiers[1].total:lines.reduce((sum,line)=>sum+num(line.quantity)*num(line.unitPrice),0),previousRevision=num(state.quote.revision||0),record={'Quote ID':quoteId,'Business ID':state.businessId,'Customer ID':$('quoteCustomer').value,'Quote Number':state.quote.quoteNumber||`LOCAL-${Date.now()}`,'Project Title':title,'Scope':$('quoteScope').value,'Measurement Notes':$('quoteMeasurements').value,'Status':'Draft','Revision':previousRevision+1,'Previous Revision':previousRevision||'','Tier Mode':tierMode?'Good-Better-Best':'Single','Subtotal':total,'Tax':0,'Total':total,'Created Time':now(),'Updated Time':now(),'Record Version':1,lines,tiers};await queueOperation('SAVE_QUOTE','Quote',quoteId,{quoteId,customerId:$('quoteCustomer').value,projectTitle:title,scope:$('quoteScope').value,measurementNotes:$('quoteMeasurements').value,lines,tiers,tierMode,tax:0},{collection:'quotes',record,idKeys:['Quote ID']});state.quote={...state.quote,quoteId,customerId:$('quoteCustomer').value,projectTitle:title,scope:$('quoteScope').value,measurementNotes:$('quoteMeasurements').value,revision:record.Revision,savedTotal:total,loadedSavedTotal:total,loadedRevision:record.Revision,hydrationComplete:true,savedLineSnapshot:JSON.parse(JSON.stringify(tierMode?tiers:lines)),ownerEdited:false};renderQuotes();
 const h38LineCount=tierMode?(tiers||[]).reduce((n,t)=>n+((t.items||[]).length),0):lines.length,h38Thin=!h38LineCount||!total;
 toast(`Quote revision ${record.Revision} saved as draft at ${money(total)}${tierMode?' (Better tier total)':''}.`);
 if(window.H38FirstQuoteGuide)window.H38FirstQuoteGuide.afterSave(total,h38LineCount);
-if(window.H38Flow)window.H38Flow.showNextStep({id:'h38FlowQuoteSaved',signature:'quote-saved:'+quoteId+':'+record.Revision,title:'✓ Quote '+(state.quote.quoteNumber||record['Quote Number'])+' saved as draft.',offline:!navigator.onLine,warning:h38Thin?('This draft '+(!h38LineCount?'has no line items yet':'totals $0')+'. Add lines and prices before sending.'):'',next:'send it to the customer for review.',actions:[{label:'Mark as sent',primary:true,handler:()=>markQuoteSent(quoteId)},{label:'Preview quote',handler:()=>{if(typeof renderQuotePreview==='function')renderQuotePreview();else window.toast('Quote preview is not available right now.',true);}}]});
+if(window.H38Flow)window.H38Flow.showNextStep({id:'h38FlowQuoteSaved',signature:'quote-saved:'+quoteId+':'+record.Revision,title:tierMode?('✓ Quote '+(state.quote.quoteNumber||record['Quote Number'])+' saved as draft — 3 options ('+tiers.map(t=>t.name+' '+money(t.total)).join(' · ')+').'):'✓ Quote '+(state.quote.quoteNumber||record['Quote Number'])+' saved as draft.',offline:!navigator.onLine,warning:h38Thin?('This draft '+(!h38LineCount?'has no line items yet':'totals $0')+'. Add lines and prices before sending.'):'',next:'send it to the customer for review.',actions:[{label:'Mark as sent',primary:true,handler:()=>markQuoteSent(quoteId)},{label:'Preview quote',handler:()=>{if(typeof renderQuotePreview==='function')renderQuotePreview();else window.toast('Quote preview is not available right now.',true);}}]});
 }
 
 /* ---- Quote send (Phase 3, Pattern 4: draft → presented is a button) ----
@@ -154,15 +156,15 @@ async function markQuoteSent(quoteId){
    The optional H38 AI "Suggest tiers" button degrades gracefully. */
 function h38DefaultTiers(){
   return [
-    {name:'Good',description:'Essential scope — the minimum to get the job done right.',items:[]},
-    {name:'Better',description:'Recommended — adds preventive work and stronger materials for longer-lasting results.',items:[]},
-    {name:'Best',description:'Premium — full replacement with extended warranty and top-grade materials.',items:[]}
+    {id:'good',name:'Good',description:'Essential scope — the minimum to get the job done right.',items:[]},
+    {id:'better',name:'Better',description:'Recommended — adds preventive work and stronger materials for longer-lasting results.',items:[]},
+    {id:'best',name:'Best',description:'Premium — full replacement with extended warranty and top-grade materials.',items:[]}
   ];
 }
 function h38EnsureTiers(){
   if(!state.quote||typeof state.quote!=='object')state.quote={};
   if(!Array.isArray(state.quote.tiers)||state.quote.tiers.length!==3)state.quote.tiers=h38DefaultTiers();
-  state.quote.tiers.forEach(t=>{if(!t||typeof t!=='object')return;if(!Array.isArray(t.items))t.items=[];if(!t.name)t.name='Tier';});
+  state.quote.tiers.forEach((t,ti)=>{if(!t||typeof t!=='object')return;if(!Array.isArray(t.items))t.items=[];if(!t.name)t.name='Tier';if(!t.id)t.id=['good','better','best'][ti]||('tier-'+ti);});
   return state.quote.tiers;
 }
 function h38TierTotal(tier){
@@ -192,24 +194,63 @@ function h38ToggleTierMode(on){
 function h38AddTierLine(tierIndex){
   const tiers=h38EnsureTiers(),tier=tiers[tierIndex];
   if(!tier)throw new Error('Tier not found.');
-  const descInput=document.querySelector('[data-tier-add-desc="'+tierIndex+'"]'),qtyInput=document.querySelector('[data-tier-add-qty="'+tierIndex+'"]'),priceInput=document.querySelector('[data-tier-add-price="'+tierIndex+'"]');
+  const descInput=document.querySelector('[data-tier-add-desc="'+tierIndex+'"]'),qtyInput=document.querySelector('[data-tier-add-qty="'+tierIndex+'"]'),priceInput=document.querySelector('[data-tier-add-price="'+tierIndex+'"]'),unitInput=document.querySelector('[data-tier-add-unit="'+tierIndex+'"]');
   const description=String(descInput.value||'').trim(),
     quantity=num(qtyInput.value),
+    unit=String(unitInput&&unitInput.value||'each').trim()||'each',
     unitPrice=num(priceInput.value);
-  const sig=description?['tier'+tierIndex,description,quantity,unitPrice].join('|'):'';
+  const sig=description?['tier'+tierIndex,description,quantity,unit,unitPrice].join('|'):'';
   if(!description){if(h38LineAddReplay(''))return;throw new Error('Line description is required.');}
   if(quantity<=0)throw new Error('Quantity must be greater than zero.');
   if(h38LineAddReplay(sig))return;
   h38LineAddStamp(sig);
   descInput.value='';priceInput.value='';
-  tier.items.push({quoteLineId:newId('QUOTE-LINE'),description,quantity,unit:'each',unitPrice,priceSource:'Typed in',priceStatus:'Check before sending'});
+  tier.items.push({quoteLineId:newId('QUOTE-LINE'),description,quantity,unit,unitPrice,priceSource:'Typed in',priceStatus:'Check before sending'});
   state.quote.ownerEdited=true;state.quote.ownerEditedAt=new Date().toISOString();
   renderTierEditor();
+}
+function h38TierSummaryText(tiers){
+  return tiers.map(t=>esc(t.name)+' '+money(h38TierTotal(t))).join(' · ');
+}
+function h38RefreshTierTotals(){
+  const tiers=h38EnsureTiers();
+  document.querySelectorAll('[data-tier-foot-total]').forEach(node=>{const t=tiers[num(node.dataset.tierFootTotal)];if(t)node.textContent=money(h38TierTotal(t));});
+  document.querySelectorAll('[data-tier-line-total]').forEach(node=>{const parts=String(node.dataset.tierLineTotal).split(':').map(Number),t=tiers[parts[0]],line=t&&t.items[parts[1]];if(line)node.textContent=money(num(line.quantity)*num(line.unitPrice));});
+  const strip=$('h38TierSummaryTotals');if(strip)strip.innerHTML=h38TierSummaryText(tiers);
+  const warn=$('h38TierSummaryWarn');if(warn)warn.hidden=tiers.every(t=>(t.items||[]).length>0);
+}
+function h38RenderTierPickerResults(tierIndex){
+  const host=document.querySelector('[data-tier-results="'+tierIndex+'"]');if(!host)return;
+  const searchInput=document.querySelector('[data-tier-search="'+tierIndex+'"]');
+  const rows=h38PriceBookFilter(searchInput?searchInput.value:'');
+  host.innerHTML=rows.length?rows.map(row=>'<div class="h38-tier-picker-row"><div class="row-top"><strong>'+esc(v(row,'Description','description'))+'</strong><button type="button" class="secondary" data-tier-use="'+tierIndex+':'+esc(rowId(row,'Item ID','itemId'))+'">Add</button></div><small>'+esc(v(row,'SKU','sku'))+' · '+money(v(row,'Selling Price','unitPrice'))+' / '+esc(v(row,'Unit of Measure','unit')||'each')+'</small></div>').join(''):'<p class="muted small">No matching price book items.</p>';
+  host.querySelectorAll('[data-tier-use]').forEach(button=>button.onclick=()=>{const parts=String(button.dataset.tierUse).split(':');h38AddTierPriceItem(num(parts[0]),parts.slice(1).join(':'));});
+}
+function h38AddTierPriceItem(tierIndex,itemId){
+  const tiers=h38EnsureTiers(),tier=tiers[tierIndex];if(!tier)throw new Error('Tier not found.');
+  const row=records('priceBook').find(item=>rowId(item,'Item ID','itemId')===itemId);if(!row)throw new Error('Price book item not found.');
+  tier.items.push({quoteLineId:newId('QUOTE-LINE'),description:v(row,'Description','description'),quantity:1,unit:v(row,'Unit of Measure','unit')||'each',unitPrice:num(v(row,'Selling Price','unitPrice')),priceSource:'Price Book',priceStatus:'Check before sending',inventoryItemId:rowId(row,'Item ID','itemId')||undefined});
+  state.quote.ownerEdited=true;state.quote.ownerEditedAt=new Date().toISOString();
+  renderTierEditor();
+}
+function h38CopyTierLines(tierIndex){
+  const tiers=h38EnsureTiers(),tier=tiers[tierIndex];if(!tier)return;
+  const select=document.querySelector('[data-tier-copy-source="'+tierIndex+'"]');if(!select||!select.value)return;
+  let sourceLines=[];
+  if(select.value==='single')sourceLines=state.quote.lines||[];
+  else{const src=tiers[num(select.value)];sourceLines=src?src.items||[]:[];}
+  if(!sourceLines.length){toast('Nothing to copy from that source yet.',true);return;}
+  sourceLines.forEach(line=>tier.items.push({...JSON.parse(JSON.stringify(line)),quoteLineId:newId('QUOTE-LINE')}));
+  state.quote.ownerEdited=true;state.quote.ownerEditedAt=new Date().toISOString();
+  renderTierEditor();
+  toast(sourceLines.length+' line'+(sourceLines.length===1?'':'s')+' copied into '+tier.name+'.');
 }
 function renderTierEditor(){
   const host=$('tierEditor');if(!host)return;
   const tiers=h38EnsureTiers();
-  host.innerHTML='<div class="h38-tier-grid">'+tiers.map((tier,ti)=>
+  const anyEmpty=tiers.some(t=>!(t.items||[]).length);
+  host.innerHTML='<div class="h38-tier-summary" id="h38TierSummary"><strong id="h38TierSummaryTotals">'+h38TierSummaryText(tiers)+'</strong><small>Quote total shows Better until the customer chooses.</small>'+(anyEmpty?'<small class="h38-tier-summary-warn" id="h38TierSummaryWarn">Every option needs at least one line before this quote can be sent.</small>':'<small class="h38-tier-summary-warn" id="h38TierSummaryWarn" hidden>Every option needs at least one line before this quote can be sent.</small>')+'</div>'+
+  '<div class="h38-tier-grid">'+tiers.map((tier,ti)=>
     '<section class="h38-tier-card" aria-label="'+esc(tier.name)+' tier">'+
       '<div class="h38-tier-card-head">'+
         '<input class="h38-tier-name" data-tier-name="'+ti+'" value="'+esc(tier.name)+'" aria-label="Tier '+(ti+1)+' name" maxlength="24">'+
@@ -219,25 +260,32 @@ function renderTierEditor(){
         '<div><label>What this tier includes <small class="muted">(shown to customer)</small></label>'+
         '<textarea data-tier-desc="'+ti+'" placeholder="Describe this option for the customer">'+esc(tier.description||'')+'</textarea></div>'+
         '<div class="h38-tier-lines">'+((tier.items||[]).length?tier.items.map((line,li)=>
-          '<div class="h38-tier-line"><div class="row-top"><strong>'+esc(line.description)+'</strong><strong>'+money(num(line.quantity)*num(line.unitPrice))+'</strong></div>'+
-          '<small>'+esc(line.quantity)+' '+esc(line.unit||'each')+' × '+money(num(line.unitPrice))+'</small>'+
-          '<div class="row-actions"><button type="button" class="secondary" data-tier-remove="'+ti+':'+li+'">Remove</button></div></div>'
+          '<div class="h38-tier-line"><div class="two"><div><label>Description</label><input data-tier-line-field="description" data-tier-line="'+ti+':'+li+'" value="'+esc(line.description)+'"></div><div><label>Unit</label><input data-tier-line-field="unit" data-tier-line="'+ti+':'+li+'" value="'+esc(line.unit||'each')+'"></div></div>'+
+          '<div class="three"><div><label>Quantity</label><input data-tier-line-field="quantity" data-tier-line="'+ti+':'+li+'" type="number" min="0.01" step="0.01" value="'+esc(line.quantity)+'"></div><div><label>Unit price</label><input data-tier-line-field="unitPrice" data-tier-line="'+ti+':'+li+'" type="number" min="0" step="0.01" value="'+esc(line.unitPrice)+'"></div><div><label>Line total</label><strong data-tier-line-total="'+ti+':'+li+'">'+money(num(line.quantity)*num(line.unitPrice))+'</strong></div></div>'+
+          '<div class="row-actions"><small>'+esc(h38QuoteLineSourceLabel(line))+'</small><button type="button" class="secondary" data-tier-remove="'+ti+':'+li+'">Remove</button></div></div>'
         ).join(''):'<p class="muted small">No line items yet — add the first one below.</p>')+'</div>'+
+        '<div class="h38-tier-picker"><label>Price book — tap an item to add it to '+esc(tier.name)+'</label><input data-tier-search="'+ti+'" placeholder="Search prices"><div class="h38-tier-picker-results" data-tier-results="'+ti+'"></div></div>'+
         '<div class="h38-tier-add">'+
           '<div><label>Add line item</label><input data-tier-add-desc="'+ti+'" placeholder="e.g. Water heater install"></div>'+
-          '<div class="two"><div><label>Qty</label><input data-tier-add-qty="'+ti+'" type="number" min="0.01" step="0.01" value="1"></div>'+
+          '<div class="three"><div><label>Qty</label><input data-tier-add-qty="'+ti+'" type="number" min="0.01" step="0.01" value="1"></div>'+
+          '<div><label>Unit</label><input data-tier-add-unit="'+ti+'" value="each"></div>'+
           '<div><label>Unit price</label><input data-tier-add-price="'+ti+'" type="number" min="0" step="0.01" placeholder="0.00"></div></div>'+
           '<button type="button" data-tier-add="'+ti+'">Add to '+esc(tier.name)+'</button>'+
         '</div>'+
+        '<div class="h38-tier-copy"><label>Copy lines from…</label><div class="h38-tier-copy-row"><select data-tier-copy-source="'+ti+'">'+tiers.map((other,oi)=>oi===ti?'':'<option value="'+oi+'">'+esc(other.name)+'</option>').join('')+((state.quote.lines&&state.quote.lines.length)?'<option value="single">Single-price lines</option>':'')+'</select><button type="button" class="secondary" data-tier-copy="'+ti+'">Copy</button></div></div>'+
       '</div>'+
-      '<div class="h38-tier-foot"><strong>'+esc(tier.name)+' total</strong><strong>'+money(h38TierTotal(tier))+'</strong></div>'+
+      '<div class="h38-tier-foot"><strong>'+esc(tier.name)+' total</strong><strong data-tier-foot-total="'+ti+'">'+money(h38TierTotal(tier))+'</strong></div>'+
     '</section>').join('')+'</div>'+
   '<div class="actions" style="margin-top:10px"><button type="button" class="secondary" id="suggestTiersButton">Suggest tiers with Hank</button></div>'+
   '<p class="muted small">All three tiers save with the quote. The customer presentation highlights <strong>Better</strong> as Most Popular.</p>';
   host.querySelectorAll('[data-tier-name]').forEach(input=>input.oninput=()=>{const t=tiers[num(input.dataset.tierName)];if(t){t.name=String(input.value||'').slice(0,24);state.quote.ownerEdited=true;}});
   host.querySelectorAll('[data-tier-desc]').forEach(input=>input.oninput=()=>{const t=tiers[num(input.dataset.tierDesc)];if(t){t.description=input.value;state.quote.ownerEdited=true;}});
+  host.querySelectorAll('[data-tier-line-field]').forEach(input=>input.oninput=()=>{const parts=String(input.dataset.tierLine).split(':').map(Number),t=tiers[parts[0]],line=t&&t.items[parts[1]];if(!line)return;const field=input.dataset.tierLineField;if(field==='quantity'||field==='unitPrice'){const value=num(input.value);if(field==='quantity'&&value<=0)return;line[field]=value;}else line[field]=input.value;state.quote.ownerEdited=true;state.quote.ownerEditedAt=new Date().toISOString();h38RefreshTierTotals();});
+  host.querySelectorAll('[data-tier-search]').forEach(input=>input.oninput=()=>h38RenderTierPickerResults(num(input.dataset.tierSearch)));
   host.querySelectorAll('[data-tier-add]').forEach(button=>button.onclick=()=>{try{h38AddTierLine(num(button.dataset.tierAdd));}catch(error){toast(error&&error.message||String(error),true);}});
   host.querySelectorAll('[data-tier-remove]').forEach(button=>button.onclick=()=>{const parts=String(button.dataset.tierRemove).split(':').map(Number);if(tiers[parts[0]])tiers[parts[0]].items.splice(parts[1],1);state.quote.ownerEdited=true;renderTierEditor();});
+  host.querySelectorAll('[data-tier-copy]').forEach(button=>button.onclick=()=>h38CopyTierLines(num(button.dataset.tierCopy)));
+  tiers.forEach((_,ti)=>h38RenderTierPickerResults(ti));
   const suggest=$('suggestTiersButton');if(suggest)suggest.onclick=h38SuggestTiers;
 }
 async function h38SuggestTiers(){
@@ -260,7 +308,7 @@ async function h38SuggestTiers(){
     if(!Array.isArray(suggested)||suggested.length!==3)throw new Error('Hank did not return three tiers.');
     if(!confirm('Hank suggested a tier split. Apply it? Your current tier contents will be replaced — this is still a draft, nothing is sent.'))return;
     const names=['Good','Better','Best'];
-    state.quote.tiers=suggested.map((t,ti)=>({name:String((t&&t.name)||names[ti]).slice(0,24),description:String((t&&t.description)||''),items:Array.isArray(t&&t.items)?t.items.map(l=>({quoteLineId:newId('QUOTE-LINE'),description:String(l.description||'Suggested work'),quantity:Math.max(0.01,num(l.quantity||1)),unit:String(l.unit||'each'),unitPrice:num(l.unitPrice||0),priceSource:'Hank tier suggestion',priceStatus:'Owner review required'})):[]}));
+    state.quote.tiers=suggested.map((t,ti)=>({id:['good','better','best'][ti],name:String((t&&t.name)||names[ti]).slice(0,24),description:String((t&&t.description)||''),items:Array.isArray(t&&t.items)?t.items.map(l=>({quoteLineId:newId('QUOTE-LINE'),description:String(l.description||'Suggested work'),quantity:Math.max(0.01,num(l.quantity||1)),unit:String(l.unit||'each'),unitPrice:num(l.unitPrice||0),priceSource:'Hank tier suggestion',priceStatus:'Owner review required'})):[]}));
     state.quote.tierMode=true;state.quote.ownerEdited=true;
     toast('AI tier suggestion applied. Review every line before saving — prices need owner review.');
     renderQuotes();

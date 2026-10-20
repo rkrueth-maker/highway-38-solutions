@@ -70,7 +70,7 @@
       './quote-mobile-stabilization.js?build=20261013-quote-trust-clutter-1',
       './quote-ai-live-fix.js?build=20260807-1115',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
-      './quote-total-lock.js?build=20261013-fix-sweep-1',
+      './quote-total-lock.js?build=20261020-gbb-ws1-1',
       './quote-drift-control.js?build=20261013-fix-sweep-1',
       './quote-render-approval.js?build=20260821-render-saved-action-picture-2-phone',
       './quote-final-acceptance-fix.js?build=20260807-1230',
