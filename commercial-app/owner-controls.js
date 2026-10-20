@@ -2,7 +2,7 @@
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261020-ws4-header-1';
+const BUILD='20261020-ws4-addons-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -801,7 +801,11 @@ function bindCustomerPortal(){
 function renderOwnerControls(){
   const toggles=getToggles();
   const visibility=getModuleVisibility();
-  
+  /* WS4 B10: rendering change only. The checked state, data-toggle /
+   * data-module ids, storage keys, defaults and server writes below are
+   * byte-identical in behavior to the previous list rendering — the same
+   * inputs are emitted, now as cards in the .h38-addon-grid. */
+  const featureOn=f=>(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):toggles[f.id]);
   const categories={};
   FEATURE_TOGGLES.forEach(f=>{
     if(!categories[f.category]) categories[f.category]=[];
@@ -809,21 +813,22 @@ function renderOwnerControls(){
   });
 
   const toggleSections=Object.entries(categories).map(([cat,features])=>`
-    <section class="card span6">
+    <section class="card span12">
       <h2>${esc(cat)}</h2>
-      <div class="list">
-        ${features.map(f=>`
-          <div class="row">
+      <div class="h38-addon-grid">
+        ${features.map(f=>{const on=!!featureOn(f);return `
+          <article class="card h38-addon-card">
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
-              <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):toggles[f.id])?'checked':''}>
-                <span class="slider"></span>
-              </label>
+              <span class="pill ${on?'good':''}">${on?'On':'Off'}</span>
             </div>
-            <small>${esc(f.desc)}</small>
-          </div>
-        `).join('')}
+            <p class="muted small">${esc(f.desc)}</p>
+            <label class="switch">
+              <input type="checkbox" data-toggle="${f.id}" ${on?'checked':''}>
+              <span class="slider"></span>
+            </label>
+          </article>
+        `;}).join('')}
       </div>
     </section>
   `).join('');
@@ -832,19 +837,77 @@ function renderOwnerControls(){
     <section class="card span12">
       <h2>Module Visibility</h2>
       <p class="muted small">Turn off modules you don't use. Hidden modules won't appear in navigation.</p>
-      <div class="list">
+      <div class="h38-addon-grid">
         ${MODULES.map(m=>`
-          <div class="row owner-controls-module-row">
+          <article class="card h38-addon-card owner-controls-module-row">
             <div class="row-top">
               <strong>${m.icon?m.icon+' ':''}${esc(m.title)}</strong>
-              <label class="switch">
-                <input type="checkbox" data-module="${m.id}" ${visibility[m.id]!==false?'checked':''}>
-                <span class="slider"></span>
-              </label>
+              <span class="pill ${visibility[m.id]!==false?'good':''}">${visibility[m.id]!==false?'On':'Off'}</span>
             </div>
-            <small>${esc(m.desc)}</small>
-          </div>
+            <p class="muted small">${esc(m.desc)}</p>
+            <label class="switch">
+              <input type="checkbox" data-module="${m.id}" ${visibility[m.id]!==false?'checked':''}>
+              <span class="slider"></span>
+            </label>
+          </article>
         `).join('')}
+      </div>
+    </section>
+  `;
+
+  const setupDetails=(html,label)=>html?`<details class="h38-addon-setup"><summary>Set up — ${esc(label)}</summary>${html}</details>`:'';
+  const serverModuleOn=key=>{try{const row=((window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[]).find(r=>text(r.moduleKey||r.module_key)===key);return row?row.enabled===true:false;}catch(e){return false;}};
+  const integrationCards=`
+    <section class="card span12">
+      <h2>Integrations</h2>
+      <div class="h38-addon-grid">
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>QuickBooks (tax)</strong><span class="pill">Set up in Accounting</span></div>
+          <p class="muted small">Connect QuickBooks for tax time. Your books stay in the Office.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">The QuickBooks card lives in Accounting, beside your bills, with its connection state.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="accounting">Open Accounting</button></div></details>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>AI receptionist</strong><span class="pill ${serverModuleOn('ai_receptionist')?'good':''}">${serverModuleOn('ai_receptionist')?'On':'Off'}</span></div>
+          <p class="muted small">Hank answers and drafts follow-ups for review. Nothing sends without your approval.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Receptionist setup and testing live in Messages, on the Receptionist tab.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="messages">Open Messages</button></div></details>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Phone &amp; texting</strong><span class="pill ${serverModuleOn('sms_sender')?'good':''}">${serverModuleOn('sms_sender')?'On':'Off'}</span></div>
+          <p class="muted small">Your own carrier account and number for customer texts. Setup is $99 one-time, free for the founding 10.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Texting setup lives in Messages, on the Customer texts tab, with consent and STOP rules.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="messages">Open Messages</button></div></details>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Online booking</strong></div>
+          <p class="muted small">Customers request service online; requests land on Today and in Customers as new work.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Booking requests arrive as intake — review them on Today or in Customers. The AI lead responder toggle above drafts follow-ups when booking is on.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="today">Open Today</button></div></details>
+        </article>
+      </div>
+    </section>
+  `;
+
+  const comingSoonCards=`
+    <section class="card span12">
+      <h2>Coming soon</h2>
+      <div class="h38-addon-grid">
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Tap to Pay</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">Take a card payment by tapping a card to your phone.</p>
+          <p class="muted small">Customers can pay online through your Stripe account, or record a manual payment.</p>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Bill pay</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">Pay vendor bills from the Office.</p>
+          <p class="muted small">Prepare and approve bills in Accounting today.</p>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Rentals</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">Rent equipment by the day or week, take deposits, and sell — all in the same books.</p>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Crew phone tracking</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">See crew phones on the map without a separate vehicle device.</p>
+          <p class="muted small">Connect Bouncie for live vehicle positions today.</p>
+        </article>
       </div>
     </section>
   `;
@@ -852,19 +915,23 @@ function renderOwnerControls(){
   return `
     <div class="grid">
       <section class="card span12">
-        <p class="muted">Turn features on/off and control which modules appear in your Office. Changes apply immediately.</p>
+        <p class="muted">Turn modules and features on or off for this business. Off means gone — no clutter, no dead ends. Changes apply immediately.</p>
       </section>
-      ${renderMachineShopCard()}
-      ${renderCustomerPortalCard()}
-      ${renderOnlinePaymentsCard()}
+      ${setupDetails(renderMachineShopCard(),'Machine Shop')}
+      ${setupDetails(renderCustomerPortalCard(),'Customer portal')}
+      ${setupDetails(renderOnlinePaymentsCard(),'Online payments (Stripe)')}
       ${renderRepairWarningsCard()}
       ${toggleSections}
       ${moduleSection}
+      ${integrationCards}
+      ${comingSoonCards}
     </div>
   `;
 }
 
+
 function bindOwnerControls(){
+  document.querySelectorAll('[data-h38-addon-open]').forEach(btn=>{if(btn.dataset.h38Bound)return;btn.dataset.h38Bound='1';btn.onclick=()=>{if(typeof window.openPage==='function')window.openPage(btn.dataset.h38AddonOpen);};});
   bindLeadResponder();
   bindMachineShop();
   bindCustomerPortal();
