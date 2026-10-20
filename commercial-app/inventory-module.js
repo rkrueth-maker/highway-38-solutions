@@ -14,7 +14,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261008-inventory-module-5';
+const BUILD='20261020-ws4-pricebook-1';
 const text=v=>String(v==null?'':v).trim();
 
 function oc(){return window.H38OwnerControls||null;}
@@ -49,14 +49,23 @@ function isLow(row){const rp=num(v(row,'Reorder Point'));return rp>0&&onHand(row
 /* ------------------------------------------------------------------ */
 let allItems=[]; // raw price_book_items rows from the editor's own fetch
 
+function machineShopTemplatesSection(){
+  try{
+    const on=window.H38OwnerControls&&window.H38OwnerControls.isMachineShopEnabled&&window.H38OwnerControls.isMachineShopEnabled();
+    if(!on||!window.H38MachineShopTemplates)return '';
+    const rowsTpl=window.H38MachineShopTemplates.templateRows();
+    if(!rowsTpl.length)return '';
+    return `<div class="list"><h3>Machine shop templates</h3>${rowsTpl.map(r=>`<div class="row"><div class="row-top"><strong>${esc(r.description)}</strong>${pill(r.status)}</div><small>${esc(r.code)} · ${esc(r.unit)} · ${money(r.rate)}</small></div>`).join('')}</div>`;
+  }catch(e){return '';}
+}
 function editorCard(){
   if(!isEnabled())return '';
   const items=records('priceBook')||[];
   const low=items.filter(isLow).length;
-  return `<section class="card span12" id="h38InventoryEditor"><h2>📦 Items — stock, sell &amp; rent</h2>`
+  return `<section class="card span12" id="h38InventoryEditor"><h2>📦 Items — stock, sell &amp; rent</h2><p class="muted">Your saved prices for quotes and stock. Check a price before you send a quote.</p>`
     +`<p class="muted small">${items.length} active item${items.length===1?'':'s'} · ${low} at or below reorder point. One list runs everything: receive and issue below, sell on quotes and invoices, flag items to advertise. Stock never moves on its own.</p>`
     +(canEdit()?editorForm():'<p class="muted small">Only an owner or administrator can add or change items. Receiving and issuing stock below still works.</p>')
-    +`<div id="h38InvAllItems" class="list"><p class="muted small">Loading all items…</p></div></section>`;
+    +`<div id="h38InvAllItems" class="list"><p class="muted small">Loading all items…</p></div>${machineShopTemplatesSection()}</section>`;
 }
 
 function editorForm(){
