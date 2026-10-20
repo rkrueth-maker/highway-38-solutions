@@ -349,7 +349,10 @@ async function deliverQuote(request: Request, body: JsonObject): Promise<Respons
         if (!tierItems(tier).length) throw new Error("Every Good / Better / Best option needs at least one reviewed line before sending.");
         if (tierTotal(tier) <= 0) throw new Error("Every Good / Better / Best option total must be greater than zero before sending.");
       }
-    } else if (!lines.length) throw new Error("Add at least one reviewed quote line before sending.");
+    }
+    if (!tiered) {
+      if (!lines.length) throw new Error("Add at least one reviewed quote line before sending.");
+    }
 
     const customerId = clean(pick(quote, "Customer ID", "customerId"), 180);
     if (!customerId || customerId === "GENERIC-QUOTE-CUSTOMER") throw new Error("Choose a real customer with an email address before sending this quote.");
