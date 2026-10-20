@@ -83,7 +83,7 @@ def test_identity_authority_is_deployed_through_shared_machine_live_first_bounda
     assert "20260826-site-visit-wide-acceptance-final-4-stable-jobs" in LOADER
     assert "site-visit-quote-wide-pass-loader-16-revision" in HAMMER
     assert "quote-reproduction-authority-1" in LOADER
-    assert "quote-revision-authority-1" in LOADER
+    assert "20261020-gbb-ws1-1" in LOADER
     assert "sharedQuoteRepairMachine:true" in LOADER
     assert "allQuotesShareRepairMachine:true" in LOADER
     assert "historicalQuotesShareRepairMachine:true" in LOADER

@@ -84,7 +84,7 @@ def test_regression_runner_is_owner_started_and_dry_run_only():
 
 def test_quote_revisions_are_content_aware_and_immutable():
     src = read("quote-revision-authority.js")
-    assert "20260823-quote-revision-authority-1" in src
+    assert "20261020-gbb-ws1-1" in src
     assert "action!=='SAVE_QUOTE'" in src
     assert "collection:'quoteRevisions'" in src
     assert "INTERNAL_QUOTE_WORKING_COPY_NOT_COMMITTED" in src
