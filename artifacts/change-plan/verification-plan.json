@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-20T08:46:36.986Z",
+  "generatedAt": "2026-10-20T08:48:54.501Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
@@ -43,10 +43,12 @@
     "commercial-app/guided-schedule.js",
     "commercial-app/h38-flow-helpers.js",
     "commercial-app/h38-script-loader.js",
+    "commercial-app/h38-visual-refresh.css",
     "commercial-app/index.html",
     "commercial-app/inventory-module.js",
     "commercial-app/job-centered-flow.js",
     "commercial-app/kits-workspace.js",
+    "commercial-app/machine-shop.js",
     "commercial-app/membership-engine.js",
     "commercial-app/mobile-flow-polish-v2.js",
     "commercial-app/mobile-runtime-stability.js",
@@ -63,7 +65,10 @@
     "commercial-app/quote-pdf-send-live-fix.js",
     "commercial-app/quote-revision-authority.js",
     "commercial-app/quote-total-lock.js",
+    "commercial-app/recommended-vendors.js",
+    "commercial-app/repair-guide-integration.js",
     "commercial-app/reports-section.js",
+    "commercial-app/route-manager.js",
     "commercial-app/service-worker.js",
     "commercial-app/site-visit-quote-wide-pass-loader.js",
     "commercial-app/styles.css",
@@ -85,7 +90,7 @@
     "tests/test_quote_reproduction_deep_polish_20260823.py",
     "tests/test_site_visit_identity_authority_phone_failure.py"
   ],
-  "fileCount": 80,
+  "fileCount": 85,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
