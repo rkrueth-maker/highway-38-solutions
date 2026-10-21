@@ -20,6 +20,7 @@
   const COVERED_ACTIONS = new Set([
     'SAVE_PARITY_ENTITY',
     'APPROVE_TIME_ENTRY',
+    'MARK_TIME_PAID',
     'POST_INVENTORY',
     'RECORD_INSPECTION',
     'SCHEDULE_MAINTENANCE',
@@ -164,6 +165,24 @@
     return { collection: 'timeEntries', recordKey: text(p.timeEntryId || operation.recordId || ''), record: record || {} };
   }
 
+  // Payroll finalize: stamp the run's time entries Paid server-side through
+  // the audited RPC (business_office_mark_time_paid, migration 20261020204500).
+  // The RPC validates the caller's owner/administrator membership and the
+  // run's Finalized/Posted state, refuses entries already paid under another
+  // run (the batch aborts), and writes one audit row per newly stamped entry.
+  // Idempotent: re-running for the same run counts the already-stamped
+  // entries without rewriting them.
+  async function markTimePaid(operation) {
+    const p = operation.payload || {};
+    const runId = text(p.payrollPeriodId || operation.recordId || '');
+    const record = await rpcCall('business_office_mark_time_paid', {
+      p_business_id: text(operation.businessId),
+      p_payroll_period_id: runId,
+      p_time_entry_ids: (Array.isArray(p.timeEntryIds) ? p.timeEntryIds : []).map(text).filter(Boolean)
+    });
+    return { collection: 'timeEntries', recordKey: runId, record: record || {} };
+  }
+
   async function recordTimeEntryParity(operation) {
     const p = operation.payload || {};
     const r = p.record || {};
@@ -224,6 +243,10 @@
 
     if (operation.action === 'APPROVE_TIME_ENTRY') {
       return approveTimeEntry(operation);
+    }
+
+    if (operation.action === 'MARK_TIME_PAID') {
+      return markTimePaid(operation);
     }
 
     if (operation.action === 'SAVE_PARITY_ENTITY') {
