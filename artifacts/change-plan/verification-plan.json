@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-21T02:40:24.310Z",
+  "generatedAt": "2026-10-21T03:00:42.266Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/accounting-workspace.js",
     "commercial-app/app-05.js",
     "commercial-app/app-heartbeat.js",
@@ -25,7 +28,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 20,
+  "fileCount": 23,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
