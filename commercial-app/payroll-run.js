@@ -435,9 +435,11 @@
   /* Attempt MARK_TIME_PAID through the audited-action queue (same pattern as
    * APPROVE_TIME_ENTRY), then VERIFY with a fresh read of the entries: a
    * queued action being accepted is NOT proof the server stamped anything.
-   * Today the server canonicalizes timeEntries at save and strips
-   * Paid/'Payroll Period ID', so the stamp cannot persist yet — the honest
-   * outcome is STAMP_PENDING until the MARK_TIME_PAID server action lands.
+   * The server side is the audited business_office_mark_time_paid RPC
+   * (migration 20261020204500): owner/administrator only, the run must be
+   * Finalized or Posted, and an entry already paid under another run aborts
+   * the batch. If the stamp is not present on the re-read, the honest
+   * outcome is STAMP_PENDING.
    * The header may read 'Stamped' only when the stamp is actually present
    * on the entries, using the same markers payrollPreparation treats as
    * paid: Paid === true, or the entry's 'Payroll Period ID' naming this run.
