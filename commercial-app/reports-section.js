@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261020-e2e-findings-2';
+  const BUILD='20261021-data-limit-1';
 
   // ---------- helpers (match Office conventions) ----------
   const $=id=>document.getElementById(id);
