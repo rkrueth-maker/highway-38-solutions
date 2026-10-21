@@ -23,7 +23,7 @@ function toastSafe(message,bad){if(typeof window.toast==='function')window.toast
 function latest(list){return(list||[]).slice().sort((a,b)=>new Date(value(b,'Updated Time','updatedAt','Created Time','createdAt')||0)-new Date(value(a,'Updated Time','updatedAt','Created Time','createdAt')||0))[0]||null;}
 function sameTitle(a,b){const clean=x=>text(x).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),x=clean(a),y=clean(b);return!!x&&!!y&&(x===y||x.includes(y)||y.includes(x));}
 function findJob(id){return rows('jobs').find(row=>recordId(row,'Job ID','jobId')===text(id))||null;}
-function selectedJob(){const selected=text(document.getElementById('h38LifecycleJob')?.value||preferredJobId);return findJob(selected)||rows('jobs').find(row=>!/CANCEL|ARCHIV/.test(upper(value(row,'Status','status'))))||null;}
+function selectedJob(){const selected=text(window.H38_JOB_LIFECYCLE?.selectedJobId?.()||document.getElementById('h38LifecycleJob')?.value||preferredJobId);return findJob(selected)||rows('jobs').find(row=>!/CANCEL|ARCHIV/.test(upper(value(row,'Status','status'))))||null;}
 function jobForVisit(visit){
   if(!visit)return null;
   const quoteId=text(visit.quoteId),customerId=text(visit.customerId),title=text(visit.projectTitle);

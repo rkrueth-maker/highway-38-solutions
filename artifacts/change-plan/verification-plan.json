@@ -1,14 +1,16 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-20T20:46:25.434Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-21T15:14:39.809Z",
+  "base": null,
   "head": "HEAD",
   "files": [
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/payroll-run.js",
     "commercial-app/supabase-operation-coverage.js",
     "supabase/migrations/20261020204500_business_office_mark_time_paid.sql"
   ],
-  "fileCount": 3,
+  "fileCount": 5,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,

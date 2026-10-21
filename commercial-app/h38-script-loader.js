@@ -129,17 +129,31 @@
       './email-send-runtime.js?build=20261011-email-send-1',
       './membership-engine.js?build=20261020-ws4-remaining-1',
       './card-vault.js?build=20261005-cardvault-1',
-      './money-agent.js?build=20261020-tally-money-1',
+      // Tally cold-mount fix (2026-10-20): money-agent's brief reads its
+      // books state from the accounting workspace or, failing that, this
+      // engine's snapshot fallback — neither was in the Money group, so a
+      // cold Money render mounted the card with an empty state sentence.
+      // The engine is a pure calc module (no DOM side effects); the loader
+      // dedupes it when Accounting/Payroll/Reports load it too.
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      // E2E findings fix (2026-10-20): the posting bridge mirrors
+      // RECORD_PAYMENT -> GL-PAYMENT and SAVE_INVOICE -> GL-INVOICE, but it
+      // only loaded with the Accounting group — a payment recorded in a
+      // Money-first session was never mirrored (no backfill exists). Money
+      // is where manual payments are recorded, so the bridge belongs here
+      // too; same ?build= URL as PAGE_ACCOUNTING so the loader dedupes it.
+      './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
+      './money-agent.js?build=20261020-e2e-findings-2',
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
-      './accounting-workspace.js?build=20261020-tally-money-1',
+      './accounting-workspace.js?build=20261020-e2e-findings-2',
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
       // WS3: payroll calc joins the accounting chain (loaded before the
       // bridge pulls in operations-ui) so Reports/accounting surfaces can
       // share the one withholding module. Loader dedupes repeat loads.
       './payroll-calc.js?build=20261020-payroll-calc-1',
-      './money-agent.js?build=20261020-tally-money-1',
+      './money-agent.js?build=20261020-e2e-findings-2',
     ];
     const PAGE_PAYROLL = [
       // WS3 run pipeline deps first (loader dedupes if Accounting ran first):
@@ -149,20 +163,20 @@
       './payroll-calc.js?build=20261020-payroll-calc-1',
       './payroll-run.js?build=20261020-payroll-run-1',
       './payroll-workflow.js?build=20261020-payroll-presentation-1',
-      './money-agent.js?build=20261020-tally-money-1',
+      './money-agent.js?build=20261020-e2e-findings-2',
     ];
     const PAGE_TAX = [
       './tax-packet.js?build=20261005-tax-packet-2',
       './cpa-package.js?build=20261011-cpa-package-1',
-      './money-agent.js?build=20261020-tally-money-1',
+      './money-agent.js?build=20261020-e2e-findings-2',
     ];
     const PAGE_REPORTS = [
       // WS3 library deps (loader dedupes): engine for R1/R2/R3/R8 ledger
       // math, operations for R5 jobCost. R6 stays dependency-free.
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
-      './reports-section.js?build=20261020-tally-money-1',
-      './money-agent.js?build=20261020-tally-money-1',
+      './reports-section.js?build=20261020-e2e-findings-2',
+      './money-agent.js?build=20261020-e2e-findings-2',
     ];
     const PAGE_DOCUMENTS = [
       './smart-upload.js?build=20260920-final-real-office-1',
