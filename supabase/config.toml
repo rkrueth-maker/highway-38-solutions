@@ -113,3 +113,9 @@ verify_jwt = false
 # worker script must be fetchable without credentials.
 [functions.h38-scout-sw]
 verify_jwt = false
+
+[functions.business-drive-upload]
+verify_jwt = false
+
+[functions.business-drive-connect]
+verify_jwt = false
