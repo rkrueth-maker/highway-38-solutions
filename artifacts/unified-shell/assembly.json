@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "sourceCommit": "",
-  "projectDir": "/tmp/h38-unified-assembly-BXL0rs",
+  "projectDir": "/tmp/h38-unified-assembly-smaPQa",
   "shell": "Unified_AppShell.gs",
   "publicIntake": "Unified_PublicIntake.gs",
   "entryPoints": [

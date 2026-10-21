@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-20T22:03:09.633Z",
+  "generatedAt": "2026-10-21T03:00:42.266Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
@@ -8,14 +8,19 @@
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
     "commercial-app/accounting-workspace.js",
+    "commercial-app/app-05.js",
     "commercial-app/app-heartbeat.js",
+    "commercial-app/flow-tightening.js",
     "commercial-app/h38-flow-helpers.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
+    "commercial-app/job-lifecycle.js",
     "commercial-app/money-agent.js",
     "commercial-app/reports-section.js",
     "commercial-app/service-worker.js",
+    "commercial-app/supabase-no-legacy-office.js",
     "commercial-app/version.json",
+    "scripts/verify-job-lifecycle-assistant.js",
     "scripts/verify-owner-notifications.js",
     "tests/test_messages_inbox_entry_20261013.py",
     "tests/test_offline_mode_polish_20261012.py",
@@ -23,7 +28,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 18,
+  "fileCount": 23,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
