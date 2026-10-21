@@ -21,7 +21,7 @@
  */
 (function(){
 'use strict';
-const BUILD='20261020-e2e-findings-2';
+const BUILD='20261021-gbb-toggle-fix-1';
 const STYLE_ID='h38FlowHelpersStyle';
 const text=v=>String(v==null?'':v).trim();
 const esc=v=>typeof window.esc==='function'?window.esc(v):text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
