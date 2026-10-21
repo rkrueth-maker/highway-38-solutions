@@ -178,12 +178,19 @@ async function accessToken(sb: SB, businessId: string): Promise<string> {
     const e = new DriveAuthError("This business has no stored Drive grant.");
     e.revoked = true; throw e;
   }
-  const nonces: Record<string, string> = JSON.parse(clean(row.token_nonce, 500) || "{}");
+  let nonces: Record<string, string> = {};
+  try { nonces = JSON.parse(clean(row.token_nonce, 500) || "{}"); } catch { /* handled below: no usable nonces */ }
   const exp = new Date(clean(row.token_expires_at, 100)).getTime();
-  if (row.access_token_ciphertext && nonces.access && exp > Date.now() + 120000) {
-    return decrypt(clean(row.access_token_ciphertext, 12000), clean(nonces.access, 200));
+  let refresh = "";
+  try {
+    if (row.access_token_ciphertext && nonces.access && exp > Date.now() + 120000) {
+      return await decrypt(clean(row.access_token_ciphertext, 12000), clean(nonces.access, 200));
+    }
+    if (!nonces.refresh) throw new Error("Stored Drive token has no nonce.");
+    refresh = await decrypt(clean(row.refresh_token_ciphertext, 12000), clean(nonces.refresh, 200));
+  } catch {
+    throw new DriveAuthError("Saved Google Drive token could not be read. Reconnect Google Drive.");
   }
-  const refresh = await decrypt(clean(row.refresh_token_ciphertext, 12000), clean(nonces.refresh, 200));
   const res = await fetch(`${OAUTH_BASE}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -348,6 +355,9 @@ Deno.serve(async (request: Request) => {
           "Google Drive connection needs attention",
           "The business's Google Drive grant was revoked or expired, so new files are being saved to Office storage until an owner reconnects Drive in Settings.");
         return json(request, 200, { status: "REVOKED", error: "The Drive grant was revoked or expired." });
+      }
+      if (error instanceof DriveAuthError) {
+        return json(request, 200, { status: "FAIL", error: error.message });
       }
       throw error;
     }

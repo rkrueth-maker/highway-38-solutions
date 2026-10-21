@@ -176,12 +176,19 @@ async function accessToken(sb: SB, businessId: string): Promise<string> {
     .select("*").eq("business_id", businessId).maybeSingle();
   const row = sec as Json | null;
   if (!row?.refresh_token_ciphertext) throw new Error("This business has no stored Drive grant.");
-  const nonces: Record<string, string> = JSON.parse(clean(row.token_nonce, 500) || "{}");
+  let nonces: Record<string, string> = {};
+  try { nonces = JSON.parse(clean(row.token_nonce, 500) || "{}"); } catch { /* handled below: no usable nonces */ }
   const exp = new Date(clean(row.token_expires_at, 100)).getTime();
-  if (row.access_token_ciphertext && nonces.access && exp > Date.now() + 120000) {
-    return decrypt(clean(row.access_token_ciphertext, 12000), clean(nonces.access, 200));
+  let refresh = "";
+  try {
+    if (row.access_token_ciphertext && nonces.access && exp > Date.now() + 120000) {
+      return await decrypt(clean(row.access_token_ciphertext, 12000), clean(nonces.access, 200));
+    }
+    if (!nonces.refresh) throw new Error("Stored Drive token has no nonce.");
+    refresh = await decrypt(clean(row.refresh_token_ciphertext, 12000), clean(nonces.refresh, 200));
+  } catch {
+    throw new Error("Saved Google Drive token could not be read. Reconnect Google Drive.");
   }
-  const refresh = await decrypt(clean(row.refresh_token_ciphertext, 12000), clean(nonces.refresh, 200));
   const res = await fetch(`${OAUTH_BASE}/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
