@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261020-e2e-findings-2';
+  const BUILD='20261021-drive-storage-1';
   const PAGES=['money','accounting','payroll','tax','reports'];
   const $=id=>document.getElementById(id);
   const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
