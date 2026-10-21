@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-21T15:14:39.809Z",
-  "base": null,
-  "head": "HEAD",
+  "generatedAt": "2026-10-21T16:04:19.643Z",
+  "base": "origin/main",
+  "head": "fix/gbb-toggle-line-items-20261021",
   "files": [
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
