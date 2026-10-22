@@ -53,7 +53,28 @@ function fmtDate(iso){
   catch(e){return text(iso).slice(0,10);}
 }
 
-var S={usage:null, dumps:[], years:[], selectedYear:null, busy:'', error:'', purgeArmYear:null, loaded:false};
+var S={usage:null, dumps:[], years:[], yearsLoaded:false, selectedYear:null, busy:'', error:'', purgeArmYear:null, loaded:false};
+
+function fallbackYears(){
+  var nowY=new Date().getFullYear();
+  return [nowY, nowY-1, nowY-2];
+}
+
+/* The real year list comes from the h38-data-dump edge function, but Settings
+ * must render with zero automatic function work (the route verifier asserts
+ * this), so years are fetched lazily — only inside the user-initiated Export
+ * action — and the select renders with a local fallback list until then. */
+async function ensureYears(){
+  if(S.yearsLoaded) return;
+  S.yearsLoaded=true;
+  try{
+    var y=await invokeDump({action:'years', businessId:businessId()});
+    var ys=(y.years||[]).map(Number).filter(function(n){return n>0;});
+    if(ys.length) S.years=ys;
+  }catch(e){ /* keep the fallback list */ }
+  if(!S.years.length) S.years=fallbackYears();
+  if(!S.selectedYear||S.years.indexOf(Number(S.selectedYear))<0) S.selectedYear=S.years[0];
+}
 
 async function invokeDump(payload){
   var client=api();
@@ -80,16 +101,7 @@ async function load(){
   S.usage=u.data||null;
   var d=await client.from('business_data_dumps').select('*').eq('business_id',bid).order('dump_year',{ascending:false});
   S.dumps=(d&&!d.error&&d.data)||[];
-  if(!S.years.length){
-    try{
-      var y=await invokeDump({action:'years', businessId:bid});
-      S.years=(y.years||[]).map(Number).filter(function(n){return n>0;});
-    }catch(e){ S.years=[]; }
-    if(!S.years.length){
-      var nowY=new Date().getFullYear();
-      S.years=[nowY, nowY-1, nowY-2];
-    }
-  }
+  if(!S.years.length) S.years=fallbackYears();
   if(!S.selectedYear||S.years.indexOf(Number(S.selectedYear))<0) S.selectedYear=S.years[0];
   S.loaded=true;
 }
@@ -225,6 +237,7 @@ async function onAction(act){
   try{
     if(act==='export'){
       S.busy='export'; renderBody();
+      await ensureYears(); renderBody();
       var out=await invokeDump({action:'create', businessId:bid, year:Number(S.selectedYear)});
       if(out.dump){
         var idx=S.dumps.findIndex(function(d){return Number(d.dump_year)===Number(out.dump.dump_year);});
