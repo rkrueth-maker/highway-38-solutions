@@ -143,17 +143,17 @@
       // is where manual payments are recorded, so the bridge belongs here
       // too; same ?build= URL as PAGE_ACCOUNTING so the loader dedupes it.
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
-      './money-agent.js?build=20261022-drive-out-1',
+      './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
-      './accounting-workspace.js?build=20261022-drive-out-1',
+      './accounting-workspace.js?build=20261022-perperson-1',
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
       // WS3: payroll calc joins the accounting chain (loaded before the
       // bridge pulls in operations-ui) so Reports/accounting surfaces can
       // share the one withholding module. Loader dedupes repeat loads.
       './payroll-calc.js?build=20261020-payroll-calc-1',
-      './money-agent.js?build=20261022-drive-out-1',
+      './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_PAYROLL = [
       // WS3 run pipeline deps first (loader dedupes if Accounting ran first):
@@ -163,20 +163,20 @@
       './payroll-calc.js?build=20261020-payroll-calc-1',
       './payroll-run.js?build=20261020-payroll-run-1',
       './payroll-workflow.js?build=20261020-payroll-presentation-1',
-      './money-agent.js?build=20261022-drive-out-1',
+      './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_TAX = [
       './tax-packet.js?build=20261005-tax-packet-2',
       './cpa-package.js?build=20261011-cpa-package-1',
-      './money-agent.js?build=20261022-drive-out-1',
+      './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_REPORTS = [
       // WS3 library deps (loader dedupes): engine for R1/R2/R3/R8 ledger
       // math, operations for R5 jobCost. R6 stays dependency-free.
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
-      './reports-section.js?build=20261022-drive-out-1',
-      './money-agent.js?build=20261022-drive-out-1',
+      './reports-section.js?build=20261022-perperson-1',
+      './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_DOCUMENTS = [
       './smart-upload.js?build=20260920-final-real-office-1',
@@ -198,7 +198,7 @@
       './health-dashboard.js?build=20261011-health-dashboard-1',
       './sms-provider-setup.js?build=20261004-sms-providers-1',
       './muse-permissions.js?build=20261006-muse-permissions-2',
-      './data-usage.js?build=20261022-drive-out-1',
+      './data-usage.js?build=20261022-perperson-1',
     ];
 
   // Map of page -> script URLs needed for that page.
