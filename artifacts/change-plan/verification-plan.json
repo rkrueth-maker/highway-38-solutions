@@ -1,45 +1,23 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T07:58:14.419Z",
+  "generatedAt": "2026-10-22T08:24:26.061Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "businesses/northern-lakes/app-launch.js",
-    "businesses/northern-lakes/customer-portal-config.js",
-    "businesses/northern-lakes/highway38-attribution.js",
-    "businesses/northern-lakes/site-shell.js",
-    "commercial-app/accounting-workspace.js",
-    "commercial-app/app-heartbeat.js",
     "commercial-app/bundle-features.js",
-    "commercial-app/data-usage.js",
-    "commercial-app/h38-flow-helpers.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/live-customer-navigation-guard-20260910.js",
-    "commercial-app/money-agent.js",
-    "commercial-app/reports-section.js",
+    "commercial-app/mileage.js",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-no-legacy-office.js",
-    "commercial-app/supabase-storage-provider.js",
-    "commercial-app/tenant-attribution.js",
-    "commercial-app/version.json",
-    "scripts/verify-highway38-brand-attribution.js",
-    "scripts/verify-job-lifecycle-assistant.js",
-    "scripts/verify-owner-notifications.js",
-    "supabase/migrations/20261022120000_business_data_limit_per_person.sql",
-    "tests/test_messages_inbox_entry_20261013.py",
-    "tests/test_offline_mode_polish_20261012.py",
-    "tests/test_owner_notifications.py",
-    "tests/test_platform_push_deepening.py",
-    "tests/test_task_manager_training_videos.py"
+    "commercial-app/version.json"
   ],
-  "fileCount": 28,
+  "fileCount": 6,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -49,8 +27,8 @@
     "approvedAssets": false,
     "publicRendering": true,
     "authenticatedRendering": true,
-    "externalActionBoundary": true,
-    "longRunningData": true
+    "externalActionBoundary": false,
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
@@ -58,13 +36,11 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
     "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml",
