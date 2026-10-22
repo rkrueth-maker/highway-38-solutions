@@ -1,37 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T03:46:36.978Z",
+  "generatedAt": "2026-10-22T03:57:09.682Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/accounting-workspace.js",
-    "commercial-app/app-heartbeat.js",
-    "commercial-app/bundle-features.js",
-    "commercial-app/data-usage.js",
-    "commercial-app/h38-flow-helpers.js",
-    "commercial-app/h38-script-loader.js",
-    "commercial-app/index.html",
-    "commercial-app/money-agent.js",
-    "commercial-app/reports-section.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/supabase-no-legacy-office.js",
-    "commercial-app/supabase-storage-provider.js",
-    "commercial-app/version.json",
-    "package-lock.json",
-    "scripts/verify-job-lifecycle-assistant.js",
-    "scripts/verify-owner-notifications.js",
-    "scripts/verify-supabase-operational-app.js",
-    "tests/test_messages_inbox_entry_20261013.py",
-    "tests/test_offline_mode_polish_20261012.py",
-    "tests/test_owner_notifications.py",
-    "tests/test_platform_push_deepening.py",
-    "tests/test_task_manager_training_videos.py"
+    "artifacts/change-governance/verification.json",
+    "supabase/migrations/20261021030000_business_data_limit.sql"
   ],
-  "fileCount": 22,
+  "fileCount": 2,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": true,
-    "customerPortal": false,
+    "publicWebsite": false,
+    "authenticatedApp": false,
+    "customerPortal": true,
     "sharedArchitecture": false,
     "performanceReliability": true,
     "workflowOnly": false,
@@ -41,28 +21,25 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": true,
-    "externalActionBoundary": true,
-    "longRunningData": false
+    "publicRendering": false,
+    "authenticatedRendering": false,
+    "externalActionBoundary": false,
+    "longRunningData": true
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-customer-portal-security.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "resumable small-batch generation with cursor and exact final counts"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change.",
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
