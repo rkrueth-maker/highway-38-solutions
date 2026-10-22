@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261021-gbb-toggle-fix-1';
+  const BUILD='20261021-data-limit-3';
 
   // ---------- helpers (match Office conventions) ----------
   const $=id=>document.getElementById(id);
