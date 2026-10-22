@@ -187,6 +187,13 @@
       './accountant-share.js?build=20261022-acct-view-1',
       './money-agent.js?build=20261022-perperson-1',
     ];
+    const PAGE_BOOKS = [
+      // Phase 2 (2026-10-22): in-app Books spreadsheet tabs. Self-contained:
+      // reads the workbook through the h38-accountant-view edge function's
+      // authenticated action via the shared Supabase client; no money math
+      // lives client-side, so no accounting deps are needed here.
+      './books-spreadsheet.js?build=20261022-acct-tabs-1',
+    ];
     const PAGE_DOCUMENTS = [
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
@@ -229,6 +236,7 @@
     'payroll': PAGE_PAYROLL,
     'tax': PAGE_TAX,
     'reports': PAGE_REPORTS,
+    'books': PAGE_BOOKS,
     'documents': PAGE_DOCUMENTS,
     'ai': PAGE_AI,
     'assistant': PAGE_ASSISTANT,
