@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const V='nl-photo-owner-refresh-20260805-v2';
-const ATTRIBUTION_BUILD='20261021-cobrand-1';
+const ATTRIBUTION_BUILD='20261022-limit15-1';
 const asset=name=>`assets/${name}?v=${V}`;
 const LOGO=asset('diamond-logo.svg');
 const A={hero:asset('hero.svg'),snow:asset('snow.svg'),lawn:asset('lawn.svg'),landscape:asset('landscaping.svg'),excavation:asset('excavation.svg'),equipment:asset('equipment.svg'),materials:asset('materials.svg'),lake:asset('lake.svg'),about:asset('about.svg')};
