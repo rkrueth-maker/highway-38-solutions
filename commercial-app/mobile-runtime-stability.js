@@ -1,20 +1,20 @@
 (function(){
 'use strict';
-const BUILD='20261020-myhank-settings-1';
+const BUILD='20261022-acct-tabs-2';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
 const FIELD_PRIMARY=[['today','⌂','Today'],['work','🧰','Jobs'],['schedule','🗓','Schedule'],['messages','💬','Messages']];
 const OWNER_MORE_GROUPS=[
   ['Work',['work','quotes','field','meetings','messages']],
-  ['Money',['money','accounting','payroll','tax']],
+  ['Money',['money','accounting','payroll','tax','books']],
   ['Records & Equipment',['documents','inventory','fleet','people']],
   ['Office',['reports','social','controls','ai','settings']]
 ];
 const FIELD_MORE_GROUPS=[
   ['Work',['field','meetings','documents','inventory','fleet']],
   ['Team',['people']],
-  ['Office',['customers','quotes','money','accounting','payroll','tax','reports','social','controls','ai','settings']]
+  ['Office',['customers','quotes','money','accounting','payroll','tax','reports','books','social','controls','ai','settings']]
 ];
 let resizeTimer=0;
 let interactionUntil=0;
