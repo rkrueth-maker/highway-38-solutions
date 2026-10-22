@@ -1,18 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T04:00:40.404Z",
+  "generatedAt": "2026-10-22T04:04:54.393Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "about.html",
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/public-image-placements/verification.json",
+    "artifacts/public-website-architecture/verification.json",
     "crew.html",
     "divisions.html",
     "faq.html",
+    "launch-control/evidence/public-ecosystem-tools.json",
     "partner-apply.html",
     "scripts/config/public-website-routes.json",
     "supabase/functions/h38-site-helper/index.ts"
   ],
-  "fileCount": 7,
+  "fileCount": 13,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
