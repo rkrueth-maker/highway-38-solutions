@@ -1,9 +1,11 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T06:54:07.431Z",
+  "generatedAt": "2026-10-22T06:56:18.482Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "businesses/northern-lakes/app-launch.js",
     "businesses/northern-lakes/customer-portal-config.js",
     "businesses/northern-lakes/highway38-attribution.js",
@@ -33,7 +35,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 28,
+  "fileCount": 30,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
