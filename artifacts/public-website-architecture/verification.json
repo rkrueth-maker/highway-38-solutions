@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T02:26:17.231Z",
+  "generatedAt": "2026-10-22T02:36:46.347Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -22,7 +22,7 @@
   "passes": [
     {
       "name": "route registry schema",
-      "detail": "2026-10-21-content-expansion"
+      "detail": "2026-10-21-content-expansion-competitive-readiness"
     },
     {
       "name": "assets/js/h38-site-v2.js exists",
@@ -78,7 +78,7 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "10596 bytes"
+      "detail": "12237 bytes"
     },
     {
       "name": "canonical shell CSS budget",
@@ -926,7 +926,7 @@
     },
     {
       "name": "secure request flow JavaScript budget",
-      "detail": "10259 bytes"
+      "detail": "10315 bytes"
     },
     {
       "name": "catalog.html retired route exists",
