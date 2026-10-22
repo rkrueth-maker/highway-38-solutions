@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261021-drive-storage-3';
+  const BUILD='20261021-cobrand-1';
 
   // ---------- helpers (match Office conventions) ----------
   const $=id=>document.getElementById(id);
