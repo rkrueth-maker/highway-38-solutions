@@ -20,10 +20,13 @@ import JSZip from "npm:jszip@3.10.1";
 //   {action:"list",   businessId}           (JWT, owner/admin) -> {links}
 //   {action:"revoke", businessId, linkId}   (JWT, owner/admin) -> {ok}
 //   {action:"view",   token}                (public)           -> workbook JSON
+//   {action:"workbook", businessId, format?} (JWT, owner/admin) -> workbook JSON
+//        (Phase 2 in-app "Books spreadsheet" tabs; same buildWorkbook() and
+//         buildXlsx() as the link surface — format:"xlsx" returns the file.)
 // GET ?token=<t>                -> workbook JSON (same as view)
 // GET ?token=<t>&format=xlsx    -> workbook .xlsx (real formulas for totals)
 
-const BUILD = "20261022-accountant-view-1";
+const BUILD = "20261022-accountant-view-2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const SITE_ORIGIN = "https://highway38solutions.com";
@@ -612,6 +615,24 @@ Deno.serve(async (req: Request) => {
     if (!businessId) return json(req, 400, { status: "FAIL", error: "businessId is required." });
     await membership(db, user.id, businessId);
 
+    if (action === "workbook") {
+      // Phase 2: the in-app Books spreadsheet page reads the exact workbook
+      // the share link serves — one buildWorkbook()/buildXlsx(), two surfaces.
+      const wb = await buildWorkbook(db, businessId);
+      if (clean(body.format, 20).toLowerCase() === "xlsx") {
+        const bytes = await buildXlsx(wb);
+        const fname = `${(wb.business.key || "business").replace(/[^\w-]+/g, "-")}-accountant-workbook.xlsx`;
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            ...corsHeaders(req),
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "content-disposition": `attachment; filename="${fname}"`,
+          },
+        });
+      }
+      return json(req, 200, { status: "OK", build: BUILD, workbook: wb });
+    }
     if (action === "create") {
       const token = newToken();
       const hash = await tokenHash(token);

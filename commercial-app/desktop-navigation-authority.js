@@ -5,10 +5,10 @@ const PROFITABILITY_BUILD='20261013-startup-dedupe-1';
 const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
 const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);
-const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','settings','memberships']);
+const COMPLETE_OFFICE_ORDER=Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','books','people','inventory','fleet','documents','social','controls','ai','settings','memberships']);
 const NAV_GROUPS=Object.freeze([
   Object.freeze(['Daily work',Object.freeze(['today','customers','work','meetings','quotes','schedule','messages','field'])]),
-  Object.freeze(['Money & accounting',Object.freeze(['money','accounting','payroll','tax','reports'])]),
+  Object.freeze(['Money & accounting',Object.freeze(['money','accounting','payroll','tax','reports','books'])]),
   Object.freeze(['Team & assets',Object.freeze(['people','inventory','fleet','documents'])]),
   Object.freeze(['Business',Object.freeze(['social','memberships','controls','ai','settings'])])
 ]);
@@ -93,6 +93,7 @@ const OFFICE_REQUIREMENTS=Object.freeze({
   social:['manageSocial'],
   controls:['manageSettings'],
   reports:['manageFinancial','viewFinancial','manageSettings'],
+  books:['manageFinancial'],
   settings:['manageSettings','manageUsers']
 });
 const inheritedRenderNav=typeof window.renderNav==='function'?window.renderNav:null;

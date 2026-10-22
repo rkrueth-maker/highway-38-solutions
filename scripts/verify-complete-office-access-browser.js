@@ -30,7 +30,7 @@ check(!access.includes('user.permissions='),'Access helper must never mutate use
     await page.evaluate(()=>{
       window.PAGE_DEFS={
         today:['🏠','Today'],customers:['👥','Customers'],work:['🧰','Work'],meetings:['🗣️','Meetings'],quotes:['🧾','Quotes'],schedule:['📅','Schedule'],messages:['💬','Messages'],field:['📷','Field'],
-        money:['💵','Money'],accounting:['📚','Accounting'],payroll:['🧮','Payroll Prep'],tax:['🗂️','Tax Prep'],reports:['📊','Reports'],people:['👷','People'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],documents:['📁','Documents'],social:['📣','Social'],controls:['🛡️','Controls'],ai:['✨','H38 AI'],settings:['⚙️','Settings']
+        money:['💵','Money'],accounting:['📚','Accounting'],payroll:['🧮','Payroll Prep'],tax:['🗂️','Tax Prep'],reports:['📊','Reports'],books:['📗','Books spreadsheet'],people:['👷','People'],inventory:['📦','Inventory'],fleet:['🚚','Fleet'],documents:['📁','Documents'],social:['📣','Social'],controls:['🛡️','Controls'],ai:['✨','H38 AI'],settings:['⚙️','Settings']
       };
       // Deliberately stale/stripped input list: final authority must recover the complete Office from real page definitions.
       window.H38_OFFICE_PAGES=['today','customers','work','quotes','schedule','messages','field','inventory','fleet','money','documents','social','ai','settings'];
@@ -44,7 +44,7 @@ check(!access.includes('user.permissions='),'Access helper must never mutate use
     await page.addScriptTag({content:authority});
     await page.waitForTimeout(30);
     const ownerKeys=await page.locator('#mainNav > button[data-page]').evaluateAll(nodes=>nodes.map(node=>node.dataset.page));
-    const expectedOwner=['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','settings'];
+    const expectedOwner=['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','books','people','inventory','fleet','documents','social','controls','ai','settings'];
     check(JSON.stringify(ownerKeys)===JSON.stringify(expectedOwner),`Owner complete navigation mismatch: ${JSON.stringify(ownerKeys)}`);
     const groups=await page.locator('#mainNav > .h38-nav-section-label').allTextContents();
     check(JSON.stringify(groups)===JSON.stringify(['Daily work','Money & accounting','Team & assets','Business']),`Owner navigation groups mismatch: ${JSON.stringify(groups)}`);
@@ -54,7 +54,7 @@ check(!access.includes('user.permissions='),'Access helper must never mutate use
       window.H38_DESKTOP_NAVIGATION_AUTHORITY.reconcile();
     });
     const staffKeys=await page.locator('#mainNav > button[data-page]').evaluateAll(nodes=>nodes.map(node=>node.dataset.page));
-    for(const key of ['money','accounting','payroll','tax','reports','people','controls','settings','social'])check(!staffKeys.includes(key),`Staff must not receive restricted ${key} navigation.`);
+    for(const key of ['money','accounting','payroll','tax','reports','books','people','controls','settings','social'])check(!staffKeys.includes(key),`Staff must not receive restricted ${key} navigation.`);
     for(const key of ['today','customers','work','meetings','quotes','schedule','messages','field','inventory','fleet','documents'])check(staffKeys.includes(key),`Staff expected operational page missing: ${key}`);
 
     await page.evaluate(()=>{
