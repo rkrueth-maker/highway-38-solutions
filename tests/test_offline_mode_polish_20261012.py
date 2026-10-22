@@ -84,7 +84,7 @@ def test_customer_setup_card_title_matches_renderer():
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     # Cache name rolled by the 20261012 mobile-polish pass (files changed);
     # the offline file list and live-first behavior below are the invariants.
-    assert "const CACHE_NAME='h38-business-office-20261022-acct-tabs-3'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261022-phone-layout-1'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
     # Logo consolidation: the 2.93MB approved logo is NOT in the shell
@@ -129,10 +129,10 @@ def test_supabase_config_auth_cache_repair_is_removed():
 def test_index_build_tags_match_polish_build():
     for name in ('offline-mode.js',):
         assert f'./{name}?build={BUILD}' in LOAD_SOURCE, name
-    # app-19.js rolled with the 20261022-acct-tabs-3 build (Books added to
+    # app-19.js rolled with the 20261022-phone-layout-1 build (Books added to
     # the parity OFFICE_PAGES list + requirements); offline-mode.js keeps
     # the polish build.
-    assert './app-19.js?build=20261022-acct-tabs-3' in LOAD_SOURCE
+    assert './app-19.js?build=20261022-phone-layout-1' in LOAD_SOURCE
     # app-02.js rolled with the 2026-10-22 Phase 2 Books spreadsheet build
     # (renderBooksPage); the other polish-pass files keep the polish build.
     assert './app-02.js?build=20261022-native-bridge-1' in LOAD_SOURCE
@@ -142,6 +142,6 @@ def test_index_build_tags_match_polish_build():
     # offline-status-runtime.js rolled with the 2026-10-13 fix sweep (SW
     # consolidation); the other polish-pass files keep the polish build.
     assert './offline-status-runtime.js?build=20261013-fix-sweep-1' in INDEX
-    # mobile-runtime-stability.js rolled with the 20261022-acct-tabs-2 build
+    # mobile-runtime-stability.js rolled with the 20261022-phone-layout-1 build
     # (Books added to the mobile More-sheet Money group).
-    assert './mobile-runtime-stability.js?build=20261022-acct-tabs-2' in INDEX
+    assert './mobile-runtime-stability.js?build=20261022-phone-layout-1' in INDEX

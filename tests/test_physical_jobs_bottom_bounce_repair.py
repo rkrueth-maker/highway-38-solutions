@@ -6,7 +6,7 @@ NATIVE = (ROOT / "commercial-app" / "mobile-scroll-native-authority.js").read_te
 
 
 def test_physical_mobile_office_uses_fixed_viewport_main_scroller():
-    assert "20261020-myhank-settings-1" in MOBILE
+    assert "20261022-phone-layout-1" in MOBILE
     assert "officeExplicitMainScroller:true" in MOBILE
     assert "officeFixedViewportScroller:true" in MOBILE
     assert "documentScrollDisabledByDesign:true" in MOBILE
