@@ -107,7 +107,7 @@ jobs:
           }
           fetch_until_ready '' 'Your truck is not' /tmp/home.html
           grep -Fq 'keeps every quote, invoice, job, and customer in one place' /tmp/home.html
-          grep -Fq 'Business in a box' /tmp/home.html
+          grep -Fq 'H38 Business System' /tmp/home.html
           grep -Fq 'href="business-in-a-box.html"' /tmp/home.html
           grep -Fq 'href="pricing.html"' /tmp/home.html
           grep -Fq 'href="quote-builder.html#examples"' /tmp/home.html

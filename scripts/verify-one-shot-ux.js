@@ -31,14 +31,14 @@ check('canonical shell labels the main navigation',publicShell.includes('aria-la
 check('canonical shell provides accessible mobile navigation control',publicShell.includes('class="pi-menu"')&&publicShell.includes('aria-expanded="false"')&&publicShell.includes('aria-controls="h38-main-navigation"'));
 need('index.html','Your truck is not','homepage presents current problem-first promise');
 need('index.html','filing cabinet','homepage states the current practical outcome');
-need('index.html','Business in a box','homepage explains the project-first workflow');
-check('homepage exposes the three accepted discovery steps',['Three problems','One fix','Business in a box'].every(marker=>home.includes(marker)));
-check('homepage separates software and project-service buyer paths',home.includes('Business in a box')&&home.includes('Try the Live Demo')&&home.includes('See the Plans'));
+need('index.html','H38 Business System','homepage explains the project-first workflow');
+check('homepage exposes the three accepted discovery steps',['Three problems','One fix','H38 Business System'].every(marker=>home.includes(marker)));
+check('homepage separates software and project-service buyer paths',home.includes('H38 Business System')&&home.includes('Try the Live Demo')&&home.includes('See the Plans'));
 check('homepage exposes connected deliverables',['Plans and visual concepts','Detailed quotes','Job-ready instructions','Connected Business Office'].every(marker=>home.includes(marker)));
 check('homepage preserves neutral request solutions pricing and contact routes',['start-request.html','pricing.html'].every(marker=>home.includes(marker))&&publicShell.includes("['Contact','contact.html']"));
 check('homepage does not directly sell one authenticated software product',!/href=["']business-systems\.html/i.test(home)&&!/href=["']quote-builder\.html["']/i.test(home));
 check('homepage may link product examples without turning them into the primary buyer path',home.includes('quote-builder.html#examples'));
-check('shared navigation and footer keep both software products behind neutral paths',!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("['Quote Builder','quote-builder.html']")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&!publicShell.includes("['Business Office','business-systems.html']")&&publicShell.includes("{href:'business-in-a-box.html',label:'Business in a Box'}"));
+check('shared navigation and footer keep both software products behind neutral paths',!publicShell.includes("{href:'quote-builder.html',label:'Quote Builder'}")&&!publicShell.includes("['Quote Builder','quote-builder.html']")&&!publicShell.includes("{href:'business-systems.html',label:'Business Office'}")&&!publicShell.includes("['Business Office','business-systems.html']")&&publicShell.includes("{href:'business-in-a-box.html',label:'H38 Business System'}"));
 const homepageImageSources=[...home.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["']/gi)].map(match=>match[1]);
 check('homepage uses verified local imagery',homepageImageSources.length>0&&homepageImageSources.every(src=>!/^https?:/i.test(src)&&src.includes('assets/')));
 check('homepage removes obsolete mockup shells',!home.includes('approved-homepage-mockup.png')&&!home.includes('class="hotspot')&&!home.includes('approved-home__stage'));
