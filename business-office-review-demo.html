@@ -7,8 +7,42 @@
   <meta name="description" content="The Highway 38 Business Office demo is now the live Office — this page redirects to it.">
   <title>Highway 38 Business Office — Live Demo</title>
   <link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514">
-  <meta http-equiv="refresh" content="0; url=https://highway38solutions.com/commercial-app/index.html?businessKey=demo">
-  <script>window.location.replace('https://highway38solutions.com/commercial-app/index.html?businessKey=demo');</script>
+  <meta http-equiv="refresh" content="2; url=https://highway38solutions.com/commercial-app/index.html?businessKey=demo">
+  <script>
+    // Demo-open beacon (equivalent of the shared shell's pageview beacon in
+    // assets/js/h38-site-v2.js): the funnel counts a demo open as a pageview
+    // of this path, so fire it before redirecting to the live demo.
+    (function () {
+      var DEST = 'https://highway38solutions.com/commercial-app/index.html?businessKey=demo';
+      try {
+        var origins = ['https://highway38solutions.com', 'https://www.highway38solutions.com', 'https://rkrueth-maker.github.io'];
+        if (origins.indexOf(location.origin) >= 0) {
+          var q = new URLSearchParams(location.search);
+          try {
+            if (q.get('h38_internal') === '1') localStorage.setItem('h38_internal', '1');
+            else if (q.get('h38_internal') === '0') localStorage.removeItem('h38_internal');
+          } catch (e) {}
+          var internal = false;
+          try { internal = localStorage.getItem('h38_internal') === '1'; } catch (e) {}
+          var vid = null;
+          var match = document.cookie.match(/(?:^|;\s*)h38_vid=([A-Za-z0-9-]{8,64})/);
+          if (match) vid = match[1];
+          else {
+            vid = (window.crypto && typeof crypto.randomUUID === 'function') ? crypto.randomUUID()
+              : ('v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 14));
+            document.cookie = '<redacted>' + vid + ';path=/;max-age=31536000;SameSite=Lax'
+              + (location.protocol === 'https:' ? ';Secure' : '')
+              + (/highway38solutions\.com$/.test(location.hostname) ? ';domain=highway38solutions.com' : '');
+          }
+          var payload = JSON.stringify({ path: '/business-office-review-demo.html', ref: document.referrer || '', vid: vid, internal: internal, event: 'pageview' });
+          var endpoint = 'https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-analytics';
+          if (navigator.sendBeacon && navigator.sendBeacon(endpoint, new Blob([payload], { type: 'text/plain;charset=utf-8' }))) { /* queued */ }
+          else fetch(endpoint, { method: 'POST', body: payload, headers: { 'content-type': 'text/plain;charset=utf-8' }, keepalive: true, mode: 'no-cors' }).catch(function () {});
+        }
+      } catch (e) { /* Counting must never break the redirect. */ }
+      setTimeout(function () { window.location.replace(DEST); }, 500);
+    })();
+  </script>
 </head>
 <body>
   <main>
