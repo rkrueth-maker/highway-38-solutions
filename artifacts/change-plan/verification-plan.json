@@ -1,22 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T07:15:09.273Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-22T07:18:54.270Z",
+  "base": null,
   "head": "HEAD",
   "files": [
-    "commercial-app/bundle-features.js",
-    "commercial-app/data-usage.js",
-    "commercial-app/supabase-storage-provider.js",
-    "commercial-app/version.json",
-    "supabase/migrations/20261022070000_business_data_limit_15gb.sql"
+    "included.html",
+    "privacy.html"
   ],
-  "fileCount": 5,
+  "fileCount": 2,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": true,
-    "customerPortal": true,
+    "publicWebsite": true,
+    "authenticatedApp": false,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -24,26 +21,24 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": true,
+    "publicRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
