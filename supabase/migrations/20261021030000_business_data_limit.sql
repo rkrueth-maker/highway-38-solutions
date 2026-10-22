@@ -381,11 +381,16 @@ revoke all on function public.compute_business_data_usage() from public;
 grant execute on function public.compute_business_data_usage() to service_role;
 
 -- Daily snapshot + threshold pass (pure SQL job; no HTTP surface needed).
+-- The schedule is installed inside a pg_cron-extension guard (same shape
+-- as 20261013121000): production has pg_cron, the disposable clean-replay
+-- stack does not, and an unguarded cron.* call aborts the whole replay.
 do $$
 begin
-  if exists (select 1 from cron.job where jobname = 'h38-data-usage-daily') then
-    perform cron.unschedule('h38-data-usage-daily');
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if exists (select 1 from cron.job where jobname = 'h38-data-usage-daily') then
+      perform cron.unschedule('h38-data-usage-daily');
+    end if;
+    perform cron.schedule('h38-data-usage-daily', '15 6 * * *',
+      'select public.compute_business_data_usage();');
   end if;
-  perform cron.schedule('h38-data-usage-daily', '15 6 * * *',
-    'select public.compute_business_data_usage();');
 end $$;
