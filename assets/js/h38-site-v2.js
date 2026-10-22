@@ -10,7 +10,7 @@
   // test rigs on other ports never fire a request that is rejected with 403.
   const ANALYTICS_ORIGINS=new Set(['https://highway38solutions.com','https://www.highway38solutions.com','https://rkrueth-maker.github.io','http://localhost:8000','http://127.0.0.1:8000']);
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
-  const OFFICE_DEMO='business-office-review-demo.html';
+  const OFFICE_DEMO='https://highway38solutions.com/commercial-app/index.html?businessKey=demo';
   const registry={
     version:VERSION,
     logo:LOGO,
@@ -79,9 +79,23 @@
       const actionRows=[...document.querySelectorAll('main .pi-actions')];
       const finalActions=actionRows[actionRows.length-1];
       if(finalActions&&!finalActions.querySelector('[data-public-office-demo-link]')){
-        finalActions.appendChild(makeOfficeDemoLink('Explore Read-Only Demo','pi-btn secondary'));
+        finalActions.appendChild(makeOfficeDemoLink('Explore the Live Demo','pi-btn secondary'));
       }
     }
+  }
+  function mountDemoVideos(){
+    document.querySelectorAll('[data-demo-video]').forEach(slot=>{
+      const src=slot.getAttribute('data-demo-video');
+      if(!src)return;
+      fetch(src,{method:'HEAD'}).then(res=>{
+        if(!res.ok)return;
+        const video=document.createElement('video');
+        video.controls=true;video.preload='metadata';video.src=src;
+        video.style.width='100%';video.style.borderRadius='12px';
+        video.setAttribute('aria-label',slot.getAttribute('data-demo-video-label')||'Demo walkthrough video');
+        slot.textContent='';slot.appendChild(video);
+      }).catch(()=>{});
+    });
   }
   function optimizeImages(){const images=[...document.querySelectorAll('main img,article img,section img,footer img,header img')];let primaryAssigned=false;images.forEach(img=>{const src=img.getAttribute('src')||'';img.decoding='async';if(src.startsWith('assets/highway38-logo.png')){img.loading='eager';img.addEventListener('error',()=>{img.hidden=true;},{once:true});return;}const hero=!!img.closest('.pi-hero-media,.workflow-hero-panel,.hero-media,.hero');if(hero&&!primaryAssigned){img.loading='eager';img.fetchPriority='high';primaryAssigned=true;}else img.loading='lazy';});}
   function ensureSkipLink(){const main=document.querySelector('main');if(!main)return;if(!main.id)main.id='main';if(document.querySelector('.skip-link'))return;const link=document.createElement('a');link.className='skip-link';link.href='#main';link.textContent='Skip to main content';document.body.insertBefore(link,document.body.firstChild);}
@@ -116,6 +130,6 @@
   }
   window.h38Track=function(eventName){if(eventName==='request_submitted')sendAnalytics('request_submitted');};
   function schedulePageview(){if('requestIdleCallback' in window)window.requestIdleCallback(()=>trackPageview(),{timeout:2500});else setTimeout(trackPageview,0);}
-  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
+  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();mountDemoVideos();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
