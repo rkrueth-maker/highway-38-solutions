@@ -1,5 +1,14 @@
 // business-drive-upload — own-it file storage (Rick, 2026-10-21).
 //
+// STOOD DOWN (Rick, 2026-10-22): Google Drive is out of the product —
+// not reliable/fast enough for day-to-day files. Live files live on
+// H38's servers, period. This function now refuses every upload with
+// NOT_CONFIGURED (see the gate in the handler) so any client falls back
+// to Office (server) storage, the one live path. The Drive upload code
+// below is dormant and recoverable: set the project secret
+// H38_DRIVE_LIVE_UPLOADS=enabled to re-enable it. Do not remove the
+// gate without Rick reversing the 2026-10-22 decision.
+//
 // Uploads one business file into the business's OWN Google Drive (connected
 // via business-drive-connect) and registers it in business_external_files.
 // Records, jobs and accounting data never pass through here — files only.
@@ -333,6 +342,19 @@ Deno.serve(async (request: Request) => {
     const platformRole = businessId === H38 ? role : await roleFor(sb, H38, auth.userId);
     if (!role && !(platformRole === "owner" || platformRole === "administrator")) {
       return json(request, 403, { status: "FAIL", error: "You are not a member of this business." });
+    }
+
+    // ---- live Drive storage is stood down (Rick, 2026-10-22) ----------------
+    // Google Drive is out of the product: files live on H38's servers.
+    // Every upload reports NOT_CONFIGURED so any client falls back to
+    // Office (server) storage — the one live path. The Drive machinery
+    // below stays dormant and recoverable behind the project secret
+    // H38_DRIVE_LIVE_UPLOADS=enabled.
+    if ((Deno.env.get("H38_DRIVE_LIVE_UPLOADS") || "") !== "enabled") {
+      return json(request, 200, {
+        status: "NOT_CONFIGURED",
+        error: "Live Google Drive storage is not offered. Files are stored in Office storage.",
+      });
     }
 
     // ---- connection gate ----------------------------------------------------

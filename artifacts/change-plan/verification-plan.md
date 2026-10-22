@@ -1,11 +1,12 @@
 # Scope-aware verification plan
 
-- Files changed: 16
-- Scopes: none detected
-- Deployment workflows: none
+- Files changed: 8
+- Scopes: customerPortal, performanceReliability
+- Deployment workflows: .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
 ## Fast checks
 - `node scripts/verify-change-governance.js`
+- `node scripts/verify-customer-portal-security.js`
 
 ## Expensive or live checks
 - None identified.

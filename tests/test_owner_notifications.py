@@ -36,7 +36,7 @@ def test_bell_is_hidden_until_the_module_confirms_an_owner_role():
 
 
 def test_sw_cache_and_startup_stamps_roll_together():
-    assert "const CACHE_NAME='h38-business-office-20261021-cobrand-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261022-drive-out-1'" in SW
     startup = (APP / 'supabase-startup.js').read_text(encoding='utf-8')
     assert '20261020-myhank-settings-1' in startup
     assert '20261013-brand-splash-1' not in SW and '20261013-brand-splash-1' not in INDEX
