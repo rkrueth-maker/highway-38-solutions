@@ -73,6 +73,7 @@ jobs:
 
       - name: Install SDK platform 35 and build tools
         run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           yes | sdkmanager 'platforms;android-35' 'build-tools;35.0.0' >/dev/null
           echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
 
@@ -165,6 +166,7 @@ jobs:
       - name: Install SDK platform 35 and build tools
         if: steps.signing.outputs.blocked == 'false'
         run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           yes | sdkmanager 'platforms;android-35' 'build-tools;35.0.0' >/dev/null
           echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
 
