@@ -1,0 +1,67 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.highway38.office'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.highway38.office'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    // The Office app has its OWN upload key (the Deals key signs Deals only).
+    // Signing activates only when all four env vars are present; otherwise the
+    // build falls back to the default debug key so compile checks still run.
+    // Env-var shape follows the Deals wrapper precedent exactly.
+    def officeKeystorePath = System.getenv('H38_OFFICE_KEYSTORE_PATH')
+    def officeKeystorePassword = System.getenv('H38_OFFICE_KEYSTORE_PASSWORD')
+    def officeKeyAlias = System.getenv('H38_OFFICE_KEY_ALIAS')
+    def officeKeyPassword = System.getenv('H38_OFFICE_KEY_PASSWORD')
+    def hasOfficeSigning = officeKeystorePath && officeKeystorePassword && officeKeyAlias && officeKeyPassword
+
+    signingConfigs {
+        if (hasOfficeSigning) {
+            release {
+                storeFile file(officeKeystorePath)
+                storePassword officeKeystorePassword
+                keyAlias officeKeyAlias
+                keyPassword officeKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (hasOfficeSigning) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+        }
+        debug {
+            applicationIdSuffix '.dev'
+            versionNameSuffix '-dev'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+
+    testImplementation 'junit:junit:4.13.2'
+}

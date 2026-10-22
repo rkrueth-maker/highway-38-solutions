@@ -1,0 +1,228 @@
+name: H38 Office Android Release
+
+# Builds the H38 Office native Android app (native/h38-office/android-app)
+# and cuts the signed 1.0.0 release when the Office signing secrets exist.
+#
+# Mirrors the H38 Deals release workflow, in the only shape that works on
+# this repo: workflow_dispatch cannot be invoked by the stored PAT (it
+# returns "404 Not Found"), so the run trigger is a push of this file
+# itself, plus a commit-message opt-in so native-app changes can request
+# a build without touching this file every time.
+#
+# Lanes:
+#   * build-gate — ALWAYS runs: JVM unit tests + debug build + badging /
+#     version / manifest permission / dex-marker checks. No secrets needed.
+#     Proves the release machinery and locks the ship shape.
+#   * release — only when secrets.H38_OFFICE_KEYSTORE_B64 is present:
+#     restores the Office upload keystore, builds the signed release APK,
+#     verifies badging + marker + v2 signature + signer SHA-256 against
+#     the recorded Office key, and uploads the hashed APK as an artifact.
+#     Without the secret the job writes RELEASE_BLOCKED_NO_H38_OFFICE_SIGNING_SECRET.
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    paths:
+      - '.github/workflows/h38-office-android-release.yml'
+      - 'native/h38-office/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: h38-office-android-release
+  cancel-in-progress: false
+
+env:
+  OFFICE_EXPECTED_CERT_SHA256: '0cec68175061b0b7d9a7b848b9462c422457bc38b1dae606d2d25a388d742e29'
+
+jobs:
+  build-gate:
+    name: H38 Office compile + ship-shape gate (no signing)
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: native/h38-office/android-app
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Use the runner Android SDK
+        # setup-android@v3 breaks on current images (it tries to install
+        # the removed legacy 'tools' package); the ubuntu image already
+        # ships a full SDK — just prove it is there.
+        run: |
+          test -n "$ANDROID_HOME"
+          ls "$ANDROID_HOME/cmdline-tools"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+
+      - name: Install SDK platform 35 and build tools
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager 'platforms;android-35' 'build-tools;35.0.0' >/dev/null
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+
+      - name: Unit tests (detector, gate, payload)
+        run: gradle :app:testDebugUnitTest --console=plain --no-daemon
+
+      - name: Build debug APK (compile proof)
+        run: gradle :app:assembleDebug --console=plain
+
+      - name: Verify badging, manifest shape and markers
+        run: |
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
+          echo "APK=$APK"
+          aapt dump badging "$APK" | grep -E "package: name='com.highway38.office.dev' versionCode='1' versionName='1.0.0-dev'"
+          aapt dump badging "$APK" | grep -F "application-label:'H38 Office'"
+          # Honest-permission manifest: background location + foreground
+          # service (location type) + boot receiver must all ship.
+          aapt dump permissions "$APK" | grep -F 'android.permission.ACCESS_BACKGROUND_LOCATION'
+          aapt dump permissions "$APK" | grep -F 'android.permission.FOREGROUND_SERVICE_LOCATION'
+          aapt dump permissions "$APK" | grep -F 'android.permission.RECEIVE_BOOT_COMPLETED'
+          aapt dump xmltree "$APK" AndroidManifest.xml | grep -F 'TrackingService'
+          aapt dump xmltree "$APK" AndroidManifest.xml | grep -F 'BootReceiver'
+          # Markers across ALL dex files (multi-dex: the app classes are
+          # not necessarily in classes.dex).
+          ALLSTR=$(unzip -Z1 "$APK" | grep -E '^classes[0-9]*\.dex$' | while read -r dex; do
+            unzip -p "$APK" "$dex"
+          done | strings)
+          echo "$ALLSTR" | grep -F 'AndroidH38Office'
+          echo "$ALLSTR" | grep -F 'H38OfficeAndroid'
+          echo "$ALLSTR" | grep -F 'Mileage tracking is on'
+          echo "H38_OFFICE_GATE_OK"
+
+      - name: Upload gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-office-build-gate
+          if-no-files-found: warn
+          path: |
+            native/h38-office/android-app/app/build/outputs/apk/debug/*.apk
+            native/h38-office/android-app/app/build/reports/tests/**
+
+  release:
+    name: H38 Office signed release
+    needs: build-gate
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: native/h38-office/android-app
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check signing material
+        id: signing
+        env:
+          OFFICE_KEYSTORE_B64: ${{ secrets.H38_OFFICE_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$OFFICE_KEYSTORE_B64" ]; then
+            echo "RELEASE_BLOCKED_NO_H38_OFFICE_SIGNING_SECRET" | tee release-status.txt
+            echo "blocked=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "blocked=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Java 17
+        if: steps.signing.outputs.blocked == 'false'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.13
+        if: steps.signing.outputs.blocked == 'false'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Use the runner Android SDK
+        if: steps.signing.outputs.blocked == 'false'
+        # setup-android@v3 breaks on current images (it tries to install
+        # the removed legacy 'tools' package); the ubuntu image already
+        # ships a full SDK — just prove it is there.
+        run: |
+          test -n "$ANDROID_HOME"
+          ls "$ANDROID_HOME/cmdline-tools"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+
+      - name: Install SDK platform 35 and build tools
+        if: steps.signing.outputs.blocked == 'false'
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager 'platforms;android-35' 'build-tools;35.0.0' >/dev/null
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+
+      - name: Restore the Office upload keystore
+        if: steps.signing.outputs.blocked == 'false'
+        env:
+          OFFICE_KEYSTORE_B64: ${{ secrets.H38_OFFICE_KEYSTORE_B64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/office-signing"
+          printf '%s' "$OFFICE_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/office-signing/h38-office-upload.keystore"
+          test -s "$RUNNER_TEMP/office-signing/h38-office-upload.keystore"
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.blocked == 'false'
+        env:
+          H38_OFFICE_KEYSTORE_PATH: ${{ runner.temp }}/office-signing/h38-office-upload.keystore
+          H38_OFFICE_KEYSTORE_PASSWORD: ${{ secrets.H38_OFFICE_KEYSTORE_PASSWORD }}
+          H38_OFFICE_KEY_ALIAS: ${{ secrets.H38_OFFICE_KEY_ALIAS }}
+          H38_OFFICE_KEY_PASSWORD: ${{ secrets.H38_OFFICE_KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --console=plain
+
+      - name: Verify badging, signature and Office signer
+        if: steps.signing.outputs.blocked == 'false'
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
+          test -n "$APK"
+          aapt dump badging "$APK" | grep -E "package: name='com.highway38.office' versionCode='1' versionName='1.0.0'"
+          aapt dump badging "$APK" | grep -F "application-label:'H38 Office'"
+          unzip -Z1 "$APK" | grep -E '^classes[0-9]*\.dex$' | while read -r dex; do
+            unzip -p "$APK" "$dex"
+          done | strings | grep -F 'Mileage tracking is on'
+          apksigner verify --verbose --print-certs "$APK" | tee apksigner-verify.txt
+          grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true' apksigner-verify.txt
+          CERT_SHA=$(grep -E 'certificate SHA-256 digest:' apksigner-verify.txt | head -n 1 | awk '{print $NF}' | tr -d ':')
+          test "$CERT_SHA" = "$OFFICE_EXPECTED_CERT_SHA256"
+          SHA=$(sha256sum "$APK" | awk '{print $1}')
+          echo "H38 Office 1.0.0 APK SHA-256: $SHA" | tee release-status.txt
+          cp "$APK" "H38-Office-1.0.0.apk"
+
+      - name: Upload signed H38 Office 1.0.0
+        if: steps.signing.outputs.blocked == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-office-1.0.0-signed
+          if-no-files-found: error
+          path: |
+            native/h38-office/android-app/H38-Office-1.0.0.apk
+            native/h38-office/android-app/release-status.txt
+            native/h38-office/android-app/apksigner-verify.txt
+
+      - name: Upload blocked marker
+        if: steps.signing.outputs.blocked == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: h38-office-release-blocked
+          if-no-files-found: error
+          path: native/h38-office/android-app/release-status.txt
