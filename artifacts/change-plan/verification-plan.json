@@ -1,11 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T09:02:08.327Z",
+  "generatedAt": "2026-10-22T09:15:36.236Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
+    "artifacts/public-website-architecture/verification.json",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
     "commercial-app/app-01.js",
     "commercial-app/app-02.js",
     "commercial-app/books-spreadsheet.js",
@@ -14,6 +18,12 @@
     "commercial-app/index.html",
     "commercial-app/service-worker.js",
     "commercial-app/version.json",
+    "launch-control/evidence/customer-portal-security-verification.json",
+    "launch-control/evidence/public-ecosystem-tools.json",
+    "launch-control/evidence/unified-app-architecture-verification.json",
+    "scripts/verify-complete-office-access-browser.js",
+    "scripts/verify-employee-workspace.js",
+    "scripts/verify-office-late-auth-navigation-browser.js",
     "scripts/verify-owner-notifications.js",
     "supabase/functions/h38-accountant-view/index.ts",
     "tests/test_live_customer_navigation_guard_20260910.py",
@@ -23,7 +33,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 18,
+  "fileCount": 28,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
