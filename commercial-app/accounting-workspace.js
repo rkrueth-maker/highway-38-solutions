@@ -2,7 +2,7 @@
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
   const A=window.H38_ACCOUNTING_ENGINE;if(!A)return;
-  const BUILD='20261021-drive-storage-1';
+  const BUILD='20261021-drive-storage-2';
   const originalMoney=window.renderMoney,originalAccounting=window.renderAccounting;
   const $=id=>document.getElementById(id);
   const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
