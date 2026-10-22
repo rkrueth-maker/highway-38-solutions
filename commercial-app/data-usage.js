@@ -143,7 +143,7 @@ function usageHtml(){
 
 function dumpHtml(){
   var h='<h3 style="margin-top:14px">Free up space — export a year</h3>';
-  h+='<p class="muted small">Download a complete copy of one year — every record plus your files — as a zip archive. The export itself deletes nothing. After your export is ready you can purge that year\'s old files and operational records from the server; invoices, payments, accounting, payroll, tax records and customer records always stay.</p>';
+  h+='<p class="muted small">Download a complete copy of one year — every record plus your files — as a zip archive. The export itself deletes nothing. After your export is ready you can purge that year\'s old files and operational records from the server; invoices, payments, accounting, payroll, tax records and customer records always stay. Photos you have marked as gallery / examples of your work also stay on the server.</p>';
   h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">'
     +'<label>Year <select id="h38-dump-year">'+S.years.map(function(y){
         return '<option value="'+y+'"'+(Number(S.selectedYear)===y?' selected':'')+'>'+y+'</option>';
@@ -174,7 +174,7 @@ function dumpHtml(){
       if(S.purgeArmYear===Number(dump.dump_year)){
         h+='<div style="border-top:1px solid #ddd;margin-top:10px;padding-top:10px">'
           +'<p><strong>Purge '+esc(dump.dump_year)+' from the server?</strong></p>'
-          +'<p class="muted small">Purged data leaves the server. Your downloaded export is your copy — keep it safe. Invoices, payments, accounting, payroll, tax records and customer records always stay on the server. What gets removed: old job photos, site-scan captures, attachments and old operational records for '+esc(dump.dump_year)+'.</p>'
+          +'<p class="muted small">Purged data leaves the server. Your downloaded export is your copy — keep it safe. Invoices, payments, accounting, payroll, tax records and customer records always stay on the server. Photos you have marked as gallery / examples of your work are never removed. What gets removed: old job photos, site-scan captures, attachments and old operational records for '+esc(dump.dump_year)+'.</p>'
           +'<label style="display:block;margin:8px 0"><input type="checkbox" id="h38-purge-ack"> I have downloaded my copy of the '+esc(dump.dump_year)+' export.</label>'
           +'<button type="button" class="btn" data-act="purge-confirm" '+(S.busy?'disabled':'')+'>'+(S.busy==='purge'?'Purging…':'Yes, purge '+esc(dump.dump_year))+'</button> '
           +'<button type="button" class="btn" data-act="purge-cancel">Cancel</button>'
