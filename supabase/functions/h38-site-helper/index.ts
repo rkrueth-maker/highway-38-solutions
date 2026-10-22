@@ -18,7 +18,7 @@
 // Credential: MUSE_SPARK_API_KEY must exist as an Edge Function secret. Until
 // it does, the function is deployed dark and returns FALLBACK/not_configured.
 
-const BUILD = "20261021-site-helper-4";
+const BUILD = "20261021-site-helper-5";
 const ALLOWED_ORIGINS = new Set([
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
@@ -197,8 +197,8 @@ const FACTS = [
   "Custom websites, web apps, mobile apps, customer or employee portals, automations, and integrations are available as Custom Digital Services, quoted per scope in writing before work starts.",
   "Some add-ons are labeled Coming soon, for example outbound bill pay and Tap to Pay. Those are not available yet.",
   "People stay in charge: the AI drafts and assists, and nothing customer-facing goes out without owner approval.",
-  "Highway 38 is more than the Office. Its divisions are the Business Office (software), Manufacturing & Prototyping, H38 Supply Co., H38 Tools, and Scout, the deal-finding service. For manufacturing: Combined with our partner shops, we can provide most manufactured parts.",
-  "Highway 38 was founded by Rick Krueth, a CNC machinist by trade — not a contractor. He knows the contracting field well, and he built Highway 38 after his body ended his machining career.",
+  "Highway 38 is more than the Office. Its divisions are the Business Office (software), Manufacturing & Prototyping, H38 Supply Co., H38 Tools, and Scout, the deal-finding service. For manufacturing: Combined with our partner shops, we can provide most manufactured parts. Some parts are made in-house by Highway 38.",
+  "Highway 38 was founded by Rick Krueth, a CNC machinist by trade — not a contractor. He knows the contracting field well, and he built Highway 38 after his body ended his machining career. Highway 38 is a family business — Rick and Amanda Krueth's company. Rick built automation into his work his whole career, from programming to Excel sheets; Highway 38 is that same habit, grown up.",
   "To reach Highway 38 by phone, call (218) 212-5299.",
 ].join("\n");
 
