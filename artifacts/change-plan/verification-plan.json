@@ -1,18 +1,27 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T08:17:35.633Z",
+  "generatedAt": "2026-10-22T08:18:44.144Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/accountant-share.js",
     "commercial-app/accountant-view.html",
     "commercial-app/h38-script-loader.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json",
+    "scripts/verify-owner-notifications.js",
     "supabase/functions/h38-accountant-view/index.ts",
-    "supabase/migrations/20261022090000_accountant_share_links.sql"
+    "supabase/migrations/20261022090000_accountant_share_links.sql",
+    "tests/test_messages_inbox_entry_20261013.py",
+    "tests/test_offline_mode_polish_20261012.py",
+    "tests/test_owner_notifications.py",
+    "tests/test_platform_push_deepening.py",
+    "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 7,
+  "fileCount": 16,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
@@ -28,7 +37,7 @@
     "approvedAssets": false,
     "publicRendering": true,
     "authenticatedRendering": true,
-    "externalActionBoundary": false,
+    "externalActionBoundary": true,
     "longRunningData": true
   },
   "fastChecks": [
