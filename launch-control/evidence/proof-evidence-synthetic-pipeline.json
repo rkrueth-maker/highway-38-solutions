@@ -1,0 +1,50 @@
+{
+  "status": "SYNTHETIC_PIPELINE_PASS",
+  "generatedAt": "2026-10-22T02:30:09.301Z",
+  "pstPreservation": {
+    "sourceSha256": "5c50b6ca68819d10e94af030dded361c22900c549922ba9932c0b6ae8677cca8",
+    "sourceSizeBytes": 4144,
+    "workingCopySha256": "5c50b6ca68819d10e94af030dded361c22900c549922ba9932c0b6ae8677cca8",
+    "originalModified": false
+  },
+  "privateIndexCounts": {
+    "filesScanned": 3,
+    "messagesMatched": 1,
+    "attachmentsMatched": 1
+  },
+  "publicCaseIds": [
+    "CASE-MFG-001",
+    "CASE-MFG-002",
+    "CASE-MFG-004",
+    "CASE-MFG-005",
+    "CASE-MFG-006",
+    "CASE-MFG-007",
+    "CASE-RES-003",
+    "CASE-RES-004",
+    "CASE-BIZ-001"
+  ],
+  "photoDecisions": [
+    {
+      "id": "PHOTO-001",
+      "decision": "PUBLIC_SAFE"
+    },
+    {
+      "id": "PHOTO-002",
+      "decision": "REDACT_AND_REVIEW"
+    },
+    {
+      "id": "PHOTO-003",
+      "decision": "HOLD"
+    },
+    {
+      "id": "PHOTO-004",
+      "decision": "HOLD"
+    }
+  ],
+  "toolRelease": "highway-38-tools-1.0.0",
+  "toolCount": 8,
+  "downloadCount": 3,
+  "actualPrivatePstProcessed": false,
+  "privateSourcePublished": false,
+  "externalActionsOccurred": false
+}

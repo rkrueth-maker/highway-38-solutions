@@ -1,13 +1,29 @@
 {
   "release": "complete-ecosystem-live-launch-2026-07-11",
   "status": "PASS",
-  "generatedAt": "2026-07-13T16:46:09.921Z",
-  "passed": 128,
+  "generatedAt": "2026-10-22T02:30:07.153Z",
+  "passed": 308,
   "failed": 0,
-  "filesScanned": 558,
-  "publicTextFilesScanned": 411,
-  "digest": "72a9cdf985e28d16e9ba6de0a6cd382a12c0fd6210b2e97d82d324adc828e7b9",
+  "filesScanned": 2673,
+  "publicTextFilesScanned": 1722,
+  "digest": "7abd43c2bae3c2a31ede4c02f4a98f692ba430dc558bc6fa65e8443492c856ec",
   "passes": [
+    {
+      "name": "payment-card scanner still detects a Luhn-valid number",
+      "detail": ""
+    },
+    {
+      "name": "Supabase migration timestamps are not treated as cards",
+      "detail": ""
+    },
+    {
+      "name": "Supabase replay version mappings are not treated as cards",
+      "detail": ""
+    },
+    {
+      "name": "replay-like numbers outside migration mappings remain detectable",
+      "detail": ""
+    },
     {
       "name": "launch manifest exists",
       "detail": ""
@@ -82,7 +98,7 @@
     },
     {
       "name": "privacy and secret scan",
-      "detail": "411 public text candidates scanned"
+      "detail": "1722 public text candidates scanned; vector coordinate files excluded from Luhn-only matching"
     },
     {
       "name": "required artifact launch-control/launch-manifest.json",
@@ -129,6 +145,14 @@
       "detail": ""
     },
     {
+      "name": "html viewport account-deletion.html",
+      "detail": ""
+    },
+    {
+      "name": "html title account-deletion.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport ai-workflow.html",
       "detail": ""
     },
@@ -153,6 +177,14 @@
       "detail": ""
     },
     {
+      "name": "html viewport automation-opportunity-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html title automation-opportunity-planning.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport backend-system.html",
       "detail": ""
     },
@@ -169,6 +201,30 @@
       "detail": ""
     },
     {
+      "name": "html viewport business-in-a-box-pricing.html",
+      "detail": ""
+    },
+    {
+      "name": "html title business-in-a-box-pricing.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport business-in-a-box.html",
+      "detail": ""
+    },
+    {
+      "name": "html title business-in-a-box.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport business-office-review-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "html title business-office-review-demo.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport business-os.html",
       "detail": ""
     },
@@ -177,11 +233,387 @@
       "detail": ""
     },
     {
+      "name": "html viewport business-systems.html",
+      "detail": ""
+    },
+    {
+      "name": "html title business-systems.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/404.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/404.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/about.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/about.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/business-office-preview.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/business-office-preview.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/business-office.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/business-office.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/cabin-care.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/cabin-care.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/cleanouts-hauling.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/cleanouts-hauling.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/commercial-app/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/commercial-app/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/commercial-property-care.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/commercial-property-care.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/contact.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/contact.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/driveway-drainage.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/driveway-drainage.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/equipment-rental.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/equipment-rental.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/excavation.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/excavation.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/faq.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/faq.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/gallery.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/gallery.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/landscaping.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/landscaping.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/lawn.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/lawn.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/materials.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/materials.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/owner-access.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/owner-access.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/owner-login.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/owner-login.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/owner-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/owner-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/privacy.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/privacy.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/quote-request.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/quote-request.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/rental-resort-support.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/rental-resort-support.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/reviews.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/reviews.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/service-areas.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/service-areas.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/services.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/services.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/snow.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/snow.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport businesses/northern-lakes/terms.html",
+      "detail": ""
+    },
+    {
+      "name": "html title businesses/northern-lakes/terms.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport cabin-project-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html title cabin-project-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport case-study-template.html",
+      "detail": ""
+    },
+    {
+      "name": "html title case-study-template.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport catalog.html",
       "detail": ""
     },
     {
       "name": "html title catalog.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport commercial-app/book.html",
+      "detail": ""
+    },
+    {
+      "name": "html title commercial-app/book.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport commercial-app/customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html title commercial-app/customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport commercial-app/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html title commercial-app/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport commercial-app/recover.html",
+      "detail": ""
+    },
+    {
+      "name": "html title commercial-app/recover.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport commercial-app/secure-relay.html",
+      "detail": ""
+    },
+    {
+      "name": "html title commercial-app/secure-relay.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport commercial-app/task-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html title commercial-app/task-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport contact.html",
+      "detail": ""
+    },
+    {
+      "name": "html title contact.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport contractor-capabilities.html",
+      "detail": ""
+    },
+    {
+      "name": "html title contractor-capabilities.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport contractor-demo-quote.html",
+      "detail": ""
+    },
+    {
+      "name": "html title contractor-demo-quote.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport contractor-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "html title contractor-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport contractor-quote-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html title contractor-quote-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport crew.html",
+      "detail": ""
+    },
+    {
+      "name": "html title crew.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport custom-digital-services.html",
+      "detail": ""
+    },
+    {
+      "name": "html title custom-digital-services.html",
       "detail": ""
     },
     {
@@ -206,6 +638,22 @@
     },
     {
       "name": "html title customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport digital-file-cleanup-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html title digital-file-cleanup-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport divisions.html",
+      "detail": ""
+    },
+    {
+      "name": "html title divisions.html",
       "detail": ""
     },
     {
@@ -241,6 +689,30 @@
       "detail": ""
     },
     {
+      "name": "html viewport fixture-jig-concept-review.html",
+      "detail": ""
+    },
+    {
+      "name": "html title fixture-jig-concept-review.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport flower-garden-quote-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html title flower-garden-quote-complete.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport for-contractors.html",
+      "detail": ""
+    },
+    {
+      "name": "html title for-contractors.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport forgeiq.html",
       "detail": ""
     },
@@ -257,6 +729,22 @@
       "detail": ""
     },
     {
+      "name": "html viewport full-project-workthroughs.html",
+      "detail": ""
+    },
+    {
+      "name": "html title full-project-workthroughs.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport garage-layout-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html title garage-layout-planning.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport how-it-works.html",
       "detail": ""
     },
@@ -265,11 +753,35 @@
       "detail": ""
     },
     {
+      "name": "html viewport implementation.html",
+      "detail": ""
+    },
+    {
+      "name": "html title implementation.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport included.html",
+      "detail": ""
+    },
+    {
+      "name": "html title included.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport index.html",
       "detail": ""
     },
     {
       "name": "html title index.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport job-guide.html",
+      "detail": ""
+    },
+    {
+      "name": "html title job-guide.html",
       "detail": ""
     },
     {
@@ -289,11 +801,51 @@
       "detail": ""
     },
     {
+      "name": "html viewport manufacturing-bottleneck-analysis.html",
+      "detail": ""
+    },
+    {
+      "name": "html title manufacturing-bottleneck-analysis.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport manufacturing-cnc.html",
+      "detail": ""
+    },
+    {
+      "name": "html title manufacturing-cnc.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport open-business-office.html",
+      "detail": ""
+    },
+    {
+      "name": "html title open-business-office.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport packages/shared-ui/BusinessOffice_Index.html",
+      "detail": ""
+    },
+    {
+      "name": "html title packages/shared-ui/BusinessOffice_Index.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport packages.html",
       "detail": ""
     },
     {
       "name": "html title packages.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport partner-apply.html",
+      "detail": ""
+    },
+    {
+      "name": "html title partner-apply.html",
       "detail": ""
     },
     {
@@ -321,6 +873,14 @@
       "detail": ""
     },
     {
+      "name": "html viewport problem-starter.html",
+      "detail": ""
+    },
+    {
+      "name": "html title problem-starter.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport product.html",
       "detail": ""
     },
@@ -342,6 +902,22 @@
     },
     {
       "name": "html title project-action-snapshot.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport project-planning-packets.html",
+      "detail": ""
+    },
+    {
+      "name": "html title project-planning-packets.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport project-services.html",
+      "detail": ""
+    },
+    {
+      "name": "html title project-services.html",
       "detail": ""
     },
     {
@@ -369,6 +945,30 @@
       "detail": ""
     },
     {
+      "name": "html viewport quote-builder-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "html title quote-builder-demo.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport quote-builder-sample-proposal.html",
+      "detail": ""
+    },
+    {
+      "name": "html title quote-builder-sample-proposal.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html title quote-builder.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport quote-sheet-builder.html",
       "detail": ""
     },
@@ -382,6 +982,14 @@
     },
     {
       "name": "html title real-proof-lab.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport repair-guide/index.html",
+      "detail": ""
+    },
+    {
+      "name": "html title repair-guide/index.html",
       "detail": ""
     },
     {
@@ -409,6 +1017,22 @@
       "detail": ""
     },
     {
+      "name": "html viewport robot-tending-concept-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html title robot-tending-concept-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport robotics-automation.html",
+      "detail": ""
+    },
+    {
+      "name": "html title robotics-automation.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport sample-library-now.html",
       "detail": ""
     },
@@ -433,6 +1057,22 @@
       "detail": ""
     },
     {
+      "name": "html viewport security-reliability.html",
+      "detail": ""
+    },
+    {
+      "name": "html title security-reliability.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport service-guides.html",
+      "detail": ""
+    },
+    {
+      "name": "html title service-guides.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport services.html",
       "detail": ""
     },
@@ -449,11 +1089,51 @@
       "detail": ""
     },
     {
+      "name": "html viewport shop-layout-flow-review.html",
+      "detail": ""
+    },
+    {
+      "name": "html title shop-layout-flow-review.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport sign-in.html",
+      "detail": ""
+    },
+    {
+      "name": "html title sign-in.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport small-business-workflow-cleanup.html",
+      "detail": ""
+    },
+    {
+      "name": "html title small-business-workflow-cleanup.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport software.html",
+      "detail": ""
+    },
+    {
+      "name": "html title software.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport solutions.html",
       "detail": ""
     },
     {
       "name": "html title solutions.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport specials.html",
+      "detail": ""
+    },
+    {
+      "name": "html title specials.html",
       "detail": ""
     },
     {
@@ -489,6 +1169,14 @@
       "detail": ""
     },
     {
+      "name": "html viewport tips.html",
+      "detail": ""
+    },
+    {
+      "name": "html title tips.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport tool-center.html",
       "detail": ""
     },
@@ -505,11 +1193,43 @@
       "detail": ""
     },
     {
+      "name": "html viewport universal-quote-builder-example.html",
+      "detail": ""
+    },
+    {
+      "name": "html title universal-quote-builder-example.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport universal-quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html title universal-quote-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport vision-inspection-concept-planning.html",
+      "detail": ""
+    },
+    {
+      "name": "html title vision-inspection-concept-planning.html",
+      "detail": ""
+    },
+    {
       "name": "html viewport weekly-owner-dashboard.html",
       "detail": ""
     },
     {
       "name": "html title weekly-owner-dashboard.html",
+      "detail": ""
+    },
+    {
+      "name": "html viewport whole-house-quote-package.html",
+      "detail": ""
+    },
+    {
+      "name": "html title whole-house-quote-package.html",
       "detail": ""
     },
     {

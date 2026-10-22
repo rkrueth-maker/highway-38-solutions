@@ -1,8 +1,8 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-14T04:08:55.895Z",
+  "generatedAt": "2026-10-22T02:31:03.620Z",
   "architecture": "competitive-readiness-split-buyer-paths-integrated-quote-demo",
-  "passed": 445,
+  "passed": 539,
   "failed": 0,
   "routes": [
     "index.html",
@@ -19,7 +19,12 @@
     "contact.html",
     "partner-apply.html",
     "start-request.html",
-    "portal.html"
+    "portal.html",
+    "divisions.html",
+    "crew.html",
+    "faq.html",
+    "included.html",
+    "tips.html"
   ],
   "existingProjectExamples": 30,
   "universalDemonstration": true,
@@ -45,11 +50,11 @@
     },
     {
       "name": "competitive-readiness route registry version",
-      "detail": "2026-09-15-competitive-readiness-custom-digital-services"
+      "detail": "2026-10-21-content-expansion-competitive-readiness"
     },
     {
-      "name": "fifteen primary routes",
-      "detail": "15"
+      "name": "twenty primary routes",
+      "detail": "20"
     },
     {
       "name": "primary route registered: index.html",
@@ -173,6 +178,26 @@
     },
     {
       "name": "required public artifact: portal.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: divisions.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: crew.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: faq.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: included.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: tips.html",
       "detail": ""
     },
     {
@@ -1184,6 +1209,10 @@
       "detail": "assets/highway38-logo.png"
     },
     {
+      "name": "about.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
       "name": "about.html: local asset assets/css/project-intelligence.css",
       "detail": "assets/css/project-intelligence.css"
     },
@@ -1192,8 +1221,8 @@
       "detail": "start-request.html"
     },
     {
-      "name": "about.html: local asset sample-library-now.html",
-      "detail": "sample-library-now.html"
+      "name": "about.html: local asset crew.html",
+      "detail": "crew.html"
     },
     {
       "name": "about.html: local asset assets/approved-website-images/12-cnc-machining-closeup.jpg",
@@ -1376,6 +1405,318 @@
       "detail": "open-business-office.html"
     },
     {
+      "name": "divisions.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "divisions.html: title",
+      "detail": ""
+    },
+    {
+      "name": "divisions.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "divisions.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "divisions.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "divisions.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset crew.html",
+      "detail": "crew.html"
+    },
+    {
+      "name": "divisions.html: local asset assets/approved-website-images/business-workflow-office.webp",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "divisions.html: local asset business-in-a-box.html",
+      "detail": "business-in-a-box.html"
+    },
+    {
+      "name": "divisions.html: local asset business-office-review-demo.html",
+      "detail": "business-office-review-demo.html"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset manufacturing-cnc.html",
+      "detail": "manufacturing-cnc.html"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset crew.html",
+      "detail": "crew.html"
+    },
+    {
+      "name": "divisions.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "divisions.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "divisions.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "crew.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "crew.html: title",
+      "detail": ""
+    },
+    {
+      "name": "crew.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "crew.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "crew.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "crew.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "crew.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "crew.html: local asset divisions.html",
+      "detail": "divisions.html"
+    },
+    {
+      "name": "crew.html: local asset assets/approved-website-images/business-workflow-office.webp",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/videos/hank-poster.jpg",
+      "detail": "assets/videos/hank-poster.jpg"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/gage.webp",
+      "detail": "assets/crew/gage.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/mack.webp",
+      "detail": "assets/crew/mack.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/piper.webp",
+      "detail": "assets/crew/piper.webp"
+    },
+    {
+      "name": "crew.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "crew.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "crew.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "faq.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "faq.html: title",
+      "detail": ""
+    },
+    {
+      "name": "faq.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "faq.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "faq.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "faq.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "faq.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "faq.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "faq.html: local asset assets/approved-website-images/08-request-process-checklist.jpg",
+      "detail": "assets/approved-website-images/08-request-process-checklist.jpg"
+    },
+    {
+      "name": "faq.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "faq.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "faq.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "faq.html: local asset business-office-review-demo.html",
+      "detail": "business-office-review-demo.html"
+    },
+    {
+      "name": "faq.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "faq.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "faq.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "included.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "included.html: title",
+      "detail": ""
+    },
+    {
+      "name": "included.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "included.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "included.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "included.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "included.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "included.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "included.html: local asset assets/approved-website-images/business-workflow-office.webp",
+      "detail": "assets/approved-website-images/business-workflow-office.webp"
+    },
+    {
+      "name": "included.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "included.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "included.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "included.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "tips.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "tips.html: title",
+      "detail": ""
+    },
+    {
+      "name": "tips.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "tips.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "tips.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "tips.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "tips.html: local asset business-in-a-box.html",
+      "detail": "business-in-a-box.html"
+    },
+    {
+      "name": "tips.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "tips.html: local asset assets/approved-website-images/08-request-process-checklist.jpg",
+      "detail": "assets/approved-website-images/08-request-process-checklist.jpg"
+    },
+    {
+      "name": "tips.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "tips.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "tips.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
       "name": "index.html: canonical shared shell",
       "detail": ""
     },
@@ -1425,6 +1766,26 @@
     },
     {
       "name": "partner-apply.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "divisions.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "crew.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "faq.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "included.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "tips.html: canonical shared shell",
       "detail": ""
     },
     {
@@ -1745,6 +2106,26 @@
     },
     {
       "name": "sitemap includes start-request.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes divisions.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes crew.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes faq.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes included.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes tips.html",
       "detail": ""
     },
     {

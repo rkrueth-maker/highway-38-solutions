@@ -1,47 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T02:26:10.972Z",
-  "base": "main",
+  "generatedAt": "2026-10-22T02:31:14.416Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "about.html",
-    "assets/crew/gage.webp",
-    "assets/crew/mack.webp",
-    "assets/crew/piper.webp",
-    "assets/css/h38-site-v2.css",
-    "assets/js/h38-site-v2.js",
-    "business-in-a-box.html",
-    "business-systems.html",
-    "contact.html",
-    "crew.html",
-    "custom-digital-services.html",
-    "divisions.html",
-    "faq.html",
-    "implementation.html",
-    "included.html",
-    "index.html",
-    "partner-apply.html",
-    "pricing.html",
-    "project-services.html",
-    "quote-builder-demo.html",
-    "quote-builder.html",
-    "sample-library-now.html",
-    "scripts/config/public-website-routes.json",
-    "security-reliability.html",
-    "sign-in.html",
-    "sitemap.xml",
-    "software.html",
-    "solutions.html",
-    "start-request.html",
-    "tips.html"
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md"
   ],
-  "fileCount": 30,
+  "fileCount": 2,
   "scopes": {
-    "publicWebsite": true,
+    "publicWebsite": false,
     "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -49,23 +21,18 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
+    "publicRendering": false,
     "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-change-governance.js"
   ],
-  "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes"
-  ],
-  "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
-  ],
+  "expensiveChecks": [],
+  "deploymentWorkflows": [],
   "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change.",
     "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [

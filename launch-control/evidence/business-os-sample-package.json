@@ -1,0 +1,140 @@
+{
+  "status": "OWNER_REVIEW_REQUIRED",
+  "generatedAt": "2026-10-22T02:30:07.821Z",
+  "engine": {
+    "id": "business-os-core",
+    "name": "Business OS Core Engine",
+    "version": "1.0.0",
+    "releaseChannels": [
+      "stable",
+      "candidate",
+      "development"
+    ],
+    "defaultReleaseChannel": "stable"
+  },
+  "businessPack": {
+    "id": "highway-38",
+    "name": "Highway 38 Business Pack",
+    "version": "1.0.0"
+  },
+  "tenant": {
+    "key": "tenant-one",
+    "name": "Tenant One",
+    "namespace": "tenants/tenant-one",
+    "mode": "isolated"
+  },
+  "tier": "Control",
+  "releaseChannel": "candidate",
+  "enabledModules": [
+    "tasks",
+    "leads",
+    "customers",
+    "jobs",
+    "quotes",
+    "invoices",
+    "payments",
+    "expenses",
+    "communications",
+    "files",
+    "contracts",
+    "social",
+    "advertising",
+    "website",
+    "accounting",
+    "reports",
+    "proof",
+    "errors",
+    "settings"
+  ],
+  "providers": {
+    "catalog": {
+      "mode": "file",
+      "provider": "approved-catalog",
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "payment": {
+      "mode": "manual",
+      "provider": null,
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "email": {
+      "mode": "draft-only",
+      "provider": null,
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "accounting": {
+      "mode": "csv",
+      "provider": null,
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "social": {
+      "mode": "internal-schedule",
+      "provider": null,
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "website": {
+      "mode": "review-only",
+      "provider": "repository",
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "storage": {
+      "mode": "local",
+      "provider": null,
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    },
+    "calendar": {
+      "mode": "manual",
+      "provider": null,
+      "credentialState": "NOT_CONFIGURED",
+      "executionState": "LOCKED",
+      "ownerReleaseRequired": true
+    }
+  },
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtection": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "ownerApprovalRequiredForExternalActions": true,
+    "externalActionsEnabled": false
+  },
+  "externalActionsEnabled": false,
+  "createdTasks": [
+    {
+      "id": "BOS-T001",
+      "title": "Approve Business Pack and tenant configuration",
+      "status": "Needs owner review"
+    },
+    {
+      "id": "BOS-T002",
+      "title": "Select providers and supply credentials",
+      "status": "Blocked by credentials"
+    },
+    {
+      "id": "BOS-T003",
+      "title": "Run cross-tenant permission tests before portal activation",
+      "status": "Required"
+    },
+    {
+      "id": "BOS-T004",
+      "title": "Approve production release channel",
+      "status": "Needs owner review"
+    }
+  ]
+}

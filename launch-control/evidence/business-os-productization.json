@@ -1,0 +1,213 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-22T02:30:07.822Z",
+  "passed": 47,
+  "failed": 0,
+  "engineVersion": "1.0.0",
+  "schemaVersion": 1,
+  "filesTested": [
+    "core-engine/product/config/core-engine.default.json",
+    "business-packs/highway-38/business-pack.json",
+    "core-engine/product/adapters/registry.json",
+    "core-engine/product/tiers/tier-matrix.json",
+    "core-engine/product/licenses/example-evaluation-license.json"
+  ],
+  "controls": {
+    "externalActionsEnabled": false,
+    "selectedRecordOnly": true,
+    "tenantIsolation": true,
+    "backupIntegrity": true,
+    "licenseControl": true
+  },
+  "passes": [
+    {
+      "name": "required file core-engine/product/config/core-engine.default.json",
+      "detail": ""
+    },
+    {
+      "name": "required file business-packs/highway-38/business-pack.json",
+      "detail": ""
+    },
+    {
+      "name": "required file core-engine/product/adapters/registry.json",
+      "detail": ""
+    },
+    {
+      "name": "required file core-engine/product/tiers/tier-matrix.json",
+      "detail": ""
+    },
+    {
+      "name": "required file core-engine/product/licenses/example-evaluation-license.json",
+      "detail": ""
+    },
+    {
+      "name": "engine config validates",
+      "detail": ""
+    },
+    {
+      "name": "Business Pack validates",
+      "detail": ""
+    },
+    {
+      "name": "Core Engine is business-neutral",
+      "detail": ""
+    },
+    {
+      "name": "tenant isolation configured",
+      "detail": ""
+    },
+    {
+      "name": "selected-record controls configured",
+      "detail": ""
+    },
+    {
+      "name": "proof and error logs required",
+      "detail": ""
+    },
+    {
+      "name": "external actions default locked",
+      "detail": ""
+    },
+    {
+      "name": "five roles configured",
+      "detail": "owner, administrator, operator, reviewer, customer"
+    },
+    {
+      "name": "customer permission is own-record scoped",
+      "detail": ""
+    },
+    {
+      "name": "eight provider-neutral adapter slots",
+      "detail": "8"
+    },
+    {
+      "name": "adapter activation contract complete",
+      "detail": ""
+    },
+    {
+      "name": "four product tiers configured",
+      "detail": "4"
+    },
+    {
+      "name": "tier IDs exact",
+      "detail": ""
+    },
+    {
+      "name": "Business Pack catalog retained",
+      "detail": ""
+    },
+    {
+      "name": "Business Pack cannot self-enable external actions",
+      "detail": ""
+    },
+    {
+      "name": "first tenant installed",
+      "detail": ""
+    },
+    {
+      "name": "second tenant installed",
+      "detail": ""
+    },
+    {
+      "name": "tenant namespaces differ",
+      "detail": "tenants/tenant-one / tenants/tenant-two"
+    },
+    {
+      "name": "tenant installation roots differ",
+      "detail": ""
+    },
+    {
+      "name": "test and production environments are explicit",
+      "detail": ""
+    },
+    {
+      "name": "release channels retained",
+      "detail": ""
+    },
+    {
+      "name": "external actions remain disabled after installation",
+      "detail": ""
+    },
+    {
+      "name": "all external feature flags forced off",
+      "detail": ""
+    },
+    {
+      "name": "all provider execution states locked",
+      "detail": ""
+    },
+    {
+      "name": "all record stores initialized",
+      "detail": ""
+    },
+    {
+      "name": "proof log initialized",
+      "detail": ""
+    },
+    {
+      "name": "error log initialized",
+      "detail": ""
+    },
+    {
+      "name": "private files isolated by tenant",
+      "detail": ""
+    },
+    {
+      "name": "tenant write does not leak",
+      "detail": ""
+    },
+    {
+      "name": "backup created",
+      "detail": ""
+    },
+    {
+      "name": "backup digest valid",
+      "detail": ""
+    },
+    {
+      "name": "restore created",
+      "detail": ""
+    },
+    {
+      "name": "restored tenant identity matches",
+      "detail": ""
+    },
+    {
+      "name": "restored task data matches",
+      "detail": ""
+    },
+    {
+      "name": "tampered backup is rejected",
+      "detail": "Backup integrity check failed."
+    },
+    {
+      "name": "schema migration reaches current version",
+      "detail": ""
+    },
+    {
+      "name": "migration restores selected-record safety",
+      "detail": ""
+    },
+    {
+      "name": "downgrade migration rejected",
+      "detail": "Downgrade migrations are not supported."
+    },
+    {
+      "name": "license validates assigned tenant",
+      "detail": ""
+    },
+    {
+      "name": "license tenant limit enforced",
+      "detail": "License tenant limit 1 has been reached."
+    },
+    {
+      "name": "unlicensed tier rejected",
+      "detail": "Tier Control is not licensed."
+    },
+    {
+      "name": "unsafe tenant key rejected",
+      "detail": "Tenant key contains an unsafe path sequence."
+    }
+  ],
+  "failures": []
+}

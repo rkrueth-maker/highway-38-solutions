@@ -1,0 +1,532 @@
+{
+  "release": "complete-ecosystem-acceptance-2026-07-12",
+  "status": "HOLD",
+  "generatedAt": "2026-10-22T02:30:10.241Z",
+  "sourceBaseline": "6dcb40c166122ce66d7ae887d2a64d3dff308977",
+  "overallDecision": "CONDITIONAL_GO",
+  "passed": 109,
+  "failed": 1,
+  "workstreams": [
+    {
+      "issue": 32,
+      "name": "Brand, website, services, tools, and customer path",
+      "decision": "GO_LIVE_PUBLIC"
+    },
+    {
+      "issue": 33,
+      "name": "Owner Portal, customer portal, and operating workflows",
+      "decision": "GO_PRIVATE_OWNER_PORTAL_HOLD_CUSTOMER_PORTAL"
+    },
+    {
+      "issue": 34,
+      "name": "Proof, private evidence, photos, calculators, and downloads",
+      "decision": "GO_PUBLIC_PROOF_AND_PIPELINE_HOLD_PRIVATE_SOURCE_EXECUTION"
+    },
+    {
+      "issue": 35,
+      "name": "Business Concept Builder and transferable Business OS",
+      "decision": "GO_INTERNAL_AND_PUBLIC_BUILDER"
+    },
+    {
+      "issue": 36,
+      "name": "Revenue, payments, contracts, social, communications, and accounting",
+      "decision": "GO_INTERNAL_HOLD_EXTERNAL_PROVIDERS"
+    },
+    {
+      "issue": 37,
+      "name": "Integration, hard-rule QA, deployment, and acceptance",
+      "decision": "GO_ACCEPTANCE_PACKAGE"
+    }
+  ],
+  "components": {
+    "total": 20,
+    "go": 13,
+    "hold": 7
+  },
+  "blockers": 15,
+  "livePublicUrls": 16,
+  "rollbackPoints": 6,
+  "integratedVerifierRuns": [
+    {
+      "file": "scripts/verify-complete-ecosystem-launch.js",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "file": "scripts/verify-public-ecosystem-tools.js",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "file": "scripts/verify-business-os-productization.js",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "file": "scripts/verify-business-concept-builder.js",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "file": "scripts/verify-proof-evidence-current.js",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "file": "scripts/verify-revenue-operations-core.js",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "file": "scripts/verify-revenue-growth-activation.js",
+      "status": "PASS",
+      "exitCode": 0
+    }
+  ],
+  "packageDigest": "9007def313d6df5e3238788bff15e015225079d6a648ef8f55927306c5b247e3",
+  "externalActionsOccurred": false,
+  "passes": [
+    {
+      "name": "required artifact: launch-control/final-acceptance-package.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: launch-control/FINAL_ACCEPTANCE.md",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: final-acceptance.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: ecosystem-status.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: revenue-operations-status.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: business-concept-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: products.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: sitemap.xml",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: catalog-data.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/config/core-engine.default.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/business-concept-builder/business-concept-core.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/customer-portal/README.md",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/config/provider-activation.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/config/social-content-plan-30-day.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/status.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/verify-proof-evidence-current.js",
+      "detail": ""
+    },
+    {
+      "name": "acceptance package identity",
+      "detail": ""
+    },
+    {
+      "name": "overall conditional decision",
+      "detail": ""
+    },
+    {
+      "name": "no scope reduction or fake completion",
+      "detail": ""
+    },
+    {
+      "name": "six workstreams exact",
+      "detail": ""
+    },
+    {
+      "name": "all workstreams record decisions and rollback",
+      "detail": ""
+    },
+    {
+      "name": "component decision: Public website and customer path",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Owner Portal",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Customer Portal production activation",
+      "detail": "HOLD"
+    },
+    {
+      "name": "component decision: Business Concept Builder",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Transferable Business OS",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Private PST and photo source processing",
+      "detail": "HOLD"
+    },
+    {
+      "name": "component decision: Revenue and contract records",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Accounting",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Social content bank",
+      "detail": "GO"
+    },
+    {
+      "name": "component decision: Production payment links and processing",
+      "detail": "HOLD"
+    },
+    {
+      "name": "component decision: Advertising spend",
+      "detail": "HOLD"
+    },
+    {
+      "name": "complete component matrix",
+      "detail": "20"
+    },
+    {
+      "name": "Owner Portal evidence recorded",
+      "detail": ""
+    },
+    {
+      "name": "Owner Portal remains existing private deployment",
+      "detail": ""
+    },
+    {
+      "name": "customer portal remains fail closed",
+      "detail": ""
+    },
+    {
+      "name": "public URL inventory recorded",
+      "detail": "16"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/",
+      "detail": "index.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/ecosystem-status.html",
+      "detail": "ecosystem-status.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/services.html",
+      "detail": "services.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/products.html",
+      "detail": "products.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/product.html",
+      "detail": "product.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/sample-library-now.html",
+      "detail": "sample-library-now.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/tool-center.html",
+      "detail": "tool-center.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/proof.html",
+      "detail": "proof.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/proof-center.html",
+      "detail": "proof-center.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/business-concept-builder.html",
+      "detail": "business-concept-builder.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/business-os.html",
+      "detail": "business-os.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/customer-portal.html",
+      "detail": "customer-portal.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/revenue-operations-status.html",
+      "detail": "revenue-operations-status.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "public URL target: https://rkrueth-maker.github.io/highway-38-solutions/sitemap.xml",
+      "detail": "sitemap.xml"
+    },
+    {
+      "name": "blockers numerous and unique",
+      "detail": "15"
+    },
+    {
+      "name": "every blocker has exact next step",
+      "detail": ""
+    },
+    {
+      "name": "blocker class CUSTOMER-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class PST-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class PHOTO-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class PROOF-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class EMAIL-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class PAYMENT-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class ACCOUNTING-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class SOCIAL-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class COMMERCIAL-",
+      "detail": ""
+    },
+    {
+      "name": "blocker class OWNER-",
+      "detail": ""
+    },
+    {
+      "name": "external action matrix locked",
+      "detail": ""
+    },
+    {
+      "name": "bulk and automatic retry disabled",
+      "detail": ""
+    },
+    {
+      "name": "privacy decision PASS",
+      "detail": ""
+    },
+    {
+      "name": "no external action occurred",
+      "detail": ""
+    },
+    {
+      "name": "rollback register complete",
+      "detail": ""
+    },
+    {
+      "name": "public rollback baseline recorded",
+      "detail": ""
+    },
+    {
+      "name": "acceptance requirements all recorded",
+      "detail": ""
+    },
+    {
+      "name": "exact 15 products",
+      "detail": "H38-P001,H38-P002,H38-P003,H38-P004,H38-P005,H38-P006,H38-P007,H38-P008,H38-P009,H38-P010,H38-P011,H38-P012,H38-P013,H38-P014,H38-P015"
+    },
+    {
+      "name": "exact 9 bundles",
+      "detail": "H38-B001,H38-B002,H38-B003,H38-B004,H38-B005,H38-B006,H38-B007,H38-B008,H38-B009"
+    },
+    {
+      "name": "contiguous product IDs",
+      "detail": ""
+    },
+    {
+      "name": "contiguous bundle IDs",
+      "detail": ""
+    },
+    {
+      "name": "provider configuration fail closed",
+      "detail": ""
+    },
+    {
+      "name": "six non-live provider slots with exact steps",
+      "detail": ""
+    },
+    {
+      "name": "provider-hosted payment security",
+      "detail": ""
+    },
+    {
+      "name": "30-day content bank",
+      "detail": ""
+    },
+    {
+      "name": "five social platforms",
+      "detail": ""
+    },
+    {
+      "name": "social publishing disabled",
+      "detail": ""
+    },
+    {
+      "name": "Drive proof pass recorded with private-source holds retained",
+      "detail": ""
+    },
+    {
+      "name": "final page metadata",
+      "detail": ""
+    },
+    {
+      "name": "final page states conditional decision and external lock",
+      "detail": ""
+    },
+    {
+      "name": "final public page excludes Owner Portal identifiers",
+      "detail": ""
+    },
+    {
+      "name": "final public page excludes private-source identifiers",
+      "detail": ""
+    },
+    {
+      "name": "final public page has no submit or network execution",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: favicon.svg",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: commercial.css",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: ecosystem.css",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: brand-global.css",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: ecosystem-status.html",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: products.html",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: proof.html",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: business-concept-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: revenue-operations-status.html",
+      "detail": ""
+    },
+    {
+      "name": "final page local link: customer-portal.html",
+      "detail": ""
+    },
+    {
+      "name": "integrated verifier: scripts/verify-complete-ecosystem-launch.js",
+      "detail": " \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title sign-in.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport small-business-workflow-cleanup.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title small-business-workflow-cleanup.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport software.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title software.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport solutions.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title solutions.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport specials.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title specials.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport start-request.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title start-request.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport terms.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title terms.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport test-plan.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title test-plan.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport tests/fixtures/commercial-proof-generator.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title tests/fixtures/commercial-proof-generator.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport tips.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title tips.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport tool-center.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title tool-center.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport tools.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title tools.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport universal-quote-builder-example.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title universal-quote-builder-example.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport universal-quote-builder.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title universal-quote-builder.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport vision-inspection-concept-planning.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title vision-inspection-concept-planning.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport weekly-owner-dashboard.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title weekly-owner-dashboard.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport whole-house-quote-package.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title whole-house-quote-package.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html viewport worked-examples.html\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"html title worked-examples.html\",\n      \"detail\": \"\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    },
+    {
+      "name": "integrated verifier: scripts/verify-public-ecosystem-tools.js",
+      "detail": "ed grouped navigation\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"secure app declares native Business Office rendering\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"secure app derives seven workspace groups from canonical module contract\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Business Office modules render directly in the secure app\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Business Office server adapter supports list save open and upload\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Documents and OCR exposes upload and camera path inside secure app\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"owner portal preserves approval boundaries\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"global Owner Login routes through portal webpage\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder owner-review package\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder local storage\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder Markdown export\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder portable JSON export\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder offer and workflow package\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder task generation\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"concept builder browser-only operation\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"retired tool center redirects to project examples\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"retired tool center contains no calculator product runtime\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"proof manifest items\",\n      \"detail\": \"7\"\n    },\n    {\n      \"name\": \"all proof items explicitly public safe\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"proof target proof.html\",\n      \"detail\": \"PUBLIC-PROOF-LIBRARY\"\n    },\n    {\n      \"name\": \"proof target sample-library-now.html\",\n      \"detail\": \"PUBLIC-SAMPLE-LIBRARY\"\n    },\n    {\n      \"name\": \"proof target products.html\",\n      \"detail\": \"PUBLIC-SERVICE-CATALOG\"\n    },\n    {\n      \"name\": \"proof target free-tools.html\",\n      \"detail\": \"PUBLIC-TOOL-CENTER\"\n    },\n    {\n      \"name\": \"proof target tool-center.html\",\n      \"detail\": \"PUBLIC-PLANNING-TOOL-CENTER\"\n    },\n    {\n      \"name\": \"proof target business-concept-builder.html\",\n      \"detail\": \"PUBLIC-CONCEPT-BUILDER\"\n    },\n    {\n      \"name\": \"proof target downloads/h38-photo-privacy-review.csv\",\n      \"detail\": \"PUBLIC-PHOTO-REVIEW-DOWNLOAD\"\n    },\n    {\n      \"name\": \"status lock Customer email\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"status lock Payment collection\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"status lock Social publishing\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"status lock Advertising spend\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"status lock Final delivery\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"status lock Private proof sources\",\n      \"detail\": \"\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    },
+    {
+      "name": "integrated verifier: scripts/verify-business-os-productization.js",
+      "detail": "tor, operator, reviewer, customer\"\n    },\n    {\n      \"name\": \"customer permission is own-record scoped\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"eight provider-neutral adapter slots\",\n      \"detail\": \"8\"\n    },\n    {\n      \"name\": \"adapter activation contract complete\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"four product tiers configured\",\n      \"detail\": \"4\"\n    },\n    {\n      \"name\": \"tier IDs exact\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Business Pack catalog retained\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Business Pack cannot self-enable external actions\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"first tenant installed\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"second tenant installed\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"tenant namespaces differ\",\n      \"detail\": \"tenants/tenant-one / tenants/tenant-two\"\n    },\n    {\n      \"name\": \"tenant installation roots differ\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"test and production environments are explicit\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"release channels retained\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"external actions remain disabled after installation\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all external feature flags forced off\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all provider execution states locked\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all record stores initialized\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"proof log initialized\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"error log initialized\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"private files isolated by tenant\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"tenant write does not leak\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"backup created\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"backup digest valid\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"restore created\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"restored tenant identity matches\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"restored task data matches\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"tampered backup is rejected\",\n      \"detail\": \"Backup integrity check failed.\"\n    },\n    {\n      \"name\": \"schema migration reaches current version\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"migration restores selected-record safety\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"downgrade migration rejected\",\n      \"detail\": \"Downgrade migrations are not supported.\"\n    },\n    {\n      \"name\": \"license validates assigned tenant\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"license tenant limit enforced\",\n      \"detail\": \"License tenant limit 1 has been reached.\"\n    },\n    {\n      \"name\": \"unlicensed tier rejected\",\n      \"detail\": \"Tier Control is not licensed.\"\n    },\n    {\n      \"name\": \"unsafe tenant key rejected\",\n      \"detail\": \"Tenant key contains an unsafe path sequence.\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    },
+    {
+      "name": "integrated verifier: scripts/verify-business-concept-builder.js",
+      "detail": "generated\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all Tasks preserve controls and dependencies\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"social, expenses, risk, decisions, and record aggregation generated\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"generator is data-dependent rather than static\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"sensitive-looking inputs are redacted\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"incomplete concept is held\",\n      \"detail\": \"Working business name must contain at least two characters. Business idea must contain at least twelve characters. At least one owner skill is required. At least one customer group is required. Primary customer problem is required. Primary finished outcome is required.\"\n    },\n    {\n      \"name\": \"tenant isolation remains enforced\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"selected-record, duplicate, log, and retry controls remain enforced\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all provider slots are locked\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all external feature flags are disabled\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Business Pack cannot self-enable execution\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"generated Business Pack validates\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"Business Pack compiles as isolated test installation\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"installer creates isolated data, private storage, Proof Log, and Error Log\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"generated records materialize only in selected test tenant\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"backup and restore preserve tenant and records\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"backup tampering is rejected\",\n      \"detail\": \"Backup integrity check failed.\"\n    },\n    {\n      \"name\": \"CLI exits successfully\",\n      \"detail\": \"{\\n  \\\"status\\\": \\\"PASS\\\",\\n  \\\"outputDir\\\": \\\"/tmp/bcb-SEaqZR/cli\\\",\\n  \\\"packageStatus\\\": \\\"OWNER_REVIEW_REQUIRED\\\",\\n  \\\"products\\\": 5,\\n  \\\"tasks\\\": 25,\\n  \\\"sops\\\": 20,\\n  \\\"externalActionsOccurred\\\": false\\n}\\n\"\n    },\n    {\n      \"name\": \"CLI writes complete owner-review file set\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"CLI output matches shared core\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"transferable core has no Highway 38-specific terminology\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"transferable core has no network execution\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"shared core parses in browser context\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"browser exposes every required input\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"browser loads shared core before wrapper\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"browser exports JSON, Markdown, Tasks, Business Pack, and OS config\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"browser generation remains local\",\n      \"detail\": \"\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    },
+    {
+      "name": "integrated verifier: scripts/verify-proof-evidence-current.js",
+      "detail": "regression\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"bottleneck formula regression\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"bar-feed formula regression\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"press-feed formula regression\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"score formula regression\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"downloads contain no private employer terms\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"downloads contain no credential or raw card fields\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"photo privacy download covers required risks\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"public proof code excludes private employer names\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"free tools has no checkout form or raw card input\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"Drive evidence pass recorded\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"photo pass recorded fail closed\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"PST remains unavailable with exact owner action\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"residential photos remain unavailable with exact owner action\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"CAD archive remains unavailable with exact owner action\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"status records no private publication or external actions\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    }\\n  ],\\n  \\\"failures\\\": [\\n    {\\n      \\\"name\\\": \\\"proof page loads versioned public proof data\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"proof page publishes method and privacy rules\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"proof page links photo review and tool resources\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"proof renderer includes complete case fields\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    },\\n    {\\n      \\\"name\\\": \\\"free tools exposes release, manifest, and downloads\\\",\\n      \\\"detail\\\": \\\"\\\"\\n    }\\n  ]\\n}\\n\"\n    },\n    {\n      \"name\": \"legacy proof verification has no substantive failures\",\n      \"detail\": \"[]\"\n    },\n    {\n      \"name\": \"legacy proof pipeline completed most substantive checks\",\n      \"detail\": \"92\"\n    },\n    {\n      \"name\": \"retired proof route is noindex and deterministic\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"retired free-tools route is noindex and deterministic\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"maintained public proof destination exists\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"proof data and renderer remain preserved\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"tool manifest and downloads remain preserved\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"private proof and external-action controls remain locked\",\n      \"detail\": \"\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    },
+    {
+      "name": "integrated verifier: scripts/verify-revenue-operations-core.js",
+      "detail": "balance\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"receipt remains draft\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"final payment closes invoice\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"payment stores no raw card data\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"payment over balance blocked\",\n      \"detail\": \"Payment amount exceeds the invoice balance or is zero.\"\n    },\n    {\n      \"name\": \"payment without provider reference blocked\",\n      \"detail\": \"Provider reference is required.\"\n    },\n    {\n      \"name\": \"raw card field blocked\",\n      \"detail\": \"Raw payment-card data is forbidden.\"\n    },\n    {\n      \"name\": \"Luhn card string blocked\",\n      \"detail\": \"Raw payment-card data is forbidden.\"\n    },\n    {\n      \"name\": \"refund record created without execution\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"partial refund retains paid state\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"refund above paid amount blocked\",\n      \"detail\": \"Refund exceeds available paid amount or is zero.\"\n    },\n    {\n      \"name\": \"contract usage and overage tracked\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"inactive contract usage blocked\",\n      \"detail\": \"Contract must be active to record usage.\"\n    },\n    {\n      \"name\": \"invalid billing interval blocked\",\n      \"detail\": \"Billing interval is invalid.\"\n    },\n    {\n      \"name\": \"communication records draft without send\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"social publishing remains internal-only\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"unapproved social platform blocked\",\n      \"detail\": \"Social platform is not approved.\"\n    },\n    {\n      \"name\": \"website deployment has rollback and remains locked\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"unsafe website path blocked\",\n      \"detail\": \"Website change files are invalid.\"\n    },\n    {\n      \"name\": \"accounting rows complete\",\n      \"detail\": \"5\"\n    },\n    {\n      \"name\": \"accounting CSV has header and references\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"accounting export does not execute external sync\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"profitability calculation correct\",\n      \"detail\": \"{\\\"revenueCents\\\":100000,\\\"directCostCents\\\":30000,\\\"laborCents\\\":25000,\\\"adSpendCents\\\":10000,\\\"totalCostCents\\\":65000,\\\"profitCents\\\":35000,\\\"marginPercent\\\":35}\"\n    },\n    {\n      \"name\": \"lead and campaign attribution calculated\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"integration health reports all provider slots\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"no integration falsely reports live\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"credential blockers explicit\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"proof records provider result without claiming send\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"error disables retry\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"source contains no live provider secrets\",\n      \"detail\": \"\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    },
+    {
+      "name": "integrated verifier: scripts/verify-revenue-growth-activation.js",
+      "detail": "dence\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"failure timeout and uncertain outcomes have Error Log entries\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"hosted payment link stores no raw card data\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"non-HTTPS payment link is rejected\",\n      \"detail\": \"Hosted payment link must use HTTPS.\"\n    },\n    {\n      \"name\": \"raw payment field is rejected\",\n      \"detail\": \"Raw payment-card data is forbidden.\"\n    },\n    {\n      \"name\": \"deposit progress and final milestones total contract value\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"invalid milestone percentages are rejected\",\n      \"detail\": \"Billing milestone percentages must total 100.\"\n    },\n    {\n      \"name\": \"recurring billing includes usage and overage\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"contract renewal and cancellation remain owner-review drafts\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"payment receipt credit and refund records are provider-reference only\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"delivery and follow-up remain selected owner-review drafts\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"unsafe delivery path is rejected\",\n      \"detail\": \"Delivery files must be safe relative paths.\"\n    },\n    {\n      \"name\": \"30-day plan expands to 150 platform-specific drafts\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"all social records are draft selected records with assets and paid path\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"every approved platform has 30 records\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"publication proof captures provider reference and digest\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"performance metrics calculate rates\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"social inquiry routes to one controlled Task\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"outstanding balance view identifies open amount\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"cash view reconciles payments refunds and expenses\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"profitability reports product bundle add-on or contract-shaped records\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"accounting export includes invoice payment refund and expenses\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"lead campaign attribution reaches cash received\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"website deployment draft requires source rollback and acceptance\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"same source and rollback reference is rejected\",\n      \"detail\": \"Source and rollback references must differ.\"\n    },\n    {\n      \"name\": \"integration health is truthful and exact\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"accounting remains usable in CSV mode while mapping is blocked\",\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"acceptance summary reports complete internal package and blocked external state\",\n      \"detail\": \"\"\n    }\n  ],\n  \"failures\": []\n}\n"
+    }
+  ],
+  "failures": [
+    {
+      "name": "final acceptance route published in sitemap",
+      "detail": ""
+    }
+  ]
+}
