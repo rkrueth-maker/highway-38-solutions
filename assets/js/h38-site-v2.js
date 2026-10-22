@@ -3,7 +3,7 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-10-08-website-queue-v1';
+  const VERSION='2026-10-21-content-expansion-v1';
   const ANALYTICS_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-analytics';
   // Mirror of the endpoint's origin allow-list (supabase/functions/h38-site-analytics):
   // only send beacons from origins the endpoint accepts, so local mirrors and
@@ -17,17 +17,19 @@
     navigation:[
       {href:'business-in-a-box.html',label:'Business in a Box'},
       {href:'solutions.html',label:'What We Do'},
+      {href:'divisions.html',label:'Divisions'},
       {href:'pricing.html',label:'Pricing'},
       {href:OFFICE_DEMO,label:'Office Demo'},
       {href:'quote-builder.html#examples',label:'Project Examples'},
+      {href:'crew.html',label:'Meet the Crew'},
       {href:'about.html',label:'About'},
       {href:'portal.html',label:'Owner Access'},
       {href:'start-request.html',label:'Start a Project',cta:true}
     ],
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
-      {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
-      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
+      {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Divisions','divisions.html'],['Meet the Crew','crew.html'],['Tips & Facts','tips.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
+      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['FAQ','faq.html'],["What's Included & Coming Soon",'included.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
       {heading:'Call or Text',links:[['(218) 212-5299','tel:+12182125299']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
@@ -46,7 +48,8 @@
   function ensureStyles(){if(document.querySelector('link[data-h38-site-shell]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='assets/css/h38-site-v2.css?v='+VERSION;link.dataset.h38SiteShell='1';document.head.appendChild(link);}
   function ensureHelper(){if(document.querySelector('script[data-h38-public-helper]'))return;const script=document.createElement('script');script.src=new URL('assets/js/h38-helper.js?v='+VERSION,document.baseURI).toString();script.defer=true;script.dataset.h38PublicHelper='1';document.head.appendChild(script);}
   function brand(){return `<a class="pi-brand" href="index.html"><img src="${LOGO}" alt="Highway 38 Solutions" width="95" height="78"><span>HIGHWAY 38 SOLUTIONS</span></a>`;}
-  function navMarkup(){const page=currentPage();const links=registry.navigation.map(item=>{const target=item.href.split('#')[0];const active=page===target||(page==='index.html'&&target==='index.html');return `<a${item.cta?' class="pi-btn primary"':''} href="${item.href}"${active?' aria-current="page"':''}>${item.label}</a>`;}).join('');return `${brand()}<button class="pi-menu" type="button" aria-expanded="false" aria-controls="h38-main-navigation">Menu</button><nav class="pi-links" id="h38-main-navigation" aria-label="Main navigation">${links}</nav>`;}
+  function topbarMarkup(){return `<div class="pi-topbar"><span class="pi-topbar-area">Grand Rapids, MN — serving northern Minnesota</span><a class="pi-topbar-phone" href="tel:+12182125299">Call or text (218) 212-5299</a></div>`;}
+  function navMarkup(){const page=currentPage();const links=registry.navigation.map(item=>{const target=item.href.split('#')[0];const active=page===target||(page==='index.html'&&target==='index.html');return `<a${item.cta?' class="pi-btn primary"':''} href="${item.href}"${active?' aria-current="page"':''}>${item.label}</a>`;}).join('');return `${topbarMarkup()}${brand()}<button class="pi-menu" type="button" aria-expanded="false" aria-controls="h38-main-navigation">Menu</button><nav class="pi-links" id="h38-main-navigation" aria-label="Main navigation">${links}</nav>`;}
   function footerMarkup(){return `<div class="pi-footer-grid"><div class="pi-logo-lock"><img src="${LOGO}" alt="Highway 38 Solutions" width="95" height="78"><p>Plans, systems and guided project delivery.</p></div>${registry.footer.map(group=>`<div><h4>${group.heading}</h4>${group.links.map(link=>`<a href="${link[1]}"${link[1]==='#h38-helper'?' data-h38-helper-open':''}>${link[0]}</a>`).join('')}</div>`).join('')}</div>`;}
   function mountHeader(){const header=document.querySelector('header.pi-nav,nav.site-nav,header.site-header');if(!header)return;if(header.matches('nav')){const replacement=document.createElement('header');replacement.className='pi-nav';header.replaceWith(replacement);replacement.innerHTML=navMarkup();}else{header.className='pi-nav';header.innerHTML=navMarkup();}}
   function mountFooter(){const footer=document.querySelector('footer.pi-footer,footer.site-footer,footer.footer');if(!footer)return;footer.className='pi-footer';footer.innerHTML=footerMarkup();}
