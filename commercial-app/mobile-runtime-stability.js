@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261020-myhank-settings-1';
+const BUILD='20261022-phone-layout-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
@@ -61,19 +61,19 @@ function setViewportVars(){
 function installStyle(){
   let style=document.getElementById('h38MobileRuntimeStabilityStyle');
   if(!style){style=document.createElement('style');style.id='h38MobileRuntimeStabilityStyle';document.head.appendChild(style);}
-  style.textContent=`
+  const css=`
 html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
 #mainContent{overflow-anchor:none;min-width:0}.h38-five-primary-nav{isolation:isolate}
 @media(max-width:760px){
  html,body{height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
  body:not(.h38-field-scroll-lock){height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important;touch-action:auto!important}
- .topbar{position:relative!important;top:auto!important;z-index:1600;min-height:52px;padding:6px 8px!important;gap:6px!important;transform:translateZ(0);backface-visibility:hidden}
+ .topbar{position:relative!important;top:auto!important;z-index:1600;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) 8px 6px!important;gap:6px!important;flex-wrap:nowrap!important;transform:translateZ(0);backface-visibility:hidden}
  .topbar .brand{flex:1 1 auto;min-width:0;gap:7px!important;overflow:hidden}
  .topbar .brand-logo{width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain;border-radius:8px}
  .topbar .brand>div{min-width:0}
  .topbar .brand strong{display:block;max-width:118px;font-size:.82rem;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .topbar .brand small{display:none}
- .topbar .top-actions{flex:0 0 auto;gap:4px!important}
+ .topbar .top-actions{flex:0 0 auto;flex-wrap:nowrap!important;gap:4px!important}
  .topbar .icon-button,.topbar .ai-launcher{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;border-radius:11px!important}
  .business-bar:empty{display:none}.business-bar{position:relative!important;top:auto!important;z-index:1500;padding:5px 10px!important}
  .business-bar span{font-size:.72rem!important;line-height:1.2}
@@ -119,6 +119,7 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
  .h38-review-terminal-note strong{display:block;margin-bottom:5px}.h38-review-terminal-note span{display:block;color:#52616d;line-height:1.35}
 }
 `;
+  if(style.textContent!==css)style.textContent=css;
 }
 function clearInlineLocks(){
   for(const node of [document.documentElement,document.body,document.querySelector('.app-shell'),document.getElementById('mainContent')]){
@@ -389,7 +390,9 @@ function stabilizeAfterRender(){
   if(main&&lastPage&&current&&current!==lastPage&&!interacting())main.scrollTo({top:0,left:0,behavior:'instant'});
   if(current)lastPage=current;
 }
-function schedule(){clearTimeout(resizeTimer);resizeTimer=setTimeout(stabilizeAfterRender,35);}
+let lastMainScrollAt=0;
+function noteMainScroll(){lastMainScrollAt=Date.now();}
+function schedule(){clearTimeout(resizeTimer);const scrolling=Date.now()-lastMainScrollAt<250;resizeTimer=setTimeout(stabilizeAfterRender,scrolling?260:35);}
 function wrapOpenPage(){
   if(typeof window.openPage!=='function'||window.openPage.h38PhysicalScrollStable)return;
   const base=window.openPage;
@@ -467,6 +470,7 @@ installStyle();setViewportVars();
 ['pointerdown','touchstart','wheel','keydown'].forEach(name=>window.addEventListener(name,markInteraction,{passive:true,capture:true}));
 window.visualViewport?.addEventListener('resize',schedule,{passive:true});
 window.addEventListener('resize',schedule,{passive:true});
+document.getElementById('mainContent')?.addEventListener('scroll',noteMainScroll,{passive:true});
 window.addEventListener('orientationchange',()=>setTimeout(schedule,120),{passive:true});
 window.addEventListener('pageshow',()=>{wrapOpenPage();wrapRenderNav();stabilizeAfterRender();});
 window.addEventListener('focus',stabilizeAfterRender);
