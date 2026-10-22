@@ -1,14 +1,14 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T11:44:44.853Z",
+  "generatedAt": "2026-10-22T12:03:26.017Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/owner-mobile-smoke/verification.json",
+    "commercial-app/app-19.js",
     "commercial-app/index.html",
-    "commercial-app/mobile-runtime-stability.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json",
-    "scripts/verify-owner-mobile-smoke.js",
     "scripts/verify-owner-notifications.js",
     "tests/test_messages_inbox_entry_20261013.py",
     "tests/test_offline_mode_polish_20261012.py",
