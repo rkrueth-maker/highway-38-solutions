@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  OFFICE_EXPECTED_CERT_SHA256: '0cec68175061b0b7d9a7b848b9462c422457bc38b1dae606d2d25a3838d742e29'
+  OFFICE_EXPECTED_CERT_SHA256: '0cec68175061b0b7d9a7b848b9462c422457bc38b1dae606d2d25a388d742e29'
 
 jobs:
   build-gate:
