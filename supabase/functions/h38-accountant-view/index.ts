@@ -108,7 +108,7 @@ async function tokenHash(token: string): Promise<string> {
 }
 
 // ---------- workbook ----------
-type ColType = "text" | "money" | "int" | "date";
+type ColType = "text" | "money" | "int" | "date" | "num";
 interface Col { label: string; type: ColType; total?: boolean }
 interface Tab {
   id: string; title: string; columns: Col[];
@@ -206,13 +206,15 @@ async function buildWorkbook(db: ReturnType<typeof service>, businessId: string)
   const bizName = clean(biz.display_name || biz.legal_name, 300) || "Business";
   const bizKey = clean(biz.business_key, 100);
 
-  const [customers, invoicesRaw, paymentsRaw, expensesRaw, payrollRaw, glRaw] = await Promise.all([
+  const [customers, invoicesRaw, paymentsRaw, expensesRaw, payrollRaw, glRaw, mileageRaw, jobsRaw] = await Promise.all([
     loadCollection(db, businessId, "customers"),
     loadCollection(db, businessId, "invoices"),
     loadCollection(db, businessId, "payments"),
     loadCollection(db, businessId, "expenses"),
     loadCollection(db, businessId, "payrollPeriods"),
     loadCollection(db, businessId, "accountingTransactions"),
+    loadCollection(db, businessId, "mileageTrips"),
+    loadCollection(db, businessId, "jobs"),
   ]);
 
   const customerName = new Map<string, string>();
@@ -321,6 +323,37 @@ async function buildWorkbook(db: ReturnType<typeof service>, businessId: string)
     { label: "Net Pay", type: "money", total: true },
   ], payrRows);
 
+  // --- Mileage (business trips from the Office mileage log) ---
+  const jobLabel = new Map<string, string>();
+  for (const j of jobsRaw) {
+    const jid = s(j, "Job ID");
+    if (!jid) continue;
+    const num2 = s(j, "Job Number");
+    const title = s(j, "Project Title", "Title");
+    jobLabel.set(jid, (num2 && num2 !== jid ? num2 + " — " : "") + (title || jid));
+  }
+  const mileageRows = mileageRaw
+    .filter((t) => s(t, "Classification") === "Business" &&
+      (s(t, "Status") === "Classified" || s(t, "Status") === "Auto-filed"))
+    .map((t) => {
+      const row: (string | number)[] = [
+        day(t, "Started At"),
+        s(t, "User Name"),
+        s(t, "Start Label") || "Trip start",
+        s(t, "End Label") || "Trip end",
+        jobLabel.get(s(t, "Job ID")) || s(t, "Job ID"),
+        s(t, "Purpose"),
+        r2(num(t, "Miles")),
+      ];
+      return { d: row[0] as string, row };
+    }).sort((a, b) => a.d.localeCompare(b.d)).map((x) => x.row);
+  const mileageTab = makeTab("mileage", "Mileage", [
+    { label: "Date", type: "date" }, { label: "Driver", type: "text" },
+    { label: "From", type: "text" }, { label: "To", type: "text" },
+    { label: "Job", type: "text" }, { label: "Purpose", type: "text" },
+    { label: "Miles", type: "num", total: true },
+  ], mileageRows, "Business trips only, from the Office mileage log (Fleet \u2192 Mileage). Each driver's personal trips stay private to that driver and are never included here.");
+
   // --- Journal (GL detail) + account rollup ---
   const journalRows: (string | number)[][] = [];
   const byAccount = new Map<string, { debit: number; credit: number }>();
@@ -393,7 +426,7 @@ async function buildWorkbook(db: ReturnType<typeof service>, businessId: string)
     business: { id: businessId, key: bizKey, name: bizName },
     generatedAt: new Date().toISOString(),
     note: "Read-only accountant view. Figures are computed live from the business's Office records at the moment this page opens. Voided or cancelled records are excluded.",
-    tabs: [booksTab, invTab, payTab, expTab, payrollTab, acctTab, journalTab],
+    tabs: [booksTab, invTab, payTab, expTab, payrollTab, mileageTab, acctTab, journalTab],
   };
 }
 
@@ -473,7 +506,7 @@ function buildXlsx(wb: Workbook): Promise<Uint8Array> {
         if (ci === 0) return cellXml(`${colLetter(ci)}${r}`, "Total", 2);
         if (c.total) {
           const f = `SUM(${colLetter(ci)}${plan.firstDataRow}:${colLetter(ci)}${plan.lastDataRow})`;
-          return cellXml(`${colLetter(ci)}${r}`, tab.totals[ci] ?? 0, 3, f);
+          return cellXml(`${colLetter(ci)}${r}`, tab.totals[ci] ?? 0, c.type === "money" ? 3 : 2, f);
         }
         return cellXml(`${colLetter(ci)}${r}`, "", 0);
       }).join("");
