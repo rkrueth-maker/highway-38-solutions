@@ -1,0 +1,6 @@
+// H38 Office native Android app — root build file.
+// Plugin versions match the proven H38 Deals wrapper build
+// (native/h38-site-scanner/android-app): AGP 8.12.2.
+plugins {
+    id 'com.android.application' version '8.12.2' apply false
+}

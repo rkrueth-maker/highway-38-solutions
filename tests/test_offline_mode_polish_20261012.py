@@ -84,7 +84,7 @@ def test_customer_setup_card_title_matches_renderer():
 def test_service_worker_rolls_cache_and_serves_offline_files_live_first():
     # Cache name rolled by the 20261012 mobile-polish pass (files changed);
     # the offline file list and live-first behavior below are the invariants.
-    assert "const CACHE_NAME='h38-business-office-20261022-acct-tabs-1'" in SW
+    assert "const CACHE_NAME='h38-business-office-20261022-native-bridge-1'" in SW
     assert "'offline-mode.js','offline-status-runtime.js'" in SW
     assert "'./offline-mode.js','./offline-status-runtime.js'" in SW
     # Logo consolidation: the 2.93MB approved logo is NOT in the shell
@@ -131,7 +131,7 @@ def test_index_build_tags_match_polish_build():
         assert f'./{name}?build={BUILD}' in LOAD_SOURCE, name
     # app-02.js rolled with the 2026-10-22 Phase 2 Books spreadsheet build
     # (renderBooksPage); the other polish-pass files keep the polish build.
-    assert './app-02.js?build=20261022-acct-tabs-1' in LOAD_SOURCE
+    assert './app-02.js?build=20261022-native-bridge-1' in LOAD_SOURCE
     # customer-360-authority.js rolled with the 2026-10-13 complete scan
     # (customer-find token matching + no-match state) in the loader map.
     assert './customer-360-authority.js?build=20261013-complete-scan-fixes-1' in LOAD_SOURCE
