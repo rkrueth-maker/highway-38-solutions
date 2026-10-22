@@ -1,10 +1,13 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T12:25:06.935Z",
+  "generatedAt": "2026-10-22T12:26:34.950Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     ".github/workflows/h38-office-android-release.yml",
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/index.html",
     "commercial-app/mobile-runtime-stability.js",
     "commercial-app/service-worker.js",
@@ -22,7 +25,7 @@
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 17,
+  "fileCount": 20,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

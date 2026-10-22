@@ -77,9 +77,9 @@ def test_build_roll_pins():
     assert f"./app-09.js?build={BUILD}" in INDEX
     for script in ["app-08.js", "job-centered-flow.js"]:
         assert f"./{script}?build=20261020-myhank-settings-1" in INDEX, script
-    # mobile-runtime-stability.js rolled with the 20261022-acct-tabs-2 build
+    # mobile-runtime-stability.js rolled with the 20261022-phone-layout-1 build
     # (Books added to the mobile More-sheet Money group).
-    assert "./mobile-runtime-stability.js?build=20261022-acct-tabs-2" in INDEX
+    assert "./mobile-runtime-stability.js?build=20261022-phone-layout-1" in INDEX
     # app-01.js rolled with the 2026-10-22 Phase 2 Books spreadsheet build
     # (new 'books' page def); the other myhank-settings pins stay.
     assert "./app-01.js?build=20261022-native-bridge-1" in INDEX

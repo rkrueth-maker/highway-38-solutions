@@ -142,6 +142,6 @@ def test_index_build_tags_match_polish_build():
     # offline-status-runtime.js rolled with the 2026-10-13 fix sweep (SW
     # consolidation); the other polish-pass files keep the polish build.
     assert './offline-status-runtime.js?build=20261013-fix-sweep-1' in INDEX
-    # mobile-runtime-stability.js rolled with the 20261022-acct-tabs-2 build
+    # mobile-runtime-stability.js rolled with the 20261022-phone-layout-1 build
     # (Books added to the mobile More-sheet Money group).
-    assert './mobile-runtime-stability.js?build=20261022-acct-tabs-2' in INDEX
+    assert './mobile-runtime-stability.js?build=20261022-phone-layout-1' in INDEX
