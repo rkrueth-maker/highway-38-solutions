@@ -141,6 +141,7 @@ button.block{width:100%}
   </div>
 </div>
 
+<div id="h38CoBrand" hidden style="max-width:640px;margin:0 auto 26px;padding:0 16px;text-align:center;font-size:12px;font-weight:600;color:#5b7182"><img src="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6" alt="" width="16" height="16" style="display:inline-block;vertical-align:-3px;margin-right:5px">Powered by <a href="https://highway38solutions.com" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Highway 38 Solutions</a></div>
 <script>
 (function(){
 'use strict';
@@ -148,6 +149,7 @@ var FN_URL='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-customer-p
 var DEFAULT_BUSINESS='10b85a89-5834-436d-95b0-c6ee2eb335ad';
 var params=new URLSearchParams(location.search);
 var businessId=params.get('business')||DEFAULT_BUSINESS;
+var coBrandEl=document.getElementById('h38CoBrand');if(coBrandEl&&businessId!==DEFAULT_BUSINESS)coBrandEl.hidden=false;
 var magicToken=params.get('token')||'';
 var sessionToken=sessionStorage.getItem('h38-portal-session')||'';
 var bundle=null;

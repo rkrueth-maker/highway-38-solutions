@@ -32,5 +32,5 @@ window.NL_CUSTOMER_PORTAL_CONFIG=Object.freeze({
 });
 (function loadHighway38Attribution(){
  if(window.NL_HIGHWAY38_ATTRIBUTION||document.querySelector('script[data-nl-h38-attribution]'))return;
- const script=document.createElement('script');script.src='highway38-attribution.js?build=20260913-highway38-attribution-1';script.async=false;script.dataset.nlH38Attribution='1';document.head.appendChild(script);
+ const script=document.createElement('script');script.src='highway38-attribution.js?build=20261021-cobrand-1';script.async=false;script.dataset.nlH38Attribution='1';document.head.appendChild(script);
 })();
