@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Accountant View — Books Workbook</title>
+<style>
+  :root{--ink:#17251f;--muted:#5b6872;--line:#d9dee2;--brand:#0b3d2e;--accent:#14634a;--bg:#f6f7f5;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 14px 40px}
+  header.biz{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;border-bottom:3px solid var(--brand);padding-bottom:12px}
+  header.biz h1{margin:0;font-size:clamp(20px,4.5vw,30px);line-height:1.15}
+  header.biz .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .badge{display:inline-block;background:var(--brand);color:#fff;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;letter-spacing:.02em}
+  .actions{margin:14px 0 6px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;border:0;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn:hover{background:var(--brand)}
+  .btn[hidden]{display:none}
+  .note{color:var(--muted);font-size:13px;line-height:1.45}
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 10px}
+  nav.tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:600;cursor:pointer}
+  nav.tabs button[aria-selected="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+  section.sheet{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+  section.sheet h2{margin:0 0 4px;font-size:17px}
+  section.sheet .sheet-note{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  @media(max-width:560px){th,td{padding:6px 6px}td:first-child,th:first-child{white-space:normal;min-width:110px}}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{background:#eef2f0;font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tfoot td{font-weight:700;background:#f4f7f5;border-top:2px solid var(--brand)}
+  .empty{color:var(--muted);font-size:14px;padding:12px 2px}
+  .status{padding:26px 4px;color:var(--muted);font-size:15px}
+  .status.error{color:#8c2f1b}
+  footer{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  footer img{display:inline-block;vertical-align:-2px}
+  footer a{color:inherit;font-weight:600;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="biz">
+    <div>
+      <h1 id="bizName">Accountant View</h1>
+      <div class="sub" id="bizSub">Loading workbook…</div>
+    </div>
+    <span class="badge">Read-only</span>
+  </header>
+
+  <div class="actions">
+    <a class="btn" id="downloadBtn" href="#" hidden>⬇ Download workbook (.xlsx)</a>
+    <span class="note" id="genNote"></span>
+  </div>
+
+  <nav class="tabs" id="tabNav" aria-label="Workbook tabs"></nav>
+  <main id="sheets"><p class="status" id="statusMsg">Loading…</p></main>
+
+  <footer id="pageFooter"></footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+var FN='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-accountant-view';
+var H38_KEY='highway38';
+var H38_LOGO='../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6';
+var params=new URLSearchParams(location.search);
+var token=params.get('t')||params.get('token')||'';
+var $=function(id){return document.getElementById(id);};
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var moneyFmt=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
+var intFmt=new Intl.NumberFormat('en-US');
+function fmtCell(col,val){
+  if(val===null||val===undefined||val==='')return '';
+  if(col.type==='money')return moneyFmt.format(Number(val)||0);
+  if(col.type==='int')return intFmt.format(Number(val)||0);
+  return String(val);
+}
+function renderTab(tab){
+  var h='<h2>'+esc(tab.title)+'</h2>';
+  if(tab.note)h+='<p class="sheet-note">'+esc(tab.note)+'</p>';
+  if(!tab.rows.length){
+    return h+'<p class="empty">No records yet — this tab fills in as the business uses its Office.</p>';
+  }
+  var minW=tab.columns.length<=3?'300px':(tab.columns.length<=6?'480px':'640px');
+  h+='<div class="tablewrap"><table style="min-width:'+minW+'"><thead><tr>'+tab.columns.map(function(c){
+    return '<th'+(c.type==='money'||c.type==='int'?' class="num"':'')+'>'+esc(c.label)+'</th>';
+  }).join('')+'</tr></thead><tbody>';
+  tab.rows.forEach(function(row){
+    h+='<tr>'+row.map(function(val,i){
+      var c=tab.columns[i];
+      return '<td'+(c.type==='money'||c.type==='int'?' class="num"':'')+'>'+esc(fmtCell(c,val))+'</td>';
+    }).join('')+'</tr>';
+  });
+  h+='</tbody>';
+  if(tab.totals.some(function(v){return v!==null;})){
+    h+='<tfoot><tr>'+tab.columns.map(function(c,i){
+      if(i===0)return '<td>Total</td>';
+      var v=tab.totals[i];
+      return '<td'+(c.type==='money'||c.type==='int'?' class="num"':'')+'>'+(v===null?'':esc(fmtCell(c,v)))+'</td>';
+    }).join('')+'</tr></tfoot>';
+  }
+  h+='</table></div>';
+  return h;
+}
+function showTab(id){
+  document.querySelectorAll('section.sheet').forEach(function(s){s.hidden=s.id!=='sheet-'+id;});
+  document.querySelectorAll('#tabNav button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false');});
+}
+function fail(msg){
+  $('statusMsg').textContent=msg;
+  $('statusMsg').className='status error';
+  $('bizSub').textContent='';
+}
+function load(){
+  if(!token){fail('This link is incomplete. Ask the business for the full accountant view link.');return;}
+  fetch(FN+'?token='+encodeURIComponent(token),{headers:{'accept':'application/json'}})
+    .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+    .then(function(res){
+      if(!res.ok||!res.j.workbook){
+        fail('This accountant view link is not active. It may have been revoked — ask the business for a new link.');
+        return;
+      }
+      var wb=res.j.workbook;
+      $('bizName').textContent=wb.business.name;
+      document.title=wb.business.name+' — Accountant View';
+      var when=new Date(wb.generatedAt);
+      $('bizSub').textContent='Books workbook · prepared for the business\u2019s accountant';
+      $('genNote').textContent='Figures computed live from the Office records as of '+when.toLocaleString()+'.';
+      var dl=$('downloadBtn');
+      dl.href=FN+'?token='+encodeURIComponent(token)+'&format=xlsx';
+      dl.hidden=false;
+      var nav=$('tabNav');
+      nav.innerHTML=wb.tabs.map(function(t){
+        return '<button type="button" data-tab="'+esc(t.id)+'" aria-selected="false">'+esc(t.title)+'</button>';
+      }).join('');
+      nav.addEventListener('click',function(ev){
+        var b=ev.target.closest('button[data-tab]');
+        if(b)showTab(b.dataset.tab);
+      });
+      $('sheets').innerHTML=wb.tabs.map(function(t){
+        return '<section class="sheet" id="sheet-'+esc(t.id)+'">'+renderTab(t)+'</section>';
+      }).join('');
+      showTab(wb.tabs[0].id);
+      if(wb.business.key!==H38_KEY){
+        $('pageFooter').innerHTML='<span><img src="'+H38_LOGO+'" alt="" width="14" height="14"> Powered by <a href="https://highway38solutions.com/" target="_blank" rel="noopener">Highway 38 Solutions</a></span><span>· Read-only accountant view — figures update live from the business\u2019s records.</span>';
+      }else{
+        $('pageFooter').textContent='Read-only accountant view — figures update live from the business\u2019s records.';
+      }
+    })
+    .catch(function(){fail('The workbook could not be loaded. Check your connection and reload the page.');});
+}
+load();
+})();
+</script>
+</body>
+</html>
