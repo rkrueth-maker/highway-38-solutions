@@ -9073,10 +9073,9 @@ window.H38_ASSISTANT_COMMAND_INPUT=Object.freeze({enabled:true,build:BUILD,run,r
     card.querySelectorAll('[data-drive-action]').forEach(button=>{
       button.addEventListener('click',()=>driveCardAction(button.getAttribute('data-drive-action'),businessId,button));
     });
-    if(businessId && !status){
-      fetchDriveStatus(businessId).then(()=>{if(document.body.contains(card))renderStorageSettingsCard();})
-        .catch(error=>console.warn('Drive status:',error.message || error));
-    }
+    // No status fetch on render: opening Settings must not perform automatic
+    // function work. The card renders from the local snapshot; the server
+    // status is checked only inside driveCardAction (user action).
     return true;
   }
   async function driveCardAction(action,businessId,button){
@@ -9084,6 +9083,8 @@ window.H38_ASSISTANT_COMMAND_INPUT=Object.freeze({enabled:true,build:BUILD,run,r
     const original=button.textContent;
     button.disabled=true;button.textContent='Working…';
     try{
+      // User-triggered status refresh (never automatic on Settings open).
+      try{await fetchDriveStatus(businessId,true);}catch(ignore){}
       if(action==='connect'){
         const {data,error}=await client().functions.invoke('business-drive-connect',{body:{action:'authorize-url',businessId}});
         if(error)throw error;
