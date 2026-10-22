@@ -75,7 +75,7 @@ for(const needle of [
   'captureEvidence: true, useInventory: true, useAssets: true'
 ])includes(auth,needle,`Staff permission model missing ${needle}`);
 for(const needle of [
-  "const OFFICE_PAGES=['today','customers','meetings','work','tasks','quotes','schedule','messages','field','inventory','fleet','money','accounting','payroll','tax','reports','documents','social','ai','settings']",
+  "const OFFICE_PAGES=['today','customers','meetings','work','tasks','quotes','schedule','messages','field','inventory','fleet','money','accounting','payroll','tax','reports','books','documents','social','ai','settings']",
   'function allowedPages()','requirements={customers:'
 ])includes(office,needle,`Canonical Business Office navigation missing ${needle}`);
 
