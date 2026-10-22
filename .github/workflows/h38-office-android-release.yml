@@ -62,8 +62,14 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use the runner Android SDK
+        # setup-android@v3 breaks on current images (it tries to install
+        # the removed legacy 'tools' package); the ubuntu image already
+        # ships a full SDK — just prove it is there.
+        run: |
+          test -n "$ANDROID_HOME"
+          ls "$ANDROID_HOME/cmdline-tools"
+          echo "ANDROID_HOME=$ANDROID_HOME"
 
       - name: Install SDK platform 35 and build tools
         run: |
@@ -146,9 +152,15 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Set up Android SDK
+      - name: Use the runner Android SDK
         if: steps.signing.outputs.blocked == 'false'
-        uses: android-actions/setup-android@v3
+        # setup-android@v3 breaks on current images (it tries to install
+        # the removed legacy 'tools' package); the ubuntu image already
+        # ships a full SDK — just prove it is there.
+        run: |
+          test -n "$ANDROID_HOME"
+          ls "$ANDROID_HOME/cmdline-tools"
+          echo "ANDROID_HOME=$ANDROID_HOME"
 
       - name: Install SDK platform 35 and build tools
         if: steps.signing.outputs.blocked == 'false'
