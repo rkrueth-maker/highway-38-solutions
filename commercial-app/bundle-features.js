@@ -9056,7 +9056,7 @@ window.H38_ASSISTANT_COMMAND_INPUT=Object.freeze({enabled:true,build:BUILD,run,r
       // Connect button. Year dumps are plain downloads from Data & storage.
       card.innerHTML=`<h2>File storage</h2>
       <div class="row"><div><strong>Supabase private storage</strong><small>Private storage inside this business Office, on Highway 38's servers</small></div>${window.pill('Connected','good')}</div>
-      <p class="muted">Your photos, videos and attachments are stored privately on Highway 38's own servers — fast, and under our control — and count toward your included server data (see Data &amp; storage). Records and accounting always stay in the Office.</p>
+      <p class="muted">Your photos, videos and attachments are stored privately on Highway 38's own servers — fast, and under our control — and count toward your own 15 GB of included memory storage (see Data &amp; storage). Records and accounting always stay in the Office.</p>
       <p class="muted">Need a copy of a full year? Export it any time from the Data &amp; storage card — it downloads straight to you.</p>`;
       grid.appendChild(card);
       return true;
@@ -23098,7 +23098,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./office-document-packet.js?build=20260911-office-document-packet-1','h38-office-document-packet',()=>window.H38_OFFICE_DOCUMENT_PACKET);
   loadRuntime('./office-reference-samples.js?build=20260911-office-reference-samples-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
   loadRuntime('./northern-document-polish.js?build=20260912-northern-document-polish-1','h38-northern-document-polish',()=>window.H38_NORTHERN_DOCUMENT_POLISH);
-  loadRuntime('./tenant-attribution.js?build=20261022-limit15-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
+  loadRuntime('./tenant-attribution.js?build=20261022-perperson-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
   loadRuntime('./ai-document-factory.js?build=20260912-ai-document-factory-1','h38-ai-document-factory',()=>window.H38_AI_DOCUMENT_FACTORY);
   loadRuntime('./customer-import-intelligence.js?build=20260912-customer-service-operations-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
   loadRuntime('./customer-list-bottom-runtime.js?build=20260912-customer-list-bottom-2','h38-customer-list-bottom',()=>window.H38_CUSTOMER_LIST_BOTTOM);

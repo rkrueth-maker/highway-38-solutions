@@ -14,7 +14,7 @@
 (function(){
   'use strict';
   if(typeof window==='undefined'||typeof document==='undefined')return;
-  const BUILD='20261022-drive-out-1';
+  const BUILD='20261022-perperson-1';
   const PAGES=['money','accounting','payroll','tax','reports'];
   const $=id=>document.getElementById(id);
   const rows=name=>Array.isArray(window.state?.snapshot?.[name])?window.state.snapshot[name]:[];
