@@ -127,8 +127,11 @@ def test_supabase_config_auth_cache_repair_is_removed():
 
 
 def test_index_build_tags_match_polish_build():
-    for name in ('app-02.js', 'app-19.js', 'offline-mode.js'):
+    for name in ('app-19.js', 'offline-mode.js'):
         assert f'./{name}?build={BUILD}' in LOAD_SOURCE, name
+    # app-02.js rolled with the 2026-10-22 Phase 2 Books spreadsheet build
+    # (renderBooksPage); the other polish-pass files keep the polish build.
+    assert './app-02.js?build=20261022-acct-tabs-1' in LOAD_SOURCE
     # customer-360-authority.js rolled with the 2026-10-13 complete scan
     # (customer-find token matching + no-match state) in the loader map.
     assert './customer-360-authority.js?build=20261013-complete-scan-fixes-1' in LOAD_SOURCE
