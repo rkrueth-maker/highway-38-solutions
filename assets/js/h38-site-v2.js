@@ -113,11 +113,11 @@
     }catch(error){return null;}
   }
   function utmFields(){try{const q=new URLSearchParams(location.search);const out={};['utm_source','utm_medium','utm_campaign'].forEach(key=>{const value=q.get(key);if(value)out[key]=value.slice(0,120);});return out;}catch(error){return{};}}
-  function sendAnalytics(eventName){
+  function sendAnalytics(eventName,pathOverride){
     if(!ANALYTICS_ORIGINS.has(location.origin))return;
     try{
       applyInternalParam();
-      const base={path:location.pathname||'/',ref:document.referrer||'',vid:analyticsVisitorId(),internal:isInternalVisit(),event:eventName};
+      const base={path:pathOverride||location.pathname||'/',ref:document.referrer||'',vid:analyticsVisitorId(),internal:isInternalVisit(),event:eventName};
       const payload=JSON.stringify(eventName==='pageview'?Object.assign(base,utmFields()):base);
       if(navigator.sendBeacon&&navigator.sendBeacon(ANALYTICS_ENDPOINT,new Blob([payload],{type:'text/plain;charset=utf-8'})))return;
       fetch(ANALYTICS_ENDPOINT,{method:'POST',body:payload,headers:{'content-type':'text/plain;charset=utf-8'},keepalive:true,mode:'no-cors'}).catch(()=>{});
@@ -129,7 +129,16 @@
     sendAnalytics('pageview');
   }
   window.h38Track=function(eventName){if(eventName==='request_submitted')sendAnalytics('request_submitted');};
+  // Demo-open beacon: the funnel counts a demo open as a pageview of the demo
+  // entry path. Demo links now go straight to the live Office app, so fire the
+  // equivalent pageview beacon on click (sendBeacon survives the navigation).
+  function wireDemoOpenBeacon(){
+    document.addEventListener('click',event=>{
+      const link=event.target&&event.target.closest?event.target.closest('a[href*="businessKey=demo"]'):null;
+      if(link)sendAnalytics('pageview','/business-office-review-demo.html');
+    },true);
+  }
   function schedulePageview(){if('requestIdleCallback' in window)window.requestIdleCallback(()=>trackPageview(),{timeout:2500});else setTimeout(trackPageview,0);}
-  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();mountDemoVideos();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
+  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();mountDemoVideos();wireDemoOpenBeacon();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
