@@ -122,7 +122,15 @@
       './northern-bouncie-fleet.js?build=20261013-bouncie-reminder-1',
       './gps-dispatch.js?build=20261004-dispatch-2',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
+      './mileage.js?build=20261022-mileage-1',
       './plow-flow.js?build=20261011-plow-flow-1',
+    ];
+    // Mileage (2026-10-22): detection has to start when the app opens, and
+    // Today is the landing workspace — so the module also loads with the
+    // Today group. It stays dark unless the tenant pilot switch and the
+    // Owner Controls feature toggle are both on (see mileage.js).
+    const PAGE_TODAY = [
+      './mileage.js?build=20261022-mileage-1',
     ];
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
@@ -205,6 +213,7 @@
   // URLs must match the ?build= params the files ship with.
   // Only list scripts that are SAFE to lazy-load (page-specific, no startup dependencies).
   const PAGE_SCRIPTS = {
+    'today': PAGE_TODAY,
     'field': FIELD_AND_MEASURE_SCRIPTS,
     'measure': FIELD_AND_MEASURE_SCRIPTS,
     'quotes': PAGE_QUOTES,
