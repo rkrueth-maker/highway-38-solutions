@@ -176,6 +176,7 @@
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
       './reports-section.js?build=20261022-drive-out-1',
+      './accountant-share.js?build=20261022-acct-view-1',
       './money-agent.js?build=20261022-drive-out-1',
     ];
     const PAGE_DOCUMENTS = [
