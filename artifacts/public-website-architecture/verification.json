@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T02:36:46.347Z",
+  "generatedAt": "2026-10-22T02:40:37.320Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -78,7 +78,7 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "12237 bytes"
+      "detail": "12927 bytes"
     },
     {
       "name": "canonical shell CSS budget",
