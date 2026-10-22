@@ -9065,9 +9065,9 @@ window.H38_ASSISTANT_COMMAND_INPUT=Object.freeze({enabled:true,build:BUILD,run,r
     inner+=driveQueryNotice();
     if(!drive){
       inner+=`<div class="row"><div><strong>Supabase private storage</strong><small>Default private storage inside this business Office</small></div>${window.pill('Connected','good')}</div>
-      <p class="muted">Your photos, videos and attachments are stored privately in Highway 38's storage and count toward your 5 GB of included server data. Records and accounting always stay in the Office either way.</p>`;
+      <p class="muted">Your photos, videos and attachments are stored privately in Highway 38's storage and count toward your 15 GB of included server data. Records and accounting always stay in the Office either way.</p>`;
       if(configured){
-        inner+=`<div class="notice">Own your storage: connect this business's Google Drive and new photos, walkthrough videos and attachments are stored in your Drive instead — they stop counting toward your 5 GB. Highway 38 sets this up with you; the connection itself is approved by the account owner here.</div>
+        inner+=`<div class="notice">Own your storage: connect this business's Google Drive and new photos, walkthrough videos and attachments are stored in your Drive instead — they stop counting toward your 15 GB. Highway 38 sets this up with you; the connection itself is approved by the account owner here.</div>
         <div class="row"><button type="button" class="btn" data-drive-action="connect">Connect your Google Drive</button></div>`;
       }else{
         inner+=`<div class="notice">Own-it Drive storage is being finished by Highway 38 for this business. Ask us to complete the setup — your files keep using private Office storage meanwhile.</div>`;
@@ -9076,7 +9076,7 @@ window.H38_ASSISTANT_COMMAND_INPUT=Object.freeze({enabled:true,build:BUILD,run,r
       const count=status?Number(status.externalFileCount || 0):0;
       const bytes=status?Number(status.externalBytes || 0):0;
       inner+=`<div class="row"><div><strong>Your Google Drive</strong><small>${email || 'Connected account'}</small></div>${window.pill('Connected','good')}</div>
-      <p class="muted">${count} file${count===1?'':'s'} (${fmtBytes(bytes)}) stored in your Drive. Files in your Drive do not count toward your 5 GB of included server data. Records and accounting stay in the Office.</p>
+      <p class="muted">${count} file${count===1?'':'s'} (${fmtBytes(bytes)}) stored in your Drive. Files in your Drive do not count toward your 15 GB of included server data. Records and accounting stay in the Office.</p>
       <div class="row"><button type="button" class="btn" data-drive-action="connect">Reconnect</button><button type="button" class="btn" data-drive-action="disconnect">Disconnect</button></div>
       <p class="muted">Disconnecting returns new files to Office storage. Files already in your Drive stay there and remain yours.</p>`;
     }else if(connectionStatus==='error'){
@@ -23098,7 +23098,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./office-document-packet.js?build=20260911-office-document-packet-1','h38-office-document-packet',()=>window.H38_OFFICE_DOCUMENT_PACKET);
   loadRuntime('./office-reference-samples.js?build=20260911-office-reference-samples-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
   loadRuntime('./northern-document-polish.js?build=20260912-northern-document-polish-1','h38-northern-document-polish',()=>window.H38_NORTHERN_DOCUMENT_POLISH);
-  loadRuntime('./tenant-attribution.js?build=20261022-drive-out-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
+  loadRuntime('./tenant-attribution.js?build=20261022-limit15-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
   loadRuntime('./ai-document-factory.js?build=20260912-ai-document-factory-1','h38-ai-document-factory',()=>window.H38_AI_DOCUMENT_FACTORY);
   loadRuntime('./customer-import-intelligence.js?build=20260912-customer-service-operations-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
   loadRuntime('./customer-list-bottom-runtime.js?build=20260912-customer-list-bottom-2','h38-customer-list-bottom',()=>window.H38_CUSTOMER_LIST_BOTTOM);
