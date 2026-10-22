@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T02:40:36.816Z",
+  "generatedAt": "2026-10-22T02:52:42.641Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
@@ -10,9 +10,12 @@
     "business-office-review-demo.html",
     "business-systems.html",
     "contact.html",
+    "crew.html",
     "custom-digital-services.html",
-    "demo-videos/README.md",
+    "divisions.html",
+    "faq.html",
     "implementation.html",
+    "included.html",
     "index.html",
     "partner-apply.html",
     "pricing.html",
@@ -24,9 +27,10 @@
     "sign-in.html",
     "software.html",
     "solutions.html",
-    "start-request.html"
+    "start-request.html",
+    "tips.html"
   ],
-  "fileCount": 21,
+  "fileCount": 25,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,

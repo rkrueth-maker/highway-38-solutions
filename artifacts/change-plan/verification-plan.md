@@ -1,6 +1,6 @@
 # Scope-aware verification plan
 
-- Files changed: 21
+- Files changed: 25
 - Scopes: publicWebsite, performanceReliability
 - Deployment workflows: .github/workflows/pages-branch-fallback.yml
 
