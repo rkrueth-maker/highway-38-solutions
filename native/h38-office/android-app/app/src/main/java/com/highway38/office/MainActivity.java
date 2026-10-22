@@ -28,6 +28,10 @@ import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,11 +76,13 @@ public final class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(243, 246, 248));
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         root.addView(webView, new FrameLayout.LayoutParams(-1, -1));
 
         buildWizardViews();
         buildSignInBar();
         setContentView(root);
+        applySafeAreaInsets();
 
         configureWebView();
         webView.loadUrl(OFFICE_URL);
@@ -85,6 +91,34 @@ public final class MainActivity extends Activity {
             showWizard(0);
         } else {
             TrackingController.reevaluate(this);
+        }
+    }
+
+    /**
+     * Android 15 (targetSdk 35) forces edge-to-edge: the window draws under
+     * the status bar and the system navigation bar, and the legacy bar-color
+     * calls in onCreate are ignored there. Pad the whole shell (WebView,
+     * wizard, sign-in bar) by the system-bar + cutout insets and consume
+     * them, so web content never slides under the clock or the nav buttons.
+     * Because the insets are consumed at the root, the page's own
+     * env(safe-area-inset-*) reads zero inside the app — no double padding;
+     * the installed-PWA path still uses the web layer's env() padding.
+     */
+    private void applySafeAreaInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+        if (Build.VERSION.SDK_INT >= 35) {
+            // The inset strips show the shell's light background; use dark
+            // system icons there so the clock and nav buttons stay readable.
+            WindowInsetsControllerCompat controller =
+                    new WindowInsetsControllerCompat(getWindow(), root);
+            controller.setAppearanceLightStatusBars(true);
+            controller.setAppearanceLightNavigationBars(true);
         }
     }
 
@@ -120,6 +154,12 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(true);
+        // The page's viewport meta governs scale, and a raised system
+        // font-size setting must not inflate the app's type past its
+        // designed scale.
+        settings.setTextZoom(100);
+        settings.setLoadWithOverviewMode(false);
+        settings.setUseWideViewPort(false);
         settings.setUserAgentString(settings.getUserAgentString() + " H38OfficeAndroid/" + BuildConfig.VERSION_NAME);
 
         CookieManager cookies = CookieManager.getInstance();
