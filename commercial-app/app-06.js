@@ -176,20 +176,40 @@ function h38TierTotal(tier){
 function h38ToggleTierMode(on){
   const q=state.quote||(state.quote={});
   if(!!q.tierMode===!!on)return;
+  // Never gate this toggle on the native confirm() dialog: it is suppressed
+  // or auto-dismissed in the installed app/WebView and in embedded contexts,
+  // which made the toggle silently dead-end whenever the quote had line
+  // items (the empty-quote path never called confirm, so it worked). The
+  // conversion now always runs and always reports what happened via toast.
   if(on){
-    const tiers=h38DefaultTiers();
-    if(Array.isArray(q.lines)&&q.lines.length){
-      if(!confirm('Switch to Good / Better / Best? Your current line items move into the Better (recommended) tier. You can then trim Good and expand Best.'))return;
-      tiers[1].items=q.lines.map(l=>({...l,quoteLineId:newId('QUOTE-LINE')}));
+    const lines=Array.isArray(q.lines)?q.lines:[];
+    const existing=(Array.isArray(q.tiers)&&q.tiers.length===3)?q.tiers:null;
+    const outerTierItems=existing?(((existing[0]&&existing[0].items)||[]).length+((existing[2]&&existing[2].items)||[]).length):0;
+    const linesUnchanged=!!existing&&typeof q.tierOffLinesSnapshot==='string'&&q.tierOffLinesSnapshot===JSON.stringify(lines);
+    if(existing&&outerTierItems>0&&linesUnchanged){
+      // Owner dipped into single-price mode and back without editing the
+      // lines: restore the tiers exactly as they were left, do not rebuild.
+      q.tierMode=true;
+      toast('Tier mode on — your Good / Better / Best options are back exactly as you left them.');
+    }else{
+      const tiers=h38DefaultTiers();
+      const seed=lines.length?lines:((existing&&existing[1]&&Array.isArray(existing[1].items))?existing[1].items:[]);
+      if(seed.length)tiers[1].items=seed.map(l=>({...l,quoteLineId:newId('QUOTE-LINE')}));
+      q.tierMode=true;q.tiers=tiers;
+      toast(seed.length?('Tier mode on. Your '+seed.length+' line item'+(seed.length===1?'':'s')+' moved into Better (recommended) — trim Good, expand Best.'):'Tier mode on. Better is the recommended tier — trim Good, expand Best.');
     }
-    q.tierMode=true;q.tiers=tiers;
-    toast('Tier mode on. Better is the recommended tier — trim Good, expand Best.');
+    q.tierOffLinesSnapshot=null;
   }else{
-    const better=(q.tiers&&q.tiers[1]&&Array.isArray(q.tiers[1].items))?q.tiers[1].items:[];
-    if(!confirm('Switch back to a single price? The Better tier line items become the single-price quote.'))return;
-    q.lines=better.map(l=>({...l}));
-    q.tierMode=false;q.tiers=null;
-    toast('Single-price mode. Better tier items are now the quote lines.');
+    const tiers=h38EnsureTiers();
+    const better=tiers[1]||{name:'Better',items:[]};
+    const source=(Array.isArray(better.items)&&better.items.length)?better:(tiers.find(t=>t&&Array.isArray(t.items)&&t.items.length)||better);
+    q.lines=(source.items||[]).map(l=>({...l}));
+    q.tierMode=false;
+    // Keep q.tiers (do not null it): switching back restores the options
+    // instead of discarding Good/Best work. Saving in single-price mode
+    // still writes tiers:null to the record, exactly as before.
+    q.tierOffLinesSnapshot=JSON.stringify(q.lines);
+    toast('Single-price mode. The '+source.name+' option is now the quote. Your Good / Better / Best options are kept — switch back any time before saving to restore them.');
   }
   q.ownerEdited=true;q.ownerEditedAt=new Date().toISOString();
   renderQuotes();
