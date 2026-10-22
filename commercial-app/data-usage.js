@@ -1,7 +1,7 @@
-/* H38 Data & Storage — per-business server-data usage (5 GB included).
+/* H38 Data & Storage — per-business server-data usage (15 GB included).
  *
  * Settings card for business owners/administrators:
- *  - "Data used: X of 5 GB included" with a photos / videos / other files /
+ *  - "Data used: X of 15 GB included" with a photos / videos / other files /
  *    records split (snapshot from public.business_data_usage, metered daily
  *    by compute_business_data_usage; RLS limits rows to the business's
  *    owners/admins, plus the H38 platform owner).
@@ -17,7 +17,7 @@
 (function(){
 'use strict';
 
-var BUILD='20261022-drive-out-1';
+var BUILD='20261022-limit15-1';
 var H38_KEY='highway38';
 
 function text(v){return String(v==null?'':v).trim();}
@@ -114,7 +114,7 @@ function dumpForYear(y){
 function usageHtml(){
   var u=S.usage;
   if(!u) return '<p class="muted">No usage snapshot yet — the meter runs daily. Check back tomorrow.</p>';
-  var limit=Number(u.limit_bytes)||5368709120;
+  var limit=Number(u.limit_bytes)||16106127360;
   var total=Number(u.total_bytes)||0;
   var pct=Math.min(100, Number(u.pct_of_limit)||0);
   var barColor=u.threshold_state==='over'?'#c0392b':(u.threshold_state==='warning'?'#d4a017':'#2e7d32');
@@ -143,7 +143,7 @@ function usageHtml(){
 
 function dumpHtml(){
   var h='<h3 style="margin-top:14px">Free up space — export a year</h3>';
-  h+='<p class="muted small">Download a complete copy of one year — every record plus your files — as a zip archive. The export itself deletes nothing. After your export is ready you can purge that year\'s old files and operational records from the server; invoices, payments, accounting, payroll, tax records and customer records always stay.</p>';
+  h+='<p class="muted small">Download a complete copy of one year — every record plus your files — as a zip archive. The export itself deletes nothing. After your export is ready you can purge that year\'s old files and operational records from the server; invoices, payments, accounting, payroll, tax records and customer records always stay. Photos you have marked as gallery / examples of your work also stay on the server.</p>';
   h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">'
     +'<label>Year <select id="h38-dump-year">'+S.years.map(function(y){
         return '<option value="'+y+'"'+(Number(S.selectedYear)===y?' selected':'')+'>'+y+'</option>';
@@ -174,7 +174,7 @@ function dumpHtml(){
       if(S.purgeArmYear===Number(dump.dump_year)){
         h+='<div style="border-top:1px solid #ddd;margin-top:10px;padding-top:10px">'
           +'<p><strong>Purge '+esc(dump.dump_year)+' from the server?</strong></p>'
-          +'<p class="muted small">Purged data leaves the server. Your downloaded export is your copy — keep it safe. Invoices, payments, accounting, payroll, tax records and customer records always stay on the server. What gets removed: old job photos, site-scan captures, attachments and old operational records for '+esc(dump.dump_year)+'.</p>'
+          +'<p class="muted small">Purged data leaves the server. Your downloaded export is your copy — keep it safe. Invoices, payments, accounting, payroll, tax records and customer records always stay on the server. Photos you have marked as gallery / examples of your work are never removed. What gets removed: old job photos, site-scan captures, attachments and old operational records for '+esc(dump.dump_year)+'.</p>'
           +'<label style="display:block;margin:8px 0"><input type="checkbox" id="h38-purge-ack"> I have downloaded my copy of the '+esc(dump.dump_year)+' export.</label>'
           +'<button type="button" class="btn" data-act="purge-confirm" '+(S.busy?'disabled':'')+'>'+(S.busy==='purge'?'Purging…':'Yes, purge '+esc(dump.dump_year))+'</button> '
           +'<button type="button" class="btn" data-act="purge-cancel">Cancel</button>'
@@ -282,7 +282,7 @@ function render(){
   card.className='card span12';
   card.id='h38-data-usage-card';
   card.innerHTML='<h2>💾 Data &amp; storage</h2>'
-    +'<p class="muted small">Your Office includes 5 GB of server data — records plus photos, videos and files. Extra storage is quoted, never charged automatically, and nothing is ever cut off.</p>'
+    +'<p class="muted small">Your Office includes 15 GB of server data — records plus photos, videos and files. Extra storage is $5 per 5 GB per month, quoted to you first — never charged automatically, and nothing is ever cut off.</p>'
     +'<div id="h38-data-usage-body"><p class="muted">Loading data usage…</p></div>';
   var oc=document.getElementById('ownerControlsSection');
   if(oc&&oc.closest('section')) oc.closest('section').after(card);
