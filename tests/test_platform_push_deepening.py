@@ -119,6 +119,7 @@ def test_extensions_load_through_existing_live_first_startup_without_cache_bump(
     assert "const CACHE_NAME='h38-business-office-20261022-acct-view-1'" in SERVICE_WORKER
 
 
+
 def test_ai_team_loader_also_knows_the_new_platform_slices():
     assert "const PLATFORM_BUILD='20261013-scout-alerts-office-1'" in OWNER_POLISH
     assert "const PLATFORM_DEEPEN_BUILD='20261013-icon-session-bands-1'" in OWNER_POLISH

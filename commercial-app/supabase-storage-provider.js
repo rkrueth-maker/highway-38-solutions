@@ -516,7 +516,7 @@
       // Connect button. Year dumps are plain downloads from Data & storage.
       card.innerHTML=`<h2>File storage</h2>
       <div class="row"><div><strong>Supabase private storage</strong><small>Private storage inside this business Office, on Highway 38's servers</small></div>${window.pill('Connected','good')}</div>
-      <p class="muted">Your photos, videos and attachments are stored privately on Highway 38's own servers — fast, and under our control — and count toward your included server data (see Data &amp; storage). Records and accounting always stay in the Office.</p>
+      <p class="muted">Your photos, videos and attachments are stored privately on Highway 38's own servers — fast, and under our control — and count toward your own 15 GB of included memory storage (see Data &amp; storage). Records and accounting always stay in the Office.</p>
       <p class="muted">Need a copy of a full year? Export it any time from the Data &amp; storage card — it downloads straight to you.</p>`;
       grid.appendChild(card);
       return true;
