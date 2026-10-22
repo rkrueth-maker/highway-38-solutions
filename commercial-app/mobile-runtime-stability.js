@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261022-phone-layout-1';
+const BUILD='20261022-phone-layout-2';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
@@ -73,6 +73,7 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
  .topbar .brand>div{min-width:0}
  .topbar .brand strong{display:block;max-width:118px;font-size:.82rem;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .topbar .brand small{display:none}
+ .topbar .h38-powered-by-credit{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
  .topbar .top-actions{flex:0 0 auto;flex-wrap:nowrap!important;gap:4px!important}
  .topbar .icon-button,.topbar .ai-launcher{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;border-radius:11px!important}
  .business-bar:empty{display:none}.business-bar{position:relative!important;top:auto!important;z-index:1500;padding:5px 10px!important}
