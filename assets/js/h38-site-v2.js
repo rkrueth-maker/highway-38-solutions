@@ -3,31 +3,33 @@
   if(window.H38_PUBLIC_SITE&&window.H38_PUBLIC_SITE.mounted)return;
   const ROOT_PAGE=!/\/businesses\//.test(location.pathname);
   if(!ROOT_PAGE)return;
-  const VERSION='2026-10-08-website-queue-v1';
+  const VERSION='2026-10-21-analytics-split-v1';
   const ANALYTICS_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-site-analytics';
   // Mirror of the endpoint's origin allow-list (supabase/functions/h38-site-analytics):
   // only send beacons from origins the endpoint accepts, so local mirrors and
   // test rigs on other ports never fire a request that is rejected with 403.
   const ANALYTICS_ORIGINS=new Set(['https://highway38solutions.com','https://www.highway38solutions.com','https://rkrueth-maker.github.io','http://localhost:8000','http://127.0.0.1:8000']);
   const LOGO='assets/highway38-logo.png?v=20260720-exact-0cbc4514';
-  const OFFICE_DEMO='business-office-review-demo.html';
+  const OFFICE_DEMO='https://highway38solutions.com/commercial-app/index.html?businessKey=demo';
   const registry={
     version:VERSION,
     logo:LOGO,
     navigation:[
       {href:'business-in-a-box.html',label:'Business in a Box'},
       {href:'solutions.html',label:'What We Do'},
+      {href:'divisions.html',label:'Divisions'},
       {href:'pricing.html',label:'Pricing'},
       {href:OFFICE_DEMO,label:'Office Demo'},
       {href:'quote-builder.html#examples',label:'Project Examples'},
+      {href:'crew.html',label:'Meet the Crew'},
       {href:'about.html',label:'About'},
       {href:'portal.html',label:'Owner Access'},
       {href:'start-request.html',label:'Start a Project',cta:true}
     ],
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
-      {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
-      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
+      {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Divisions','divisions.html'],['Meet the Crew','crew.html'],['Tips & Facts','tips.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
+      {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['FAQ','faq.html'],["What's Included & Coming Soon",'included.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
       {heading:'Call or Text',links:[['(218) 212-5299','tel:+12182125299']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
@@ -38,7 +40,7 @@
       'business-in-a-box-pricing.html':'pricing.html'
     },
     helperPolicy:{approvedSiteInformationOnly:true,storesInput:false,sendsQuestionsToH38Helper:true,privateDataAccess:false,externalActions:false},
-    pageviewPolicy:{firstPartyCounts:true,cookies:false,storesRawIp:false,crossDayTracking:false,sendsToH38Analytics:true},
+    pageviewPolicy:{firstPartyCounts:true,cookies:'first-party-only',storesRawIp:false,crossDayTracking:true,sendsToH38Analytics:true,thirdPartyTrackers:false},
     imagePolicy:{changeSource:false,insertImages:false,fallbackImages:false,optimizeAttributes:true}
   };
   window.H38_PUBLIC_SITE=registry;
@@ -46,7 +48,8 @@
   function ensureStyles(){if(document.querySelector('link[data-h38-site-shell]'))return;const link=document.createElement('link');link.rel='stylesheet';link.href='assets/css/h38-site-v2.css?v='+VERSION;link.dataset.h38SiteShell='1';document.head.appendChild(link);}
   function ensureHelper(){if(document.querySelector('script[data-h38-public-helper]'))return;const script=document.createElement('script');script.src=new URL('assets/js/h38-helper.js?v='+VERSION,document.baseURI).toString();script.defer=true;script.dataset.h38PublicHelper='1';document.head.appendChild(script);}
   function brand(){return `<a class="pi-brand" href="index.html"><img src="${LOGO}" alt="Highway 38 Solutions" width="95" height="78"><span>HIGHWAY 38 SOLUTIONS</span></a>`;}
-  function navMarkup(){const page=currentPage();const links=registry.navigation.map(item=>{const target=item.href.split('#')[0];const active=page===target||(page==='index.html'&&target==='index.html');return `<a${item.cta?' class="pi-btn primary"':''} href="${item.href}"${active?' aria-current="page"':''}>${item.label}</a>`;}).join('');return `${brand()}<button class="pi-menu" type="button" aria-expanded="false" aria-controls="h38-main-navigation">Menu</button><nav class="pi-links" id="h38-main-navigation" aria-label="Main navigation">${links}</nav>`;}
+  function topbarMarkup(){return `<div class="pi-topbar"><span class="pi-topbar-area">Grand Rapids, MN — serving northern Minnesota</span><a class="pi-topbar-phone" href="tel:+12182125299">Call or text (218) 212-5299</a></div>`;}
+  function navMarkup(){const page=currentPage();const links=registry.navigation.map(item=>{const target=item.href.split('#')[0];const active=page===target||(page==='index.html'&&target==='index.html');return `<a${item.cta?' class="pi-btn primary"':''} href="${item.href}"${active?' aria-current="page"':''}>${item.label}</a>`;}).join('');return `${topbarMarkup()}${brand()}<button class="pi-menu" type="button" aria-expanded="false" aria-controls="h38-main-navigation">Menu</button><nav class="pi-links" id="h38-main-navigation" aria-label="Main navigation">${links}</nav>`;}
   function footerMarkup(){return `<div class="pi-footer-grid"><div class="pi-logo-lock"><img src="${LOGO}" alt="Highway 38 Solutions" width="95" height="78"><p>Plans, systems and guided project delivery.</p></div>${registry.footer.map(group=>`<div><h4>${group.heading}</h4>${group.links.map(link=>`<a href="${link[1]}"${link[1]==='#h38-helper'?' data-h38-helper-open':''}>${link[0]}</a>`).join('')}</div>`).join('')}</div>`;}
   function mountHeader(){const header=document.querySelector('header.pi-nav,nav.site-nav,header.site-header');if(!header)return;if(header.matches('nav')){const replacement=document.createElement('header');replacement.className='pi-nav';header.replaceWith(replacement);replacement.innerHTML=navMarkup();}else{header.className='pi-nav';header.innerHTML=navMarkup();}}
   function mountFooter(){const footer=document.querySelector('footer.pi-footer,footer.site-footer,footer.footer');if(!footer)return;footer.className='pi-footer';footer.innerHTML=footerMarkup();}
@@ -76,23 +79,66 @@
       const actionRows=[...document.querySelectorAll('main .pi-actions')];
       const finalActions=actionRows[actionRows.length-1];
       if(finalActions&&!finalActions.querySelector('[data-public-office-demo-link]')){
-        finalActions.appendChild(makeOfficeDemoLink('Explore Read-Only Demo','pi-btn secondary'));
+        finalActions.appendChild(makeOfficeDemoLink('Explore the Live Demo','pi-btn secondary'));
       }
     }
   }
+  function mountDemoVideos(){
+    document.querySelectorAll('[data-demo-video]').forEach(slot=>{
+      const src=slot.getAttribute('data-demo-video');
+      if(!src)return;
+      fetch(src,{method:'HEAD'}).then(res=>{
+        if(!res.ok)return;
+        const video=document.createElement('video');
+        video.controls=true;video.preload='metadata';video.src=src;
+        video.style.width='100%';video.style.borderRadius='12px';
+        video.setAttribute('aria-label',slot.getAttribute('data-demo-video-label')||'Demo walkthrough video');
+        slot.textContent='';slot.appendChild(video);
+      }).catch(()=>{});
+    });
+  }
   function optimizeImages(){const images=[...document.querySelectorAll('main img,article img,section img,footer img,header img')];let primaryAssigned=false;images.forEach(img=>{const src=img.getAttribute('src')||'';img.decoding='async';if(src.startsWith('assets/highway38-logo.png')){img.loading='eager';img.addEventListener('error',()=>{img.hidden=true;},{once:true});return;}const hero=!!img.closest('.pi-hero-media,.workflow-hero-panel,.hero-media,.hero');if(hero&&!primaryAssigned){img.loading='eager';img.fetchPriority='high';primaryAssigned=true;}else img.loading='lazy';});}
   function ensureSkipLink(){const main=document.querySelector('main');if(!main)return;if(!main.id)main.id='main';if(document.querySelector('.skip-link'))return;const link=document.createElement('a');link.className='skip-link';link.href='#main';link.textContent='Skip to main content';document.body.insertBefore(link,document.body.firstChild);}
-  let pageviewSent=false;
-  function trackPageview(){
-    if(pageviewSent)return;pageviewSent=true;
+  const INTERNAL_KEY='h38_internal';
+  function applyInternalParam(){try{const q=new URLSearchParams(location.search);if(q.get('h38_internal')==='1')localStorage.setItem(INTERNAL_KEY,'1');else if(q.get('h38_internal')==='0')localStorage.removeItem(INTERNAL_KEY);}catch(error){}}
+  function isInternalVisit(){try{return localStorage.getItem(INTERNAL_KEY)==='1';}catch(error){return false;}}
+  function analyticsVisitorId(){
+    try{
+      const match=document.cookie.match(/(?:^|;\s*)h38_vid=([A-Za-z0-9-]{8,64})/);
+      if(match)return match[1];
+      const id=(window.crypto&&typeof crypto.randomUUID==='function')?crypto.randomUUID():('v'+Date.now().toString(36)+Math.random().toString(36).slice(2,14));
+      const onOurDomain=/highway38solutions\.com$/.test(location.hostname);
+      document.cookie='h38_vid='+id+';path=/;max-age=31536000;SameSite=Lax'+(location.protocol==='https:'?';Secure':'')+(onOurDomain?';domain=highway38solutions.com':'');
+      return id;
+    }catch(error){return null;}
+  }
+  function utmFields(){try{const q=new URLSearchParams(location.search);const out={};['utm_source','utm_medium','utm_campaign'].forEach(key=>{const value=q.get(key);if(value)out[key]=value.slice(0,120);});return out;}catch(error){return{};}}
+  function sendAnalytics(eventName,pathOverride){
     if(!ANALYTICS_ORIGINS.has(location.origin))return;
     try{
-      const payload=JSON.stringify({path:location.pathname||'/',ref:document.referrer||''});
+      applyInternalParam();
+      const base={path:pathOverride||location.pathname||'/',ref:document.referrer||'',vid:analyticsVisitorId(),internal:isInternalVisit(),event:eventName};
+      const payload=JSON.stringify(eventName==='pageview'?Object.assign(base,utmFields()):base);
       if(navigator.sendBeacon&&navigator.sendBeacon(ANALYTICS_ENDPOINT,new Blob([payload],{type:'text/plain;charset=utf-8'})))return;
       fetch(ANALYTICS_ENDPOINT,{method:'POST',body:payload,headers:{'content-type':'text/plain;charset=utf-8'},keepalive:true,mode:'no-cors'}).catch(()=>{});
     }catch(error){/* Counting must never break the page. */}
   }
+  let pageviewSent=false;
+  function trackPageview(){
+    if(pageviewSent)return;pageviewSent=true;
+    sendAnalytics('pageview');
+  }
+  window.h38Track=function(eventName){if(eventName==='request_submitted')sendAnalytics('request_submitted');};
+  // Demo-open beacon: the funnel counts a demo open as a pageview of the demo
+  // entry path. Demo links now go straight to the live Office app, so fire the
+  // equivalent pageview beacon on click (sendBeacon survives the navigation).
+  function wireDemoOpenBeacon(){
+    document.addEventListener('click',event=>{
+      const link=event.target&&event.target.closest?event.target.closest('a[href*="businessKey=demo"]'):null;
+      if(link)sendAnalytics('pageview','/business-office-review-demo.html');
+    },true);
+  }
   function schedulePageview(){if('requestIdleCallback' in window)window.requestIdleCallback(()=>trackPageview(),{timeout:2500});else setTimeout(trackPageview,0);}
-  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
+  function mount(){if(registry.mounted)return;ensureStyles();ensureHelper();ensureSkipLink();mountHeader();mountFooter();wireMenu();routeExampleLinks();routeOwnerLinks();mountOfficeDemoLinks();mountDemoVideos();wireDemoOpenBeacon();optimizeImages();registry.mounted=true;document.documentElement.dataset.h38SiteVersion=VERSION;schedulePageview();}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();

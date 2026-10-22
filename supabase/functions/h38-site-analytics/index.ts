@@ -3,20 +3,29 @@
 
 // First-party traffic counting for the public Highway 38 website.
 // The public shell (assets/js/h38-site-v2.js) sends one beacon per page
-// load: { path, ref }. This function validates the hit, counts it in
-// public.site_pageviews with the service role, and returns 204.
+// load: { path, ref, vid, internal, event, utm_* }. This function
+// validates the hit, counts it in public.site_pageviews with the service
+// role, and returns 204.
 //
-// Privacy by design: no cookies are set, no raw IP address is ever stored,
-// and the only visitor identifier is a salted SHA-256 of IP + user agent
-// that includes the UTC day, so it rotates daily and cannot follow a
-// visitor across days. Referrers are stored as host names only (query
-// strings are stripped). Known bot / crawler user agents are accepted
-// with 204 but never recorded.
+// Privacy by design: no raw IP address is ever stored. Two identifiers:
+//  - visitor_day_hash: salted SHA-256 of IP + user agent + UTC day; it
+//    rotates daily and cannot follow a visitor across days.
+//  - visitor_id: a random ID the site's own first-party cookie carries
+//    (no name, no third parties, no ad tech). It lets our own report tell
+//    new from returning visitors and count unique visitors. It is stored
+//    in public.site_visitors with first-touch source data (referrer host
+//    and UTM parameters from the first pageview only).
+// Visits from our own browsers carry internal=true (the h38_internal
+// marker, stored only on our devices) and are counted separately, so the
+// report leads with real visitors. Referrers are stored as host names
+// only (query strings stripped). Known bot / crawler user agents are
+// accepted with 204 but never recorded. Country/region come from the
+// platform's geo headers when present — never from a stored IP.
 //
 // Limits: origin allow-list, payload size cap, path shape validation, and
 // a per-visitor rate limit of 60 recorded hits per minute.
 
-const BUILD = "20261007-site-analytics-1";
+const BUILD = "20261021-site-analytics-2";
 const ALLOWED_ORIGINS = new Set([
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
@@ -30,7 +39,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 // role key (also server-only) so hashes are never computable off-server.
 const HASH_SALT = Deno.env.get("H38_SITE_ANALYTICS_SALT") || SUPABASE_SERVICE_ROLE_KEY;
 const RATE_LIMIT_PER_MINUTE = 60;
-const MAX_BODY_BYTES = 1024;
+const MAX_BODY_BYTES = 2048;
 const MAX_PATH_LENGTH = 300;
 const BOT_UA_MARKERS = [
   "bot", "crawler", "spider", "headless", "curl", "wget", "python-requests",
@@ -66,7 +75,7 @@ function json(request: Request, status: number, payload: unknown): Response {
 function restHeaders(prefer: string): HeadersInit {
   return {
     apikey: SUPABASE_SERVICE_ROLE_KEY,
-    authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    authorization: "Bearer " + SUPABASE_SERVICE_ROLE_KEY,
     "content-type": "application/json",
     prefer: prefer,
   };
@@ -115,6 +124,25 @@ function referrerHost(value: unknown): string | null {
     return null;
   }
 }
+function validVisitorId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const vid = value.trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9-]{7,63}$/.test(vid)) return null;
+  return vid;
+}
+function cleanShort(value: unknown, max = 120): string | null {
+  if (typeof value !== "string") return null;
+  const out = value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max);
+  return out ? out : null;
+}
+function geoCountry(request: Request): string | null {
+  const raw = String(request.headers.get("cf-ipcountry") || "").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(raw) || raw === "XX" || raw === "T1") return null;
+  return raw;
+}
+function geoRegion(request: Request): string | null {
+  return cleanShort(request.headers.get("cf-region"), 64);
+}
 async function recentCount(visitorDayHash: string): Promise<number> {
   const since = new Date(Date.now() - 60_000).toISOString();
   const params = new URLSearchParams();
@@ -131,7 +159,18 @@ async function recentCount(visitorDayHash: string): Promise<number> {
   const total = Number(range.split("/")[1]);
   return Number.isFinite(total) ? total : 0;
 }
-async function insertPageview(row: { page_path: string; referrer_host: string | null; visitor_day_hash: string | null; device_class: string }): Promise<void> {
+interface PageviewRow {
+  page_path: string;
+  referrer_host: string | null;
+  visitor_day_hash: string | null;
+  device_class: string;
+  is_internal: boolean;
+  visitor_id: string | null;
+  event: string;
+  country: string | null;
+  region: string | null;
+}
+async function insertPageview(row: PageviewRow): Promise<void> {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/site_pageviews`, {
     method: "POST",
     headers: restHeaders("return=minimal"),
@@ -139,6 +178,48 @@ async function insertPageview(row: { page_path: string; referrer_host: string | 
     signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) throw new Error(`Pageview insert failed (${response.status}): ${clean(await response.text(), 240)}`);
+}
+// First-touch visitor record: insert-ignore so the first pageview's
+// source data wins forever. A later internal=true visit marks the
+// visitor internal (our own browsers stay ours). Bookkeeping errors are
+// logged, never fatal — the pageview itself is already counted.
+async function recordVisitor(args: {
+  visitorId: string;
+  referrerHost: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  isInternal: boolean;
+  country: string | null;
+}): Promise<void> {
+  try {
+    const insert = await fetch(`${SUPABASE_URL}/rest/v1/site_visitors?on_conflict=visitor_id`, {
+      method: "POST",
+      headers: restHeaders("resolution=ignore-duplicates,return=minimal"),
+      body: JSON.stringify({
+        visitor_id: args.visitorId,
+        first_referrer_host: args.referrerHost,
+        first_utm_source: args.utmSource,
+        first_utm_medium: args.utmMedium,
+        first_utm_campaign: args.utmCampaign,
+        is_internal: args.isInternal,
+        country: args.country,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!insert.ok) console.error("site-analytics visitor insert failed:", insert.status, clean(await insert.text(), 200));
+    if (args.isInternal) {
+      const mark = await fetch(`${SUPABASE_URL}/rest/v1/site_visitors?visitor_id=eq.${encodeURIComponent(args.visitorId)}&is_internal=eq.false`, {
+        method: "PATCH",
+        headers: restHeaders("return=minimal"),
+        body: JSON.stringify({ is_internal: true }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!mark.ok) console.error("site-analytics visitor mark-internal failed:", mark.status, clean(await mark.text(), 200));
+    }
+  } catch (error) {
+    console.error("site-analytics visitor bookkeeping failed:", clean(error instanceof Error ? error.message : error, 200));
+  }
 }
 
 Deno.serve(async (request: Request) => {
@@ -193,12 +274,35 @@ Deno.serve(async (request: Request) => {
       }
     }
 
+    const eventName = payload.event === "request_submitted" ? "request_submitted" : "pageview";
+    const visitorId = validVisitorId(payload.vid);
+    const isInternal = payload.internal === true;
+    const refHost = referrerHost(payload.ref);
+    const country = geoCountry(request);
+
     await insertPageview({
       page_path: pagePath,
-      referrer_host: referrerHost(payload.ref),
+      referrer_host: refHost,
       visitor_day_hash: visitorDayHash,
       device_class: deviceClass(ua),
+      is_internal: isInternal,
+      visitor_id: visitorId,
+      event: eventName,
+      country,
+      region: geoRegion(request),
     });
+
+    if (eventName === "pageview" && visitorId) {
+      await recordVisitor({
+        visitorId,
+        referrerHost: refHost,
+        utmSource: cleanShort(payload.utm_source),
+        utmMedium: cleanShort(payload.utm_medium),
+        utmCampaign: cleanShort(payload.utm_campaign),
+        isInternal,
+        country,
+      });
+    }
     return noContent(request);
   } catch (error) {
     console.error("site-analytics pageview failed:", clean(error instanceof Error ? error.message : error, 240));

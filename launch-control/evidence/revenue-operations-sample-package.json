@@ -1,0 +1,423 @@
+{
+  "status": "OWNER_REVIEW_REQUIRED",
+  "generatedAt": "2026-07-12T15:00:00.000Z",
+  "externalActionsOccurred": false,
+  "records": {
+    "quote": {
+      "id": "QUOTE-82d1e5ed-683d-42c7-87e8-3e42911b16e0",
+      "type": "quote",
+      "tenantKey": "highway-38",
+      "customerId": "CUST-001",
+      "productId": "H38-P001",
+      "description": "Synthetic Problem Snapshot",
+      "subtotalCents": 9900,
+      "taxCents": 0,
+      "totalCents": 9900,
+      "currency": "USD",
+      "version": 1,
+      "status": "READY_TO_SEND",
+      "expiresAt": "2026-07-26T15:00:00.000Z",
+      "createdAt": "2026-07-12T15:00:00.000Z",
+      "updatedAt": "2026-07-12T15:00:00.000Z",
+      "externalActionOccurred": false,
+      "lastTransition": {
+        "from": "OWNER_APPROVED",
+        "to": "READY_TO_SEND",
+        "actor": "owner",
+        "reason": ""
+      },
+      "ownerApproval": {
+        "approvedBy": "rkrueth@example.invalid",
+        "approvedAt": "2026-07-12T15:00:00.000Z",
+        "recordDigest": "7a18c28c04a5e0e3363842272b66fed89afa91847729de1a1274a22a708d5571"
+      }
+    },
+    "invoice": {
+      "id": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+      "type": "invoice",
+      "tenantKey": "highway-38",
+      "customerId": "CUST-001",
+      "sourceId": "QUOTE-82d1e5ed-683d-42c7-87e8-3e42911b16e0",
+      "sourceType": "quote",
+      "lineItems": [
+        {
+          "description": "Problem Snapshot",
+          "quantity": 1,
+          "unitCents": 9900,
+          "totalCents": 9900,
+          "productId": "H38-P001"
+        }
+      ],
+      "subtotalCents": 9900,
+      "taxCents": 0,
+      "totalCents": 9900,
+      "paidCents": 0,
+      "refundedCents": 0,
+      "balanceCents": 9900,
+      "currency": "USD",
+      "status": "READY_TO_SEND",
+      "version": 1,
+      "dueAt": "2026-07-19T15:00:00.000Z",
+      "createdAt": "2026-07-12T15:00:00.000Z",
+      "updatedAt": "2026-07-12T15:00:00.000Z",
+      "externalActionOccurred": false,
+      "lastTransition": {
+        "from": "OWNER_APPROVED",
+        "to": "READY_TO_SEND",
+        "actor": "owner",
+        "reason": ""
+      },
+      "ownerApproval": {
+        "approvedBy": "rkrueth@example.invalid",
+        "approvedAt": "2026-07-12T15:00:00.000Z",
+        "recordDigest": "1fe01b7f629d939afedc35027f0c1f8288031898f8fe07f2b3ad99017582efe8"
+      }
+    },
+    "payments": [
+      {
+        "id": "PAY-1e1c6fbb-63d5-4025-8dc6-87b7c5db5463",
+        "tenantKey": "highway-38",
+        "customerId": "CUST-001",
+        "invoiceId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+        "amountCents": 4000,
+        "providerReference": "sandbox-payment-001",
+        "method": "hosted-provider",
+        "receivedAt": "2026-07-12T15:00:00.000Z",
+        "rawCardDataStored": false,
+        "externalActionOccurred": false
+      },
+      {
+        "id": "PAY-db11a9cc-c7b9-4b04-bfac-e978c063e500",
+        "tenantKey": "highway-38",
+        "customerId": "CUST-001",
+        "invoiceId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+        "amountCents": 5900,
+        "providerReference": "sandbox-payment-002",
+        "method": "hosted-provider",
+        "receivedAt": "2026-07-12T15:00:01.000Z",
+        "rawCardDataStored": false,
+        "externalActionOccurred": false
+      }
+    ],
+    "receiptDrafts": [
+      {
+        "id": "RCPT-20c95743-5dbf-4258-81ad-545eacb2371d",
+        "invoiceId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+        "paymentAmountCents": 4000,
+        "status": "DRAFT_PENDING_OWNER_REVIEW",
+        "externalActionOccurred": false
+      },
+      {
+        "id": "RCPT-5fa27e4b-9237-4769-8dae-445300184849",
+        "invoiceId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+        "paymentAmountCents": 5900,
+        "status": "DRAFT_PENDING_OWNER_REVIEW",
+        "externalActionOccurred": false
+      }
+    ],
+    "refundRecord": {
+      "id": "REFUND-ae249e94-2fd0-4214-b701-e464b1e6cc0f",
+      "invoiceId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+      "paymentId": "PAY-db11a9cc-c7b9-4b04-bfac-e978c063e500",
+      "amountCents": 5900,
+      "providerReference": "sandbox-refund-001",
+      "recordedAt": "2026-07-12T15:00:00.000Z",
+      "rawCardDataStored": false,
+      "externalActionOccurred": false
+    },
+    "contract": {
+      "id": "CONTRACT-aacd3605-4fd5-4e44-96b6-33d3a16b7701",
+      "type": "contract",
+      "tenantKey": "highway-38",
+      "customerId": "CUST-001",
+      "name": "Synthetic monthly support",
+      "recurringAmountCents": 19900,
+      "billingInterval": "monthly",
+      "includedUsage": 4,
+      "usedThisPeriod": 5,
+      "status": "ACTIVE",
+      "version": 1,
+      "startsAt": "2026-07-12T15:00:00.000Z",
+      "endsAt": null,
+      "createdAt": "2026-07-12T15:00:00.000Z",
+      "updatedAt": "2026-07-12T15:00:00.000Z",
+      "externalActionOccurred": false,
+      "lastTransition": {
+        "from": "OWNER_APPROVED",
+        "to": "ACTIVE",
+        "actor": "owner",
+        "reason": ""
+      },
+      "ownerApproval": {
+        "approvedBy": "rkrueth@example.invalid",
+        "approvedAt": "2026-07-12T15:00:00.000Z",
+        "recordDigest": "baae4ba3948f9b82dd951c919df46abe7869feacb65ff95500cbbb1f15e1dc25"
+      },
+      "includedRemaining": 0,
+      "overageUnits": 1
+    },
+    "communication": {
+      "id": "COMM-1578a138-968e-425d-b211-4bc59cb01ef8",
+      "type": "communication",
+      "tenantKey": "highway-38",
+      "customerId": "CUST-001",
+      "recordId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+      "channel": "email",
+      "subject": "Invoice draft",
+      "body": "Your invoice is ready for owner review.",
+      "status": "READY_TO_SEND",
+      "version": 1,
+      "createdAt": "2026-07-12T15:00:00.000Z",
+      "updatedAt": "2026-07-12T15:00:00.000Z",
+      "externalActionOccurred": false,
+      "lastTransition": {
+        "from": "OWNER_APPROVED",
+        "to": "READY_TO_SEND",
+        "actor": "owner",
+        "reason": ""
+      },
+      "ownerApproval": {
+        "approvedBy": "rkrueth@example.invalid",
+        "approvedAt": "2026-07-12T15:00:00.000Z",
+        "recordDigest": "2bbcf2b9092888bb9d6f1443bd6fe615b0b1d4c8641956d6449c6222a7680060"
+      }
+    },
+    "social": {
+      "id": "SOCIAL-6c5b27f4-e5af-40a8-95bc-607b6a1dac3b",
+      "type": "social",
+      "tenantKey": "highway-38",
+      "platform": "facebook",
+      "content": "Synthetic owner-reviewed Highway 38 planning tip.",
+      "scheduledFor": "2026-07-13T15:00:00.000Z",
+      "campaignId": "CAMPAIGN-001",
+      "status": "READY_TO_SCHEDULE",
+      "version": 1,
+      "createdAt": "2026-07-12T15:00:00.000Z",
+      "updatedAt": "2026-07-12T15:00:00.000Z",
+      "externalActionOccurred": false,
+      "lastTransition": {
+        "from": "OWNER_APPROVED",
+        "to": "READY_TO_SCHEDULE",
+        "actor": "owner",
+        "reason": ""
+      },
+      "ownerApproval": {
+        "approvedBy": "rkrueth@example.invalid",
+        "approvedAt": "2026-07-12T15:00:00.000Z",
+        "recordDigest": "e73b3799949dcc52a4fe16b0bf04311b01d7fbd1bdcde6c8ff198f0cc9f9ca1d"
+      }
+    },
+    "websiteChange": {
+      "id": "WEB-77bdb513-b375-4831-b447-3c50b08157bc",
+      "type": "website",
+      "tenantKey": "highway-38",
+      "title": "Synthetic homepage update",
+      "files": [
+        "index.html",
+        "ecosystem.css"
+      ],
+      "rollbackRef": "4318aa3",
+      "description": "Synthetic controlled update",
+      "status": "READY_TO_DEPLOY",
+      "version": 1,
+      "createdAt": "2026-07-12T15:00:00.000Z",
+      "updatedAt": "2026-07-12T15:00:00.000Z",
+      "externalActionOccurred": false,
+      "lastTransition": {
+        "from": "OWNER_APPROVED",
+        "to": "READY_TO_DEPLOY",
+        "actor": "owner",
+        "reason": ""
+      },
+      "ownerApproval": {
+        "approvedBy": "rkrueth@example.invalid",
+        "approvedAt": "2026-07-12T15:00:00.000Z",
+        "recordDigest": "2ea430ae24528152f1e21001a8408dee95d87bebcc7b855909be4fb9da8e256d"
+      }
+    },
+    "preparedActions": [
+      {
+        "id": "ACTION-77cecd49-f2fb-4fda-8f93-2b3625a9bc79",
+        "action": "sendQuote",
+        "recordType": "quote",
+        "recordId": "QUOTE-82d1e5ed-683d-42c7-87e8-3e42911b16e0",
+        "tenantKey": "highway-38",
+        "providerSlot": "email",
+        "providerMode": "draft-only",
+        "providerStatus": "NOT_CONFIGURED",
+        "duplicateLock": "d5bd8c2adc59569d58b288ac10b97dccfc6e33c01351055c7ad71bc77a7e55c9",
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:00.000Z",
+        "externalActionOccurred": false,
+        "automaticRetry": false,
+        "blocker": "PROVIDER_NOT_LIVE"
+      },
+      {
+        "id": "ACTION-5e4a444a-854a-4570-8910-dc23aa3212ca",
+        "action": "sendInvoice",
+        "recordType": "invoice",
+        "recordId": "INV-0ac44f21-2c10-4762-8ad7-9c3ab45db7b6",
+        "tenantKey": "highway-38",
+        "providerSlot": "email",
+        "providerMode": "draft-only",
+        "providerStatus": "NOT_CONFIGURED",
+        "duplicateLock": "39c4189c05e74b9e21e7baa51b76a40721958f4246624f595a9a6f2bd3818ab6",
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:00.000Z",
+        "externalActionOccurred": false,
+        "automaticRetry": false,
+        "blocker": "PROVIDER_NOT_LIVE"
+      },
+      {
+        "id": "ACTION-19a14266-6b05-4a37-8cc5-53ba9e752d9b",
+        "action": "sendEmail",
+        "recordType": "communication",
+        "recordId": "COMM-1578a138-968e-425d-b211-4bc59cb01ef8",
+        "tenantKey": "highway-38",
+        "providerSlot": "email",
+        "providerMode": "draft-only",
+        "providerStatus": "NOT_CONFIGURED",
+        "duplicateLock": "18ef1565f05168ac16e6897a1c7c02b3ce831ca1b0e337b6a2ac07ad1d7393ea",
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:00.000Z",
+        "externalActionOccurred": false,
+        "automaticRetry": false,
+        "blocker": "PROVIDER_NOT_LIVE"
+      },
+      {
+        "id": "ACTION-8c5e5f69-86cd-47de-9c8e-fab67876a16e",
+        "action": "publishSocial",
+        "recordType": "social",
+        "recordId": "SOCIAL-6c5b27f4-e5af-40a8-95bc-607b6a1dac3b",
+        "tenantKey": "highway-38",
+        "providerSlot": "social",
+        "providerMode": "internal-schedule",
+        "providerStatus": "NOT_CONFIGURED",
+        "duplicateLock": "895e47bef3a4db63338c4c9d44b427025fe31057f0180828c2c565ce56405257",
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:00.000Z",
+        "externalActionOccurred": false,
+        "automaticRetry": false,
+        "blocker": "PROVIDER_NOT_LIVE"
+      },
+      {
+        "id": "ACTION-02d88678-f1db-439d-9b27-0b639b839963",
+        "action": "deployWebsite",
+        "recordType": "website",
+        "recordId": "WEB-77bdb513-b375-4831-b447-3c50b08157bc",
+        "tenantKey": "highway-38",
+        "providerSlot": "website",
+        "providerMode": "review-only",
+        "providerStatus": "NOT_CONFIGURED",
+        "duplicateLock": "3c8e4556489fbcdad04246dd096464220b11d86e22e3b94ec2877fb4b77218aa",
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:00.000Z",
+        "externalActionOccurred": false,
+        "automaticRetry": false,
+        "blocker": "PROVIDER_NOT_LIVE"
+      }
+    ],
+    "integrationHealth": [
+      {
+        "slot": "email",
+        "mode": "draft-only",
+        "configured": false,
+        "liveExecution": false,
+        "status": "BLOCKED_BY_CREDENTIALS"
+      },
+      {
+        "slot": "payments",
+        "mode": "manual",
+        "configured": false,
+        "liveExecution": false,
+        "status": "BLOCKED_BY_CREDENTIALS"
+      },
+      {
+        "slot": "accounting",
+        "mode": "csv",
+        "configured": true,
+        "liveExecution": false,
+        "status": "SAFE_INTERNAL_MODE"
+      },
+      {
+        "slot": "social",
+        "mode": "internal-schedule",
+        "configured": false,
+        "liveExecution": false,
+        "status": "BLOCKED_BY_CREDENTIALS"
+      },
+      {
+        "slot": "website",
+        "mode": "review-only",
+        "configured": false,
+        "liveExecution": false,
+        "status": "BLOCKED_BY_CREDENTIALS"
+      }
+    ],
+    "profitability": {
+      "revenueCents": 100000,
+      "directCostCents": 30000,
+      "laborCents": 25000,
+      "adSpendCents": 10000,
+      "totalCostCents": 65000,
+      "profitCents": 35000,
+      "marginPercent": 35
+    },
+    "attribution": [
+      {
+        "leadId": "LEAD-001",
+        "source": "website",
+        "campaignId": "CAMPAIGN-001",
+        "quotes": 1,
+        "invoices": 1,
+        "cashReceivedCents": 9900
+      }
+    ]
+  },
+  "createdTasks": [
+    {
+      "id": "REV-T001",
+      "title": "Select and approve production email provider",
+      "status": "Blocked by credentials"
+    },
+    {
+      "id": "REV-T002",
+      "title": "Select provider-hosted payment service and connect credentials",
+      "status": "Blocked by credentials"
+    },
+    {
+      "id": "REV-T003",
+      "title": "Approve accounting export mapping or API provider",
+      "status": "Needs owner review"
+    },
+    {
+      "id": "REV-T004",
+      "title": "Connect approved social scheduler and test one selected record",
+      "status": "Blocked by credentials"
+    },
+    {
+      "id": "REV-T005",
+      "title": "Approve website deployment provider and rollback workflow",
+      "status": "Needs owner review"
+    },
+    {
+      "id": "REV-T006",
+      "title": "Run provider sandbox and duplicate-result tests",
+      "status": "Required before activation"
+    },
+    {
+      "id": "REV-T007",
+      "title": "Approve each external action feature flag separately",
+      "status": "Needs owner review"
+    }
+  ],
+  "blockers": [
+    "Production email provider and credentials",
+    "Provider-hosted payment provider and credentials",
+    "Accounting provider or approved CSV account mapping",
+    "Social scheduling provider credentials and platform account approvals",
+    "Website deployment credential and rollback authorization",
+    "Provider sandbox, duplicate-result, failed-result, and uncertain-result tests",
+    "Rick approval for each live external action"
+  ]
+}

@@ -16,7 +16,7 @@ const requireFile=p=>check(`required file ${p}`,exists(p),p);
 ].forEach(requireFile);
 const routes=JSON.parse(read('scripts/config/public-website-routes.json'));
 const primary=(routes.primary||[]).map(item=>item.path);
-const expected=['index.html','sample-library-now.html','solutions.html','software.html','project-services.html','pricing.html','business-in-a-box.html','quote-builder-demo.html','implementation.html','security-reliability.html','about.html','contact.html','partner-apply.html','start-request.html','portal.html'];
+const expected=['index.html','sample-library-now.html','solutions.html','software.html','project-services.html','pricing.html','business-in-a-box.html','quote-builder-demo.html','implementation.html','security-reliability.html','about.html','contact.html','partner-apply.html','start-request.html','portal.html','divisions.html','crew.html','faq.html','included.html','tips.html'];
 check('all current public gateways are canonical',expected.every(page=>primary.includes(page))&&primary.length===expected.length,JSON.stringify(primary));
 check('universal compatibility route is registered',routes.demonstrations.some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog and tool routes redirect to current pages',routes.retired['products.html']==='pricing.html'&&routes.retired['catalog.html']==='pricing.html'&&routes.retired['packages.html']==='pricing.html'&&routes.retired['tool-center.html']==='sample-library-now.html');

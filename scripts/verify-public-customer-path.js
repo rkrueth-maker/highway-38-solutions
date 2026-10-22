@@ -15,7 +15,7 @@ const publicPrimary=(registry.primary||[]).filter(item=>item.visibility==='publi
 const retired=registry.retired||{};
 const requiredAssets=['assets/js/h38-site-v2.js','assets/css/h38-site-v2.css','assets/highway38-logo.png','favicon.svg','site.webmanifest','robots.txt','sitemap.xml','scripts/config/approved-public-assets.json','scripts/config/approved-public-image-placements.json'];
 check('competitive-readiness route registry version',/competitive-readiness/.test(String(registry.version||'')),registry.version||'');
-check('fifteen primary routes',primary.length===15,String(primary.length));
+check('twenty primary routes',primary.length===20,String(primary.length));
 for(const expected of ['index.html','sample-library-now.html','solutions.html','software.html','project-services.html','pricing.html','business-in-a-box.html','quote-builder-demo.html','implementation.html','security-reliability.html','about.html','contact.html','partner-apply.html','start-request.html','portal.html'])check(`primary route registered: ${expected}`,primary.includes(expected));
 check('universal demonstration registered',(registry.demonstrations||[]).some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 for(const file of [...primary,'universal-quote-builder.html',...requiredAssets])check(`required public artifact: ${file}`,exists(file));

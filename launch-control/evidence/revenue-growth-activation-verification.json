@@ -1,0 +1,255 @@
+{
+  "release": "revenue-growth-activation-2.1.0",
+  "status": "PASS",
+  "generatedAt": "2026-10-22T02:30:10.225Z",
+  "passed": 47,
+  "failed": 0,
+  "outputs": {
+    "providers": 6,
+    "sandboxOutcomes": 5,
+    "socialDays": 30,
+    "socialDrafts": 150,
+    "platforms": 5,
+    "billingMilestones": 3,
+    "contracts": 1,
+    "createdInquiryTasks": 1,
+    "accountingRows": 5
+  },
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtection": true,
+    "ownerApprovalRequired": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "providerHostedCardEntry": true,
+    "rawCardDataAllowed": false,
+    "rollbackRequired": true,
+    "externalActionsEnabled": false
+  },
+  "exactBlockers": [
+    {
+      "slot": "email",
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Choose the production email provider, create or approve the sending account/domain, add the provider credentials only in the private runtime secret store, then run the provider success, failure, duplicate, timeout, and uncertain-result tests before owner release."
+    },
+    {
+      "slot": "payments",
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Connect a U.S. PayPal Business account, enable PayPal-hosted Checkout or Payment Links with Venmo available, store credentials only in the private runtime secret store when API credentials are needed, run sandbox hosted-link and webhook tests with no raw card data, then separately release production after owner approval."
+    },
+    {
+      "slot": "accounting",
+      "status": "READY_CSV_OWNER_MAPPING_REQUIRED",
+      "exactConnectionStep": "Approve the chart-of-accounts mapping and opening-balance method; continue using the verified CSV export until an accounting provider is selected, authorized, and tested in a private sandbox."
+    },
+    {
+      "slot": "social",
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Confirm ownership/admin access for each approved platform account, repair or replace the scheduler connection, store credentials privately, map each account, then run one selected-record test post per platform before owner release."
+    },
+    {
+      "slot": "website",
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Create a rollback reference, pass repository and live acceptance checks, then obtain the owner's explicit release for the selected deployment record; never deploy a different or bulk record."
+    },
+    {
+      "slot": "customer-auth",
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Select the customer authentication and private storage providers, configure a test tenant, pass cross-customer isolation and revocation tests, and obtain owner release before any customer record is exposed."
+    }
+  ],
+  "externalActionsOccurred": false,
+  "passes": [
+    {
+      "name": "required artifact: core-engine/revenue-operations/config/revenue-operations.default.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/config/provider-activation.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/config/social-content-plan-30-day.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/lib/revenue-operations-core.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/lib/revenue-growth-activation.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/revenue-operations/ACTIVATION.md",
+      "detail": ""
+    },
+    {
+      "name": "provider activation configuration validates",
+      "detail": ""
+    },
+    {
+      "name": "six provider slots are defined",
+      "detail": "6"
+    },
+    {
+      "name": "all providers have exact connection steps",
+      "detail": ""
+    },
+    {
+      "name": "all providers remain non-live",
+      "detail": ""
+    },
+    {
+      "name": "payment security is fail-closed",
+      "detail": ""
+    },
+    {
+      "name": "all five sandbox outcomes required",
+      "detail": ""
+    },
+    {
+      "name": "one selected record produces one prepared provider action",
+      "detail": ""
+    },
+    {
+      "name": "duplicate provider action is blocked",
+      "detail": "Duplicate external action blocked."
+    },
+    {
+      "name": "mismatched owner approval is rejected",
+      "detail": "Owner approval does not match the selected record."
+    },
+    {
+      "name": "array record is rejected",
+      "detail": "Exactly one selected record is required."
+    },
+    {
+      "name": "all required sandbox outcomes execute once",
+      "detail": ""
+    },
+    {
+      "name": "sandbox never performs external action",
+      "detail": ""
+    },
+    {
+      "name": "timeout and uncertain outcomes require reconciliation",
+      "detail": ""
+    },
+    {
+      "name": "every sandbox result has Proof Log evidence",
+      "detail": ""
+    },
+    {
+      "name": "failure timeout and uncertain outcomes have Error Log entries",
+      "detail": ""
+    },
+    {
+      "name": "hosted payment link stores no raw card data",
+      "detail": ""
+    },
+    {
+      "name": "non-HTTPS payment link is rejected",
+      "detail": "Hosted payment link must use HTTPS."
+    },
+    {
+      "name": "raw payment field is rejected",
+      "detail": "Raw payment-card data is forbidden."
+    },
+    {
+      "name": "deposit progress and final milestones total contract value",
+      "detail": ""
+    },
+    {
+      "name": "invalid milestone percentages are rejected",
+      "detail": "Billing milestone percentages must total 100."
+    },
+    {
+      "name": "recurring billing includes usage and overage",
+      "detail": ""
+    },
+    {
+      "name": "contract renewal and cancellation remain owner-review drafts",
+      "detail": ""
+    },
+    {
+      "name": "payment receipt credit and refund records are provider-reference only",
+      "detail": ""
+    },
+    {
+      "name": "delivery and follow-up remain selected owner-review drafts",
+      "detail": ""
+    },
+    {
+      "name": "unsafe delivery path is rejected",
+      "detail": "Delivery files must be safe relative paths."
+    },
+    {
+      "name": "30-day plan expands to 150 platform-specific drafts",
+      "detail": ""
+    },
+    {
+      "name": "all social records are draft selected records with assets and paid path",
+      "detail": ""
+    },
+    {
+      "name": "every approved platform has 30 records",
+      "detail": ""
+    },
+    {
+      "name": "publication proof captures provider reference and digest",
+      "detail": ""
+    },
+    {
+      "name": "performance metrics calculate rates",
+      "detail": ""
+    },
+    {
+      "name": "social inquiry routes to one controlled Task",
+      "detail": ""
+    },
+    {
+      "name": "outstanding balance view identifies open amount",
+      "detail": ""
+    },
+    {
+      "name": "cash view reconciles payments refunds and expenses",
+      "detail": ""
+    },
+    {
+      "name": "profitability reports product bundle add-on or contract-shaped records",
+      "detail": ""
+    },
+    {
+      "name": "accounting export includes invoice payment refund and expenses",
+      "detail": ""
+    },
+    {
+      "name": "lead campaign attribution reaches cash received",
+      "detail": ""
+    },
+    {
+      "name": "website deployment draft requires source rollback and acceptance",
+      "detail": ""
+    },
+    {
+      "name": "same source and rollback reference is rejected",
+      "detail": "Source and rollback references must differ."
+    },
+    {
+      "name": "integration health is truthful and exact",
+      "detail": ""
+    },
+    {
+      "name": "accounting remains usable in CSV mode while mapping is blocked",
+      "detail": ""
+    },
+    {
+      "name": "acceptance summary reports complete internal package and blocked external state",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,230 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-22T02:30:08.952Z",
+  "version": "2.0.0",
+  "passed": 48,
+  "failed": 0,
+  "outputs": {
+    "segments": 3,
+    "offers": 5,
+    "products": 5,
+    "addOns": 6,
+    "contracts": 2,
+    "sitemapPages": 12,
+    "intakeQuestions": 14,
+    "sops": 20,
+    "tasks": 25,
+    "socialDrafts": 6,
+    "expenseCategories": 16,
+    "risks": 14,
+    "decisions": 10
+  },
+  "controls": {
+    "ownerReviewRequired": true,
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "tenantIsolation": true,
+    "duplicateProtection": true,
+    "proofLogRequired": true,
+    "errorLogRequired": true,
+    "externalActionsEnabled": false,
+    "selfApproval": false
+  },
+  "externalActionsOccurred": false,
+  "passes": [
+    {
+      "name": "required artifact: business-concept-builder.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: business-concept-builder.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/business-concept-builder/README.md",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/business-concept-builder/business-concept-core.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/business-concept-builder/schema/business-concept-input.schema.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/business-concept-builder/schema/business-concept-package.schema.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: core-engine/product/business-concept-builder/examples/synthetic-workshop-planning.input.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/generate-business-concept-package.js",
+      "detail": ""
+    },
+    {
+      "name": "input schema covers every required concept field",
+      "detail": ""
+    },
+    {
+      "name": "package schema covers every required generated section",
+      "detail": ""
+    },
+    {
+      "name": "package validates",
+      "detail": ""
+    },
+    {
+      "name": "package is owner-review only",
+      "detail": ""
+    },
+    {
+      "name": "all input domains survive normalization",
+      "detail": ""
+    },
+    {
+      "name": "segments are generated from customer inputs",
+      "detail": ""
+    },
+    {
+      "name": "five-level offer and product ladder generated",
+      "detail": ""
+    },
+    {
+      "name": "pricing model uses time and revenue goal",
+      "detail": ""
+    },
+    {
+      "name": "lead magnet, add-ons, and contracts generated",
+      "detail": ""
+    },
+    {
+      "name": "website package adapts to models",
+      "detail": ""
+    },
+    {
+      "name": "intake covers model-specific questions",
+      "detail": ""
+    },
+    {
+      "name": "five unique draft product records generated",
+      "detail": ""
+    },
+    {
+      "name": "20 selected-record SOP drafts generated",
+      "detail": ""
+    },
+    {
+      "name": "complete 30-day plan and 25 Tasks generated",
+      "detail": ""
+    },
+    {
+      "name": "all Tasks preserve controls and dependencies",
+      "detail": ""
+    },
+    {
+      "name": "social, expenses, risk, decisions, and record aggregation generated",
+      "detail": ""
+    },
+    {
+      "name": "generator is data-dependent rather than static",
+      "detail": ""
+    },
+    {
+      "name": "sensitive-looking inputs are redacted",
+      "detail": ""
+    },
+    {
+      "name": "incomplete concept is held",
+      "detail": "Working business name must contain at least two characters. Business idea must contain at least twelve characters. At least one owner skill is required. At least one customer group is required. Primary customer problem is required. Primary finished outcome is required."
+    },
+    {
+      "name": "tenant isolation remains enforced",
+      "detail": ""
+    },
+    {
+      "name": "selected-record, duplicate, log, and retry controls remain enforced",
+      "detail": ""
+    },
+    {
+      "name": "all provider slots are locked",
+      "detail": ""
+    },
+    {
+      "name": "all external feature flags are disabled",
+      "detail": ""
+    },
+    {
+      "name": "Business Pack cannot self-enable execution",
+      "detail": ""
+    },
+    {
+      "name": "generated Business Pack validates",
+      "detail": ""
+    },
+    {
+      "name": "Business Pack compiles as isolated test installation",
+      "detail": ""
+    },
+    {
+      "name": "installer creates isolated data, private storage, Proof Log, and Error Log",
+      "detail": ""
+    },
+    {
+      "name": "generated records materialize only in selected test tenant",
+      "detail": ""
+    },
+    {
+      "name": "backup and restore preserve tenant and records",
+      "detail": ""
+    },
+    {
+      "name": "backup tampering is rejected",
+      "detail": "Backup integrity check failed."
+    },
+    {
+      "name": "CLI exits successfully",
+      "detail": "{\n  \"status\": \"PASS\",\n  \"outputDir\": \"/tmp/bcb-SEaqZR/cli\",\n  \"packageStatus\": \"OWNER_REVIEW_REQUIRED\",\n  \"products\": 5,\n  \"tasks\": 25,\n  \"sops\": 20,\n  \"externalActionsOccurred\": false\n}\n"
+    },
+    {
+      "name": "CLI writes complete owner-review file set",
+      "detail": ""
+    },
+    {
+      "name": "CLI output matches shared core",
+      "detail": ""
+    },
+    {
+      "name": "transferable core has no Highway 38-specific terminology",
+      "detail": ""
+    },
+    {
+      "name": "transferable core has no network execution",
+      "detail": ""
+    },
+    {
+      "name": "shared core parses in browser context",
+      "detail": ""
+    },
+    {
+      "name": "browser exposes every required input",
+      "detail": ""
+    },
+    {
+      "name": "browser loads shared core before wrapper",
+      "detail": ""
+    },
+    {
+      "name": "browser exports JSON, Markdown, Tasks, Business Pack, and OS config",
+      "detail": ""
+    },
+    {
+      "name": "browser generation remains local",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

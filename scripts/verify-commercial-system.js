@@ -12,8 +12,8 @@ const required=['index.html','software.html','project-services.html','quote-buil
 required.forEach(file=>check(`required ${file}`,exists(file)));
 const routeManifest=JSON.parse(read('scripts/config/public-website-routes.json'));
 const primary=(routeManifest.primary||[]).map(item=>item.path);
-const expectedPrimary=['index.html','sample-library-now.html','solutions.html','software.html','project-services.html','pricing.html','business-in-a-box.html','quote-builder-demo.html','implementation.html','security-reliability.html','about.html','contact.html','partner-apply.html','start-request.html','portal.html'];
-check('competitive-readiness route manifest owns the fifteen current gateways',expectedPrimary.every(routePath=>primary.includes(routePath))&&primary.length===15,JSON.stringify(primary));
+const expectedPrimary=['index.html','sample-library-now.html','solutions.html','software.html','project-services.html','pricing.html','business-in-a-box.html','quote-builder-demo.html','implementation.html','security-reliability.html','about.html','contact.html','partner-apply.html','start-request.html','portal.html','divisions.html','crew.html','faq.html','included.html','tips.html'];
+check('competitive-readiness route manifest owns the twenty current gateways',expectedPrimary.every(routePath=>primary.includes(routePath))&&primary.length===20,JSON.stringify(primary));
 check('Universal Quote Builder compatibility route is public and canonical',routeManifest.demonstrations.some(item=>item.path==='universal-quote-builder.html'&&item.visibility==='public'));
 check('retired catalog routes point to current project-first pages',routeManifest.retired&&routeManifest.retired['products.html']==='pricing.html'&&routeManifest.retired['catalog.html']==='pricing.html'&&routeManifest.retired['packages.html']==='pricing.html'&&routeManifest.retired['tools.html']==='sample-library-now.html');
 const shell=read('assets/js/h38-site-v2.js');

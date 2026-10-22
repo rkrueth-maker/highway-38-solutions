@@ -1,0 +1,61 @@
+{
+  "status": "PASS_INTERNAL",
+  "generatedAt": "2026-10-22T02:30:10.225Z",
+  "outstanding": [
+    {
+      "invoiceId": "INV-SYNTHETIC-OUTSTANDING",
+      "customerId": "CUSTOMER-SYNTHETIC-001",
+      "status": "PARTIALLY_PAID",
+      "dueAt": "2026-07-01T00:00:00.000Z",
+      "totalCents": 37500,
+      "paidCents": 25000,
+      "refundedCents": 0,
+      "balanceCents": 12500,
+      "overdue": true
+    }
+  ],
+  "cash": {
+    "cashInCents": 25000,
+    "refundsCents": 2500,
+    "expenseCents": 7000,
+    "netCashCents": 15500
+  },
+  "profitability": [
+    {
+      "itemType": "product",
+      "itemId": "H38-P001",
+      "name": "Problem Snapshot",
+      "revenueCents": 25000,
+      "directCostCents": 6000,
+      "laborCents": 5000,
+      "adSpendCents": 0,
+      "totalCostCents": 11000,
+      "profitCents": 14000,
+      "marginPercent": 56
+    },
+    {
+      "itemType": "contract",
+      "itemId": "H38-C001",
+      "name": "Care Plan",
+      "revenueCents": 0,
+      "directCostCents": 2000,
+      "laborCents": 0,
+      "adSpendCents": 0,
+      "totalCostCents": 2000,
+      "profitCents": -2000,
+      "marginPercent": 0
+    }
+  ],
+  "attribution": [
+    {
+      "leadId": "LEAD-SYNTHETIC-001",
+      "source": "linkedin",
+      "campaignId": "CAMPAIGN-30DAY-001",
+      "quotes": 1,
+      "invoices": 1,
+      "cashReceivedCents": 25000
+    }
+  ],
+  "accountingCsvCharacters": 570,
+  "externalActionsOccurred": false
+}

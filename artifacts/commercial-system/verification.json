@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-14T04:08:56.104Z",
+  "generatedAt": "2026-10-22T02:36:45.973Z",
   "passed": 78,
   "failed": 0,
   "architecture": "competitive-readiness-split-buyer-paths-with-interactive-quote-proof",
@@ -139,8 +139,8 @@
       "detail": ""
     },
     {
-      "name": "competitive-readiness route manifest owns the fifteen current gateways",
-      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"project-services.html\",\"pricing.html\",\"business-in-a-box.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\"]"
+      "name": "competitive-readiness route manifest owns the twenty current gateways",
+      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"project-services.html\",\"pricing.html\",\"business-in-a-box.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\",\"divisions.html\",\"crew.html\",\"faq.html\",\"included.html\",\"tips.html\"]"
     },
     {
       "name": "Universal Quote Builder compatibility route is public and canonical",

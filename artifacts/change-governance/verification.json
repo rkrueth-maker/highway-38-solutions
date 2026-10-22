@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-21T08:28:23.185Z",
+  "generatedAt": "2026-10-22T03:23:45.432Z",
   "policy": "website-and-web-app-governance-v4-fast-reliable-execution",
   "passed": 161,
   "failed": 0,
@@ -571,7 +571,7 @@
     },
     {
       "name": "public route registry has primary routes",
-      "detail": "15"
+      "detail": "20"
     },
     {
       "name": "image placement manifest locks runtime source changes",

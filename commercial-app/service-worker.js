@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20261021-drive-storage-1';
+const CACHE_NAME='h38-business-office-20261021-data-limit-3';
 const PREVIOUS_FIELD_MODE_CACHE_NAME='h38-business-office-20260918-0145';
 const PREVIOUS_ERP_CACHE_NAME='h38-business-office-20260903-2110';
 const PREVIOUS_CUSTOMER_ACTION_CACHE_NAME='h38-business-office-20260827-1350';
@@ -28,7 +28,7 @@ const SHELL=[
   './app-06.js','./app-07.js','./app-08.js','./app-09.js','./app-10.js',
   './app-11.js','./app-12.js','./app-13.js','./app-14.js','./smart-upload.js','./app-15.js',
   './communications-native-receptionist.js','./app-16.js','./app-17.js','./app-18.js','./app-19.js','./app-20.js','./offline-mode.js','./offline-status-runtime.js','./h38-flow-helpers.js',
-  './accounting-engine.js','./accounting-posting-bridge.js','./accounting-workspace.js','./card-vault.js','./cpa-package.js','./crew-phone-location.js','./customer-comms.js','./customer-import-intelligence.js','./deal-alerts.js','./email-send-runtime.js','./employee-onboarding.js','./gps-dispatch.js','./guided-schedule.js','./h38-first-quote-guide.js','./health-dashboard.js','./kits-workspace.js','./membership-engine.js','./money-agent.js','./muse-permissions.js','./northern-bouncie-fleet.js','./payroll-calc.js','./payroll-run.js','./payroll-workflow.js','./plow-flow.js','./price-history.js','./quote-customer-options.js','./quote-live-customer-options.js','./repair-bulletins.js','./repair-failure-chains.js','./repair-guide-integration.js','./reports-section.js','./route-manager.js','./site-visit-diagnose.js','./smart-upload-ai.js','./sms-approval-runtime.js','./sms-provider-setup.js','./sms-provider.js','./sms-triggers.js','./tasks-page.js','./tax-packet.js','./trade-packages.js','./voice-dimensions.js','./webxr-measure.js',
+  './accounting-engine.js','./accounting-posting-bridge.js','./accounting-workspace.js','./card-vault.js','./cpa-package.js','./crew-phone-location.js','./customer-comms.js','./customer-import-intelligence.js','./data-usage.js','./deal-alerts.js','./email-send-runtime.js','./employee-onboarding.js','./gps-dispatch.js','./guided-schedule.js','./h38-first-quote-guide.js','./health-dashboard.js','./kits-workspace.js','./membership-engine.js','./money-agent.js','./muse-permissions.js','./northern-bouncie-fleet.js','./payroll-calc.js','./payroll-run.js','./payroll-workflow.js','./plow-flow.js','./price-history.js','./quote-customer-options.js','./quote-live-customer-options.js','./repair-bulletins.js','./repair-failure-chains.js','./repair-guide-integration.js','./reports-section.js','./route-manager.js','./site-visit-diagnose.js','./smart-upload-ai.js','./sms-approval-runtime.js','./sms-provider-setup.js','./sms-provider.js','./sms-triggers.js','./tasks-page.js','./tax-packet.js','./trade-packages.js','./voice-dimensions.js','./webxr-measure.js',
   SUPABASE_CDN
 ];
 function freshLiveRequest(request,file){
