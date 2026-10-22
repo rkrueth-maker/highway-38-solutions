@@ -208,7 +208,11 @@ for(const needle of ["action==='aiAsk'",'H38 local guidance','cloudProviderConne
 
 const storage=read('commercial-app/supabase-storage-provider.js');
 for(const needle of [
-  "supported:['supabase','google_drive']",
+  // Drive stood down (Rick, 2026-10-22): only server storage is advertised
+  // while clientDriveAvailable is false; the dormant Drive path remains
+  // pinned below so the recoverable machinery cannot silently rot.
+  "supported:clientDriveAvailable?['supabase','google_drive']:['supabase']",
+  'const clientDriveAvailable=false',
   "functions.invoke('business-drive-upload'",
   "'Storage Provider':'google_drive'",
   'credentialsInBrowser:false',

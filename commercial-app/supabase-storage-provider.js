@@ -13,12 +13,17 @@
   if(Bridge.prototype.__h38StorageProviderInstalled)return;
   Bridge.prototype.__h38StorageProviderInstalled=true;
   const previousRequest=Bridge.prototype.request;
-  // Own-it Drive storage ships in this build: the tenant OAuth flow and the
-  // business-drive-upload / business-drive-connect services are live. Whether
-  // a given business actually routes to Drive is decided per business at
-  // runtime from business_storage_settings + the server-side connection state
-  // — never from a static gate in the client.
-  const clientDriveAvailable=true;
+  // Google Drive storage is STOOD DOWN (Rick, 2026-10-22): Drive is out of
+  // the product — not reliable/fast enough for day-to-day files. Live files
+  // live on H38's servers, period, and year data dumps are plain downloads.
+  // With this flag off, every upload routes to Office (server) storage and
+  // the Settings card presents server storage only — no Drive offer, no
+  // Connect button, no dead ends. The Drive machinery below (routing,
+  // connect flow, resolve/stream) stays in place, dormant and recoverable:
+  // flipping this flag back on (with the server-side H38_DRIVE_LIVE_UPLOADS
+  // gate) restores the 2026-10-21 own-it build exactly. Do not flip it
+  // without Rick reversing the 2026-10-22 decision.
+  const clientDriveAvailable=false;
   const settingsCache=new Map();
   let dbClient=null;
 
@@ -196,21 +201,24 @@
       if(!businessId)return snapshot;
       try{
         const storage=await setting(businessId,true);
+        // Drive stood down (Rick, 2026-10-22): the snapshot presents server
+        // storage as the provider whatever the dormant settings row says.
+        const effectiveProvider=clientDriveAvailable?storage.provider:'supabase';
         snapshot.storageSettings={
-          provider:storage.provider,
-          connectionStatus:storage.connection_status,
-          providerAccountEmail:storage.provider_account_email || '',
-          rootFolderConfigured:!!storage.root_folder_id,
+          provider:effectiveProvider,
+          connectionStatus:clientDriveAvailable?storage.connection_status:'connected',
+          providerAccountEmail:clientDriveAvailable?(storage.provider_account_email || ''):'',
+          rootFolderConfigured:clientDriveAvailable?!!storage.root_folder_id:false,
           config:storage.config || {}
         };
         const providers=Array.isArray(snapshot.providers)?snapshot.providers:[];
         snapshot.providers=providers.filter(row=>String(row['Provider Type'] || '').toLowerCase()!=='storage');
-        const driveStatus=storage.provider==='google_drive'
+        const driveStatus=effectiveProvider==='google_drive'
           ? (storage.connection_status==='connected'?'Connected':storage.connection_status==='error'?'Needs attention':storage.connection_status==='connecting'?'Connecting':'Not Connected')
           : 'Connected';
         snapshot.providers.push({
           'Provider ID':'storage','Provider Type':'storage',
-          'Provider Name':storage.provider==='google_drive'?'Client Google Drive':'Supabase private storage',
+          'Provider Name':effectiveProvider==='google_drive'?'Client Google Drive':'Supabase private storage',
           'Connection Status':driveStatus
         });
       }catch(error){
@@ -226,7 +234,7 @@
 
     const businessId=text(args && args.businessId || attachments[0]?.businessId || auth.getState().selectedBusinessId);
     const storage=await setting(businessId,true);
-    if(storage.provider!=='google_drive')return previousRequest.call(this,action,args,timeout);
+    if(!clientDriveAvailable || storage.provider!=='google_drive')return previousRequest.call(this,action,args,timeout);
 
     const remaining=operations.filter(operation=>operation.action!=='SAVE_ATTACHMENT');
     const results=[];
@@ -317,6 +325,7 @@
       if(!businessId || !sizeable || !navigator.onLine)return origUpload(path,body,options);
       const blob=body instanceof Blob?body:new Blob([body]);
       if(!blob.size || blob.size>100*1024*1024)return origUpload(path,body,options);
+      if(!clientDriveAvailable)return origUpload(path,body,options);
       const st=await setting(businessId);
       if(!st || st.provider!=='google_drive' || st.connection_status!=='connected')return origUpload(path,body,options);
       const {data:sessionData}=await client().auth.getSession();
@@ -501,6 +510,17 @@
     const drive=provider==='google_drive';
     const card=document.createElement('section');
     card.id='businessStorageProviderCard';card.className='card span6';
+    if(!clientDriveAvailable){
+      // Drive stood down (Rick, 2026-10-22): server storage is the one live
+      // path and the only thing this card offers — no Drive offer, no
+      // Connect button. Year dumps are plain downloads from Data & storage.
+      card.innerHTML=`<h2>File storage</h2>
+      <div class="row"><div><strong>Supabase private storage</strong><small>Private storage inside this business Office, on Highway 38's servers</small></div>${window.pill('Connected','good')}</div>
+      <p class="muted">Your photos, videos and attachments are stored privately on Highway 38's own servers — fast, and under our control — and count toward your included server data (see Data &amp; storage). Records and accounting always stay in the Office.</p>
+      <p class="muted">Need a copy of a full year? Export it any time from the Data &amp; storage card — it downloads straight to you.</p>`;
+      grid.appendChild(card);
+      return true;
+    }
     let inner=`<h2>File storage</h2>`;
     inner+=driveQueryNotice();
     if(!drive){
@@ -539,7 +559,7 @@
     return true;
   }
   async function driveCardAction(action,businessId,button){
-    if(!businessId)return;
+    if(!clientDriveAvailable || !businessId)return; // Drive stood down (Rick, 2026-10-22)
     const original=button.textContent;
     button.disabled=true;button.textContent='Working…';
     try{
@@ -580,7 +600,7 @@
 
   window.H38_STORAGE_PROVIDER={
     get:businessId=>setting(businessId,true),
-    supported:['supabase','google_drive'],
+    supported:clientDriveAvailable?['supabase','google_drive']:['supabase'],
     defaultProvider:'supabase',
     clientDriveAvailable,
     renderSettingsCard:renderStorageSettingsCard,
