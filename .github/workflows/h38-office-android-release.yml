@@ -96,12 +96,14 @@ jobs:
           aapt dump permissions "$APK" | grep -F 'android.permission.RECEIVE_BOOT_COMPLETED'
           aapt dump xmltree "$APK" AndroidManifest.xml | grep -F 'TrackingService'
           aapt dump xmltree "$APK" AndroidManifest.xml | grep -F 'BootReceiver'
-          # The bridge identity the web app keys on.
-          unzip -p "$APK" classes.dex | strings | grep -F 'AndroidH38Office' >/dev/null || \
-            unzip -p "$APK" $(unzip -Z1 "$APK" | grep -E '^classes[0-9]*\.dex$' | head -n 1) | strings | grep -F 'H38OfficeAndroid'
-          unzip -Z1 "$APK" | grep -E '^classes[0-9]*\.dex$' | while read -r dex; do
+          # Markers across ALL dex files (multi-dex: the app classes are
+          # not necessarily in classes.dex).
+          ALLSTR=$(unzip -Z1 "$APK" | grep -E '^classes[0-9]*\.dex$' | while read -r dex; do
             unzip -p "$APK" "$dex"
-          done | strings | grep -F 'Mileage tracking is on'
+          done | strings)
+          echo "$ALLSTR" | grep -F 'AndroidH38Office'
+          echo "$ALLSTR" | grep -F 'H38OfficeAndroid'
+          echo "$ALLSTR" | grep -F 'Mileage tracking is on'
           echo "H38_OFFICE_GATE_OK"
 
       - name: Upload gate evidence
