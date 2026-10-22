@@ -1,14 +1,13 @@
 # Scope-aware verification plan
 
-- Files changed: 29
-- Scopes: publicWebsite, customerPortal, performanceReliability
-- Deployment workflows: .github/workflows/pages-branch-fallback.yml, .github/workflows/deploy-owner-portal-hard-rule-production.yml
+- Files changed: 21
+- Scopes: publicWebsite, performanceReliability
+- Deployment workflows: .github/workflows/pages-branch-fallback.yml
 
 ## Fast checks
 - `node scripts/verify-change-governance.js`
 - `node scripts/verify-public-website-architecture.js`
 - `node scripts/verify-public-ecosystem-tools.js`
-- `node scripts/verify-customer-portal-security.js`
 
 ## Expensive or live checks
 - desktop and mobile public browser verification for affected routes
