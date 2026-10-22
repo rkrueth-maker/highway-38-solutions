@@ -140,7 +140,7 @@ public final class MainActivity extends Activity {
                 // The Office's own in-app detection may use location while the
                 // app is open — grant for our origin when the phone permission
                 // is held; never for anyone else.
-                boolean ours = origin != null && origin.contains(OFFICICE_HOST);
+                boolean ours = origin != null && origin.contains(OFFICE_HOST);
                 callback.invoke(origin, ours && StatusReporter.foregroundLocationGranted(MainActivity.this), false);
             }
 
