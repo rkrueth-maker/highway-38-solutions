@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// H38 Mileage Tracking (Phone) — build 20261022-mileage-1.
+// H38 Mileage Tracking (Phone) — build 20261022-native-bridge-1.
 // Automatic drive detection + ask-later classification for the mileage log
 // (Rick's decisions, 2026-10-22):
 //  - Trips are detected automatically and queued; the driver classifies
@@ -36,7 +36,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261022-mileage-1';
+var BUILD='20261022-native-bridge-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -146,9 +146,9 @@ function recordingOn(){
   var v=lsGet(switchKey('on'));
   return v===null?true:v==='1';
 }
-function setRecordingOn(on){lsSet(switchKey('on'),on?'1':'0');if(!on)stopWatch();}
+function setRecordingOn(on){lsSet(switchKey('on'),on?'1':'0');if(!on)stopWatch();pushNativePolicy(true);}
 function offDuty(){return lsGet(switchKey('offduty'))==='1';}
-function setOffDuty(on){lsSet(switchKey('offduty'),on?'1':null);if(on)stopWatch();}
+function setOffDuty(on){lsSet(switchKey('offduty'),on?'1':null);if(on)stopWatch();pushNativePolicy(true);}
 
 // ---------- time clock (employees record while clocked in) ----------
 function activeTimeEntry(){
@@ -177,6 +177,13 @@ function detectionEligible(){
 function policyLine(){
   if(!recordingOn())return 'Trip recording is off on this phone.';
   if(offDuty())return 'Off duty — not recording.';
+  var nativeSt=nativeStatus();
+  if(nativeSt&&(nativeSt.gate==='RECORDING'||nativeSt.gate==='WAITING_CLOCKIN')){
+    if(isOwnerAdmin())return 'Recording is on — the H38 Office app on this phone watches for drives in the background.';
+    return clockedIn()
+      ? 'Recording is on — the H38 Office app watches for drives while you\u2019re clocked in.'
+      : 'Trips are recorded while you\u2019re clocked in. Clock in to start automatic recording — or start a trip by hand anytime.';
+  }
   if(isOwnerAdmin())return 'Recording is on. Drives are recorded while the Office is open on your phone.';
   return clockedIn()
     ? 'Recording is on. Trips are recorded while you\u2019re clocked in.'
@@ -1045,7 +1052,8 @@ function statusBlockHtml(){
     (on?'<button type="button" class="secondary" data-h38-mileage-recording-off>Recording: On</button>':'<button type="button" data-h38-mileage-recording-on>Recording: Off</button>')+
     (duty?'<button type="button" data-h38-mileage-duty-off>Off duty: On</button>':'<button type="button" class="secondary" data-h38-mileage-duty-on>Go off duty</button>')+
     '</div>'+
-    (watch.error?'<p class="h38-mileage-note">'+esc(watch.error)+'</p>':'');
+    (watch.error?'<p class="h38-mileage-note">'+esc(watch.error)+'</p>':'')+
+    nativeStatusHtml();
 }
 function totalsHtml(){
   var totals=monthlyTotals(ui.month);
@@ -1245,6 +1253,10 @@ function bindStatusButtons(root){
   if(dutyOn)dutyOn.onclick=function(){setOffDuty(true);toast('Off duty — trips are not being recorded.');scheduleDecorateSettled();};
   var dutyOff=root.querySelector('[data-h38-mileage-duty-off]');
   if(dutyOff)dutyOff.onclick=function(){setOffDuty(false);toast('Back on duty.');syncWatch();scheduleDecorateSettled();};
+  var nativeSetup=root.querySelector('[data-h38-mileage-native-setup]');
+  if(nativeSetup)nativeSetup.onclick=function(){var b=nativeBridge();if(b){try{b.openSetup();}catch(_){}}};
+  var nativeSettings=root.querySelector('[data-h38-mileage-native-settings]');
+  if(nativeSettings)nativeSettings.onclick=function(){var b=nativeBridge();if(b){try{b.openAppSettings();}catch(_){}}};
 }
 async function saveRate(rate){
   if(typeof w.queueOperation!=='function')throw new Error('Open a business first.');
@@ -1261,6 +1273,120 @@ async function saveRate(rate){
   await w.queueOperation('SAVE_MILEAGE_SETTINGS','Mileage Settings',id,{settingsId:id,ratePerMile:rate},
     {collection:SETTINGS_COLLECTION,record:record,idKeys:['Settings ID']});
   try{w.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'mileage',collection:SETTINGS_COLLECTION}}));}catch(_){}
+}
+
+// ---------- native app bridge (H38 Office Android app) ----------
+// When the Office runs inside the native app, window.AndroidH38Office is
+// present. The native layer detects drives in the background and delivers
+// them into this same mileageTrips collection; this module stays the one
+// classification engine. The bridge carries the session + recording policy
+// down (this module is the policy source of truth) and the status back up.
+function nativeBridge(){
+  try{return (typeof w.AndroidH38Office!=='undefined'&&w.AndroidH38Office)?w.AndroidH38Office:null;}
+  catch(_){return null;}
+}
+function nativeStatus(){
+  var b=nativeBridge();
+  if(!b)return null;
+  try{return JSON.parse(b.getStatus());}catch(_){return null;}
+}
+var nativePushAt=0;
+async function pushNativePolicy(force){
+  var b=nativeBridge();
+  if(!b)return;
+  var nowMs=Date.now();
+  if(!force&&nowMs-nativePushAt<15000)return;
+  nativePushAt=nowMs;
+  try{
+    var cfg=w.H38_BUSINESS_OFFICE_SUPABASE||{};
+    var session=null;
+    try{
+      var shared=w.H38_SUPABASE_SHARED_CLIENT;
+      var client=shared&&typeof shared.ensure==='function'?shared.ensure():null;
+      if(client&&client.auth&&typeof client.auth.getSession==='function'){
+        var res=await client.auth.getSession();
+        session=res&&res.data?res.data.session:null;
+      }
+    }catch(_){}
+    if(!session||!userId())return; // sign-out is handled by h38:auth-cleared
+    b.setSessionAndPolicy(JSON.stringify({
+      supabaseUrl:text(cfg.url),publishableKey:text(cfg.publishableKey),
+      accessToken:session.access_token||'',refreshToken:session.refresh_token||'',
+      expiresAtMs:session.expires_at?session.expires_at*1000:0,
+      authUserId:session.user&&session.user.id?session.user.id:'',
+      userId:userId(),userName:userName(),businessId:businessId(),
+      signedIn:true,
+      pilotEnabled:pilotEnabled(),featureOn:enabled(),
+      recordingOn:recordingOn(),offDuty:offDuty(),
+      ownerAdmin:isOwnerAdmin(),clockedIn:clockedIn()
+    }));
+  }catch(_){}
+}
+// Native-delivered trips arrive Unreviewed with no suggestion (the native
+// layer detects and delivers; it does not classify). Run them through the
+// same suggest/auto-file path closeTrip() uses, exactly once each, marked
+// with 'Engine Processed At'. Idempotent: stamped rows are never re-run.
+var nativeProcessBusy=false;
+async function processNativeTrips(){
+  if(nativeProcessBusy)return;
+  if(!enabled()||!userId()||!businessId())return;
+  var rows=myTrips().filter(function(row){
+    return val(row,'Native Delivered','nativeDelivered')===true
+      &&tripStatus(row)==='Unreviewed'
+      &&!text(val(row,'Engine Processed At','engineProcessedAt'));
+  });
+  if(!rows.length)return;
+  nativeProcessBusy=true;
+  try{
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      var trip=tripObjectFromRow(row);
+      var s=suggest(trip);
+      var stamp=nowIso();
+      var record=Object.assign({},row);
+      record['Start Label']=trip.startLat?endpointLabel(trip.startLat,trip.startLng):'';
+      record['End Label']=trip.endLat?endpointLabel(trip.endLat,trip.endLng):'';
+      record['Suggested Classification']=s.classification||'';
+      record['Suggested Job ID']=s.jobId||'';
+      record['Suggestion Reason']=s.reason||'';
+      record['Suggestion Score']=s.score||0;
+      if(s.autoFile){
+        record['Status']='Auto-filed';
+        record['Classification']=s.classification;
+        record['Job ID']=s.jobId||'';
+        record['Customer ID']=s.customerId||'';
+        record['Filed Place ID']=s.placeId||'';
+      }
+      record['Engine Processed At']=stamp;
+      record['Updated Time']=stamp;
+      record['Record Version']=num(val(row,'Record Version','recordVersion'))+1;
+      await saveTripRecord(record);
+      if(s.autoFile){
+        await learnFromTrip({
+          classification:s.classification,jobId:s.jobId||'',customerId:s.customerId||'',
+          startLat:trip.startLat,startLng:trip.startLng,endLat:trip.endLat,endLng:trip.endLng,
+          startLabel:record['Start Label'],endLabel:record['End Label']
+        },{classification:s.classification,jobId:s.jobId||'',placeId:s.placeId||''});
+      }
+    }
+  }catch(_){/* the unstamped remainder is retried on the next pass */}
+  nativeProcessBusy=false;
+}
+function nativeStatusHtml(){
+  var st=nativeStatus();
+  if(!st)return '';
+  var line='';
+  if(st.gate==='RECORDING')line='Background tracking is on (H38 Office app) — drives are recorded even with the app closed.';
+  else if(st.gate==='WAITING_CLOCKIN')line='Background tracking is on (H38 Office app) — it records while you\u2019re clocked in.';
+  else if(st.gate==='PAUSED_STALE')line='The H38 Office app is installed, but background tracking is paused — it checks in when you open the app.';
+  else if(!st.backgroundLocation)line='The H38 Office app is installed, but location is not set to \u201cAllow all the time\u201d — background tracking can\u2019t run yet.';
+  else line='The H38 Office app is installed. Background tracking is off right now — check the switches above.';
+  if(st.pendingTrips)line+=' '+st.pendingTrips+' detected trip'+(st.pendingTrips===1?' is':'s are')+' waiting to sync.';
+  return '<p class="h38-mileage-note">'+esc(line)+'</p>'+
+    '<div class="h38-mileage-actions">'+
+    '<button type="button" class="secondary" data-h38-mileage-native-setup>App setup</button>'+
+    '<button type="button" class="secondary" data-h38-mileage-native-settings>Fix in Settings</button>'+
+    '</div>';
 }
 
 // ---------- surfaces ----------
@@ -1374,6 +1500,8 @@ function removeSurfaces(){
 // ---------- decorate / hooks ----------
 function decorate(){
   registerFeature();
+  pushNativePolicy(false);
+  processNativeTrips().catch(function(){});
   if(!enabled()){
     stopWatch();
     removeSurfaces();
@@ -1409,7 +1537,7 @@ function installHooks(){
     else{settleOnOpen();scheduleDecorate();}
   });
   w.addEventListener('pagehide',function(){stopWatch();engineSave();});
-  w.addEventListener('h38:auth-cleared',function(){stopWatch();removeSurfaces();});
+  w.addEventListener('h38:auth-cleared',function(){stopWatch();removeSurfaces();var b=nativeBridge();if(b){try{b.clearSession();}catch(_){}}});
   // Missed-drive check: the first good fix after the app opens tells us
   // whether the phone moved far from where it was parked while closed.
   if(typeof navigator!=='undefined'&&navigator.geolocation&&typeof navigator.geolocation.getCurrentPosition==='function'){
@@ -1454,7 +1582,9 @@ w.H38Mileage=Object.freeze({
   myPlaces:myPlaces,
   decorate:decorate,
   collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION},
-  foregroundOnly:true,
+  foregroundOnly:!nativeBridge(),
+  nativeStatus:nativeStatus,
+  processNativeTrips:processNativeTrips,
   employeesRecordWhileClockedIn:true,
   manualFallbackNeverGates:true
 });

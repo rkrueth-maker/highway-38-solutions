@@ -25,7 +25,7 @@
 (function(){
 'use strict';
 
-var BUILD='20261022-acct-tabs-1';
+var BUILD='20261022-native-bridge-1';
 var FN_PATH='/functions/v1/h38-accountant-view';
 
 function text(v){return String(v==null?'':v).trim();}
