@@ -1,10 +1,20 @@
 // h38-data-dump — year data dump + confirmed purge (Rick, 2026-10-21).
 //
-// Part of the per-business data-limit feature (10 GB -> revised 5 GB of server
-// data included per business). The dump is the FREE way for a business to get
-// back under the limit: export one full year of their data (records + files)
+// Part of the per-business data-limit feature (server data included per
+// business; the limit value itself lives in the data-limit policy, not
+// here). The dump is the FREE way for a business to get back under the
+// limit: export one full year of their data (records + files)
 // as downloadable zip archives, then — as a SEPARATE, explicit step, only
 // after the archive exists — purge that year's bulk from the server.
+//
+// Marked photos (Rick, 2026-10-22): a photo whose document record carries
+// 'Keep On Server': true (set in the Office gallery — "Keep on server —
+// example of work") is NEVER purged: the file and its document record stay
+// on the server and keep counting toward the business's data meter. The
+// dump archive itself is always complete for the year regardless of the
+// flag — the flag governs purge retention only. Purge re-checks the flags
+// live at purge time, so a photo marked after the export was built is
+// still kept.
 //
 // Hard rules:
 //  * Export never deletes anything. Purge is a separate action requiring
@@ -79,6 +89,37 @@ async function sha256Hex(data: Uint8Array): Promise<string> {
 interface FileEntry {
   path: string; bytes: number; sha256: string;
   segment: string; recordKey: string; purgeable: boolean;
+  keepOnServer?: boolean;
+}
+
+// --- marked photos: "Keep on server — example of work" (Rick, 2026-10-22) --
+// The flag lives on the documents record payload as 'Keep On Server': true.
+// Returns the flagged record keys and the flagged files' storage paths so
+// both the dump manifest and the purge can honor it.
+async function markedKeepSet(
+  sb: ReturnType<typeof createClient>, businessId: string,
+): Promise<{ recordKeys: Set<string>; paths: Set<string> }> {
+  const recordKeys = new Set<string>();
+  const paths = new Set<string>();
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await sb.from("business_records")
+      .select("record_key, payload")
+      .eq("business_id", businessId).eq("collection", "documents")
+      .eq("record_status", "active")
+      .range(offset, offset + 999);
+    if (error) throw new Error(error.message);
+    for (const r of data || []) {
+      const payload = (r.payload || {}) as Record<string, unknown>;
+      const flag = payload["Keep On Server"];
+      if (flag === true || flag === "true") {
+        recordKeys.add(String(r.record_key));
+        const p = String(payload["Storage Path"] || "");
+        if (p) paths.add(p);
+      }
+    }
+    if (!data || data.length < 1000) break;
+  }
+  return { recordKeys, paths };
 }
 
 Deno.serve(async (request: Request) => {
@@ -285,10 +326,14 @@ async function buildDump(sb: ReturnType<typeof createClient>, businessId: string
     records.push(...(data || []));
     if (!data || data.length < 1000) break;
   }
+  const keep = await markedKeepSet(sb, businessId);
   const recordKeys = new Set(records.map((r) => String(r.record_key)));
   const recordIndex = records.map((r) => ({
     collection: String(r.collection), recordKey: String(r.record_key),
-    purgeable: PURGEABLE_COLLECTIONS.has(String(r.collection)),
+    // A marked photo's document record stays with its file (Rick, 2026-10-22).
+    purgeable: PURGEABLE_COLLECTIONS.has(String(r.collection)) &&
+      !(String(r.collection) === "documents" && keep.recordKeys.has(String(r.record_key))),
+    keepOnServer: String(r.collection) === "documents" && keep.recordKeys.has(String(r.record_key)),
   }));
 
   // Files: attached to an exported record, or uploaded in the year.
@@ -305,10 +350,14 @@ async function buildDump(sb: ReturnType<typeof createClient>, businessId: string
     if (error) throw new Error("Download failed for " + f.path + ": " + error.message);
     const bytes = new Uint8Array(await data.arrayBuffer());
     fileData.set(f.path, bytes);
+    // Marked photos are exported like everything else (the archive is
+    // always complete) but are never purgeable.
+    const kept = keep.paths.has(f.path) || keep.recordKeys.has(recordKey);
     files.push({
       path: f.path, bytes: bytes.length, sha256: await sha256Hex(bytes),
       segment: seg, recordKey,
-      purgeable: PURGEABLE_SEGMENTS.has(seg),
+      purgeable: PURGEABLE_SEGMENTS.has(seg) && !kept,
+      keepOnServer: kept,
     });
   }
 
@@ -318,7 +367,8 @@ async function buildDump(sb: ReturnType<typeof createClient>, businessId: string
     businessId, year, generatedAt: new Date().toISOString(),
     records: { count: records.length, byCollection },
     files: { count: files.length, bytes: files.reduce((s, f) => s + f.bytes, 0) },
-    retentionNote: "Purge (a separate, explicit step) removes only purgeable classes listed in the manifest. Accounting records (invoices, payments, GL, payroll, tax) and customer records are always retained on the server.",
+    filesKeptOnServer: files.filter((f) => f.keepOnServer).length,
+    retentionNote: "Purge (a separate, explicit step) removes only purgeable classes listed in the manifest. Accounting records (invoices, payments, GL, payroll, tax) and customer records are always retained on the server. Photos marked 'Keep on server — example of work' (and their document records) are also always retained on the server and keep counting toward the data meter.",
   };
   const manifest = { ...summary, recordsIndex: recordIndex, files };
   const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest, null, 2));
@@ -332,7 +382,8 @@ async function buildDump(sb: ReturnType<typeof createClient>, businessId: string
     `This archive is your copy of one year of your Office data: records.json (structured export of every record created that year) plus your files under files/. ` +
     `The full manifest (file list with checksums) is the manifest.json stored next to these archives in your Office files.\n\n` +
     `If you later choose to purge this year from the server, only old operational bulk is removed (job photos, site-scan captures, attachments, old operational records). ` +
-    `Invoices, payments, accounting, payroll, tax records and customer records always stay on the server.\n`);
+    `Invoices, payments, accounting, payroll, tax records and customer records always stay on the server. ` +
+    `Photos you marked "Keep on server — example of work" in the Office also always stay on the server.\n`);
 
   // Pack parts.
   const parts: { path: string; bytes: number }[] = [];
@@ -384,9 +435,27 @@ async function runPurge(
     .select("total_bytes").eq("business_id", businessId).maybeSingle();
   const totalBefore = Number(beforeRes.data?.total_bytes || 0);
 
+  // Marked photos: re-check the flags LIVE (Rick, 2026-10-22) — a photo
+  // marked after this export was built is still kept. Manifest keep marks
+  // are honored too (union of both).
+  const liveKeep = await markedKeepSet(sb, businessId);
+  const keptFilePaths = new Set<string>(
+    (manifest.files || []).filter((f: FileEntry) => f.keepOnServer).map((f: FileEntry) => f.path),
+  );
+  const keptRecordKeys = new Set<string>(
+    (manifest.recordsIndex || [])
+      .filter((r: { keepOnServer?: boolean }) => r.keepOnServer)
+      .map((r: { recordKey: string }) => r.recordKey),
+  );
+
   const recordKeys: string[] = (manifest.recordsIndex || [])
     .filter((r: { purgeable: boolean }) => r.purgeable)
-    .map((r: { recordKey: string }) => r.recordKey);
+    .map((r: { recordKey: string }) => r.recordKey)
+    .filter((k: string) => !liveKeep.recordKeys.has(k) && !keptRecordKeys.has(k));
+  const recordsKept = (manifest.recordsIndex || [])
+    .filter((r: { purgeable: boolean; collection: string }) =>
+      r.collection === "documents" && (liveKeep.recordKeys.has(r.recordKey) || keptRecordKeys.has(r.recordKey)))
+    .length;
   let recordsDeleted = 0;
   for (let i = 0; i < recordKeys.length; i += 200) {
     const batch = recordKeys.slice(i, i + 200);
@@ -397,9 +466,11 @@ async function runPurge(
     recordsDeleted += (data || []).length;
   }
 
-  const filePaths: string[] = (manifest.files || [])
-    .filter((f: FileEntry) => f.purgeable)
+  const candidateFiles = (manifest.files || []).filter((f: FileEntry) => f.purgeable);
+  const filePaths: string[] = candidateFiles
+    .filter((f: FileEntry) => !liveKeep.paths.has(f.path) && !liveKeep.recordKeys.has(f.recordKey) && !keptFilePaths.has(f.path))
     .map((f: FileEntry) => f.path);
+  const filesKept = candidateFiles.length - filePaths.length;
   let filesDeleted = 0;
   for (let i = 0; i < filePaths.length; i += 100) {
     const batch = filePaths.slice(i, i + 100);
@@ -425,12 +496,13 @@ async function runPurge(
     records_deleted: recordsDeleted, files_deleted: filesDeleted,
     bytes_freed: bytesFreed,
     detail: {
-      totalBefore, totalAfter,
-      retainedNote: "Only manifest-listed purgeable classes were deleted; accounting + customer records retained.",
+      totalBefore, totalAfter, filesKeptOnServer: filesKept, documentRecordsKept: recordsKept,
+      retainedNote: "Only manifest-listed purgeable classes were deleted; accounting + customer records retained. Photos marked 'Keep on server' (files + their document records) were retained on the server and still count toward the meter.",
     },
   });
   return {
     purged: true, recordsDeleted, filesDeleted, bytesFreed,
+    filesKeptOnServer: filesKept, documentRecordsKept: recordsKept,
     usageBefore: totalBefore, usageAfter: totalAfter,
   };
 }
