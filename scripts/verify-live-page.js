@@ -24,7 +24,7 @@ const PAGE_CHECKS = [
     path: 'index.html',
     required: [
       'Your truck is not',
-      'Business in a box',
+      'H38 Business System',
       'I need better software',
       'I need help solving a project',
       'Implementation and Onboarding',

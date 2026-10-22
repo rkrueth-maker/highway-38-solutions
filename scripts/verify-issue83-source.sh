@@ -14,10 +14,10 @@ check_file_contains() {
 
 check_file_contains index.html 'Your truck is not' 'Homepage problem-first headline'
 check_file_contains index.html 'a filing cabinet.' 'Homepage problem-first outcome'
-check_file_contains index.html 'Business in a box' 'Homepage Business in a Box presentation'
+check_file_contains index.html 'H38 Business System' 'Homepage H38 Business System presentation'
 check_file_contains index.html 'Try the Live Demo' 'Homepage buyer choice: live demo'
 check_file_contains index.html 'See the Plans' 'Homepage buyer choice: plans'
-check_file_contains index.html 'href="business-in-a-box.html"' 'Homepage Business in a Box route'
+check_file_contains index.html 'href="business-in-a-box.html"' 'Homepage H38 Business System route'
 check_file_contains index.html 'href="business-office-review-demo.html"' 'Homepage Office demo route'
 check_file_contains index.html 'href="quote-builder.html#examples"' 'Homepage Project Examples route'
 check_file_contains index.html 'href="contact.html"' 'Homepage contact route'
@@ -28,7 +28,7 @@ if grep -Eq 'href="business-systems\.html' index.html; then
   exit 1
 fi
 echo 'PASS — homepage keeps authenticated software behind the software buyer path'
-check_file_contains assets/js/h38-site-v2.js "{href:'business-in-a-box.html',label:'Business in a Box'}" 'Canonical Business in a Box path'
+check_file_contains assets/js/h38-site-v2.js "{href:'business-in-a-box.html',label:'H38 Business System'}" 'Canonical H38 Business System path'
 check_file_contains assets/js/h38-site-v2.js "{href:'quote-builder.html#examples',label:'Project Examples'}" 'Canonical Project Examples path'
 if grep -Fq "{href:'quote-builder.html',label:'Quote Builder'}" assets/js/h38-site-v2.js || grep -Fq "{href:'business-systems.html',label:'Business Office'}" assets/js/h38-site-v2.js; then
   echo 'FAIL — shared navigation directly favors one software product.' >&2
