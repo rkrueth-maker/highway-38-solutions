@@ -73,10 +73,12 @@ var $=function(id){return document.getElementById(id);};
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 var moneyFmt=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 var intFmt=new Intl.NumberFormat('en-US');
+var numFmt=new Intl.NumberFormat('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
 function fmtCell(col,val){
   if(val===null||val===undefined||val==='')return '';
   if(col.type==='money')return moneyFmt.format(Number(val)||0);
   if(col.type==='int')return intFmt.format(Number(val)||0);
+  if(col.type==='num')return numFmt.format(Number(val)||0);
   return String(val);
 }
 function renderTab(tab){
@@ -87,12 +89,12 @@ function renderTab(tab){
   }
   var minW=tab.columns.length<=3?'300px':(tab.columns.length<=6?'480px':'640px');
   h+='<div class="tablewrap"><table style="min-width:'+minW+'"><thead><tr>'+tab.columns.map(function(c){
-    return '<th'+(c.type==='money'||c.type==='int'?' class="num"':'')+'>'+esc(c.label)+'</th>';
+    return '<th'+(c.type==='money'||c.type==='int'||c.type==='num'?' class="num"':'')+'>'+esc(c.label)+'</th>';
   }).join('')+'</tr></thead><tbody>';
   tab.rows.forEach(function(row){
     h+='<tr>'+row.map(function(val,i){
       var c=tab.columns[i];
-      return '<td'+(c.type==='money'||c.type==='int'?' class="num"':'')+'>'+esc(fmtCell(c,val))+'</td>';
+      return '<td'+(c.type==='money'||c.type==='int'||c.type==='num'?' class="num"':'')+'>'+esc(fmtCell(c,val))+'</td>';
     }).join('')+'</tr>';
   });
   h+='</tbody>';
@@ -100,7 +102,7 @@ function renderTab(tab){
     h+='<tfoot><tr>'+tab.columns.map(function(c,i){
       if(i===0)return '<td>Total</td>';
       var v=tab.totals[i];
-      return '<td'+(c.type==='money'||c.type==='int'?' class="num"':'')+'>'+(v===null?'':esc(fmtCell(c,v)))+'</td>';
+      return '<td'+(c.type==='money'||c.type==='int'||c.type==='num'?' class="num"':'')+'>'+(v===null?'':esc(fmtCell(c,v)))+'</td>';
     }).join('')+'</tr></tfoot>';
   }
   h+='</table></div>';

@@ -16,7 +16,6 @@
 ## Expensive or live checks
 - desktop and mobile public browser verification for affected routes
 - desktop and mobile authenticated route verification for affected workspaces
-- resumable small-batch generation with cursor and exact final counts
 
 ## Evidence that may remain reusable
 - Re-evaluate evidence after the fast checks.
