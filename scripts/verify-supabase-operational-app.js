@@ -214,7 +214,14 @@ for(const needle of [
   'credentialsInBrowser:false',
   'crossTenantAccess:false',
   'automaticCustomerRelease:false',
-  'The file remains safely queued on this device'
+  // Failure-honesty contract (shipped design, 2026-10-21): a Drive failure
+  // never strands a file on the device and never drops it silently — the
+  // upload falls back to Office storage and the record is stamped. (The
+  // pre-ship scaffold instead queued on device with the copy
+  // 'The file remains safely queued on this device'; that state no longer
+  // exists, so the pin now asserts the shipped markers below.)
+  'This business Google Drive connection is not complete.',
+  "'Storage Fallback':true"
 ])includes(storage,needle,`Storage provider adapter is missing ${needle}`);
 
 const portal=read('commercial-app/supabase-portal-hydration.js');
