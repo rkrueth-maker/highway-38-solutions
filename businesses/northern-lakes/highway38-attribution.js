@@ -1,10 +1,11 @@
 (function(){
 'use strict';
-const BUILD='20260913-highway38-attribution-1';
+const BUILD='20261021-cobrand-1';
 const LABEL='Business systems powered by Highway 38 Solutions';
 const URL='https://highway38solutions.com/';
-function linkHtml(){return`Business systems powered by <a href="${URL}" target="_blank" rel="noopener">Highway 38 Solutions</a>`;}
-function ensureStyle(){if(document.getElementById('nlH38AttributionStyle'))return;const style=document.createElement('style');style.id='nlH38AttributionStyle';style.textContent='.nl-h38-attribution{font:600 12px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:inherit;opacity:.72}.nl-h38-attribution a{color:inherit;text-decoration:none}.nl-h38-attribution a:hover,.nl-h38-attribution a:focus{text-decoration:underline}.nl-h38-attribution-block{text-align:center;padding:14px 16px 24px}';document.head.appendChild(style);}
+const LOGO_URL=(()=>{try{const s=document.currentScript&&document.currentScript.src;if(s)return new URL('../../assets/highway38-logo.png?v=20260720-exact-0cbc4514',s).href;}catch(_){}return 'https://highway38solutions.com/assets/highway38-logo.png?v=20260720-exact-0cbc4514';})();
+function linkHtml(){return`<img class="nl-h38-attribution-logo" src="${LOGO_URL}" alt="" width="16" height="16">Business systems powered by <a href="${URL}" target="_blank" rel="noopener">Highway 38 Solutions</a>`;}
+function ensureStyle(){if(document.getElementById('nlH38AttributionStyle'))return;const style=document.createElement('style');style.id='nlH38AttributionStyle';style.textContent='.nl-h38-attribution{font:600 12px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:inherit;opacity:.72}.nl-h38-attribution a{color:inherit;text-decoration:none}.nl-h38-attribution a:hover,.nl-h38-attribution a:focus{text-decoration:underline}.nl-h38-attribution-block{text-align:center;padding:14px 16px 24px}.nl-h38-attribution-logo{display:inline-block;width:16px;height:16px;vertical-align:-3px;margin-right:5px}';document.head.appendChild(style);}
 function ensure(){
   ensureStyle();
   const footer=document.querySelector('.site-footer .footer-bottom');
