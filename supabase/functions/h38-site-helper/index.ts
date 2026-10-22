@@ -18,7 +18,7 @@
 // Credential: MUSE_SPARK_API_KEY must exist as an Edge Function secret. Until
 // it does, the function is deployed dark and returns FALLBACK/not_configured.
 
-const BUILD = "20261008-site-helper-3";
+const BUILD = "20261021-site-helper-4";
 const ALLOWED_ORIGINS = new Set([
   "https://highway38solutions.com",
   "https://www.highway38solutions.com",
@@ -185,18 +185,21 @@ async function queueCount(ipHash?: string): Promise<number> {
 type JsonObject = Record<string, unknown>;
 
 const FACTS = [
-  "Highway 38 Solutions sells Business in a Box: the Highway 38 Business Office for small service businesses, based in Grand Rapids, Minnesota. It covers quotes, scheduling, jobs, invoices, customers, payroll prep, documents, and reporting in one place. It replaces a $600+/month stack of separate software subscriptions, plus the office labor on top.",
-  "Plan 1, Bring Your Own Muse: $229 per month or $2,290 per year (two months free). The complete Business Office for your whole crew. You download the free Muse app and Highway 38 helps configure it for your business. Every workflow also works fully by hand; manual mode is always included at no extra cost. Standard support is email, next-day.",
-  "Plan 2, AI Runs Your Backend: $329 per month or $3,300 per year (saving $648 versus paying monthly). Everything in Bring Your Own Muse, plus the AI on Highway 38's side drafts quotes, sends follow-ups, handles review requests, and prepares a morning digest. The owner approves everything before it goes out. 500 AI actions per month are included; anything over is quoted before it runs. Priority support is same-day. One small custom feature per quarter is included.",
-  "Both plans are one flat price for the whole crew, up to 15 people, office and field, with no per-user fees. Businesses bigger than 15 people get a custom quote. Setup and onboarding are included; there is no separate setup fee or implementation fee.",
-  "Founding customers: the first 10 businesses lock in launch pricing for life. The rate never goes up while they stay subscribed.",
-  "Website: a basic website is included with the plans (home, services, about, and contact pages, click-to-call, and a lead form wired straight into the Office), built after the first paid month and pointed at a domain the customer owns. A brand kit (business card design, letterhead, invoice template) is included. An advanced website is $999 one-time (online booking, customer portal, estimate form with photo upload, review display, up to 8 pages; bigger builds are quoted per scope), and the first three founding businesses get the advanced website free. An optional website care plan is $79 per month (hosting and domain handled, security updates, a few small content changes each month); skip it and the site is handed over as-built. No hidden fees.",
+  "Highway 38 Solutions, based in Grand Rapids, Minnesota, is the place to come for the solutions: software, apps, setups, and prototypes for small service businesses. The Highway 38 Business Office is one of its products — quotes, scheduling, jobs, invoices, customers, payroll prep, documents, and reporting in one place.",
+  "Business Office pricing: $149 per month, one flat price for the whole crew with no per-user fees. The founding rate is $99 per month locked for life for the first 10 businesses. 5,000 AI actions per month are included, and additional AI actions are $49.99 per 5,000. Two small videos per month are included. Every workflow also works fully by hand — the AI assists, it never gates the work.",
+  "AI phone and texting setup: $99 one-time, and free for the founding 10 businesses. It is own-it only — the customer owns their carrier account and their phone number. The AI on Highway 38's side drafts quotes, sends follow-ups, handles review requests, and prepares a morning digest, and the owner approves everything before it goes out.",
+  "One flat price covers the whole crew, office and field — there are no per-user fees, and onboarding is included.",
+  "Founding customers: the first 10 businesses get the $99 per month founding rate locked in for life. The rate never goes up while they stay subscribed.",
+  "Website: a basic website is included with the Office (home, services, about, and contact pages, click-to-call, and a lead form wired straight into the Office), built after the first paid month and pointed at a domain the customer owns. A brand kit (business card design, letterhead, invoice template) is included. An advanced website is $999 one-time (online booking, customer portal, estimate form with photo upload, review display, up to 8 pages; bigger builds are quoted per scope), and the first three founding businesses get the advanced website free. An optional website care plan is $79 per month (hosting and domain handled, security updates, a few small content changes each month); skip it and the site is handed over as-built. No hidden fees.",
   "Getting existing records in: Smart Upload is included. Paste or upload customer lists and the AI sorts them into clean records; the customer reviews and confirms every record before anything is saved. Paper records can be photographed with a phone and uploaded the same way. For paper-based records, the Bring Us Your Mess scanning service digitizes them: free for the founding 10 businesses within the stated limits (about 300 pages or 150 customer records), and $299 after that.",
   "Texting through the Office: carrier per-message costs are passed through at cost with no markup, and the exact cost is told to the customer before texting is turned on.",
-  "The Business Snapshot is a separate $299 one-time review of workflow problems, priorities, and risks. It is not a fourth software tier.",
+  "The Business Snapshot is a separate $299 one-time review of workflow problems, priorities, and risks. It is separate from the Office subscription.",
   "Custom websites, web apps, mobile apps, customer or employee portals, automations, and integrations are available as Custom Digital Services, quoted per scope in writing before work starts.",
   "Some add-ons are labeled Coming soon, for example outbound bill pay and Tap to Pay. Those are not available yet.",
   "People stay in charge: the AI drafts and assists, and nothing customer-facing goes out without owner approval.",
+  "Highway 38 is more than the Office. Its divisions are the Business Office (software), Manufacturing & Prototyping, H38 Supply Co., H38 Tools, and Scout, the deal-finding service. For manufacturing: Combined with our partner shops, we can provide most manufactured parts.",
+  "Highway 38 was founded by Rick Krueth, a CNC machinist by trade — not a contractor. He knows the contracting field well, and he built Highway 38 after his body ended his machining career.",
+  "To reach Highway 38 by phone, call (218) 212-5299.",
 ].join("\n");
 
 const SYSTEM_PROMPT = [

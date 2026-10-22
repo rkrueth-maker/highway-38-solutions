@@ -1,6 +1,6 @@
 {
  "schemaVersion": 1,
- "version": "2026-09-15-competitive-readiness-custom-digital-services",
+ "version": "2026-10-21-content-expansion-competitive-readiness",
  "primary": [
   {
    "path": "index.html",
@@ -106,6 +106,41 @@
    "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/portal.html",
    "shell": "gateway",
    "visibility": "private-gateway"
+  },
+  {
+   "path": "divisions.html",
+   "label": "Divisions",
+   "canonical": "https://highway38solutions.com/divisions.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
+   "path": "crew.html",
+   "label": "Meet the Crew",
+   "canonical": "https://highway38solutions.com/crew.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
+   "path": "faq.html",
+   "label": "FAQ",
+   "canonical": "https://highway38solutions.com/faq.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
+   "path": "included.html",
+   "label": "What's Included & Coming Soon",
+   "canonical": "https://highway38solutions.com/included.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
+   "path": "tips.html",
+   "label": "Tips & Facts",
+   "canonical": "https://highway38solutions.com/tips.html",
+   "shell": "canonical",
+   "visibility": "public"
   }
  ],
  "demonstrations": [

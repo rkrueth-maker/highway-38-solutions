@@ -1,37 +1,40 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T02:00:43.939Z",
+  "generatedAt": "2026-10-22T02:52:42.641Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/accounting-workspace.js",
-    "commercial-app/app-heartbeat.js",
-    "commercial-app/data-usage.js",
-    "commercial-app/h38-flow-helpers.js",
-    "commercial-app/h38-script-loader.js",
-    "commercial-app/index.html",
-    "commercial-app/money-agent.js",
-    "commercial-app/reports-section.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/supabase-no-legacy-office.js",
-    "commercial-app/version.json",
-    "scripts/verify-job-lifecycle-assistant.js",
-    "scripts/verify-owner-notifications.js",
-    "supabase/functions/h38-data-dump/index.ts",
-    "supabase/migrations/20261021030000_business_data_limit.sql",
-    "supabase/migrations/20261021031000_business_data_limit_5gb.sql",
-    "supabase/migrations/20261021032000_business_data_dump_bucket_zip.sql",
-    "tests/test_messages_inbox_entry_20261013.py",
-    "tests/test_offline_mode_polish_20261012.py",
-    "tests/test_owner_notifications.py",
-    "tests/test_platform_push_deepening.py",
-    "tests/test_task_manager_training_videos.py"
+    "about.html",
+    "assets/js/h38-site-v2.js",
+    "business-in-a-box.html",
+    "business-office-review-demo.html",
+    "business-systems.html",
+    "contact.html",
+    "crew.html",
+    "custom-digital-services.html",
+    "divisions.html",
+    "faq.html",
+    "implementation.html",
+    "included.html",
+    "index.html",
+    "partner-apply.html",
+    "pricing.html",
+    "project-services.html",
+    "quote-builder-demo.html",
+    "quote-builder.html",
+    "sample-library-now.html",
+    "security-reliability.html",
+    "sign-in.html",
+    "software.html",
+    "solutions.html",
+    "start-request.html",
+    "tips.html"
   ],
-  "fileCount": 22,
+  "fileCount": 25,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": true,
-    "customerPortal": true,
+    "authenticatedApp": false,
+    "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": true,
     "workflowOnly": false,
@@ -42,29 +45,24 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": true,
-    "externalActionBoundary": true,
-    "longRunningData": true
+    "authenticatedRendering": false,
+    "externalActionBoundary": false,
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

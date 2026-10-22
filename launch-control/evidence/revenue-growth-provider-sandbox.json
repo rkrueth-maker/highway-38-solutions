@@ -1,0 +1,361 @@
+{
+  "release": "revenue-growth-activation-2.1.0",
+  "status": "PASS",
+  "generatedAt": "2026-10-22T02:30:10.216Z",
+  "actionEnvelope": {
+    "id": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+    "tenantKey": "highway-38",
+    "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+    "recordType": "quote",
+    "action": "sendQuote",
+    "slot": "email",
+    "provider": null,
+    "providerMode": "draft-only",
+    "credentialState": "MISSING",
+    "accountApprovalState": "UNKNOWN",
+    "liveExecution": false,
+    "ownerApproval": {
+      "approvedBy": "owner@example.invalid",
+      "approvedAt": "2026-07-12T15:00:03.000Z",
+      "recordDigest": "22891cbcd5a3ceba322b43457654de9998a2ef60a7f4cef936df2b6e5d46d5ff"
+    },
+    "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+    "attempt": 1,
+    "automaticRetry": false,
+    "status": "PREPARED_NOT_EXECUTED",
+    "preparedAt": "2026-07-12T15:00:04.000Z",
+    "externalActionOccurred": false,
+    "blocker": "PROVIDER_NOT_RELEASED"
+  },
+  "outcomes": [
+    {
+      "action": {
+        "id": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "recordType": "quote",
+        "action": "sendQuote",
+        "slot": "email",
+        "provider": null,
+        "providerMode": "draft-only",
+        "credentialState": "MISSING",
+        "accountApprovalState": "UNKNOWN",
+        "liveExecution": false,
+        "ownerApproval": {
+          "approvedBy": "owner@example.invalid",
+          "approvedAt": "2026-07-12T15:00:03.000Z",
+          "recordDigest": "22891cbcd5a3ceba322b43457654de9998a2ef60a7f4cef936df2b6e5d46d5ff"
+        },
+        "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+        "attempt": 1,
+        "automaticRetry": false,
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:04.000Z",
+        "externalActionOccurred": false,
+        "blocker": "PROVIDER_NOT_RELEASED"
+      },
+      "result": {
+        "actionId": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "action": "sendQuote",
+        "slot": "email",
+        "outcome": "SUCCESS",
+        "attempt": 1,
+        "automaticRetry": false,
+        "simulated": true,
+        "completedAt": "2026-07-12T15:00:10.000Z",
+        "externalActionOccurred": false,
+        "status": "SANDBOX_SUCCESS",
+        "providerReference": "SIM-QUOTE-001",
+        "retryAllowed": false
+      },
+      "logs": {
+        "proof": {
+          "id": "PROOF-01cdd9a3-badf-4bf7-a9c8-b60f63bf71f2",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "result": "SANDBOX_SUCCESS",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": "SIM-QUOTE-001",
+          "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+          "externalActionOccurred": false,
+          "digest": "2567a69e655ea1031a10970ac67f3e21861c96a4c4bb6fd4ce92d2a66896df26"
+        },
+        "error": null,
+        "automaticRetry": false
+      }
+    },
+    {
+      "action": {
+        "id": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "recordType": "quote",
+        "action": "sendQuote",
+        "slot": "email",
+        "provider": null,
+        "providerMode": "draft-only",
+        "credentialState": "MISSING",
+        "accountApprovalState": "UNKNOWN",
+        "liveExecution": false,
+        "ownerApproval": {
+          "approvedBy": "owner@example.invalid",
+          "approvedAt": "2026-07-12T15:00:03.000Z",
+          "recordDigest": "22891cbcd5a3ceba322b43457654de9998a2ef60a7f4cef936df2b6e5d46d5ff"
+        },
+        "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+        "attempt": 1,
+        "automaticRetry": false,
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:04.000Z",
+        "externalActionOccurred": false,
+        "blocker": "PROVIDER_NOT_RELEASED"
+      },
+      "result": {
+        "actionId": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "action": "sendQuote",
+        "slot": "email",
+        "outcome": "FAILURE",
+        "attempt": 1,
+        "automaticRetry": false,
+        "simulated": true,
+        "completedAt": "2026-07-12T15:00:11.000Z",
+        "externalActionOccurred": false,
+        "status": "SANDBOX_FAILURE",
+        "providerReference": null,
+        "retryAllowed": false,
+        "errorCode": "SIMULATED_PROVIDER_FAILURE"
+      },
+      "logs": {
+        "proof": {
+          "id": "PROOF-5610b955-7e1d-4ef8-abcb-be94aa85a818",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "result": "SANDBOX_FAILURE",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+          "externalActionOccurred": false,
+          "digest": "926fa7a7a2824e5c37553672951a0f9c8d1625374ad908e0699b10a1a84e635a"
+        },
+        "error": {
+          "id": "ERROR-08f92074-98d2-4025-bf96-291da0e53c65",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "message": "SIMULATED_PROVIDER_FAILURE",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "automaticRetry": false,
+          "externalActionOccurred": false
+        },
+        "automaticRetry": false
+      }
+    },
+    {
+      "action": {
+        "id": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "recordType": "quote",
+        "action": "sendQuote",
+        "slot": "email",
+        "provider": null,
+        "providerMode": "draft-only",
+        "credentialState": "MISSING",
+        "accountApprovalState": "UNKNOWN",
+        "liveExecution": false,
+        "ownerApproval": {
+          "approvedBy": "owner@example.invalid",
+          "approvedAt": "2026-07-12T15:00:03.000Z",
+          "recordDigest": "22891cbcd5a3ceba322b43457654de9998a2ef60a7f4cef936df2b6e5d46d5ff"
+        },
+        "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+        "attempt": 1,
+        "automaticRetry": false,
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:04.000Z",
+        "externalActionOccurred": false,
+        "blocker": "PROVIDER_NOT_RELEASED"
+      },
+      "result": {
+        "actionId": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "action": "sendQuote",
+        "slot": "email",
+        "outcome": "DUPLICATE",
+        "attempt": 1,
+        "automaticRetry": false,
+        "simulated": true,
+        "completedAt": "2026-07-12T15:00:12.000Z",
+        "externalActionOccurred": false,
+        "status": "DUPLICATE_BLOCKED",
+        "providerReference": null,
+        "retryAllowed": false
+      },
+      "logs": {
+        "proof": {
+          "id": "PROOF-3ad78359-259e-4bdc-a49e-125bc02b6354",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "result": "DUPLICATE_BLOCKED",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+          "externalActionOccurred": false,
+          "digest": "474ad03e242564cac559e6bd3226bfb3219a9d1f8867683ca30794790343a458"
+        },
+        "error": null,
+        "automaticRetry": false
+      }
+    },
+    {
+      "action": {
+        "id": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "recordType": "quote",
+        "action": "sendQuote",
+        "slot": "email",
+        "provider": null,
+        "providerMode": "draft-only",
+        "credentialState": "MISSING",
+        "accountApprovalState": "UNKNOWN",
+        "liveExecution": false,
+        "ownerApproval": {
+          "approvedBy": "owner@example.invalid",
+          "approvedAt": "2026-07-12T15:00:03.000Z",
+          "recordDigest": "22891cbcd5a3ceba322b43457654de9998a2ef60a7f4cef936df2b6e5d46d5ff"
+        },
+        "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+        "attempt": 1,
+        "automaticRetry": false,
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:04.000Z",
+        "externalActionOccurred": false,
+        "blocker": "PROVIDER_NOT_RELEASED"
+      },
+      "result": {
+        "actionId": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "action": "sendQuote",
+        "slot": "email",
+        "outcome": "TIMEOUT",
+        "attempt": 1,
+        "automaticRetry": false,
+        "simulated": true,
+        "completedAt": "2026-07-12T15:00:13.000Z",
+        "externalActionOccurred": false,
+        "status": "TIMEOUT_RECONCILIATION_REQUIRED",
+        "providerReference": null,
+        "retryAllowed": false,
+        "errorCode": "SIMULATED_TIMEOUT"
+      },
+      "logs": {
+        "proof": {
+          "id": "PROOF-87cfd032-0147-465e-a9ee-48af552f1b21",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "result": "TIMEOUT_RECONCILIATION_REQUIRED",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+          "externalActionOccurred": false,
+          "digest": "5cfce5fd36f54c92d63492c1a5006c34fa839ebd471d3d4936c99b9cae2b925c"
+        },
+        "error": {
+          "id": "ERROR-4c90596d-c2fe-4cfe-9837-0a30385f0128",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "message": "SIMULATED_TIMEOUT",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "automaticRetry": false,
+          "externalActionOccurred": false
+        },
+        "automaticRetry": false
+      }
+    },
+    {
+      "action": {
+        "id": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "recordType": "quote",
+        "action": "sendQuote",
+        "slot": "email",
+        "provider": null,
+        "providerMode": "draft-only",
+        "credentialState": "MISSING",
+        "accountApprovalState": "UNKNOWN",
+        "liveExecution": false,
+        "ownerApproval": {
+          "approvedBy": "owner@example.invalid",
+          "approvedAt": "2026-07-12T15:00:03.000Z",
+          "recordDigest": "22891cbcd5a3ceba322b43457654de9998a2ef60a7f4cef936df2b6e5d46d5ff"
+        },
+        "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+        "attempt": 1,
+        "automaticRetry": false,
+        "status": "PREPARED_NOT_EXECUTED",
+        "preparedAt": "2026-07-12T15:00:04.000Z",
+        "externalActionOccurred": false,
+        "blocker": "PROVIDER_NOT_RELEASED"
+      },
+      "result": {
+        "actionId": "EXT-b4a66938-e54f-476c-afe4-c684c3f5dfa9",
+        "tenantKey": "highway-38",
+        "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+        "action": "sendQuote",
+        "slot": "email",
+        "outcome": "UNCERTAIN",
+        "attempt": 1,
+        "automaticRetry": false,
+        "simulated": true,
+        "completedAt": "2026-07-12T15:00:14.000Z",
+        "externalActionOccurred": false,
+        "status": "UNCERTAIN_MANUAL_RECONCILIATION_REQUIRED",
+        "providerReference": null,
+        "retryAllowed": false,
+        "errorCode": "SIMULATED_UNCERTAIN_RESULT"
+      },
+      "logs": {
+        "proof": {
+          "id": "PROOF-904bcfd5-b5e1-4285-ab2c-22b57c3af16a",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "result": "UNCERTAIN_MANUAL_RECONCILIATION_REQUIRED",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "duplicateLock": "758706d8e3711ee59ef469cd3620e86f1d1510664881996decb1aa1460dd20ef",
+          "externalActionOccurred": false,
+          "digest": "fbf13e05bd9ffca09e76e2180f416a342b19361f4511dd9aaa5cca8d33be1dac"
+        },
+        "error": {
+          "id": "ERROR-cd5f4dbb-ebfd-4ec5-b31f-88e1cce4882a",
+          "timestamp": "2026-07-12T15:00:20.000Z",
+          "action": "sendQuote",
+          "message": "SIMULATED_UNCERTAIN_RESULT",
+          "tenantKey": "highway-38",
+          "recordId": "QUOTE-27c8a816-2231-4833-84e1-9b240f07f01b",
+          "providerReference": null,
+          "automaticRetry": false,
+          "externalActionOccurred": false
+        },
+        "automaticRetry": false
+      }
+    }
+  ],
+  "externalActionsOccurred": false
+}
