@@ -15,7 +15,7 @@
     version:VERSION,
     logo:LOGO,
     navigation:[
-      {href:'business-in-a-box.html',label:'Business in a Box'},
+      {href:'business-in-a-box.html',label:'H38 Business System'},
       {href:'solutions.html',label:'What We Do'},
       {href:'divisions.html',label:'Divisions'},
       {href:'pricing.html',label:'Pricing'},
@@ -28,7 +28,7 @@
     ],
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
-      {heading:'Explore',links:[['Business in a Box','business-in-a-box.html'],['Divisions','divisions.html'],['Meet the Crew','crew.html'],['Tips & Facts','tips.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
+      {heading:'Explore',links:[['H38 Business System','business-in-a-box.html'],['Divisions','divisions.html'],['Meet the Crew','crew.html'],['Tips & Facts','tips.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
       {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['FAQ','faq.html'],["What's Included & Coming Soon",'included.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
       {heading:'Call or Text',links:[['(218) 212-5299','tel:+12182125299']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
