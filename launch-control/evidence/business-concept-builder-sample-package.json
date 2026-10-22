@@ -1,0 +1,3067 @@
+{
+  "status": "OWNER_REVIEW_REQUIRED",
+  "generatedAt": "2026-07-12T12:00:00.000Z",
+  "package": {
+    "metadata": {
+      "schema": "BUSINESS-CONCEPT-PACKAGE-2.0",
+      "version": "2.0.0",
+      "generatedAt": "2026-07-12T12:00:00.000Z",
+      "status": "OWNER_REVIEW_REQUIRED",
+      "inputDigest": "87f7be0c71800e18",
+      "automaticExternalActions": false,
+      "selfApproved": false,
+      "externalActionsOccurred": false,
+      "redactionsApplied": 0
+    },
+    "businessSummary": {
+      "name": "North Ridge Workshop Planning",
+      "idea": "Provide remote and local planning packages that help homeowners and small shops organize garages, work areas, tools, projects, and simple workflows before they spend money or start moving equipment.",
+      "ownerSkills": [
+        "garage and shop layout",
+        "workflow review",
+        "project planning",
+        "basic CAD-style diagrams",
+        "tool and material organization"
+      ],
+      "customers": [
+        "homeowners with crowded garages",
+        "small repair shops with poor workflow",
+        "property owners planning a workshop project"
+      ],
+      "serviceArea": "Regional local service plus remote digital delivery in the United States",
+      "assetsEquipment": [
+        "laptop",
+        "layout software",
+        "camera and phone",
+        "measurement tools",
+        "sample templates"
+      ],
+      "timeAvailable": "20 hours per week",
+      "hoursPerWeek": 20,
+      "launchBudget": "$2,000",
+      "launchBudgetAmount": 2000,
+      "contactPreference": "Mostly email and text with scheduled calls only when needed",
+      "revenueGoals": "$6,000 per month with a mix of fixed packages and bounded recurring support",
+      "monthlyRevenueGoal": 6000,
+      "businessModels": [
+        "digital",
+        "local",
+        "online"
+      ],
+      "restrictions": [
+        "No permit drawings",
+        "engineering",
+        "contractor supervision",
+        "automatic customer messages",
+        "automatic payment requests",
+        "or unlimited consultation."
+      ],
+      "risks": [
+        "Incomplete measurements",
+        "unclear customer goals",
+        "privacy in customer photos",
+        "owner capacity",
+        "and customers expecting licensed design work."
+      ],
+      "currentSystems": [
+        "A basic website concept; sample layout files; email; cloud storage; and draft intake forms. No connected payment or accounting or social or customer-auth provider."
+      ],
+      "expansionIdeas": [
+        "Add downloadable planning templates; shop workflow reviews; recurring project check-ins; and a white-label planning system for other service businesses."
+      ],
+      "primaryProblem": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear",
+      "primaryOutcome": "A clear garage or workshop layout and phased action plan"
+    },
+    "customerProblemSegments": [
+      {
+        "id": "SEG-01",
+        "name": "homeowners with crowded garages",
+        "primaryProblem": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear",
+        "desiredOutcome": "A clear garage or workshop layout and phased action plan",
+        "qualificationQuestions": [
+          "Is the problem active now?",
+          "Who approves the work?",
+          "What budget and timing range exists?",
+          "What inputs and proof are available?",
+          "What restrictions or regulated work apply?"
+        ],
+        "evidenceNeeded": [
+          "Five real conversations or equivalent documented demand evidence",
+          "One public-safe proof item or transparent demonstration",
+          "Common objection and buying-risk notes"
+        ],
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "SEG-02",
+        "name": "small repair shops with poor workflow",
+        "primaryProblem": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear",
+        "desiredOutcome": "A clear garage or workshop layout and phased action plan",
+        "qualificationQuestions": [
+          "Is the problem active now?",
+          "Who approves the work?",
+          "What budget and timing range exists?",
+          "What inputs and proof are available?",
+          "What restrictions or regulated work apply?"
+        ],
+        "evidenceNeeded": [
+          "Five real conversations or equivalent documented demand evidence",
+          "One public-safe proof item or transparent demonstration",
+          "Common objection and buying-risk notes"
+        ],
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "SEG-03",
+        "name": "property owners planning a workshop project",
+        "primaryProblem": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear",
+        "desiredOutcome": "A clear garage or workshop layout and phased action plan",
+        "qualificationQuestions": [
+          "Is the problem active now?",
+          "Who approves the work?",
+          "What budget and timing range exists?",
+          "What inputs and proof are available?",
+          "What restrictions or regulated work apply?"
+        ],
+        "evidenceNeeded": [
+          "Five real conversations or equivalent documented demand evidence",
+          "One public-safe proof item or transparent demonstration",
+          "Common objection and buying-risk notes"
+        ],
+        "status": "OWNER_REVIEW_REQUIRED"
+      }
+    ],
+    "offers": [
+      {
+        "id": "OFFER-FREE",
+        "level": "Free",
+        "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear readiness checklist",
+        "purpose": "Help a prospect identify missing information and choose a useful next step.",
+        "priceRange": [
+          0,
+          0
+        ],
+        "payment": "No payment.",
+        "turnaround": "Immediate browser or downloadable result.",
+        "revision": "Not applicable.",
+        "boundary": "Planning aid only; no regulated advice, commitment, or customer-specific execution.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "OFFER-STARTER",
+        "level": "Starter",
+        "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear snapshot",
+        "purpose": "Turn one bounded problem into facts, gaps, risks, and prioritized next actions.",
+        "priceRange": [
+          150,
+          300
+        ],
+        "payment": "Owner-approved payment terms before work begins.",
+        "turnaround": "Draft target: 3–5 business days after complete inputs.",
+        "revision": "One factual correction or clarification pass.",
+        "boundary": "No implementation, unlimited consultation, licensed work, or unreviewed external action.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "OFFER-CORE",
+        "level": "Core",
+        "name": "A clear garage or workshop layout and phased action plan",
+        "purpose": "Deliver the primary finished outcome using fixed inputs, scope, and acceptance criteria.",
+        "priceRange": [
+          600,
+          1200
+        ],
+        "payment": "Owner-approved deposit or full payment rule before work begins.",
+        "turnaround": "Draft target: 5–10 business days after complete inputs.",
+        "revision": "One bounded revision within the approved goal and inputs.",
+        "boundary": "Scope expansion, field verification, licensed work, and third-party fees require separate approval.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "OFFER-PREMIUM",
+        "level": "Premium",
+        "name": "A clear garage or workshop layout and phased action plan implementation package",
+        "purpose": "Combine the core result with bounded implementation support, handoff, testing, or vendor-ready documentation.",
+        "priceRange": [
+          1500,
+          3000
+        ],
+        "payment": "Owner-approved milestone or deposit terms.",
+        "turnaround": "Draft target: 10–20 business days after complete inputs and access approval.",
+        "revision": "One bounded revision plus one implementation check-in.",
+        "boundary": "No open-ended project management, safety certification, engineering signoff, legal advice, or automatic provider action.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "OFFER-CARE",
+        "level": "Recurring",
+        "name": "North Ridge Workshop Planning Care",
+        "purpose": "Provide bounded updates, reviews, maintenance, or support after the initial outcome.",
+        "priceRange": [
+          200,
+          500
+        ],
+        "payment": "Recurring billing remains disabled until provider, contract, cancellation, and owner-approval controls pass.",
+        "turnaround": "Acknowledgment target: 1–2 business days.",
+        "revision": "Defined by included monthly request limits.",
+        "boundary": "No rollover unless stated, no unlimited support, and no new projects inside maintenance.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      }
+    ],
+    "productLadder": [
+      {
+        "offerId": "OFFER-FREE",
+        "level": "Free",
+        "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear readiness checklist",
+        "priceRange": [
+          0,
+          0
+        ],
+        "nextStep": "OFFER-STARTER"
+      },
+      {
+        "offerId": "OFFER-STARTER",
+        "level": "Starter",
+        "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear snapshot",
+        "priceRange": [
+          150,
+          300
+        ],
+        "nextStep": "OFFER-CORE"
+      },
+      {
+        "offerId": "OFFER-CORE",
+        "level": "Core",
+        "name": "A clear garage or workshop layout and phased action plan",
+        "priceRange": [
+          600,
+          1200
+        ],
+        "nextStep": "OFFER-PREMIUM"
+      },
+      {
+        "offerId": "OFFER-PREMIUM",
+        "level": "Premium",
+        "name": "A clear garage or workshop layout and phased action plan implementation package",
+        "priceRange": [
+          1500,
+          3000
+        ],
+        "nextStep": "OFFER-CARE"
+      },
+      {
+        "offerId": "OFFER-CARE",
+        "level": "Recurring",
+        "name": "North Ridge Workshop Planning Care",
+        "priceRange": [
+          200,
+          500
+        ],
+        "nextStep": "OFFER-CARE"
+      }
+    ],
+    "pricingLogic": {
+      "status": "OWNER_REVIEW_REQUIRED",
+      "method": "Capacity, revenue-goal, value, and bounded-scope planning model",
+      "assumptions": {
+        "hoursPerWeek": 20,
+        "usableMonthlyHours": 56.3,
+        "monthlyRevenueGoal": 6000,
+        "planningRevenuePerAvailableHour": 100
+      },
+      "ranges": {
+        "starter": [
+          150,
+          300
+        ],
+        "core": [
+          600,
+          1200
+        ],
+        "premium": [
+          1500,
+          3000
+        ],
+        "recurringMonthly": [
+          200,
+          500
+        ]
+      },
+      "rules": [
+        "Price one defined finished outcome, not unlimited time.",
+        "State required inputs, deliverables, exclusions, turnaround, revision allowance, payment timing, and professional boundaries.",
+        "Confirm capacity before offering rush work.",
+        "Do not publish a price, request payment, or charge without owner approval.",
+        "Treat these ranges as planning drafts, not market validation or price approval."
+      ]
+    },
+    "freeLeadMagnet": {
+      "id": "LEAD-MAGNET-001",
+      "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear readiness checklist",
+      "format": "Browser checklist plus downloadable CSV or PDF",
+      "inputs": [
+        "Customer situation",
+        "Current problem",
+        "Desired result",
+        "Known constraints"
+      ],
+      "outputs": [
+        "Readiness score or checklist",
+        "Missing-information list",
+        "Recommended next step"
+      ],
+      "conversionPath": "Free lead magnet → starter snapshot → core outcome → premium implementation → bounded care plan",
+      "status": "OWNER_REVIEW_REQUIRED"
+    },
+    "addOns": [
+      {
+        "id": "ADD-001",
+        "name": "Additional area, workflow, customer segment, or output",
+        "priceRange": [
+          100,
+          200
+        ],
+        "rule": "Must remain bounded and use the same approved goal.",
+        "status": "OWNER_REVIEW_REQUIRED",
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "ADD-002",
+        "name": "Additional option or comparison",
+        "priceRange": [
+          100,
+          300
+        ],
+        "rule": "Uses verified inputs and does not create an unapproved merged third option.",
+        "status": "OWNER_REVIEW_REQUIRED",
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "ADD-003",
+        "name": "Editable source or additional format",
+        "priceRange": [
+          50,
+          100
+        ],
+        "rule": "Only when licensing and privacy permit.",
+        "status": "OWNER_REVIEW_REQUIRED",
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "ADD-004",
+        "name": "Additional revision",
+        "priceRange": [
+          100,
+          200
+        ],
+        "rule": "Must remain within original scope and inputs.",
+        "status": "OWNER_REVIEW_REQUIRED",
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "ADD-005",
+        "name": "Implementation check-in",
+        "priceRange": [
+          100,
+          200
+        ],
+        "rule": "One scheduled bounded review with action notes.",
+        "status": "OWNER_REVIEW_REQUIRED",
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "ADD-006",
+        "name": "Rush priority",
+        "priceRule": "25–40% of approved base price",
+        "rule": "Only after capacity, complete inputs, and owner approval are confirmed.",
+        "status": "OWNER_REVIEW_REQUIRED",
+        "externalActionsEnabled": false
+      }
+    ],
+    "recurringContracts": [
+      {
+        "id": "CONTRACT-001",
+        "name": "North Ridge Workshop Planning Care",
+        "cadence": "monthly",
+        "priceRange": [
+          200,
+          500
+        ],
+        "included": "Two bounded update, review, or support requests per month.",
+        "response": "Acknowledgment target within two business days.",
+        "rollover": "No rollover unless approved in writing.",
+        "exclusions": "New projects, unlimited communication, third-party fees, regulated advice, and unreviewed external actions.",
+        "cancellation": "Cancel before the next approved billing date; no automatic charge is enabled.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "CONTRACT-002",
+        "name": "North Ridge Workshop Planning Priority Care",
+        "cadence": "monthly",
+        "priceRange": [
+          350,
+          1000
+        ],
+        "included": "Four bounded requests plus one monthly planning review.",
+        "response": "Acknowledgment target within one business day.",
+        "rollover": "One unused request may roll one month only if approved.",
+        "exclusions": "New implementation projects, emergency service guarantees, and unlimited availability.",
+        "cancellation": "Written cancellation terms require owner approval before provider activation.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      }
+    ],
+    "sitemap": [
+      "Home",
+      "Services",
+      "Pricing",
+      "Free Tool",
+      "Proof",
+      "Downloads and Tools",
+      "Online Delivery",
+      "Service Area",
+      "About",
+      "Resources",
+      "Start Request",
+      "Customer Portal"
+    ],
+    "pageOutlines": {
+      "Home": [
+        "Result-focused hero",
+        "Customer/problem path selector",
+        "How the process works",
+        "Proof with classification",
+        "Free lead magnet",
+        "Offer ladder",
+        "Boundaries and trust",
+        "Start-request action"
+      ],
+      "Services": [
+        "Service families",
+        "Starter/core/premium comparison",
+        "Inputs and deliverables",
+        "Price logic and payment rules",
+        "Add-ons",
+        "Care plans",
+        "Professional boundaries",
+        "Help-me-choose path"
+      ],
+      "Pricing": [
+        "Planning price ranges",
+        "What changes price",
+        "Payment timing",
+        "Revision allowances",
+        "Exclusions",
+        "No automatic checkout notice"
+      ],
+      "Free Tool": [
+        "Plain-language problem",
+        "Inputs and assumptions",
+        "Formula or checklist",
+        "Download",
+        "Disclaimer",
+        "Related paid path"
+      ],
+      "Proof": [
+        "Classification labels",
+        "Evidence status",
+        "Privacy status",
+        "Public-safe summary",
+        "Boundary",
+        "Related offer"
+      ],
+      "About": [
+        "Owner skills relevant to the offer",
+        "Operating principles",
+        "Communication preference",
+        "Professional boundaries"
+      ],
+      "Resources": [
+        "Guides",
+        "Checklists",
+        "Downloads",
+        "Future products clearly marked",
+        "No fake checkout"
+      ],
+      "Start Request": [
+        "Desired finished outcome",
+        "Current problem",
+        "Customer or affected group",
+        "Inputs available",
+        "Constraints",
+        "Timing",
+        "Budget",
+        "Privacy acknowledgement",
+        "Owner-review notice"
+      ],
+      "Customer Portal": [
+        "Authentication required",
+        "Customer-own records only",
+        "Approved files and status",
+        "No other-customer visibility"
+      ],
+      "Service Area": [
+        "Approved geographic scope",
+        "Travel or remote-delivery rules",
+        "Response expectations",
+        "Local proof without private addresses"
+      ],
+      "Online Delivery": [
+        "Digital process",
+        "Accepted inputs",
+        "File-transfer boundaries",
+        "Time-zone and communication expectations"
+      ],
+      "Downloads and Tools": [
+        "Free tools",
+        "Version and assumptions",
+        "Download instructions",
+        "Future paid items without checkout"
+      ]
+    },
+    "intakeQuestions": [
+      "What finished result do you want?",
+      "What is happening now, and what is the cost or consequence?",
+      "Who will use, approve, or be affected by the result?",
+      "Which customer segment or location is involved?",
+      "What files, photos, measurements, examples, accounts, or websites already exist?",
+      "What assets, equipment, software, or access are available?",
+      "What must not change?",
+      "What time, budget, contact, privacy, travel, or health limits apply?",
+      "What date matters, and what happens if it is missed?",
+      "What proof, acceptance criteria, or decision must the final result support?",
+      "What licensed, insured, legal, tax, safety, engineering, or permit work may be required?",
+      "Who may receive customer-facing communication, payment requests, files, or final delivery?",
+      "What file formats, software versions, account access, privacy, licensing, and delivery restrictions apply?",
+      "What service-area, travel, site-access, weather, or scheduling constraints apply?"
+    ],
+    "productRecords": [
+      {
+        "id": "NORTHRID-P001",
+        "sourceOfferId": "OFFER-FREE",
+        "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear readiness checklist",
+        "level": "Free",
+        "summary": "Help a prospect identify missing information and choose a useful next step.",
+        "priceRange": [
+          0,
+          0
+        ],
+        "currency": "USD",
+        "paymentRule": "No payment.",
+        "turnaround": "Immediate browser or downloadable result.",
+        "revisionRule": "Not applicable.",
+        "inputs": [
+          "Approved goal and scope",
+          "Required files, measurements, examples, or access",
+          "Known constraints and must-keep items",
+          "Owner-approved communication and delivery path"
+        ],
+        "deliverables": [
+          "Public-safe checklist or scorecard",
+          "Clear next-step path"
+        ],
+        "exclusions": [
+          "Planning aid only; no regulated advice, commitment, or customer-specific execution.",
+          "Unapproved customer-facing communication",
+          "Unapproved payment request or processing",
+          "Automatic legal, safety, engineering, tax, or compliance claims"
+        ],
+        "status": "DRAFT",
+        "ownerApprovalRequired": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "NORTHRID-P002",
+        "sourceOfferId": "OFFER-STARTER",
+        "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear snapshot",
+        "level": "Starter",
+        "summary": "Turn one bounded problem into facts, gaps, risks, and prioritized next actions.",
+        "priceRange": [
+          150,
+          300
+        ],
+        "currency": "USD",
+        "paymentRule": "Owner-approved payment terms before work begins.",
+        "turnaround": "Draft target: 3–5 business days after complete inputs.",
+        "revisionRule": "One factual correction or clarification pass.",
+        "inputs": [
+          "Approved goal and scope",
+          "Required files, measurements, examples, or access",
+          "Known constraints and must-keep items",
+          "Owner-approved communication and delivery path"
+        ],
+        "deliverables": [
+          "Defined finished output",
+          "Assumptions and missing-information list",
+          "Quality review checklist",
+          "Owner-review handoff"
+        ],
+        "exclusions": [
+          "No implementation, unlimited consultation, licensed work, or unreviewed external action.",
+          "Unapproved customer-facing communication",
+          "Unapproved payment request or processing",
+          "Automatic legal, safety, engineering, tax, or compliance claims"
+        ],
+        "status": "DRAFT",
+        "ownerApprovalRequired": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "NORTHRID-P003",
+        "sourceOfferId": "OFFER-CORE",
+        "name": "A clear garage or workshop layout and phased action plan",
+        "level": "Core",
+        "summary": "Deliver the primary finished outcome using fixed inputs, scope, and acceptance criteria.",
+        "priceRange": [
+          600,
+          1200
+        ],
+        "currency": "USD",
+        "paymentRule": "Owner-approved deposit or full payment rule before work begins.",
+        "turnaround": "Draft target: 5–10 business days after complete inputs.",
+        "revisionRule": "One bounded revision within the approved goal and inputs.",
+        "inputs": [
+          "Approved goal and scope",
+          "Required files, measurements, examples, or access",
+          "Known constraints and must-keep items",
+          "Owner-approved communication and delivery path"
+        ],
+        "deliverables": [
+          "Defined finished output",
+          "Assumptions and missing-information list",
+          "Quality review checklist",
+          "Owner-review handoff"
+        ],
+        "exclusions": [
+          "Scope expansion, field verification, licensed work, and third-party fees require separate approval.",
+          "Unapproved customer-facing communication",
+          "Unapproved payment request or processing",
+          "Automatic legal, safety, engineering, tax, or compliance claims"
+        ],
+        "status": "DRAFT",
+        "ownerApprovalRequired": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "NORTHRID-P004",
+        "sourceOfferId": "OFFER-PREMIUM",
+        "name": "A clear garage or workshop layout and phased action plan implementation package",
+        "level": "Premium",
+        "summary": "Combine the core result with bounded implementation support, handoff, testing, or vendor-ready documentation.",
+        "priceRange": [
+          1500,
+          3000
+        ],
+        "currency": "USD",
+        "paymentRule": "Owner-approved milestone or deposit terms.",
+        "turnaround": "Draft target: 10–20 business days after complete inputs and access approval.",
+        "revisionRule": "One bounded revision plus one implementation check-in.",
+        "inputs": [
+          "Approved goal and scope",
+          "Required files, measurements, examples, or access",
+          "Known constraints and must-keep items",
+          "Owner-approved communication and delivery path"
+        ],
+        "deliverables": [
+          "Defined finished output",
+          "Assumptions and missing-information list",
+          "Quality review checklist",
+          "Owner-review handoff"
+        ],
+        "exclusions": [
+          "No open-ended project management, safety certification, engineering signoff, legal advice, or automatic provider action.",
+          "Unapproved customer-facing communication",
+          "Unapproved payment request or processing",
+          "Automatic legal, safety, engineering, tax, or compliance claims"
+        ],
+        "status": "DRAFT",
+        "ownerApprovalRequired": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "NORTHRID-P005",
+        "sourceOfferId": "OFFER-CARE",
+        "name": "North Ridge Workshop Planning Care",
+        "level": "Recurring",
+        "summary": "Provide bounded updates, reviews, maintenance, or support after the initial outcome.",
+        "priceRange": [
+          200,
+          500
+        ],
+        "currency": "USD",
+        "paymentRule": "Recurring billing remains disabled until provider, contract, cancellation, and owner-approval controls pass.",
+        "turnaround": "Acknowledgment target: 1–2 business days.",
+        "revisionRule": "Defined by included monthly request limits.",
+        "inputs": [
+          "Approved goal and scope",
+          "Required files, measurements, examples, or access",
+          "Known constraints and must-keep items",
+          "Owner-approved communication and delivery path"
+        ],
+        "deliverables": [
+          "Defined finished output",
+          "Assumptions and missing-information list",
+          "Quality review checklist",
+          "Owner-review handoff"
+        ],
+        "exclusions": [
+          "No rollover unless stated, no unlimited support, and no new projects inside maintenance.",
+          "Unapproved customer-facing communication",
+          "Unapproved payment request or processing",
+          "Automatic legal, safety, engineering, tax, or compliance claims"
+        ],
+        "status": "DRAFT",
+        "ownerApprovalRequired": true,
+        "externalActionsEnabled": false
+      }
+    ],
+    "sopList": [
+      {
+        "id": "SOP-001",
+        "name": "Lead intake and privacy",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-002",
+        "name": "Fit and restriction review",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-003",
+        "name": "Missing-information request",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-004",
+        "name": "Scope and quote preparation",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-005",
+        "name": "Owner quote approval",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-006",
+        "name": "Payment and start authorization",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-007",
+        "name": "Production setup",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-008",
+        "name": "Quality assurance",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-009",
+        "name": "Owner final approval",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-010",
+        "name": "Customer delivery",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-011",
+        "name": "Revision control",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-012",
+        "name": "Follow-up and testimonial permission",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-013",
+        "name": "Expense recording",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-014",
+        "name": "Profitability review",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-015",
+        "name": "Proof classification and privacy",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-016",
+        "name": "Provider credential and activation control",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-017",
+        "name": "Backup and recovery",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-018",
+        "name": "Incident, error, and uncertain-result handling",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-019",
+        "name": "Contract renewal and cancellation",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOP-020",
+        "name": "Website and social change control",
+        "status": "DRAFT_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "externalActionsEnabled": false
+      }
+    ],
+    "businessOSConfiguration": {
+      "schemaVersion": 1,
+      "tenant": {
+        "key": "north-ridge-workshop-planning",
+        "name": "North Ridge Workshop Planning",
+        "mode": "isolated",
+        "crossTenantReads": false,
+        "crossTenantWrites": false
+      },
+      "environment": "test",
+      "releaseChannel": "development",
+      "tierRecommendation": "Growth",
+      "modules": [
+        "tasks",
+        "leads",
+        "customers",
+        "jobs",
+        "quotes",
+        "invoices",
+        "payments",
+        "expenses",
+        "communications",
+        "files",
+        "contracts",
+        "website",
+        "reports",
+        "proof",
+        "errors",
+        "settings",
+        "social",
+        "advertising",
+        "accounting"
+      ],
+      "roles": [
+        "owner",
+        "administrator",
+        "operator",
+        "reviewer",
+        "customer-own"
+      ],
+      "controls": {
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "automaticRetry": false,
+        "duplicateProtection": true,
+        "proofLogRequired": true,
+        "errorLogRequired": true,
+        "ownerApprovalRequiredForExternalActions": true,
+        "externalActionsEnabled": false
+      },
+      "featureFlags": {
+        "customerPortal": false,
+        "customerUploads": false,
+        "hostedPayments": false,
+        "outboundEmail": false,
+        "socialPublishing": false,
+        "advertisingLaunch": false,
+        "websiteDeployment": false,
+        "accountingApiSync": false,
+        "calendarSync": false,
+        "recurringContracts": true,
+        "providerNeutralCsv": true
+      },
+      "providers": [
+        {
+          "slot": "catalog",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "payment",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "email",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "accounting",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "social",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "website",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "storage",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        },
+        {
+          "slot": "calendar",
+          "provider": null,
+          "credentialState": "NOT_CONFIGURED",
+          "executionState": "LOCKED",
+          "ownerReleaseRequired": true
+        }
+      ],
+      "catalog": {
+        "source": "generated/business-concept-package.json#productRecords",
+        "products": 5,
+        "bundles": 0,
+        "catalogValidationRequired": true
+      },
+      "theme": {
+        "brandName": "North Ridge Workshop Planning",
+        "accentColor": "#17324d",
+        "surfaceColor": "#ffffff",
+        "fontFamily": "system-ui"
+      },
+      "privacy": {
+        "publicPrivateSeparationRequired": true,
+        "customerIsolationRequired": true,
+        "privateSourceClasses": [
+          "customer records",
+          "vendor records",
+          "employee records",
+          "private addresses",
+          "family information",
+          "unapproved photographs",
+          "credentials",
+          "payment data",
+          "proprietary files"
+        ]
+      },
+      "externalActionsEnabled": false
+    },
+    "businessPackDraft": {
+      "id": "north-ridge-workshop-planning",
+      "name": "North Ridge Workshop Planning Business Pack",
+      "version": "0.1.0-draft",
+      "defaultTenantKey": "north-ridge-workshop-planning",
+      "defaultTier": "Growth",
+      "externalActionsEnabled": false,
+      "theme": {
+        "brandName": "North Ridge Workshop Planning",
+        "accentColor": "#17324d",
+        "surfaceColor": "#ffffff",
+        "fontFamily": "system-ui"
+      },
+      "enabledModules": [
+        "tasks",
+        "leads",
+        "customers",
+        "jobs",
+        "quotes",
+        "invoices",
+        "payments",
+        "expenses",
+        "communications",
+        "files",
+        "contracts",
+        "website",
+        "reports",
+        "proof",
+        "errors",
+        "settings",
+        "social",
+        "advertising",
+        "accounting"
+      ],
+      "featureFlags": {
+        "customerPortal": false,
+        "customerUploads": false,
+        "hostedPayments": false,
+        "outboundEmail": false,
+        "socialPublishing": false,
+        "advertisingLaunch": false,
+        "websiteDeployment": false,
+        "accountingApiSync": false,
+        "calendarSync": false,
+        "recurringContracts": true,
+        "providerNeutralCsv": true
+      },
+      "catalog": {
+        "source": "generated/business-concept-package.json#productRecords",
+        "products": 5,
+        "bundles": 0,
+        "catalogValidationRequired": true
+      },
+      "providers": [
+        {
+          "slot": "catalog",
+          "mode": "file",
+          "provider": null
+        },
+        {
+          "slot": "payment",
+          "mode": "manual",
+          "provider": null
+        },
+        {
+          "slot": "email",
+          "mode": "draft-only",
+          "provider": null
+        },
+        {
+          "slot": "accounting",
+          "mode": "csv",
+          "provider": null
+        },
+        {
+          "slot": "social",
+          "mode": "internal-schedule",
+          "provider": null
+        },
+        {
+          "slot": "website",
+          "mode": "review-only",
+          "provider": null
+        },
+        {
+          "slot": "storage",
+          "mode": "manual",
+          "provider": null
+        },
+        {
+          "slot": "calendar",
+          "mode": "manual",
+          "provider": null
+        }
+      ],
+      "privacy": {
+        "publicPrivateSeparationRequired": true,
+        "customerIsolationRequired": true,
+        "privateSourceClasses": [
+          "customer records",
+          "vendor records",
+          "employee records",
+          "private addresses",
+          "family information",
+          "unapproved photographs",
+          "credentials",
+          "payment data",
+          "proprietary files"
+        ]
+      },
+      "support": {
+        "approvalOwner": "Business owner",
+        "customerFacingApprovalRequired": true,
+        "deploymentApprovalRequired": true,
+        "selectedRecordOnly": true
+      },
+      "status": "OWNER_REVIEW_REQUIRED"
+    },
+    "launchPlan30Days": [
+      {
+        "days": "1–5",
+        "focus": "Decisions, demand, and boundaries",
+        "taskIds": [
+          "TASK-001",
+          "TASK-002"
+        ]
+      },
+      {
+        "days": "6–10",
+        "focus": "Offer ladder, pricing, lead magnet, and proof",
+        "taskIds": [
+          "TASK-003",
+          "TASK-004",
+          "TASK-005",
+          "TASK-006",
+          "TASK-007"
+        ]
+      },
+      {
+        "days": "11–20",
+        "focus": "Website, intake, records, SOPs, Business OS, providers, and financial controls",
+        "taskIds": [
+          "TASK-008",
+          "TASK-009",
+          "TASK-010",
+          "TASK-011",
+          "TASK-012",
+          "TASK-013",
+          "TASK-014",
+          "TASK-015",
+          "TASK-016",
+          "TASK-018"
+        ]
+      },
+      {
+        "days": "21–27",
+        "focus": "Content, analytics, QA, backup, restore, and rollback",
+        "taskIds": [
+          "TASK-017",
+          "TASK-019",
+          "TASK-020",
+          "TASK-021",
+          "TASK-022",
+          "TASK-023"
+        ]
+      },
+      {
+        "days": "28–30",
+        "focus": "Owner launch decision and measured review",
+        "taskIds": [
+          "TASK-024",
+          "TASK-025"
+        ]
+      }
+    ],
+    "socialThemes": [
+      "Problem clarity",
+      "Process transparency",
+      "Tool demonstration",
+      "Proof and boundaries",
+      "Offer explanation",
+      "Owner-controlled workflow"
+    ],
+    "socialDrafts": [
+      {
+        "id": "SOCIAL-001",
+        "theme": "Problem clarity",
+        "draft": "Three signs homeowners with crowded garages may be solving the wrong part of A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+        "channel": "channel-neutral",
+        "callToAction": "Review the approved service path.",
+        "status": "DRAFT_OWNER_REVIEW",
+        "publishAt": null,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOCIAL-002",
+        "theme": "Process transparency",
+        "draft": "What happens between a rough request and an approved A clear garage or workshop layout and phased action plan. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+        "channel": "channel-neutral",
+        "callToAction": "Review the approved service path.",
+        "status": "DRAFT_OWNER_REVIEW",
+        "publishAt": null,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOCIAL-003",
+        "theme": "Tool demonstration",
+        "draft": "A simple checklist for deciding whether A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear is ready for action. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+        "channel": "channel-neutral",
+        "callToAction": "Use the free readiness checklist.",
+        "status": "DRAFT_OWNER_REVIEW",
+        "publishAt": null,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOCIAL-004",
+        "theme": "Proof and boundaries",
+        "draft": "What this business can document—and what remains outside scope. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+        "channel": "channel-neutral",
+        "callToAction": "Review the approved service path.",
+        "status": "DRAFT_OWNER_REVIEW",
+        "publishAt": null,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOCIAL-005",
+        "theme": "Offer explanation",
+        "draft": "Starter snapshot versus complete A clear garage or workshop layout and phased action plan: how to choose the smallest useful result. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+        "channel": "channel-neutral",
+        "callToAction": "Review the approved service path.",
+        "status": "DRAFT_OWNER_REVIEW",
+        "publishAt": null,
+        "externalActionsEnabled": false
+      },
+      {
+        "id": "SOCIAL-006",
+        "theme": "Owner-controlled workflow",
+        "draft": "Why quotes, payment requests, publishing, and final delivery require owner review. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+        "channel": "channel-neutral",
+        "callToAction": "Review the approved service path.",
+        "status": "DRAFT_OWNER_REVIEW",
+        "publishAt": null,
+        "externalActionsEnabled": false
+      }
+    ],
+    "expenseCategories": [
+      {
+        "id": "EXP-001",
+        "name": "Software",
+        "planningAllocation": 200,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-002",
+        "name": "Website and hosting",
+        "planningAllocation": 150,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-003",
+        "name": "Insurance",
+        "planningAllocation": 150,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-004",
+        "name": "Legal and licensing",
+        "planningAllocation": 150,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-005",
+        "name": "Accounting and tax support",
+        "planningAllocation": 125,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-006",
+        "name": "Payment fees",
+        "planningAllocation": 50,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-007",
+        "name": "Advertising",
+        "planningAllocation": 250,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-008",
+        "name": "Materials",
+        "planningAllocation": 150,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-009",
+        "name": "Supplies",
+        "planningAllocation": 75,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-010",
+        "name": "Equipment",
+        "planningAllocation": 250,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-011",
+        "name": "Contractors",
+        "planningAllocation": 100,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-012",
+        "name": "Phone and internet",
+        "planningAllocation": 50,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-013",
+        "name": "Training",
+        "planningAllocation": 75,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-014",
+        "name": "Travel and mileage",
+        "planningAllocation": 50,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-015",
+        "name": "Shipping and packaging",
+        "planningAllocation": 50,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      },
+      {
+        "id": "EXP-016",
+        "name": "Contingency",
+        "planningAllocation": 100,
+        "status": "PLANNING_ONLY_OWNER_REVIEW"
+      }
+    ],
+    "risks": [
+      {
+        "id": "RISK-001",
+        "title": "Business name or public claims are not legally cleared",
+        "severity": "HIGH",
+        "mitigation": "Confirm name use, entity, insurance, licenses, tax, and local requirements with qualified sources before launch.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-002",
+        "title": "Customer demand and willingness to pay are not validated",
+        "severity": "HIGH",
+        "mitigation": "Document real conversations, objections, alternatives, urgency, and buying authority.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-003",
+        "title": "Scope, price, revision, payment, and acceptance rules may be incomplete",
+        "severity": "HIGH",
+        "mitigation": "Approve one bounded starter and core offer before customer-facing use.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-004",
+        "title": "Owner time or health limits may reduce capacity",
+        "severity": "HIGH",
+        "mitigation": "Set weekly capacity, response targets, waitlist rules, and a pause process.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-005",
+        "title": "Private or proprietary information could enter public proof or tools",
+        "severity": "HIGH",
+        "mitigation": "Use explicit privacy classification, customer-own separation, redaction, and owner approval.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-006",
+        "title": "Provider credentials or uncertain results could cause duplicate external actions",
+        "severity": "HIGH",
+        "mitigation": "Keep providers locked; require selected-record execution, duplicate locks, proof/error logs, and no automatic retry.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-007",
+        "title": "Revenue goals may not match available hours or offer economics",
+        "severity": "MEDIUM",
+        "mitigation": "Review capacity, gross margin, acquisition cost, delivery time, and recurring support load monthly.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-009",
+        "title": "Digital delivery creates access, privacy, licensing, refund, and support exposure",
+        "severity": "HIGH",
+        "mitigation": "Define file formats, access periods, privacy, licensing, support, and controlled delivery before charging.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-010",
+        "title": "Local service creates travel, site access, weather, scheduling, and field-verification exposure",
+        "severity": "MEDIUM",
+        "mitigation": "Set approved service area, travel charges, access requirements, cancellation rules, and field-verification boundaries.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-USER-01",
+        "title": "Incomplete measurements",
+        "severity": "OWNER_ASSESSMENT",
+        "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-USER-02",
+        "title": "unclear customer goals",
+        "severity": "OWNER_ASSESSMENT",
+        "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-USER-03",
+        "title": "privacy in customer photos",
+        "severity": "OWNER_ASSESSMENT",
+        "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-USER-04",
+        "title": "owner capacity",
+        "severity": "OWNER_ASSESSMENT",
+        "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      },
+      {
+        "id": "RISK-USER-05",
+        "title": "and customers expecting licensed design work.",
+        "severity": "OWNER_ASSESSMENT",
+        "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+        "status": "OWNER_REVIEW_REQUIRED"
+      }
+    ],
+    "missingInformation": [
+      "Approved public business name and legal-use wording.",
+      "Validated first customer segment and documented demand evidence.",
+      "Approved starter and core offer scope, price, payment, turnaround, revision, and exclusions.",
+      "Confirmed tax, insurance, licensing, permit, professional, privacy, and local requirements as applicable.",
+      "Approved public-safe proof and permission record.",
+      "Selected email, payment, analytics, customer-auth, storage, accounting, social, website, and calendar providers.",
+      "Verified provider credentials, regression tests, duplicate protection, Proof Log, Error Log, and rollback.",
+      "Approved launch capacity, response target, waitlist, pause, cancellation, and refund rules."
+    ],
+    "decisions": [
+      {
+        "id": "DECISION-001",
+        "title": "Approve or reject the working business name and public wording.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-002",
+        "title": "Choose the first customer segment and approved service area.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-003",
+        "title": "Approve the free, starter, core, premium, and recurring ladder.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-004",
+        "title": "Approve price ranges, payment timing, revision allowance, exclusions, and acceptance criteria.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-005",
+        "title": "Approve the lead magnet and the customer path it supports.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-006",
+        "title": "Approve enabled Business OS modules and role permissions.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-007",
+        "title": "Choose provider accounts while keeping execution locked until tests pass.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-008",
+        "title": "Approve public-safe proof and photo use after privacy review.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-009",
+        "title": "Approve the 30-day launch capacity and rollback plan.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      },
+      {
+        "id": "DECISION-010",
+        "title": "Approve each customer-facing send, payment request, publication, and final delivery until policy changes explicitly.",
+        "status": "OPEN_OWNER_DECISION",
+        "decision": null,
+        "decidedAt": null
+      }
+    ],
+    "tasks": [
+      {
+        "id": "TASK-001",
+        "title": "Confirm business name, legal-use wording, entity, insurance, licensing, tax, and public boundaries",
+        "module": "governance",
+        "dueDay": 1,
+        "dependencies": [],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-002",
+        "title": "Validate the first customer segment with five documented real conversations or equivalent evidence",
+        "module": "research",
+        "dueDay": 5,
+        "dependencies": [
+          "TASK-001"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-003",
+        "title": "Approve the first customer/problem segment and service area",
+        "module": "owner-review",
+        "dueDay": 6,
+        "dependencies": [
+          "TASK-002"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-004",
+        "title": "Approve the free, starter, core, premium, and recurring product ladder",
+        "module": "catalog",
+        "dueDay": 7,
+        "dependencies": [
+          "TASK-003"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-005",
+        "title": "Approve price ranges, payment timing, turnaround, revisions, exclusions, and acceptance criteria",
+        "module": "catalog",
+        "dueDay": 8,
+        "dependencies": [
+          "TASK-004"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-006",
+        "title": "Create and QA the free lead magnet",
+        "module": "marketing",
+        "dueDay": 10,
+        "dependencies": [
+          "TASK-004"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-007",
+        "title": "Create one public-safe proof item with classification and privacy review",
+        "module": "proof",
+        "dueDay": 10,
+        "dependencies": [
+          "TASK-003"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-008",
+        "title": "Approve sitemap and page outlines",
+        "module": "website",
+        "dueDay": 11,
+        "dependencies": [
+          "TASK-004"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-009",
+        "title": "Build homepage, service, pricing, proof, and request-page content drafts",
+        "module": "website",
+        "dueDay": 15,
+        "dependencies": [
+          "TASK-006",
+          "TASK-007",
+          "TASK-008"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-010",
+        "title": "Build intake questions, privacy notice, and missing-information workflow",
+        "module": "operations",
+        "dueDay": 14,
+        "dependencies": [
+          "TASK-004"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-011",
+        "title": "Load draft product records into the selected tenant only",
+        "module": "catalog",
+        "dueDay": 16,
+        "dependencies": [
+          "TASK-005"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": [
+          "NORTHRID-P001",
+          "NORTHRID-P002",
+          "NORTHRID-P003",
+          "NORTHRID-P004",
+          "NORTHRID-P005"
+        ]
+      },
+      {
+        "id": "TASK-012",
+        "title": "Approve SOP list and assign owners",
+        "module": "operations",
+        "dueDay": 17,
+        "dependencies": [
+          "TASK-010"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-013",
+        "title": "Configure Business OS modules, roles, theme, tenant, and feature flags",
+        "module": "business-os",
+        "dueDay": 18,
+        "dependencies": [
+          "TASK-011",
+          "TASK-012"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-014",
+        "title": "Choose provider slots and record exact credential blockers",
+        "module": "providers",
+        "dueDay": 19,
+        "dependencies": [
+          "TASK-013"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-015",
+        "title": "Build quote, invoice, payment-request, delivery, and follow-up templates",
+        "module": "operations",
+        "dueDay": 20,
+        "dependencies": [
+          "TASK-005",
+          "TASK-010"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-016",
+        "title": "Build recurring contract, cancellation, and overage drafts",
+        "module": "contracts",
+        "dueDay": 20,
+        "dependencies": [
+          "TASK-005"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-017",
+        "title": "Create six owner-review social drafts and channel requirements",
+        "module": "social",
+        "dueDay": 21,
+        "dependencies": [
+          "TASK-006",
+          "TASK-009"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-018",
+        "title": "Approve expense categories and launch-budget controls",
+        "module": "accounting",
+        "dueDay": 18,
+        "dependencies": [
+          "TASK-001"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-019",
+        "title": "Configure analytics events and privacy requirements without activating a provider",
+        "module": "analytics",
+        "dueDay": 22,
+        "dependencies": [
+          "TASK-009"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-020",
+        "title": "Run catalog, privacy, selected-record, duplicate-lock, proof-log, and error-log tests",
+        "module": "qa",
+        "dueDay": 24,
+        "dependencies": [
+          "TASK-011",
+          "TASK-013",
+          "TASK-014",
+          "TASK-015",
+          "TASK-016",
+          "TASK-017",
+          "TASK-018",
+          "TASK-019"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-021",
+        "title": "Create backup, verify integrity, restore to test, and record rollback evidence",
+        "module": "recovery",
+        "dueDay": 25,
+        "dependencies": [
+          "TASK-013"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-022",
+        "title": "Run mobile, accessibility, links, downloads, formulas, intake, and browser-storage checks",
+        "module": "qa",
+        "dueDay": 26,
+        "dependencies": [
+          "TASK-009",
+          "TASK-010"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-023",
+        "title": "Prepare controlled launch packet with exact blockers and no silent waivers",
+        "module": "launch-control",
+        "dueDay": 27,
+        "dependencies": [
+          "TASK-020",
+          "TASK-021",
+          "TASK-022"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-024",
+        "title": "Owner approves or holds the controlled launch",
+        "module": "owner-review",
+        "dueDay": 28,
+        "dependencies": [
+          "TASK-023"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      },
+      {
+        "id": "TASK-025",
+        "title": "Review day-30 metrics, customer feedback, errors, profitability, and next expansion decision",
+        "module": "reports",
+        "dueDay": 30,
+        "dependencies": [
+          "TASK-024"
+        ],
+        "status": "NEEDS_OWNER_REVIEW",
+        "selectedRecordOnly": true,
+        "bulkExecution": false,
+        "externalActionsEnabled": false,
+        "relatedProductIds": []
+      }
+    ],
+    "records": {
+      "products": [
+        {
+          "id": "NORTHRID-P001",
+          "sourceOfferId": "OFFER-FREE",
+          "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear readiness checklist",
+          "level": "Free",
+          "summary": "Help a prospect identify missing information and choose a useful next step.",
+          "priceRange": [
+            0,
+            0
+          ],
+          "currency": "USD",
+          "paymentRule": "No payment.",
+          "turnaround": "Immediate browser or downloadable result.",
+          "revisionRule": "Not applicable.",
+          "inputs": [
+            "Approved goal and scope",
+            "Required files, measurements, examples, or access",
+            "Known constraints and must-keep items",
+            "Owner-approved communication and delivery path"
+          ],
+          "deliverables": [
+            "Public-safe checklist or scorecard",
+            "Clear next-step path"
+          ],
+          "exclusions": [
+            "Planning aid only; no regulated advice, commitment, or customer-specific execution.",
+            "Unapproved customer-facing communication",
+            "Unapproved payment request or processing",
+            "Automatic legal, safety, engineering, tax, or compliance claims"
+          ],
+          "status": "DRAFT",
+          "ownerApprovalRequired": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "NORTHRID-P002",
+          "sourceOfferId": "OFFER-STARTER",
+          "name": "A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear snapshot",
+          "level": "Starter",
+          "summary": "Turn one bounded problem into facts, gaps, risks, and prioritized next actions.",
+          "priceRange": [
+            150,
+            300
+          ],
+          "currency": "USD",
+          "paymentRule": "Owner-approved payment terms before work begins.",
+          "turnaround": "Draft target: 3–5 business days after complete inputs.",
+          "revisionRule": "One factual correction or clarification pass.",
+          "inputs": [
+            "Approved goal and scope",
+            "Required files, measurements, examples, or access",
+            "Known constraints and must-keep items",
+            "Owner-approved communication and delivery path"
+          ],
+          "deliverables": [
+            "Defined finished output",
+            "Assumptions and missing-information list",
+            "Quality review checklist",
+            "Owner-review handoff"
+          ],
+          "exclusions": [
+            "No implementation, unlimited consultation, licensed work, or unreviewed external action.",
+            "Unapproved customer-facing communication",
+            "Unapproved payment request or processing",
+            "Automatic legal, safety, engineering, tax, or compliance claims"
+          ],
+          "status": "DRAFT",
+          "ownerApprovalRequired": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "NORTHRID-P003",
+          "sourceOfferId": "OFFER-CORE",
+          "name": "A clear garage or workshop layout and phased action plan",
+          "level": "Core",
+          "summary": "Deliver the primary finished outcome using fixed inputs, scope, and acceptance criteria.",
+          "priceRange": [
+            600,
+            1200
+          ],
+          "currency": "USD",
+          "paymentRule": "Owner-approved deposit or full payment rule before work begins.",
+          "turnaround": "Draft target: 5–10 business days after complete inputs.",
+          "revisionRule": "One bounded revision within the approved goal and inputs.",
+          "inputs": [
+            "Approved goal and scope",
+            "Required files, measurements, examples, or access",
+            "Known constraints and must-keep items",
+            "Owner-approved communication and delivery path"
+          ],
+          "deliverables": [
+            "Defined finished output",
+            "Assumptions and missing-information list",
+            "Quality review checklist",
+            "Owner-review handoff"
+          ],
+          "exclusions": [
+            "Scope expansion, field verification, licensed work, and third-party fees require separate approval.",
+            "Unapproved customer-facing communication",
+            "Unapproved payment request or processing",
+            "Automatic legal, safety, engineering, tax, or compliance claims"
+          ],
+          "status": "DRAFT",
+          "ownerApprovalRequired": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "NORTHRID-P004",
+          "sourceOfferId": "OFFER-PREMIUM",
+          "name": "A clear garage or workshop layout and phased action plan implementation package",
+          "level": "Premium",
+          "summary": "Combine the core result with bounded implementation support, handoff, testing, or vendor-ready documentation.",
+          "priceRange": [
+            1500,
+            3000
+          ],
+          "currency": "USD",
+          "paymentRule": "Owner-approved milestone or deposit terms.",
+          "turnaround": "Draft target: 10–20 business days after complete inputs and access approval.",
+          "revisionRule": "One bounded revision plus one implementation check-in.",
+          "inputs": [
+            "Approved goal and scope",
+            "Required files, measurements, examples, or access",
+            "Known constraints and must-keep items",
+            "Owner-approved communication and delivery path"
+          ],
+          "deliverables": [
+            "Defined finished output",
+            "Assumptions and missing-information list",
+            "Quality review checklist",
+            "Owner-review handoff"
+          ],
+          "exclusions": [
+            "No open-ended project management, safety certification, engineering signoff, legal advice, or automatic provider action.",
+            "Unapproved customer-facing communication",
+            "Unapproved payment request or processing",
+            "Automatic legal, safety, engineering, tax, or compliance claims"
+          ],
+          "status": "DRAFT",
+          "ownerApprovalRequired": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "NORTHRID-P005",
+          "sourceOfferId": "OFFER-CARE",
+          "name": "North Ridge Workshop Planning Care",
+          "level": "Recurring",
+          "summary": "Provide bounded updates, reviews, maintenance, or support after the initial outcome.",
+          "priceRange": [
+            200,
+            500
+          ],
+          "currency": "USD",
+          "paymentRule": "Recurring billing remains disabled until provider, contract, cancellation, and owner-approval controls pass.",
+          "turnaround": "Acknowledgment target: 1–2 business days.",
+          "revisionRule": "Defined by included monthly request limits.",
+          "inputs": [
+            "Approved goal and scope",
+            "Required files, measurements, examples, or access",
+            "Known constraints and must-keep items",
+            "Owner-approved communication and delivery path"
+          ],
+          "deliverables": [
+            "Defined finished output",
+            "Assumptions and missing-information list",
+            "Quality review checklist",
+            "Owner-review handoff"
+          ],
+          "exclusions": [
+            "No rollover unless stated, no unlimited support, and no new projects inside maintenance.",
+            "Unapproved customer-facing communication",
+            "Unapproved payment request or processing",
+            "Automatic legal, safety, engineering, tax, or compliance claims"
+          ],
+          "status": "DRAFT",
+          "ownerApprovalRequired": true,
+          "externalActionsEnabled": false
+        }
+      ],
+      "addOns": [
+        {
+          "id": "ADD-001",
+          "name": "Additional area, workflow, customer segment, or output",
+          "priceRange": [
+            100,
+            200
+          ],
+          "rule": "Must remain bounded and use the same approved goal.",
+          "status": "OWNER_REVIEW_REQUIRED",
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "ADD-002",
+          "name": "Additional option or comparison",
+          "priceRange": [
+            100,
+            300
+          ],
+          "rule": "Uses verified inputs and does not create an unapproved merged third option.",
+          "status": "OWNER_REVIEW_REQUIRED",
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "ADD-003",
+          "name": "Editable source or additional format",
+          "priceRange": [
+            50,
+            100
+          ],
+          "rule": "Only when licensing and privacy permit.",
+          "status": "OWNER_REVIEW_REQUIRED",
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "ADD-004",
+          "name": "Additional revision",
+          "priceRange": [
+            100,
+            200
+          ],
+          "rule": "Must remain within original scope and inputs.",
+          "status": "OWNER_REVIEW_REQUIRED",
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "ADD-005",
+          "name": "Implementation check-in",
+          "priceRange": [
+            100,
+            200
+          ],
+          "rule": "One scheduled bounded review with action notes.",
+          "status": "OWNER_REVIEW_REQUIRED",
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "ADD-006",
+          "name": "Rush priority",
+          "priceRule": "25–40% of approved base price",
+          "rule": "Only after capacity, complete inputs, and owner approval are confirmed.",
+          "status": "OWNER_REVIEW_REQUIRED",
+          "externalActionsEnabled": false
+        }
+      ],
+      "contracts": [
+        {
+          "id": "CONTRACT-001",
+          "name": "North Ridge Workshop Planning Care",
+          "cadence": "monthly",
+          "priceRange": [
+            200,
+            500
+          ],
+          "included": "Two bounded update, review, or support requests per month.",
+          "response": "Acknowledgment target within two business days.",
+          "rollover": "No rollover unless approved in writing.",
+          "exclusions": "New projects, unlimited communication, third-party fees, regulated advice, and unreviewed external actions.",
+          "cancellation": "Cancel before the next approved billing date; no automatic charge is enabled.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "CONTRACT-002",
+          "name": "North Ridge Workshop Planning Priority Care",
+          "cadence": "monthly",
+          "priceRange": [
+            350,
+            1000
+          ],
+          "included": "Four bounded requests plus one monthly planning review.",
+          "response": "Acknowledgment target within one business day.",
+          "rollover": "One unused request may roll one month only if approved.",
+          "exclusions": "New implementation projects, emergency service guarantees, and unlimited availability.",
+          "cancellation": "Written cancellation terms require owner approval before provider activation.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        }
+      ],
+      "sops": [
+        {
+          "id": "SOP-001",
+          "name": "Lead intake and privacy",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-002",
+          "name": "Fit and restriction review",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-003",
+          "name": "Missing-information request",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-004",
+          "name": "Scope and quote preparation",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-005",
+          "name": "Owner quote approval",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-006",
+          "name": "Payment and start authorization",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-007",
+          "name": "Production setup",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-008",
+          "name": "Quality assurance",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-009",
+          "name": "Owner final approval",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-010",
+          "name": "Customer delivery",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-011",
+          "name": "Revision control",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-012",
+          "name": "Follow-up and testimonial permission",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-013",
+          "name": "Expense recording",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-014",
+          "name": "Profitability review",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-015",
+          "name": "Proof classification and privacy",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-016",
+          "name": "Provider credential and activation control",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-017",
+          "name": "Backup and recovery",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-018",
+          "name": "Incident, error, and uncertain-result handling",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-019",
+          "name": "Contract renewal and cancellation",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOP-020",
+          "name": "Website and social change control",
+          "status": "DRAFT_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "externalActionsEnabled": false
+        }
+      ],
+      "socialDrafts": [
+        {
+          "id": "SOCIAL-001",
+          "theme": "Problem clarity",
+          "draft": "Three signs homeowners with crowded garages may be solving the wrong part of A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+          "channel": "channel-neutral",
+          "callToAction": "Review the approved service path.",
+          "status": "DRAFT_OWNER_REVIEW",
+          "publishAt": null,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOCIAL-002",
+          "theme": "Process transparency",
+          "draft": "What happens between a rough request and an approved A clear garage or workshop layout and phased action plan. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+          "channel": "channel-neutral",
+          "callToAction": "Review the approved service path.",
+          "status": "DRAFT_OWNER_REVIEW",
+          "publishAt": null,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOCIAL-003",
+          "theme": "Tool demonstration",
+          "draft": "A simple checklist for deciding whether A garage or shop is hard to use because the layout, storage, work sequence, and project priorities are unclear is ready for action. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+          "channel": "channel-neutral",
+          "callToAction": "Use the free readiness checklist.",
+          "status": "DRAFT_OWNER_REVIEW",
+          "publishAt": null,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOCIAL-004",
+          "theme": "Proof and boundaries",
+          "draft": "What this business can document—and what remains outside scope. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+          "channel": "channel-neutral",
+          "callToAction": "Review the approved service path.",
+          "status": "DRAFT_OWNER_REVIEW",
+          "publishAt": null,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOCIAL-005",
+          "theme": "Offer explanation",
+          "draft": "Starter snapshot versus complete A clear garage or workshop layout and phased action plan: how to choose the smallest useful result. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+          "channel": "channel-neutral",
+          "callToAction": "Review the approved service path.",
+          "status": "DRAFT_OWNER_REVIEW",
+          "publishAt": null,
+          "externalActionsEnabled": false
+        },
+        {
+          "id": "SOCIAL-006",
+          "theme": "Owner-controlled workflow",
+          "draft": "Why quotes, payment requests, publishing, and final delivery require owner review. Draft content should explain one useful idea, state the boundary, and direct the reader to the approved free tool or request guide.",
+          "channel": "channel-neutral",
+          "callToAction": "Review the approved service path.",
+          "status": "DRAFT_OWNER_REVIEW",
+          "publishAt": null,
+          "externalActionsEnabled": false
+        }
+      ],
+      "expenses": [
+        {
+          "id": "EXP-001",
+          "name": "Software",
+          "planningAllocation": 200,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-002",
+          "name": "Website and hosting",
+          "planningAllocation": 150,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-003",
+          "name": "Insurance",
+          "planningAllocation": 150,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-004",
+          "name": "Legal and licensing",
+          "planningAllocation": 150,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-005",
+          "name": "Accounting and tax support",
+          "planningAllocation": 125,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-006",
+          "name": "Payment fees",
+          "planningAllocation": 50,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-007",
+          "name": "Advertising",
+          "planningAllocation": 250,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-008",
+          "name": "Materials",
+          "planningAllocation": 150,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-009",
+          "name": "Supplies",
+          "planningAllocation": 75,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-010",
+          "name": "Equipment",
+          "planningAllocation": 250,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-011",
+          "name": "Contractors",
+          "planningAllocation": 100,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-012",
+          "name": "Phone and internet",
+          "planningAllocation": 50,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-013",
+          "name": "Training",
+          "planningAllocation": 75,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-014",
+          "name": "Travel and mileage",
+          "planningAllocation": 50,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-015",
+          "name": "Shipping and packaging",
+          "planningAllocation": 50,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        },
+        {
+          "id": "EXP-016",
+          "name": "Contingency",
+          "planningAllocation": 100,
+          "status": "PLANNING_ONLY_OWNER_REVIEW"
+        }
+      ],
+      "risks": [
+        {
+          "id": "RISK-001",
+          "title": "Business name or public claims are not legally cleared",
+          "severity": "HIGH",
+          "mitigation": "Confirm name use, entity, insurance, licenses, tax, and local requirements with qualified sources before launch.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-002",
+          "title": "Customer demand and willingness to pay are not validated",
+          "severity": "HIGH",
+          "mitigation": "Document real conversations, objections, alternatives, urgency, and buying authority.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-003",
+          "title": "Scope, price, revision, payment, and acceptance rules may be incomplete",
+          "severity": "HIGH",
+          "mitigation": "Approve one bounded starter and core offer before customer-facing use.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-004",
+          "title": "Owner time or health limits may reduce capacity",
+          "severity": "HIGH",
+          "mitigation": "Set weekly capacity, response targets, waitlist rules, and a pause process.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-005",
+          "title": "Private or proprietary information could enter public proof or tools",
+          "severity": "HIGH",
+          "mitigation": "Use explicit privacy classification, customer-own separation, redaction, and owner approval.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-006",
+          "title": "Provider credentials or uncertain results could cause duplicate external actions",
+          "severity": "HIGH",
+          "mitigation": "Keep providers locked; require selected-record execution, duplicate locks, proof/error logs, and no automatic retry.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-007",
+          "title": "Revenue goals may not match available hours or offer economics",
+          "severity": "MEDIUM",
+          "mitigation": "Review capacity, gross margin, acquisition cost, delivery time, and recurring support load monthly.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-009",
+          "title": "Digital delivery creates access, privacy, licensing, refund, and support exposure",
+          "severity": "HIGH",
+          "mitigation": "Define file formats, access periods, privacy, licensing, support, and controlled delivery before charging.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-010",
+          "title": "Local service creates travel, site access, weather, scheduling, and field-verification exposure",
+          "severity": "MEDIUM",
+          "mitigation": "Set approved service area, travel charges, access requirements, cancellation rules, and field-verification boundaries.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-USER-01",
+          "title": "Incomplete measurements",
+          "severity": "OWNER_ASSESSMENT",
+          "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-USER-02",
+          "title": "unclear customer goals",
+          "severity": "OWNER_ASSESSMENT",
+          "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-USER-03",
+          "title": "privacy in customer photos",
+          "severity": "OWNER_ASSESSMENT",
+          "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-USER-04",
+          "title": "owner capacity",
+          "severity": "OWNER_ASSESSMENT",
+          "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        },
+        {
+          "id": "RISK-USER-05",
+          "title": "and customers expecting licensed design work.",
+          "severity": "OWNER_ASSESSMENT",
+          "mitigation": "Define likelihood, impact, prevention, detection, response, and owner decision.",
+          "status": "OWNER_REVIEW_REQUIRED"
+        }
+      ],
+      "decisions": [
+        {
+          "id": "DECISION-001",
+          "title": "Approve or reject the working business name and public wording.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-002",
+          "title": "Choose the first customer segment and approved service area.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-003",
+          "title": "Approve the free, starter, core, premium, and recurring ladder.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-004",
+          "title": "Approve price ranges, payment timing, revision allowance, exclusions, and acceptance criteria.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-005",
+          "title": "Approve the lead magnet and the customer path it supports.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-006",
+          "title": "Approve enabled Business OS modules and role permissions.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-007",
+          "title": "Choose provider accounts while keeping execution locked until tests pass.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-008",
+          "title": "Approve public-safe proof and photo use after privacy review.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-009",
+          "title": "Approve the 30-day launch capacity and rollback plan.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        },
+        {
+          "id": "DECISION-010",
+          "title": "Approve each customer-facing send, payment request, publication, and final delivery until policy changes explicitly.",
+          "status": "OPEN_OWNER_DECISION",
+          "decision": null,
+          "decidedAt": null
+        }
+      ],
+      "tasks": [
+        {
+          "id": "TASK-001",
+          "title": "Confirm business name, legal-use wording, entity, insurance, licensing, tax, and public boundaries",
+          "module": "governance",
+          "dueDay": 1,
+          "dependencies": [],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-002",
+          "title": "Validate the first customer segment with five documented real conversations or equivalent evidence",
+          "module": "research",
+          "dueDay": 5,
+          "dependencies": [
+            "TASK-001"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-003",
+          "title": "Approve the first customer/problem segment and service area",
+          "module": "owner-review",
+          "dueDay": 6,
+          "dependencies": [
+            "TASK-002"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-004",
+          "title": "Approve the free, starter, core, premium, and recurring product ladder",
+          "module": "catalog",
+          "dueDay": 7,
+          "dependencies": [
+            "TASK-003"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-005",
+          "title": "Approve price ranges, payment timing, turnaround, revisions, exclusions, and acceptance criteria",
+          "module": "catalog",
+          "dueDay": 8,
+          "dependencies": [
+            "TASK-004"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-006",
+          "title": "Create and QA the free lead magnet",
+          "module": "marketing",
+          "dueDay": 10,
+          "dependencies": [
+            "TASK-004"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-007",
+          "title": "Create one public-safe proof item with classification and privacy review",
+          "module": "proof",
+          "dueDay": 10,
+          "dependencies": [
+            "TASK-003"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-008",
+          "title": "Approve sitemap and page outlines",
+          "module": "website",
+          "dueDay": 11,
+          "dependencies": [
+            "TASK-004"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-009",
+          "title": "Build homepage, service, pricing, proof, and request-page content drafts",
+          "module": "website",
+          "dueDay": 15,
+          "dependencies": [
+            "TASK-006",
+            "TASK-007",
+            "TASK-008"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-010",
+          "title": "Build intake questions, privacy notice, and missing-information workflow",
+          "module": "operations",
+          "dueDay": 14,
+          "dependencies": [
+            "TASK-004"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-011",
+          "title": "Load draft product records into the selected tenant only",
+          "module": "catalog",
+          "dueDay": 16,
+          "dependencies": [
+            "TASK-005"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": [
+            "NORTHRID-P001",
+            "NORTHRID-P002",
+            "NORTHRID-P003",
+            "NORTHRID-P004",
+            "NORTHRID-P005"
+          ]
+        },
+        {
+          "id": "TASK-012",
+          "title": "Approve SOP list and assign owners",
+          "module": "operations",
+          "dueDay": 17,
+          "dependencies": [
+            "TASK-010"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-013",
+          "title": "Configure Business OS modules, roles, theme, tenant, and feature flags",
+          "module": "business-os",
+          "dueDay": 18,
+          "dependencies": [
+            "TASK-011",
+            "TASK-012"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-014",
+          "title": "Choose provider slots and record exact credential blockers",
+          "module": "providers",
+          "dueDay": 19,
+          "dependencies": [
+            "TASK-013"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-015",
+          "title": "Build quote, invoice, payment-request, delivery, and follow-up templates",
+          "module": "operations",
+          "dueDay": 20,
+          "dependencies": [
+            "TASK-005",
+            "TASK-010"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-016",
+          "title": "Build recurring contract, cancellation, and overage drafts",
+          "module": "contracts",
+          "dueDay": 20,
+          "dependencies": [
+            "TASK-005"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-017",
+          "title": "Create six owner-review social drafts and channel requirements",
+          "module": "social",
+          "dueDay": 21,
+          "dependencies": [
+            "TASK-006",
+            "TASK-009"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-018",
+          "title": "Approve expense categories and launch-budget controls",
+          "module": "accounting",
+          "dueDay": 18,
+          "dependencies": [
+            "TASK-001"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-019",
+          "title": "Configure analytics events and privacy requirements without activating a provider",
+          "module": "analytics",
+          "dueDay": 22,
+          "dependencies": [
+            "TASK-009"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-020",
+          "title": "Run catalog, privacy, selected-record, duplicate-lock, proof-log, and error-log tests",
+          "module": "qa",
+          "dueDay": 24,
+          "dependencies": [
+            "TASK-011",
+            "TASK-013",
+            "TASK-014",
+            "TASK-015",
+            "TASK-016",
+            "TASK-017",
+            "TASK-018",
+            "TASK-019"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-021",
+          "title": "Create backup, verify integrity, restore to test, and record rollback evidence",
+          "module": "recovery",
+          "dueDay": 25,
+          "dependencies": [
+            "TASK-013"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-022",
+          "title": "Run mobile, accessibility, links, downloads, formulas, intake, and browser-storage checks",
+          "module": "qa",
+          "dueDay": 26,
+          "dependencies": [
+            "TASK-009",
+            "TASK-010"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-023",
+          "title": "Prepare controlled launch packet with exact blockers and no silent waivers",
+          "module": "launch-control",
+          "dueDay": 27,
+          "dependencies": [
+            "TASK-020",
+            "TASK-021",
+            "TASK-022"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-024",
+          "title": "Owner approves or holds the controlled launch",
+          "module": "owner-review",
+          "dueDay": 28,
+          "dependencies": [
+            "TASK-023"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        },
+        {
+          "id": "TASK-025",
+          "title": "Review day-30 metrics, customer feedback, errors, profitability, and next expansion decision",
+          "module": "reports",
+          "dueDay": 30,
+          "dependencies": [
+            "TASK-024"
+          ],
+          "status": "NEEDS_OWNER_REVIEW",
+          "selectedRecordOnly": true,
+          "bulkExecution": false,
+          "externalActionsEnabled": false,
+          "relatedProductIds": []
+        }
+      ]
+    },
+    "ownerReviewChecklist": [
+      "No customer-facing communication was sent.",
+      "No quote, invoice, payment request, charge, refund, or recurring billing was executed.",
+      "No social post, advertisement, website change, legal entity, account, or provider was created or published.",
+      "No engineering, safety, legal, tax, insurance, permit, or licensing conclusion was made.",
+      "All generated prices, tasks, records, configurations, content, and launch actions remain drafts requiring owner review.",
+      "Selected-record, tenant-isolation, duplicate-protection, Proof Log, Error Log, privacy, backup, and rollback controls remain required."
+    ],
+    "commercializationBlockers": [
+      "Commercial license signing, entitlement, billing, revocation, and support infrastructure are not configured.",
+      "Provider accounts, credentials, regression tests, duplicate locks, Proof/Error behavior, and rollback are not configured.",
+      "Customer authentication, customer-own storage authorization, and production infrastructure are not configured.",
+      "Legal entity, public name, tax, insurance, licensing, privacy, refund, cancellation, and local requirements remain owner decisions with qualified advice as applicable.",
+      "Market validation, public-safe proof, final prices, capacity, service levels, and product-support obligations remain unapproved."
+    ]
+  },
+  "materializedRecords": {
+    "products": 5,
+    "tasks": 25,
+    "contracts": 2,
+    "sops": 20,
+    "socialDrafts": 6,
+    "risks": 14,
+    "decisions": 10
+  },
+  "installer": {
+    "tenant": {
+      "key": "north-ridge-workshop-planning",
+      "name": "North Ridge Workshop Planning",
+      "namespace": "tenants/north-ridge-workshop-planning",
+      "mode": "isolated"
+    },
+    "environment": "test",
+    "tier": "Growth",
+    "releaseChannel": "development",
+    "externalActionsEnabled": false
+  },
+  "externalActionsOccurred": false
+}

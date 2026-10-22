@@ -1,0 +1,75 @@
+{
+  "status": "READY_INTERNAL_BLOCKED_EXTERNAL",
+  "errors": [],
+  "providers": [
+    {
+      "slot": "email",
+      "mode": "draft-only",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "UNKNOWN",
+      "sandboxAvailable": true,
+      "liveExecution": false,
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Choose the production email provider, create or approve the sending account/domain, add the provider credentials only in the private runtime secret store, then run the provider success, failure, duplicate, timeout, and uncertain-result tests before owner release."
+    },
+    {
+      "slot": "payments",
+      "mode": "provider-hosted-prepared",
+      "provider": "paypal-commerce",
+      "credentialState": "MISSING",
+      "accountApprovalState": "BUSINESS_ACCOUNT_CONNECTION_REQUIRED",
+      "sandboxAvailable": true,
+      "liveExecution": false,
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Connect a U.S. PayPal Business account, enable PayPal-hosted Checkout or Payment Links with Venmo available, store credentials only in the private runtime secret store when API credentials are needed, run sandbox hosted-link and webhook tests with no raw card data, then separately release production after owner approval."
+    },
+    {
+      "slot": "accounting",
+      "mode": "csv",
+      "provider": null,
+      "credentialState": "NOT_REQUIRED_FOR_CSV",
+      "accountApprovalState": "MAPPING_REQUIRED",
+      "sandboxAvailable": true,
+      "liveExecution": false,
+      "status": "READY_CSV_OWNER_MAPPING_REQUIRED",
+      "exactConnectionStep": "Approve the chart-of-accounts mapping and opening-balance method; continue using the verified CSV export until an accounting provider is selected, authorized, and tested in a private sandbox."
+    },
+    {
+      "slot": "social",
+      "mode": "internal-schedule",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "PLATFORM_ACCOUNTS_REQUIRED",
+      "sandboxAvailable": true,
+      "liveExecution": false,
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Confirm ownership/admin access for each approved platform account, repair or replace the scheduler connection, store credentials privately, map each account, then run one selected-record test post per platform before owner release."
+    },
+    {
+      "slot": "website",
+      "mode": "review-only",
+      "provider": "repository",
+      "credentialState": "AVAILABLE_IN_GITHUB_ONLY",
+      "accountApprovalState": "OWNER_RELEASE_REQUIRED",
+      "sandboxAvailable": true,
+      "liveExecution": false,
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Create a rollback reference, pass repository and live acceptance checks, then obtain the owner's explicit release for the selected deployment record; never deploy a different or bulk record."
+    },
+    {
+      "slot": "customer-auth",
+      "mode": "disabled",
+      "provider": null,
+      "credentialState": "MISSING",
+      "accountApprovalState": "INFRASTRUCTURE_REQUIRED",
+      "sandboxAvailable": true,
+      "liveExecution": false,
+      "status": "BLOCKED_EXACT_CONNECTION_STEP",
+      "exactConnectionStep": "Select the customer authentication and private storage providers, configure a test tenant, pass cross-customer isolation and revocation tests, and obtain owner release before any customer record is exposed."
+    }
+  ],
+  "externalActionsEnabled": false,
+  "externalActionsOccurred": false,
+  "generatedAt": "2026-10-22T02:30:10.225Z"
+}
