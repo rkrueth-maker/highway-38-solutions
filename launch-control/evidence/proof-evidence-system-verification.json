@@ -1,0 +1,430 @@
+{
+  "status": "HOLD",
+  "generatedAt": "2026-10-22T02:30:09.303Z",
+  "release": "proof-evidence-system-2026-07-12-drive-pass-1",
+  "passed": 92,
+  "failed": 5,
+  "publicCaseStudies": 9,
+  "driveSourcesIndexed": 12,
+  "claimsReviewed": 10,
+  "stillImagesClassified": 18,
+  "videosHeld": 3,
+  "publicRawImagesApproved": 0,
+  "tools": 8,
+  "downloads": 3,
+  "actualPrivatePstProcessed": false,
+  "exactPrivateBlockers": [
+    {
+      "id": "BLOCK-PST-001",
+      "item": "Original backup.pst preservation, hash, extraction and indexing",
+      "status": "OWNER_SOURCE_UNAVAILABLE",
+      "exactNextStep": "Upload the untouched original backup.pst to a private Google Drive folder named H38 Private Evidence Intake — Issue 34, or attach it directly in the active chat. Do not rename, open, export or resave it before upload."
+    },
+    {
+      "id": "BLOCK-PHOTO-001",
+      "item": "Owner-approved residential project photo archives",
+      "status": "OWNER_SOURCE_UNAVAILABLE",
+      "exactNextStep": "Upload the original top-level Breezy Point, Pine River, remodel and garage project photo folders selected for review to the private H38 Private Evidence Intake — Issue 34 folder, preserving folder names and original files."
+    },
+    {
+      "id": "BLOCK-CAD-001",
+      "item": "Original CAD, CKD, DWG, DXF archive and exact software-version evidence",
+      "status": "OWNER_SOURCE_UNAVAILABLE",
+      "exactNextStep": "Upload the original CAD archive folder or a read-only directory listing with filenames, extensions, sizes and modified dates to the private H38 Private Evidence Intake — Issue 34 folder."
+    }
+  ],
+  "privateSourcePublished": false,
+  "externalActionsOccurred": false,
+  "passes": [
+    {
+      "name": "required artifact: proof-system/.gitignore",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/README.md",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/status.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/config/evidence-taxonomy.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/config/evidence-search-plan.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/config/case-study-registry.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/lib/proof-evidence-core.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/public/public-case-studies.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-system/public/tools-manifest.json",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof-data.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: proof.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: tool-formulas.js",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: downloads/README.md",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: downloads/h38-vendor-quote-completeness.csv",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: downloads/h38-project-scope-builder.csv",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: downloads/h38-photo-privacy-review.csv",
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/process-private-proof-evidence.js",
+      "detail": ""
+    },
+    {
+      "name": "five required proof classifications",
+      "detail": ""
+    },
+    {
+      "name": "five approved public labels",
+      "detail": ""
+    },
+    {
+      "name": "raw PST publication forbidden",
+      "detail": ""
+    },
+    {
+      "name": "uncorroborated quantity claims forbidden",
+      "detail": ""
+    },
+    {
+      "name": "search plan covers six evidence groups",
+      "detail": "6"
+    },
+    {
+      "name": "search plan includes FeatureCAM",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes CADKEY",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes CKD",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes KeyCreator",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes Kubotek",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes Mastercam",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes CNC",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes Doosan",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes robot",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes blanking feeder",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes press",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes bar feed",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes automation",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes toolroom",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes quote",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes ROI",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes vision",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes macro",
+      "detail": ""
+    },
+    {
+      "name": "search plan includes API",
+      "detail": ""
+    },
+    {
+      "name": "former-employer search terms are private-only",
+      "detail": ""
+    },
+    {
+      "name": "original PST hash preserved",
+      "detail": ""
+    },
+    {
+      "name": "working copy hash matches original",
+      "detail": ""
+    },
+    {
+      "name": "original PST metadata preserved",
+      "detail": ""
+    },
+    {
+      "name": "working copy is read-only",
+      "detail": ""
+    },
+    {
+      "name": "non-private work directory rejected",
+      "detail": "Working directory must be explicitly private and include private, proof-work, or evidence-work in its path."
+    },
+    {
+      "name": "private evidence index finds synthetic message",
+      "detail": "{\"filesScanned\":3,\"messagesMatched\":1,\"attachmentsMatched\":1}"
+    },
+    {
+      "name": "private evidence index finds matching attachment",
+      "detail": "{\"filesScanned\":3,\"messagesMatched\":1,\"attachmentsMatched\":1}"
+    },
+    {
+      "name": "private index excludes raw content",
+      "detail": ""
+    },
+    {
+      "name": "private index hashes subject and path",
+      "detail": ""
+    },
+    {
+      "name": "sender address is not retained",
+      "detail": ""
+    },
+    {
+      "name": "matched groups include CAD/CAM and automation",
+      "detail": ""
+    },
+    {
+      "name": "nine explicitly public-safe case studies compile",
+      "detail": "9"
+    },
+    {
+      "name": "held cases remain excluded",
+      "detail": ""
+    },
+    {
+      "name": "all compiled items are public safe",
+      "detail": ""
+    },
+    {
+      "name": "verified historical items have source counts",
+      "detail": ""
+    },
+    {
+      "name": "compiled registry matches committed IDs",
+      "detail": ""
+    },
+    {
+      "name": "compiled public proof excludes private indicators",
+      "detail": ""
+    },
+    {
+      "name": "public case studies use only approved labels",
+      "detail": ""
+    },
+    {
+      "name": "public cases contain complete case-study fields",
+      "detail": ""
+    },
+    {
+      "name": "no raw public image approved in evidence pass",
+      "detail": ""
+    },
+    {
+      "name": "uncorroborated verified historical proof rejected",
+      "detail": "Verified historical item CASE-MFG-003 lacks corroboration."
+    },
+    {
+      "name": "clean approved photo can be public safe",
+      "detail": ""
+    },
+    {
+      "name": "address and metadata photo requires redaction",
+      "detail": ""
+    },
+    {
+      "name": "family photo remains on hold",
+      "detail": ""
+    },
+    {
+      "name": "missing owner approval forces hold",
+      "detail": ""
+    },
+    {
+      "name": "invalid photo stage rejected",
+      "detail": "Photo stage is invalid for PHOTO-005."
+    },
+    {
+      "name": "tool manifest validates",
+      "detail": ""
+    },
+    {
+      "name": "eight public tools documented",
+      "detail": ""
+    },
+    {
+      "name": "three versioned downloads documented",
+      "detail": ""
+    },
+    {
+      "name": "all tools have versions, assumptions, disclaimers, analytics, and related paths",
+      "detail": ""
+    },
+    {
+      "name": "download files and README exist",
+      "detail": ""
+    },
+    {
+      "name": "machining formula regression",
+      "detail": ""
+    },
+    {
+      "name": "payback formula regression",
+      "detail": ""
+    },
+    {
+      "name": "bottleneck formula regression",
+      "detail": ""
+    },
+    {
+      "name": "bar-feed formula regression",
+      "detail": ""
+    },
+    {
+      "name": "press-feed formula regression",
+      "detail": ""
+    },
+    {
+      "name": "score formula regression",
+      "detail": ""
+    },
+    {
+      "name": "downloads contain no private employer terms",
+      "detail": ""
+    },
+    {
+      "name": "downloads contain no credential or raw card fields",
+      "detail": ""
+    },
+    {
+      "name": "photo privacy download covers required risks",
+      "detail": ""
+    },
+    {
+      "name": "public proof code excludes private employer names",
+      "detail": ""
+    },
+    {
+      "name": "free tools has no checkout form or raw card input",
+      "detail": ""
+    },
+    {
+      "name": "Drive evidence pass recorded",
+      "detail": ""
+    },
+    {
+      "name": "photo pass recorded fail closed",
+      "detail": ""
+    },
+    {
+      "name": "PST remains unavailable with exact owner action",
+      "detail": ""
+    },
+    {
+      "name": "residential photos remain unavailable with exact owner action",
+      "detail": ""
+    },
+    {
+      "name": "CAD archive remains unavailable with exact owner action",
+      "detail": ""
+    },
+    {
+      "name": "status records no private publication or external actions",
+      "detail": ""
+    }
+  ],
+  "failures": [
+    {
+      "name": "proof page loads versioned public proof data",
+      "detail": ""
+    },
+    {
+      "name": "proof page publishes method and privacy rules",
+      "detail": ""
+    },
+    {
+      "name": "proof page links photo review and tool resources",
+      "detail": ""
+    },
+    {
+      "name": "proof renderer includes complete case fields",
+      "detail": ""
+    },
+    {
+      "name": "free tools exposes release, manifest, and downloads",
+      "detail": ""
+    }
+  ]
+}

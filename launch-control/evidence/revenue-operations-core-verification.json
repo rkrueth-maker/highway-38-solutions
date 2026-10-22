@@ -1,0 +1,215 @@
+{
+  "status": "PASS",
+  "generatedAt": "2026-10-22T02:30:09.926Z",
+  "release": "revenue-operations-core-1.0.0",
+  "passed": 47,
+  "failed": 0,
+  "externalActionsOccurred": false,
+  "controls": {
+    "selectedRecordOnly": true,
+    "bulkExecution": false,
+    "automaticRetry": false,
+    "duplicateProtection": true,
+    "ownerApproval": true,
+    "hostedPaymentOnly": true,
+    "rawCardDataStored": false,
+    "proofAndErrorLogs": true,
+    "providerTruthState": true,
+    "accountingExport": true,
+    "contractUsage": true,
+    "profitability": true,
+    "attribution": true
+  },
+  "digest": "32b14277c54fede520f0df00ed8948dde2f0671aeb4d925994d84c4bc975bbf3",
+  "passes": [
+    {
+      "name": "configuration validates",
+      "detail": ""
+    },
+    {
+      "name": "selected-record only",
+      "detail": ""
+    },
+    {
+      "name": "automatic retry disabled",
+      "detail": ""
+    },
+    {
+      "name": "all external actions disabled",
+      "detail": ""
+    },
+    {
+      "name": "all providers non-live",
+      "detail": ""
+    },
+    {
+      "name": "hosted payments only",
+      "detail": ""
+    },
+    {
+      "name": "quote starts draft",
+      "detail": ""
+    },
+    {
+      "name": "quote owner approval recorded",
+      "detail": ""
+    },
+    {
+      "name": "non-owner quote approval blocked",
+      "detail": "Only the owner may approve this record."
+    },
+    {
+      "name": "invalid quote transition blocked",
+      "detail": "Invalid quote transition: DRAFT -> SENT."
+    },
+    {
+      "name": "quote send only prepared",
+      "detail": ""
+    },
+    {
+      "name": "quote action blocked by provider",
+      "detail": ""
+    },
+    {
+      "name": "duplicate quote send blocked",
+      "detail": "Duplicate external action blocked."
+    },
+    {
+      "name": "array selection blocked",
+      "detail": "Exactly one selected record is required."
+    },
+    {
+      "name": "unapproved record action blocked",
+      "detail": "Owner approval is required before preparing an external action."
+    },
+    {
+      "name": "invoice total correct",
+      "detail": ""
+    },
+    {
+      "name": "invoice external send remains locked",
+      "detail": ""
+    },
+    {
+      "name": "partial payment updates balance",
+      "detail": ""
+    },
+    {
+      "name": "receipt remains draft",
+      "detail": ""
+    },
+    {
+      "name": "final payment closes invoice",
+      "detail": ""
+    },
+    {
+      "name": "payment stores no raw card data",
+      "detail": ""
+    },
+    {
+      "name": "payment over balance blocked",
+      "detail": "Payment amount exceeds the invoice balance or is zero."
+    },
+    {
+      "name": "payment without provider reference blocked",
+      "detail": "Provider reference is required."
+    },
+    {
+      "name": "raw card field blocked",
+      "detail": "Raw payment-card data is forbidden."
+    },
+    {
+      "name": "Luhn card string blocked",
+      "detail": "Raw payment-card data is forbidden."
+    },
+    {
+      "name": "refund record created without execution",
+      "detail": ""
+    },
+    {
+      "name": "partial refund retains paid state",
+      "detail": ""
+    },
+    {
+      "name": "refund above paid amount blocked",
+      "detail": "Refund exceeds available paid amount or is zero."
+    },
+    {
+      "name": "contract usage and overage tracked",
+      "detail": ""
+    },
+    {
+      "name": "inactive contract usage blocked",
+      "detail": "Contract must be active to record usage."
+    },
+    {
+      "name": "invalid billing interval blocked",
+      "detail": "Billing interval is invalid."
+    },
+    {
+      "name": "communication records draft without send",
+      "detail": ""
+    },
+    {
+      "name": "social publishing remains internal-only",
+      "detail": ""
+    },
+    {
+      "name": "unapproved social platform blocked",
+      "detail": "Social platform is not approved."
+    },
+    {
+      "name": "website deployment has rollback and remains locked",
+      "detail": ""
+    },
+    {
+      "name": "unsafe website path blocked",
+      "detail": "Website change files are invalid."
+    },
+    {
+      "name": "accounting rows complete",
+      "detail": "5"
+    },
+    {
+      "name": "accounting CSV has header and references",
+      "detail": ""
+    },
+    {
+      "name": "accounting export does not execute external sync",
+      "detail": ""
+    },
+    {
+      "name": "profitability calculation correct",
+      "detail": "{\"revenueCents\":100000,\"directCostCents\":30000,\"laborCents\":25000,\"adSpendCents\":10000,\"totalCostCents\":65000,\"profitCents\":35000,\"marginPercent\":35}"
+    },
+    {
+      "name": "lead and campaign attribution calculated",
+      "detail": ""
+    },
+    {
+      "name": "integration health reports all provider slots",
+      "detail": ""
+    },
+    {
+      "name": "no integration falsely reports live",
+      "detail": ""
+    },
+    {
+      "name": "credential blockers explicit",
+      "detail": ""
+    },
+    {
+      "name": "proof records provider result without claiming send",
+      "detail": ""
+    },
+    {
+      "name": "error disables retry",
+      "detail": ""
+    },
+    {
+      "name": "source contains no live provider secrets",
+      "detail": ""
+    }
+  ],
+  "failures": []
+}
