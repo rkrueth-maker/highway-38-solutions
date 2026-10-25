@@ -9,7 +9,7 @@ AUTHORITY = (ROOT / 'commercial-app' / 'desktop-navigation-authority.js').read_t
 def test_live_customer_guard_is_retired_after_final_navigation_authority():
     # desktop-navigation-authority.js rolled with the 2026-10-22 Phase 2
     # Books spreadsheet build ('books' added to the Money & accounting group).
-    authority = './desktop-navigation-authority.js?build=20261025-today-first-2'
+    authority = './desktop-navigation-authority.js?build=20261025-today-first-3'
     guard = './live-customer-navigation-guard-20260910.js?build=20261020-myhank-settings-1'
     assert authority in INDEX
     assert guard in INDEX

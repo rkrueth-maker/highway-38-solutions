@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-BUILD = '20261025-today-first-2'
+BUILD = '20261025-today-first-3'
 PLATFORM_BUILD = '20261025-today-lead-1'
 
 OWNER_HOME = (APP / 'owner-home.js').read_text(encoding='utf-8')
@@ -31,9 +31,9 @@ PLATFORM_DEEPEN = (APP / 'platform-deepen.js').read_text(encoding='utf-8')
 def test_owner_home_reserves_platform_slot_under_today():
     assert "platform: 'h38PlatformSlot'" in OWNER_HOME
     assert 'platform: 1400' in OWNER_HOME
-    # Assembly: mileage slot -> header -> Today -> platform slot -> the
+    # Assembly: header -> Today -> mileage slot -> platform slot -> the
     # below-header slots -> owner-home body.
-    assert 'firstSlotsAbove + headerHtml + todayFirstHtml + platformSlotHtml + firstSlotsBelow' in OWNER_HOME
+    assert 'headerHtml + todayFirstHtml + mileageSlotHtml + platformSlotHtml + firstSlotsBelow' in OWNER_HOME
     assert "const platformSlotHtml = firstSlotExpected('platform') ? firstSlotHtml('platform') : '';" in OWNER_HOME
 
 
