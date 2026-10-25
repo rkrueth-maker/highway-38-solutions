@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-25T19:32:59.592Z",
+  "generatedAt": "2026-10-25T21:21:03.264Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
@@ -10,8 +10,6 @@
     "commercial-app/mileage.js",
     "commercial-app/owner-home.js",
     "commercial-app/phone-first-office.js",
-    "commercial-app/platform-deepen.js",
-    "commercial-app/platform-next.js",
     "commercial-app/runtime-rowid-fix.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json",
@@ -21,15 +19,15 @@
     "tests/test_live_customer_navigation_guard_20260910.py",
     "tests/test_messages_inbox_entry_20261013.py",
     "tests/test_office_opening_settled_20261025.py",
+    "tests/test_office_today_before_mileage_20261025.py",
     "tests/test_office_today_first_20261025.py",
     "tests/test_office_today_first_command_center_20261025.py",
     "tests/test_offline_mode_polish_20261012.py",
     "tests/test_owner_notifications.py",
-    "tests/test_platform_push.py",
     "tests/test_platform_push_deepening.py",
     "tests/test_task_manager_training_videos.py"
   ],
-  "fileCount": 24,
+  "fileCount": 22,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

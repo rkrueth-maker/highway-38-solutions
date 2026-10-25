@@ -1,6 +1,6 @@
 # Scope-aware verification plan
 
-- Files changed: 24
+- Files changed: 22
 - Scopes: publicWebsite, authenticatedApp, performanceReliability
 - Deployment workflows: .github/workflows/pages-branch-fallback.yml, .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
