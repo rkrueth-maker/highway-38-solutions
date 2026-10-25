@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-BUILD = '20261025-open-settled-1'
+BUILD = '20261025-open-settled-2'
 
 OWNER_HOME = (APP / 'owner-home.js').read_text(encoding='utf-8')
 OWNER_CSS = (APP / 'owner-home.css').read_text(encoding='utf-8')
@@ -52,6 +52,24 @@ def test_profitability_and_phone_digest_fill_their_slots():
     assert "fill('profitability',node)" in PROFIT
     assert "fill('phoneToday',section)" in PHONE
     assert "release?.('phoneToday')" in PHONE
+
+
+def test_phone_secondary_hiding_works_inside_slots():
+    # The customer-ready workspace anchors after the phone digest, so once
+    # the digest lives in its slot the ready section lands inside the slot
+    # too. Phone-first must still find it (any depth under main) and the
+    # simplified-phone CSS must hide marked secondaries at any depth,
+    # otherwise the full workspace renders inside the slot and shoves the
+    # screen down by its whole height.
+    assert "main.querySelectorAll(':scope > .grid, #h38CustomerReadyToday')" in PHONE
+    assert ".h38-phone-simplified:not([data-h38-phone-details='1']) [data-h38-phone-secondary='1']{display:none!important}" in PHONE
+
+
+def test_slot_height_memory_captures_the_whole_stack():
+    # fill() stores the SLOT's settled height (not just the filled node's),
+    # with a later second pass for stack-mates anchoring inside the slot.
+    assert 'firstSlotStoreHeight(key, slot.getBoundingClientRect().height)' in OWNER_HOME
+    assert 'setTimeout(measure, 1200)' in OWNER_HOME
 
 
 def test_build_stamps_agree_across_the_release_surface():
