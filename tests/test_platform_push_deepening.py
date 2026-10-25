@@ -81,7 +81,7 @@ def test_deepening_preserves_schedule_and_offline_authorities():
 
 
 def test_deep_platform_cards_span_shared_grids_and_remain_phone_safe():
-    assert "const BUILD='20260924-platform-deepen-2-launch-layout'" in DEEPEN
+    assert "const BUILD='20261025-today-lead-1'" in DEEPEN
     assert '.h38-deepen-card{grid-column:1/-1' in DEEPEN
     assert 'min-width:0;width:100%;max-width:100%;box-sizing:border-box' in DEEPEN
     assert '.h38-deepen-board{display:grid' in DEEPEN
@@ -116,7 +116,7 @@ def test_extensions_load_through_existing_live_first_startup_without_cache_bump(
     assert "'platform-next.js'" in SERVICE_WORKER
     assert "'platform-deepen.js'" in SERVICE_WORKER
     # Cache rolled by the 2026-10-13 startup-deferral pass (loader build changed).
-    assert "const CACHE_NAME='h38-business-office-20261025-today-first-1'" in SERVICE_WORKER
+    assert "const CACHE_NAME='h38-business-office-20261025-today-first-2'" in SERVICE_WORKER
 
 
 def test_ai_team_loader_also_knows_the_new_platform_slices():

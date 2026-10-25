@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-BUILD = '20261025-today-first-1'
+BUILD = '20261025-today-first-2'
 OWNER_HOME = (APP / 'owner-home.js').read_text(encoding='utf-8')
 
 
@@ -21,7 +21,7 @@ def test_today_block_is_selected_per_tenant_type():
 
 
 def test_assembly_places_today_directly_under_the_header():
-    assert 'firstSlotsAbove + headerHtml + todayFirstHtml + firstSlotsBelow' in OWNER_HOME
+    assert 'firstSlotsAbove + headerHtml + todayFirstHtml + platformSlotHtml + firstSlotsBelow' in OWNER_HOME
     # Body keeps the remaining blocks in their previous relative order.
     body = OWNER_HOME.split('firstSlotsBelow + `', 1)[1]
     order = [body.index(marker) for marker in

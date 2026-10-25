@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-BUILD = '20261025-today-first-1'
+BUILD = '20261025-today-first-2'
 
 OWNER_HOME = (APP / 'owner-home.js').read_text(encoding='utf-8')
 OWNER_CSS = (APP / 'owner-home.css').read_text(encoding='utf-8')
@@ -23,11 +23,13 @@ def test_owner_home_reserves_first_screen_slots_in_settled_order():
     assert 'h38PhoneTodaySlot' in OWNER_HOME
     assert 'h38ProfitabilitySlot' in OWNER_HOME
     # Assembly order: mileage slot above the header, Today block directly
-    # under the header, digest + profitability slots below it.
-    assert "firstSlotsAbove + headerHtml + todayFirstHtml + firstSlotsBelow" in OWNER_HOME
+    # under the header, platform slot under Today, digest + profitability
+    # slots below it.
+    assert "firstSlotsAbove + headerHtml + todayFirstHtml + platformSlotHtml + firstSlotsBelow" in OWNER_HOME
     assert "firstSlotExpected('mileage')" in OWNER_HOME
     assert "firstSlotExpected('phoneToday')" in OWNER_HOME
     assert "firstSlotExpected('profitability')" in OWNER_HOME
+    assert "firstSlotExpected('platform')" in OWNER_HOME
 
 
 def test_slot_css_releases_reservation_when_filled():

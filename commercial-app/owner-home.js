@@ -538,8 +538,8 @@
    * of shoving the whole screen down. Modules fill their slot through
    * window.H38FirstScreen.fill(); when no slot exists they keep their legacy
    * insert path. See owner-home.css (.h38-first-slot). */
-  const FIRST_SLOT_DEFAULTS = { mileage: 216, phoneToday: 680, profitability: 160 };
-  const FIRST_SLOT_IDS = { mileage: 'h38MileageSlot', phoneToday: 'h38PhoneTodaySlot', profitability: 'h38ProfitabilitySlot' };
+  const FIRST_SLOT_DEFAULTS = { mileage: 216, phoneToday: 680, profitability: 160, platform: 1400 };
+  const FIRST_SLOT_IDS = { mileage: 'h38MileageSlot', phoneToday: 'h38PhoneTodaySlot', profitability: 'h38ProfitabilitySlot', platform: 'h38PlatformSlot' };
   function firstSlotBusinessKey() {
     try {
       const b = (state.snapshot && state.snapshot.business) || {};
@@ -550,13 +550,13 @@
     try {
       const raw = localStorage.getItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key);
       const n = parseInt(raw || '', 10);
-      return Number.isFinite(n) && n >= 40 && n <= 1600 ? n : 0;
+      return Number.isFinite(n) && n >= 40 && n <= 3200 ? n : 0;
     } catch (e) { return 0; }
   }
   function firstSlotStoreHeight(key, height) {
     try {
       const n = Math.round(Number(height) || 0);
-      if (n >= 40 && n <= 1600) localStorage.setItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key, String(n));
+      if (n >= 40 && n <= 3200) localStorage.setItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key, String(n));
     } catch (e) { /* storage unavailable: CSS defaults still reserve space */ }
   }
   function firstSlotHtml(key) {
@@ -572,11 +572,26 @@
         const u = (state.snapshot && state.snapshot.user) || {};
         return !!(u.owner === true || (u.permissions && (u.permissions.all === true || u.permissions.manageFinancial === true || u.permissions.viewFinancial === true || u.permissions.manageSettings === true)));
       }
+      if (key === 'platform') {
+        /* The platform owner stack (Owner Command Center + Owner operating
+         * cockpit, platform-next.js / platform-deepen.js) renders only for
+         * owners, and only when those modules are in the page. Use the same
+         * owner test the platform modules apply so the reservation exists
+         * exactly when the cards are coming. The slot sits directly under
+         * the Today block: the cards fill it there instead of prepending
+         * themselves above the screen header (the H38-tenant composition
+         * the first today-first pass missed, because the demo tenant's
+         * user is an administrator and never renders these cards). */
+        const u = (state.snapshot && state.snapshot.user) || {};
+        if (!(u.owner === true || /\bowner\b/i.test(String(u.roleName || u.role || '')))) return false;
+        return !!(window.H38_PLATFORM_NEXT || window.H38_PLATFORM_DEEPEN ||
+          document.querySelector('script[data-h38-platform-next],script[data-h38-platform-deepen],script[data-h38-ai-team-owner-polish]'));
+      }
     } catch (e) { return false; }
     return false;
   }
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-today-first-1',
+    build: '20261025-today-first-2',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved slot (no layout shove: the space is already
      * reserved). Returns false when no slot exists so callers can fall back. */
@@ -850,11 +865,14 @@
         </button>
       </section>` : '';
 
-    /* ---- Assemble: mileage slot → header → TODAY section → phone/profit slots → quick actions → needs-you-now → kit feed → type extras → tasks ----
+    /* ---- Assemble: mileage slot → header → TODAY section → platform slot → phone/profit slots → quick actions → needs-you-now → kit feed → type extras → tasks ----
      * The mileage slot sits above the screen header and the phone-digest /
      * profitability slots below it, matching where those cards settle today;
-     * reserving them here is what keeps the first paint settled. */
+     * reserving them here is what keeps the first paint settled. The
+     * platform slot (owner Command Center stack) sits directly under the
+     * Today block so those cards land below Today on every composition. */
     const firstSlotsAbove = firstSlotExpected('mileage') ? firstSlotHtml('mileage') : '';
+    const platformSlotHtml = firstSlotExpected('platform') ? firstSlotHtml('platform') : '';
     const firstSlotsBelow = (firstSlotExpected('phoneToday') ? firstSlotHtml('phoneToday') : '') + (firstSlotExpected('profitability') ? firstSlotHtml('profitability') : '');
     /* ---- Today first (2026-10-25): the Today section is the opening view.
      * Whichever block carries today's schedule for this tenant type — the
@@ -867,7 +885,7 @@
     const heroInBody = type === 'service' ? '' : heroHtml;
     const routeInBody = type === 'lawn-snow' ? '' : routeHtml;
     const scheduleInBody = (type === 'service' || type === 'lawn-snow') ? scheduleHtml : '';
-    $('mainContent').innerHTML = firstSlotsAbove + headerHtml + todayFirstHtml + firstSlotsBelow + `
+    $('mainContent').innerHTML = firstSlotsAbove + headerHtml + todayFirstHtml + platformSlotHtml + firstSlotsBelow + `
       <div class="h38-owner-home h38-type-${type}">
         ${qsHero}
         ${quickHtml}
@@ -881,6 +899,18 @@
       </div>`;
 
     if (window.H38Flow) window.H38Flow.bindScreenHeader($('mainContent'), headerOpts);
+
+    /* ---- Platform slot safety release: if the platform modules turn out
+     * not to be loaded at all (no globals after a grace period), collapse
+     * the reservation so it never leaves a permanent gap under Today. When
+     * the modules ARE loaded they fill or release the slot themselves. ---- */
+    if (platformSlotHtml) {
+      setTimeout(() => {
+        try {
+          if (!window.H38_PLATFORM_NEXT && !window.H38_PLATFORM_DEEPEN) window.H38FirstScreen.release('platform');
+        } catch (e) { /* slot already gone with a re-render */ }
+      }, 6000);
+    }
 
     /* ---- While You Were Away feed (reads real state.snapshot.proofLog) ---- */
     try {

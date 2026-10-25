@@ -29,7 +29,7 @@ def test_platform_push_is_loaded_from_supported_office_bootstrap():
 
 
 def test_platform_cards_span_shared_grids_and_shrink_safely_for_launch():
-    assert "const BUILD='20260924-platform-push-2-launch-layout'" in PLATFORM
+    assert "const BUILD='20261025-today-lead-1'" in PLATFORM
     assert '.h38-platform-card{grid-column:1/-1' in PLATFORM
     assert 'min-width:0;width:100%;max-width:100%;box-sizing:border-box' in PLATFORM
     assert '.h38-platform-column{min-width:0' in PLATFORM
