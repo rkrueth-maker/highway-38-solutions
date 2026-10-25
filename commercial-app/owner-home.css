@@ -771,3 +771,31 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
   border-radius: 10px !important;
   box-shadow: none !important;
 }
+
+/* ---------- First-screen reserved slots (opening-bounce fix, 2026-10-25) ----------
+ * Slots are painted with the Today workspace and reserve the exact space of
+ * the async first-screen cards (mileage, phone digest, profitability). The
+ * inline min-height comes from this device's last settled height (or the
+ * defaults in owner-home.js). Once a module fills its slot, .is-filled drops
+ * the reservation in the same frame as the fill, so nothing below ever moves. */
+.h38-first-slot {
+  border-radius: 14px;
+  margin: 0 0 12px;
+  background: linear-gradient(100deg, rgba(23, 42, 63, .05), rgba(23, 42, 63, .11), rgba(23, 42, 63, .05));
+  background-size: 200% 100%;
+  animation: h38-first-slot-pulse 1.6s ease-in-out infinite;
+}
+.h38-first-slot.is-filled {
+  min-height: 0 !important;
+  margin: 0;
+  background: none;
+  animation: none;
+  border-radius: 0;
+}
+@keyframes h38-first-slot-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .h38-first-slot { animation: none; }
+}
