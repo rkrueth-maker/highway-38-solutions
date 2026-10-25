@@ -1,25 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-22T12:40:49.949Z",
+  "generatedAt": "2026-10-25T05:45:46.706Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    ".github/workflows/h38-office-android-release.yml",
+    "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/mobile-runtime-stability.js",
+    "commercial-app/mileage.js",
+    "commercial-app/owner-controls.js",
     "commercial-app/service-worker.js",
+    "commercial-app/supabase-data.js",
     "commercial-app/version.json",
-    "scripts/verify-owner-mobile-smoke.js",
-    "scripts/verify-owner-notifications.js",
-    "tests/test_global_office_scroll_authority.py",
-    "tests/test_messages_inbox_entry_20261013.py",
-    "tests/test_mobile_production_polish.py",
-    "tests/test_offline_mode_polish_20261012.py",
-    "tests/test_owner_notifications.py",
-    "tests/test_physical_jobs_bottom_bounce_repair.py",
-    "tests/test_platform_push_deepening.py",
-    "tests/test_task_manager_training_videos.py"
+    "native/h38-office/android-app/app/build.gradle",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/PositionPayload.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/SyncEngine.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/TrackingService.java",
+    "native/h38-office/android-app/app/src/test/java/com/highway38/office/PositionPayloadTest.java"
   ],
-  "fileCount": 14,
+  "fileCount": 13,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
@@ -35,7 +34,7 @@
     "approvedAssets": false,
     "publicRendering": true,
     "authenticatedRendering": true,
-    "externalActionBoundary": true,
+    "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
