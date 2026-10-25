@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261025-open-settled-2';
+const BUILD='20261025-today-first-1';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();

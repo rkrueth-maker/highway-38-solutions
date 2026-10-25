@@ -576,7 +576,7 @@
     return false;
   }
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-open-settled-2',
+    build: '20261025-today-first-1',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved slot (no layout shove: the space is already
      * reserved). Returns false when no slot exists so callers can fall back. */
@@ -850,23 +850,34 @@
         </button>
       </section>` : '';
 
-    /* ---- Assemble: first-screen slots → header → slots → hero → quick actions → needs-you-now → kit feed → type extras → tasks → schedule ----
+    /* ---- Assemble: mileage slot → header → TODAY section → phone/profit slots → quick actions → needs-you-now → kit feed → type extras → tasks ----
      * The mileage slot sits above the screen header and the phone-digest /
      * profitability slots below it, matching where those cards settle today;
      * reserving them here is what keeps the first paint settled. */
     const firstSlotsAbove = firstSlotExpected('mileage') ? firstSlotHtml('mileage') : '';
     const firstSlotsBelow = (firstSlotExpected('phoneToday') ? firstSlotHtml('phoneToday') : '') + (firstSlotExpected('profitability') ? firstSlotHtml('profitability') : '');
-    $('mainContent').innerHTML = firstSlotsAbove + headerHtml + firstSlotsBelow + `
+    /* ---- Today first (2026-10-25): the Today section is the opening view.
+     * Whichever block carries today's schedule for this tenant type — the
+     * schedule hero (service), the route hero (lawn-snow), or the "📅 Today"
+     * card (project/shop/default/contractor) — leads the screen directly
+     * under the header, ahead of quick actions, the needs-you-now cards,
+     * the kit feed, tasks, and the below-header card slots. It is the same
+     * block moved up, not a copy; the body keeps the remaining blocks. ---- */
+    const todayFirstHtml = type === 'service' ? heroHtml : (type === 'lawn-snow' ? routeHtml : scheduleHtml);
+    const heroInBody = type === 'service' ? '' : heroHtml;
+    const routeInBody = type === 'lawn-snow' ? '' : routeHtml;
+    const scheduleInBody = (type === 'service' || type === 'lawn-snow') ? scheduleHtml : '';
+    $('mainContent').innerHTML = firstSlotsAbove + headerHtml + todayFirstHtml + firstSlotsBelow + `
       <div class="h38-owner-home h38-type-${type}">
         ${qsHero}
         ${quickHtml}
-        ${heroHtml}
-        ${routeHtml}
+        ${heroInBody}
+        ${routeInBody}
         ${cardsHtml}
         ${kitFeedSlotHtml}
         ${extraHtml}
         ${tasksHtml}
-        ${scheduleHtml}
+        ${scheduleInBody}
       </div>`;
 
     if (window.H38Flow) window.H38Flow.bindScreenHeader($('mainContent'), headerOpts);
@@ -879,8 +890,9 @@
       }
     } catch (e) { console.warn('[H38 kit feed]', e && e.message ? e.message : e); }
 
-    /* ---- Wire buttons ---- */
-    document.querySelectorAll('.h38-owner-home [data-action-idx]').forEach(btn => {
+    /* ---- Wire buttons (the Today block now sits above .h38-owner-home, so
+     * wire every owner-home action button under #mainContent) ---- */
+    document.querySelectorAll('#mainContent [data-action-idx]').forEach(btn => {
       const idx = parseInt(btn.dataset.actionIdx, 10);
       if (actionHandlers[idx]) btn.onclick = actionHandlers[idx];
     });
