@@ -529,6 +529,79 @@
     else toast('Quick Start is loading. Try again in a moment.', true);
   }
 
+  /* ================= First-screen slots (opening-bounce fix, 2026-10-25) =================
+   * The Today workspace paints ONCE, with reserved slots for the first-screen
+   * cards that feature modules attach after render (mileage card, phone
+   * digest, profitability mini-card). Each slot reserves the height that card
+   * had when this device last settled (localStorage), falling back to a CSS
+   * default, so a late-arriving card fills space that already exists instead
+   * of shoving the whole screen down. Modules fill their slot through
+   * window.H38FirstScreen.fill(); when no slot exists they keep their legacy
+   * insert path. See owner-home.css (.h38-first-slot). */
+  const FIRST_SLOT_DEFAULTS = { mileage: 216, phoneToday: 680, profitability: 160 };
+  const FIRST_SLOT_IDS = { mileage: 'h38MileageSlot', phoneToday: 'h38PhoneTodaySlot', profitability: 'h38ProfitabilitySlot' };
+  function firstSlotBusinessKey() {
+    try {
+      const b = (state.snapshot && state.snapshot.business) || {};
+      return String(b.businessId || b.businessKey || state.businessKey || 'default');
+    } catch (e) { return 'default'; }
+  }
+  function firstSlotStoredHeight(key) {
+    try {
+      const raw = localStorage.getItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key);
+      const n = parseInt(raw || '', 10);
+      return Number.isFinite(n) && n >= 40 && n <= 1600 ? n : 0;
+    } catch (e) { return 0; }
+  }
+  function firstSlotStoreHeight(key, height) {
+    try {
+      const n = Math.round(Number(height) || 0);
+      if (n >= 40 && n <= 1600) localStorage.setItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key, String(n));
+    } catch (e) { /* storage unavailable: CSS defaults still reserve space */ }
+  }
+  function firstSlotHtml(key) {
+    const h = firstSlotStoredHeight(key) || FIRST_SLOT_DEFAULTS[key] || 160;
+    return '<div class="h38-first-slot h38-first-slot--' + key + '" id="' + FIRST_SLOT_IDS[key] + '" data-h38-first-slot="' + key + '" style="min-height:' + h + 'px" aria-hidden="true"></div>';
+  }
+  function firstSlotExpected(key) {
+    try {
+      if (key === 'mileage') return !!(window.H38Mileage && typeof window.H38Mileage.enabled === 'function' && window.H38Mileage.enabled());
+      if (key === 'phoneToday') return !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+      if (key === 'profitability') {
+        if (typeof window.can === 'function') return !!(window.can('manageFinancial') || window.can('viewFinancial') || window.can('manageSettings'));
+        const u = (state.snapshot && state.snapshot.user) || {};
+        return !!(u.owner === true || (u.permissions && (u.permissions.all === true || u.permissions.manageFinancial === true || u.permissions.viewFinancial === true || u.permissions.manageSettings === true)));
+      }
+    } catch (e) { return false; }
+    return false;
+  }
+  window.H38FirstScreen = Object.freeze({
+    build: '20261025-open-settled-1',
+    slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
+    /* Move node into its reserved slot (no layout shove: the space is already
+     * reserved). Returns false when no slot exists so callers can fall back. */
+    fill: function (key, node) {
+      const slot = document.getElementById(FIRST_SLOT_IDS[key] || '');
+      if (!slot || !node) return false;
+      if (node.parentElement !== slot) slot.appendChild(node);
+      slot.classList.add('is-filled');
+      slot.removeAttribute('aria-hidden');
+      try {
+        requestAnimationFrame(function () {
+          try { if (node.isConnected) firstSlotStoreHeight(key, node.getBoundingClientRect().height); } catch (e) {}
+        });
+      } catch (e) {}
+      return true;
+    },
+    /* The card for this slot is not coming (feature off): release the space. */
+    release: function (key) {
+      const slot = document.getElementById(FIRST_SLOT_IDS[key] || '');
+      if (!slot) return false;
+      slot.classList.add('is-filled');
+      return true;
+    }
+  });
+
   /* ================= Main renderer ================= */
 
   function renderOwnerHome() {
@@ -772,8 +845,13 @@
         </button>
       </section>` : '';
 
-    /* ---- Assemble: hero → quick actions → needs-you-now → kit feed → type extras → tasks → schedule ---- */
-    $('mainContent').innerHTML = headerHtml + `
+    /* ---- Assemble: first-screen slots → header → slots → hero → quick actions → needs-you-now → kit feed → type extras → tasks → schedule ----
+     * The mileage slot sits above the screen header and the phone-digest /
+     * profitability slots below it, matching where those cards settle today;
+     * reserving them here is what keeps the first paint settled. */
+    const firstSlotsAbove = firstSlotExpected('mileage') ? firstSlotHtml('mileage') : '';
+    const firstSlotsBelow = (firstSlotExpected('phoneToday') ? firstSlotHtml('phoneToday') : '') + (firstSlotExpected('profitability') ? firstSlotHtml('profitability') : '');
+    $('mainContent').innerHTML = firstSlotsAbove + headerHtml + firstSlotsBelow + `
       <div class="h38-owner-home h38-type-${type}">
         ${qsHero}
         ${quickHtml}

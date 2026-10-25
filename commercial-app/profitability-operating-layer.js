@@ -303,7 +303,20 @@ async function decorateToday(){
   if(!canSeeFinancial())return;injectStyles();const main=document.getElementById('mainContent');if(!main||main.querySelector('#h38ProfitabilityToday'))return;
   const settings=readSettings(),book=await getPriceBook(),backCosts=buildBackCosts(settings),health=healthModel(backCosts,book,settings),leaks=leaksModel(backCosts,health,book,settings);
   const card=`<section id="h38ProfitabilityToday" class="h38-profit-mini"><div class="row-top"><div><span class="h38-profit-kicker">PROFITABILITY</span> <strong>${health.overall==null?'Build the evidence loop':`${health.overall.toFixed(0)}/100 business health`}</strong></div><span class="pill ${statusClass(health.overall)}">${statusLabel(health.overall)}</span></div><small>${safe(leaks[0]?.title||'No major recorded profit leak detected.')}</small><div class="actions"><button type="button" id="h38OpenProfitabilityReport" class="secondary">Open profitability report</button></div></section>`;
-  const grid=main.querySelector('.grid');if(grid)grid.insertAdjacentHTML('beforebegin',card);else (main.querySelector('.page-head')||main.firstElementChild)?.insertAdjacentHTML('afterend',card);
+  // Opening-bounce fix: fill the reserved first-screen slot when the Today
+  // workspace painted one, so the late price-book read cannot insert this
+  // card above already-painted content and shove the screen down.
+  let filledSlot=false;
+  try{
+    const slot=document.getElementById('h38ProfitabilitySlot');
+    if(slot&&window.H38FirstScreen&&typeof window.H38FirstScreen.fill==='function'){
+      const box=document.createElement('div');box.innerHTML=card;const node=box.firstElementChild;
+      if(node)filledSlot=window.H38FirstScreen.fill('profitability',node);
+    }
+  }catch(_){filledSlot=false;}
+  if(!filledSlot){
+    const grid=main.querySelector('.grid');if(grid)grid.insertAdjacentHTML('beforebegin',card);else (main.querySelector('.page-head')||main.firstElementChild)?.insertAdjacentHTML('afterend',card);
+  }
   document.getElementById('h38OpenProfitabilityReport')?.addEventListener('click',()=>{try{if(typeof window.openPage==='function')window.openPage('reports');}catch(_){}});
 }
 function wrapRenderer(name,decorator,marker){

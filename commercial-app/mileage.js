@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// H38 Mileage Tracking (Phone) — build 20261025-owner-arm-1.
+// H38 Mileage Tracking (Phone) — build 20261025-open-settled-1.
 // Automatic drive detection + ask-later classification for the mileage log
 // (Rick's decisions, 2026-10-22):
 //  - Trips are detected automatically and queued; the driver classifies
@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261025-owner-arm-1';
+var BUILD='20261025-open-settled-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -1515,19 +1515,33 @@ function renderCard(){
   var host=document.getElementById(CARD_ID);
   if(!enabled()||!userId()||page!=='today'){
     if(host)host.remove();
+    // If the workspace reserved a mileage slot but the feature is off after
+    // all, release the reserved space instead of leaving a skeleton gap.
+    try{if(w.H38FirstScreen&&typeof w.H38FirstScreen.release==='function')w.H38FirstScreen.release('mileage');}catch(_){}
     return;
   }
   ensureStyle();
   var main=document.getElementById('mainContent');
   if(!main)return;
+  // Opening-bounce fix: never decorate the boot splash / sign-in gate. The
+  // card used to prepend itself above the welcome screen, get wiped by the
+  // real Today render, then re-insert above the painted screen and shove it
+  // down. The page-rendered decorate pass retries once the workspace exists.
+  if(!document.getElementById('h38MileageSlot')&&!main.querySelector('.h38-owner-home')&&(main.querySelector('.welcome')||document.getElementById('h38AuthEmail')))return;
   var signature=cardSignature();
   if(host&&host.dataset.h38MileageSignature===signature)return;
   if(!host){
     host=document.createElement('section');
     host.id=CARD_ID;host.className='card h38-mileage-card';
     host.setAttribute('data-h38-mileage','card');
-    var grid=main.querySelector('.grid');
-    if(grid)grid.insertAdjacentElement('beforebegin',host);else main.prepend(host);
+    // Fill the reserved first-screen slot when the Today workspace painted
+    // one; the card then lands in space that already exists (no shove).
+    var filledSlot=false;
+    try{filledSlot=!!(w.H38FirstScreen&&typeof w.H38FirstScreen.fill==='function'&&w.H38FirstScreen.fill('mileage',host));}catch(_){filledSlot=false;}
+    if(!filledSlot){
+      var grid=main.querySelector('.grid');
+      if(grid)grid.insertAdjacentElement('beforebegin',host);else main.prepend(host);
+    }
   }
   host.dataset.h38MileageSignature=signature;
   var review=myUnreviewed().length,missed=missedLoad().length;
