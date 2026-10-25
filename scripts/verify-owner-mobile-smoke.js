@@ -146,7 +146,7 @@ requireText(lifecycle,'noLateRenderPage:true','lifecycle does not rerender entir
 requireText(lifecycle,"'h38:job-lifecycle-ready'",'lifecycle publishes final readiness event');
 requireText(referenceSamples,'nativeStartupGuard:true','fictional samples stay suppressed during native startup');
 requireText(referenceSamples,'nativeSamplesCollapsed:true','fictional samples stay collapsed on native phone');
-requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20261025-today-first-3'",'runtime loader pins final phone-first build');
+requireText(runtimeRowId,"const PHONE_FIRST_BUILD='20261025-attention-agree-1'",'runtime loader pins final phone-first build');
 requireText(runtimeRowId,"const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261020-myhank-settings-1'",'runtime loader pins the shared tenant-neutral quick-action release');
 requireText(ownerQuickActions,'personalAssistantUnderPlus:false','generic mobile + menu excludes Assistant');
 requireText(ownerQuickActions,'globalAssistantCanonical:true','global Assistant is the canonical mobile help launcher');

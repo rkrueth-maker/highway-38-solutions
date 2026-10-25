@@ -288,6 +288,130 @@
     } catch (e) { return null; }
   }
 
+  /* ================= Platform attention collectors =================
+   * The Owner Command Center (platform-next.js, ownerIntelligence) lists
+   * attention items the needs-you-now cards never checked — slipping jobs,
+   * overdue follow-ups, recurring visits due, dispatch conflicts — so this
+   * section could paint "All clear!" on the same home where the Command
+   * Center listed real work (spotted on Rick's H38 tenant 2026-10-25:
+   * "Review 3 slipping jobs" / "Close 42 overdue follow-ups" above an
+   * "All clear!"). These collectors mirror ownerIntelligence()'s rules
+   * exactly — same snapshot rows, same example-row filter, same active
+   * test, same thresholds — so the two blocks always agree, and the
+   * all-clear state only renders when the attention list is genuinely
+   * empty. Keep the rules in step with platform-next.js. */
+
+  function intelText(x) { return String(x == null ? '' : x).trim(); }
+  function intelValue(row, keys) {
+    for (const k of keys) {
+      if (row && row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
+    }
+    return '';
+  }
+  function intelDate(x) { const d = new Date(x); return Number.isFinite(d.getTime()) ? d : null; }
+  function intelActive(status) {
+    return !/(paid|closed|complete|completed|cancel|void|deleted|archived)/i.test(intelText(status));
+  }
+  function intelIsExample(row) {
+    const hay = ['Quote Number', 'Job Number', 'Invoice Number', 'Project Title', 'Status']
+      .map(k => intelValue(row, [k])).join(' ');
+    return /\bDEMO\b|\bEX-/i.test(hay) || (row && row['Example Data'] === true);
+  }
+  function intelRows(name) {
+    const list = records(name) || [];
+    return list.filter(r => !intelIsExample(r));
+  }
+
+  function getSlippingJobs() {
+    try {
+      const jobs = intelRows('jobs').filter(r => intelActive(intelValue(r, ['Status', 'status'])));
+      const slipping = jobs.filter(r => {
+        if (intelText(intelValue(r, ['Blockers', 'blockers', 'Next Action', 'nextAction']))) return true;
+        const d = intelDate(intelValue(r, ['Updated Time', 'updatedTime', 'Created Time', 'createdTime']));
+        return d && (Date.now() - d.getTime() > 7 * 86400000);
+      });
+      if (!slipping.length) return null;
+      return {
+        count: slipping.length,
+        summary: 'Active work has blockers or has not been updated in at least 7 days.',
+        urgent: true,
+        action: 'Review →',
+        actionFn: () => openPage('work'),
+        aiPrompt: 'Which jobs are slipping, and what should I do first?'
+      };
+    } catch (e) { return null; }
+  }
+
+  function getOverdueFollowups() {
+    try {
+      const tasks = intelRows('tasks').filter(r => intelActive(intelValue(r, ['Status', 'status'])));
+      const overdue = tasks.filter(r => {
+        const d = intelDate(intelValue(r, ['Due Time', 'dueTime', 'Due Date', 'dueDate']));
+        return d && d.getTime() < Date.now();
+      });
+      if (!overdue.length) return null;
+      return {
+        count: overdue.length,
+        summary: 'Open task due dates have passed.',
+        urgent: true,
+        action: 'Review →',
+        actionFn: () => openPage('work'),
+        aiPrompt: 'Which overdue follow-ups should I close first?'
+      };
+    } catch (e) { return null; }
+  }
+
+  function getRecurringDue() {
+    try {
+      const plans = intelRows('recurringPlans').concat(intelRows('recurringServicePlans'))
+        .filter(r => intelActive(intelValue(r, ['Status', 'status'])));
+      const due = plans.filter(r => {
+        const d = intelDate(intelValue(r, ['Next Service Date', 'nextServiceDate', 'Next Due', 'nextDue']));
+        return d && d.getTime() <= Date.now() + 2 * 86400000;
+      });
+      if (!due.length) return null;
+      return {
+        count: due.length,
+        summary: 'Recurring work is due now or within two days.',
+        action: 'Plan →',
+        actionFn: () => openPage('work'),
+        aiPrompt: 'Which recurring visits should I plan first?'
+      };
+    } catch (e) { return null; }
+  }
+
+  function getDispatchConflicts() {
+    try {
+      const raw = intelRows('scheduleEvents').concat(intelRows('schedule'), intelRows('scheduleItems'), intelRows('appointments'));
+      const events = raw.map(r => ({
+        userId: intelText(intelValue(r, ['Assigned User ID', 'assignedUserId', 'User ID', 'userId'])),
+        assetIds: Array.isArray(intelValue(r, ['Assigned Asset IDs', 'assignedAssetIds']))
+          ? intelValue(r, ['Assigned Asset IDs', 'assignedAssetIds'])
+          : intelText(intelValue(r, ['Assigned Asset IDs', 'assignedAssetIds', 'Asset ID', 'assetId'])).split(',').map(s => s.trim()).filter(Boolean),
+        start: intelDate(intelValue(r, ['Start Time', 'startTime', 'Start', 'start'])),
+        end: intelDate(intelValue(r, ['End Time', 'endTime', 'End', 'end']))
+      })).filter(x => x.start && x.end && x.end > x.start);
+      let conflicts = 0;
+      for (let i = 0; i < events.length; i++) {
+        for (let j = i + 1; j < events.length; j++) {
+          const a = events[i], b = events[j];
+          if (!(a.start < b.end && b.start < a.end)) continue;
+          if (a.userId && a.userId === b.userId) conflicts++;
+          if (a.assetIds.find(id => b.assetIds.includes(id))) conflicts++;
+        }
+      }
+      if (!conflicts) return null;
+      return {
+        count: conflicts,
+        summary: 'A person or piece of equipment is double-booked.',
+        urgent: true,
+        action: 'Resolve →',
+        actionFn: () => openPage('schedule'),
+        aiPrompt: 'Which dispatch conflicts should I resolve first?'
+      };
+    } catch (e) { return null; }
+  }
+
   /* ================= Project collectors (multi-day work) ================= */
 
   function getActiveProjects() {
@@ -591,7 +715,7 @@
     return false;
   }
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-today-first-3',
+    build: '20261025-attention-agree-1',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved slot (no layout shove: the space is already
      * reserved). Returns false when no slot exists so callers can fall back. */
@@ -639,6 +763,14 @@
     pushCard(cards, '💵', 'Invoices overdue', getOverdueInvoices());
     pushCard(cards, '💸', 'Bills due', getBillsDue());
     pushCard(cards, '💰', 'Payroll ready', getPayrollStatus());
+
+    /* ---- Platform attention cards (all types): the same items the Owner
+     * Command Center lists, so "Needs you now" and the Command Center can
+     * never disagree — and "All clear!" only paints when both are empty. ---- */
+    pushCard(cards, '🧭', 'Slipping jobs', getSlippingJobs());
+    pushCard(cards, '📞', 'Follow-ups overdue', getOverdueFollowups());
+    pushCard(cards, '🔁', 'Recurring visits due', getRecurringDue());
+    pushCard(cards, '🚚', 'Dispatch conflicts', getDispatchConflicts());
 
     /* ---- Type-specific cards ---- */
     let routeHtml = '';

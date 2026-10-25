@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'commercial-app'
-BUILD = '20261025-today-first-3'
+BUILD = '20261025-attention-agree-1'
 PLATFORM_BUILD = '20261025-today-lead-1'
 
 OWNER_HOME = (APP / 'owner-home.js').read_text(encoding='utf-8')
