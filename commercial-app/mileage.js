@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// H38 Mileage Tracking (Phone) — build 20261022-native-bridge-1.
+// H38 Mileage Tracking (Phone) — build 20261025-owner-arm-1.
 // Automatic drive detection + ask-later classification for the mileage log
 // (Rick's decisions, 2026-10-22):
 //  - Trips are detected automatically and queued; the driver classifies
@@ -17,18 +17,22 @@
 //    OWNERS/ADMINS record whenever their recording switch is on. A
 //    per-person Off-Duty switch stops all detection while it is on.
 //
-// Platform honesty (hard rule): this is a web app. The phone only reports
-// GPS while the Office is open on screen; there is NO background recording
-// when the app is fully closed, and this module never pretends otherwise.
-// Drives missed while the app was closed surface as an honest "Missed a
-// drive?" prompt (endpoints + straight-line distance, driver-editable),
-// never as a fabricated route. Full background detection needs the native
-// wrapper (future work, see mileage-build STATE.md).
+// Platform honesty (hard rule): in a plain browser, the phone only reports
+// GPS while the Office is open on screen. Inside the H38 Office native app,
+// the same policy arms a background runner that records drives with the
+// app closed — that is the only background path, and the UI says which one
+// is active on this phone. Drives the web layer misses surface as an honest
+// "Missed a drive?" prompt (endpoints + straight-line distance,
+// driver-editable), never as a fabricated route.
 //
-// Pilot gate: lights up only where BOTH switches are on — the server-side
-// tenant setting business_module_settings mileage_tracking (set per
-// business; ON for the H38 tenant pilot) AND the Owner Controls feature
-// toggle on the device. Everywhere else it stays dark.
+// Pilot gate: lights up where the server-side tenant setting
+// business_module_settings mileage_tracking is on (set per business; ON
+// for the H38 tenant pilot) AND the Owner Controls feature toggle is on.
+// The toggle defaults ON and is saved server-side per business
+// (FeatureToggles record) — it is an opt-OUT, never a hidden switch an
+// owner has to find before tracking can arm. (Before 2026-10-25 the
+// toggle defaulted OFF and lived only in per-device localStorage, so the
+// native runner never armed and no trips were ever recorded.)
 //
 // Privacy: this keeps a mileage LOG, not a live-location map. A driver
 // sees all of their own trips. Owners/admins see BUSINESS-classified trips
@@ -36,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261022-native-bridge-1';
+var BUILD='20261025-owner-arm-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -50,9 +54,9 @@ var w=typeof window!=='undefined'?window:globalThis;
 var FEATURE_DEF={
   id:FEATURE_ID,
   title:'Mileage Tracking (Phone)',
-  desc:'Automatic trip detection on the phone with ask-later sorting: sure trips file themselves, the rest wait for a one-tap review. Employees record while clocked in; owners record whenever their switch is on.',
+  desc:'Automatic trip detection on the phone with ask-later sorting: sure trips file themselves, the rest wait for a one-tap review. On by default — owners record whenever their day is started (Stop Day or this switch turns it off); employees record while clocked in.',
   icon:'🚗',
-  default:false,
+  default:true,
   category:'Fleet'
 };
 
@@ -147,6 +151,21 @@ function recordingOn(){
   return v===null?true:v==='1';
 }
 function setRecordingOn(on){lsSet(switchKey('on'),on?'1':'0');if(!on)stopWatch();pushNativePolicy(true);}
+// Start Day / Stop Day (Rick's day bracket, 2026-10-25): Start Day arms
+// recording — every drive from then on is recorded, with the app closed
+// or open (the native runner does the work), until Stop Day. Start Day
+// also clears an off-duty pause: pressing it means "record my drives".
+// The recording switch defaults ON, so an owner who never presses
+// anything is armed too (full background tracking); Stop Day is how an
+// owner turns that off until the next Start Day.
+function startDay(){
+  lsSet(switchKey('offduty'),null);
+  lsSet(switchKey('on'),'1');
+  watch.blocked=false;watch.error='';
+  pushNativePolicy(true);
+  syncWatch();
+}
+function stopDay(){setRecordingOn(false);}
 function offDuty(){return lsGet(switchKey('offduty'))==='1';}
 function setOffDuty(on){lsSet(switchKey('offduty'),on?'1':null);if(on)stopWatch();pushNativePolicy(true);}
 
@@ -175,7 +194,7 @@ function detectionEligible(){
   return clockedIn();
 }
 function policyLine(){
-  if(!recordingOn())return 'Trip recording is off on this phone.';
+  if(!recordingOn())return 'Day is stopped — tap Start Day when you head out. Drives are recorded until you tap Stop Day.';
   if(offDuty())return 'Off duty — not recording.';
   var nativeSt=nativeStatus();
   if(nativeSt&&(nativeSt.gate==='RECORDING'||nativeSt.gate==='WAITING_CLOCKIN')){
@@ -598,6 +617,7 @@ function onFix(position){
   var fix=goodFix(position);
   if(!fix)return;
   engine.lastFix=fix;
+  reportOwnerPosition(fix);
   // While a manual trip is open, accumulate its distance from live fixes.
   if(manual.trip){
     var last=manual.trip.lastFix;
@@ -1049,7 +1069,7 @@ function statusBlockHtml(){
     (manual.trip
       ?'<button type="button" data-h38-mileage-manual-end>End trip</button>'
       :'<button type="button" data-h38-mileage-manual-start>Start trip</button>')+
-    (on?'<button type="button" class="secondary" data-h38-mileage-recording-off>Recording: On</button>':'<button type="button" data-h38-mileage-recording-on>Recording: Off</button>')+
+    (on?'<button type="button" class="secondary" data-h38-mileage-stop-day>Stop Day</button>':'<button type="button" data-h38-mileage-start-day>Start Day</button>')+
     (duty?'<button type="button" data-h38-mileage-duty-off>Off duty: On</button>':'<button type="button" class="secondary" data-h38-mileage-duty-on>Go off duty</button>')+
     '</div>'+
     (watch.error?'<p class="h38-mileage-note">'+esc(watch.error)+'</p>':'')+
@@ -1105,13 +1125,13 @@ function sectionHtml(){
   else if(ui.tab==='totals')body=totalsHtml();
   else if(ui.tab==='places')body=placesHtml();
   return '<div class="h38-mileage-head"><div><span class="h38-mileage-kicker">MILEAGE (PHONE)</span><h2>Mileage</h2>'+
-    '<p class="h38-mileage-note">Drives are recorded while the Office is open on your phone and sorted later — nothing interrupts the drive. '+(isOwnerAdmin()?'':'Trips are recorded while you\u2019re clocked in. ')+'This is a mileage log, not a live map: nobody watches where you are.</p></div></div>'+
+    '<p class="h38-mileage-note">Press Start Day and every drive records itself — with the H38 Office app, even while the app is closed — until you press Stop Day. Trips are sorted later; nothing interrupts the drive. '+(isOwnerAdmin()?'':'Trips are recorded while you\u2019re clocked in. ')+'This is a mileage log: your trips stay yours.'+(isOwnerAdmin()?' Owner phones also show under Find my phone below.':'')+'</p></div></div>'+
     statusBlockHtml()+
     '<div class="h38-mileage-tabs" role="group" aria-label="Mileage views">'+tabs.map(function(tab){
       return '<button type="button" data-h38-mileage-tab="'+tab[0]+'" class="'+(ui.tab===tab[0]?'active':'')+'">'+esc(tab[1])+'</button>';
     }).join('')+
     (isOwnerAdmin()?'<button type="button" data-h38-mileage-team class="'+(ui.teamView?'active':'')+'">Team business trips</button>':'')+
-    '</div>'+body;
+    '</div>'+body+findMyPhoneHtml();
 }
 function teamTripsHtml(){
   var rows=allTrips().filter(function(row){
@@ -1245,10 +1265,10 @@ function bindStatusButtons(root){
   if(start)start.onclick=function(){manualStart();};
   var end=root.querySelector('[data-h38-mileage-manual-end]');
   if(end)end.onclick=function(){manualEnd();};
-  var recOff=root.querySelector('[data-h38-mileage-recording-off]');
-  if(recOff)recOff.onclick=function(){setRecordingOn(false);toast('Trip recording is off on this phone.');scheduleDecorateSettled();};
-  var recOn=root.querySelector('[data-h38-mileage-recording-on]');
-  if(recOn)recOn.onclick=function(){setRecordingOn(true);watch.blocked=false;watch.error='';toast('Trip recording is on.');syncWatch();scheduleDecorateSettled();};
+  var startDayBtn=root.querySelector('[data-h38-mileage-start-day]');
+  if(startDayBtn)startDayBtn.onclick=function(){startDay();toast('Day started — every drive is recorded until you tap Stop Day.');scheduleDecorateSettled();};
+  var stopDayBtn=root.querySelector('[data-h38-mileage-stop-day]');
+  if(stopDayBtn)stopDayBtn.onclick=function(){stopDay();toast('Day stopped — recording is off.');scheduleDecorateSettled();};
   var dutyOn=root.querySelector('[data-h38-mileage-duty-on]');
   if(dutyOn)dutyOn.onclick=function(){setOffDuty(true);toast('Off duty — trips are not being recorded.');scheduleDecorateSettled();};
   var dutyOff=root.querySelector('[data-h38-mileage-duty-off]');
@@ -1273,6 +1293,94 @@ async function saveRate(rate){
   await w.queueOperation('SAVE_MILEAGE_SETTINGS','Mileage Settings',id,{settingsId:id,ratePerMile:rate},
     {collection:SETTINGS_COLLECTION,record:record,idKeys:['Settings ID']});
   try{w.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'mileage',collection:SETTINGS_COLLECTION}}));}catch(_){}
+}
+
+// ---------- find my phone (owners only) ----------
+// While an owner's tracking is on, their phone reports its latest
+// location into the crewPositions store — one row per owner phone,
+// updated in place (record id OWNERPOS-<userId>): from this web watch
+// while the Office is open, and from the native app's heartbeat while
+// the background runner is on (SyncEngine.reportOwnerPosition). Owners
+// see their own phones at the bottom of this section ("Find my phone"):
+// last-seen time + a map link, falling back to the end of their last
+// trip when no position report exists yet. Employee phones are never
+// reported by this path and never shown here.
+var POSITION_COLLECTION='crewPositions';
+var ownerPosReport={at:0,lat:0,lng:0};
+function reportOwnerPosition(fix){
+  if(!fix||!isOwnerAdmin()||!enabled()||!recordingOn()||offDuty())return;
+  if(typeof w.queueOperation!=='function')return;
+  var nowMs=Date.now();
+  var moved=ownerPosReport.at?haversineM(ownerPosReport.lat,ownerPosReport.lng,fix.lat,fix.lng):Infinity;
+  if(nowMs-ownerPosReport.at<10*60000&&moved<75)return;
+  ownerPosReport={at:nowMs,lat:fix.lat,lng:fix.lng};
+  var stamp=new Date(nowMs).toISOString();
+  var id='OWNERPOS-'+userId();
+  var record={'Crew Position ID':id,'Business ID':businessId(),'User ID':userId(),'User Name':userName(),
+    'Lat':fix.lat,'Lng':fix.lng,'Accuracy':Math.round(fix.acc||0),'Timestamp':stamp,'Created Time':stamp,
+    'Record Version':1,'Owner Phone':true,'Source':nativeBridge()?'owner-phone-app':'owner-phone-web'};
+  try{
+    w.queueOperation('SAVE_CREW_POSITION','Crew Position',id,
+      {positionId:id,userId:userId(),lat:fix.lat,lng:fix.lng,accuracy:record.Accuracy,timestamp:stamp,ownerPhone:true},
+      {collection:POSITION_COLLECTION,record:record,idKeys:['Crew Position ID']}).catch(function(){});
+  }catch(_){}
+}
+function ownerUsers(){
+  var map={};
+  records('users').forEach(function(row){
+    var role=text(val(row,'Role ID','roleId','Role','role')).toLowerCase();
+    if(role==='owner'||role==='administrator'||role==='admin'){
+      var id=text(val(row,'User ID','userId'));
+      if(id)map[id]={id:id,name:text(val(row,'Display Name','displayName','Name','name','Email','email'))||'Owner'};
+    }
+  });
+  if(isOwnerAdmin()&&userId())map[userId()]={id:userId(),name:userName()};
+  return map;
+}
+function ownerPhones(){
+  var owners=ownerUsers();
+  var phones={};
+  Object.keys(owners).forEach(function(id){phones[id]={id:id,name:owners[id].name,pos:null,tripEnd:null};});
+  records(POSITION_COLLECTION).forEach(function(row){
+    var flag=val(row,'Owner Phone','ownerPhone');
+    if(!(flag===true||flag==='true'))return;
+    var id=text(val(row,'User ID','userId'));
+    if(!phones[id])return;
+    var stamp=text(val(row,'Timestamp','timestamp'));
+    if(!phones[id].pos||stamp>phones[id].pos.stamp){
+      phones[id].pos={lat:num(val(row,'Lat','lat')),lng:num(val(row,'Lng','lng')),stamp:stamp};
+      var nm=text(val(row,'User Name','userName'));if(nm)phones[id].name=nm;
+    }
+  });
+  allTrips().forEach(function(row){
+    var id=text(val(row,'User ID','userId'));
+    if(!phones[id])return;
+    var endLat=num(val(row,'End Lat','endLat')),endLng=num(val(row,'End Lng','endLng'));
+    if(!endLat||!endLng)return;
+    var ended=text(val(row,'Ended At','endedAt'));
+    if(!phones[id].tripEnd||ended>phones[id].tripEnd.stamp)phones[id].tripEnd={lat:endLat,lng:endLng,stamp:ended};
+  });
+  return Object.keys(phones).map(function(id){return phones[id];})
+    .sort(function(a,b){return a.name.localeCompare(b.name);});
+}
+function findMyPhoneHtml(){
+  if(!isOwnerAdmin())return '';
+  var phones=ownerPhones();
+  var rowsHtml=phones.map(function(phone){
+    var seen=phone.pos||phone.tripEnd;
+    if(!seen||!seen.lat||!seen.lng){
+      return '<div class="h38-mileage-trip"><div class="h38-mileage-trip-top"><div><strong>'+esc(phone.name)+'</strong><br>'+
+        '<small>No location yet — it shows up after this phone\u2019s first drive, or while the Office is open on it.</small></div></div></div>';
+    }
+    var whenText=fmtDay(seen.stamp)+' · '+fmtTime(seen.stamp);
+    var link='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(seen.lat+','+seen.lng);
+    return '<div class="h38-mileage-trip"><div class="h38-mileage-trip-top"><div><strong>'+esc(phone.name)+'</strong><br>'+
+      '<small>Last seen '+esc(whenText)+(phone.pos?'':' (end of last trip)')+'</small></div>'+
+      '<a href="'+link+'" target="_blank" rel="noopener">See on map</a></div></div>';
+  }).join('');
+  return '<div style="margin-top:18px"><h3 style="margin:0 0 4px">Find my phone</h3>'+
+    '<p class="h38-mileage-note">Owner phones only. While an owner\u2019s tracking is on, their phone reports where it is — so a lost phone can be found from here.</p>'+
+    (rowsHtml||'<p class="h38-mileage-note">No owner phones yet.</p>')+'</div>';
 }
 
 // ---------- native app bridge (H38 Office Android app) ----------
@@ -1397,6 +1505,7 @@ function cardSignature(){
     on:recordingOn(),duty:offDuty(),clocked:clockedIn(),owner:isOwnerAdmin(),
     review:review,missed:missed,auto:myAutoFiled().length,
     manual:manual.trip?manual.trip.startedAt:'',watchErr:watch.error,
+    phones:isOwnerAdmin()?ownerPhones().map(function(p){var s=p.pos||p.tripEnd;return p.id+':'+(s?s.stamp:'');}).join(','):'',
     miles:manual.trip?Math.round(manual.trip.miles*10)/10:0,
     latest:myTrips().length?text(val(myTrips()[myTrips().length-1],'Updated Time','updatedTime')):''
   });
@@ -1569,6 +1678,9 @@ w.H38Mileage=Object.freeze({
   enabled:enabled,
   pilotEnabled:pilotEnabled,
   recordingOn:recordingOn,
+  startDay:startDay,
+  stopDay:stopDay,
+  ownerPhones:ownerPhones,
   offDuty:offDuty,
   detectionEligible:detectionEligible,
   policyLine:policyLine,
