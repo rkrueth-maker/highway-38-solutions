@@ -591,7 +591,7 @@
     return false;
   }
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-today-first-2',
+    build: '20261025-today-first-3',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved slot (no layout shove: the space is already
      * reserved). Returns false when no slot exists so callers can fall back. */
@@ -865,13 +865,17 @@
         </button>
       </section>` : '';
 
-    /* ---- Assemble: mileage slot → header → TODAY section → platform slot → phone/profit slots → quick actions → needs-you-now → kit feed → type extras → tasks ----
-     * The mileage slot sits above the screen header and the phone-digest /
-     * profitability slots below it, matching where those cards settle today;
-     * reserving them here is what keeps the first paint settled. The
-     * platform slot (owner Command Center stack) sits directly under the
-     * Today block so those cards land below Today on every composition. */
-    const firstSlotsAbove = firstSlotExpected('mileage') ? firstSlotHtml('mileage') : '';
+    /* ---- Assemble: header → TODAY section → mileage slot → platform slot → phone/profit slots → quick actions → needs-you-now → kit feed → type extras → tasks ----
+     * The Today block is the first content on the screen (2026-10-25
+     * follow-on): the mileage slot moves below it, still reserved at its
+     * settled height so the late-arriving mileage card fills space that
+     * already exists instead of shoving anything down. The phone-digest /
+     * profitability slots stay below the header, matching where those
+     * cards settle today; reserving them here is what keeps the first
+     * paint settled. The platform slot (owner Command Center stack) sits
+     * below the Today block so those cards land below Today on every
+     * composition. */
+    const mileageSlotHtml = firstSlotExpected('mileage') ? firstSlotHtml('mileage') : '';
     const platformSlotHtml = firstSlotExpected('platform') ? firstSlotHtml('platform') : '';
     const firstSlotsBelow = (firstSlotExpected('phoneToday') ? firstSlotHtml('phoneToday') : '') + (firstSlotExpected('profitability') ? firstSlotHtml('profitability') : '');
     /* ---- Today first (2026-10-25): the Today section is the opening view.
@@ -885,7 +889,7 @@
     const heroInBody = type === 'service' ? '' : heroHtml;
     const routeInBody = type === 'lawn-snow' ? '' : routeHtml;
     const scheduleInBody = (type === 'service' || type === 'lawn-snow') ? scheduleHtml : '';
-    $('mainContent').innerHTML = firstSlotsAbove + headerHtml + todayFirstHtml + platformSlotHtml + firstSlotsBelow + `
+    $('mainContent').innerHTML = headerHtml + todayFirstHtml + mileageSlotHtml + platformSlotHtml + firstSlotsBelow + `
       <div class="h38-owner-home h38-type-${type}">
         ${qsHero}
         ${quickHtml}

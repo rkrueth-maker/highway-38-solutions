@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// H38 Mileage Tracking (Phone) — build 20261025-today-first-2.
+// H38 Mileage Tracking (Phone) — build 20261025-today-first-3.
 // Automatic drive detection + ask-later classification for the mileage log
 // (Rick's decisions, 2026-10-22):
 //  - Trips are detected automatically and queued; the driver classifies
@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261025-today-first-2';
+var BUILD='20261025-today-first-3';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
