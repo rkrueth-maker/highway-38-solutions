@@ -26,7 +26,9 @@ import java.util.Map;
  *      = Trip ID, on-conflict merge), so delivery is idempotent;
  *   3. refresh the server-readable gate inputs when the WebView is dead:
  *      the open timeEntries record (employee clock-in) and the tenant
- *      mileage pilot row (business_module_settings).
+ *      mileage pilot row (business_module_settings);
+ *   4. report the owner phone's latest position ("Find my phone") into
+ *      the crewPositions store — owners only, one row per phone.
  *
  * All calls are bounded, member-scoped (the member's own JWT + RLS), and
  * read-only except the trip upsert.
@@ -143,6 +145,44 @@ public final class SyncEngine {
             }
         }
         return delivered;
+    }
+
+    // ------------------------------------------------------- owner position
+
+    /**
+     * "Find my phone": while an owner's tracking is on, the runner reports
+     * the phone's latest fix into the crewPositions store (one row per
+     * owner phone, upserted in place — the same write shape as trips).
+     * The caller (TrackingService) reports owners only and only while the
+     * gate is RECORDING. Best effort: returns false on any failure and the
+     * next heartbeat retries.
+     */
+    public static boolean reportOwnerPosition(Context ctx, double lat, double lng,
+                                              double accuracyM, long fixMs) {
+        PolicyStore.Session s = ensureFreshSession(ctx);
+        if (!s.present() || s.accessToken.isEmpty() || s.userId.isEmpty()) return false;
+        try {
+            Map<String, Object> payload = PositionPayload.build(
+                    s.businessId, s.userId, s.userName, lat, lng, accuracyM,
+                    fixMs, System.currentTimeMillis());
+            JSONObject row = new JSONObject();
+            row.put("business_id", s.businessId);
+            row.put("collection", "crewPositions");
+            row.put("record_key", PositionPayload.recordKey(s.userId));
+            row.put("payload", toJson(payload));
+            row.put("record_status", "active");
+            String actor = !s.authUserId.isEmpty() ? s.authUserId : s.userId;
+            row.put("created_by", actor);
+            row.put("updated_by", actor);
+            HttpResult r = http("POST",
+                    s.supabaseUrl + "/rest/v1/business_records?on_conflict=business_id,collection,record_key",
+                    s.publishableKey, s.accessToken,
+                    "resolution=merge-duplicates,return=minimal",
+                    row.toString());
+            return r.ok();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // ------------------------------------------------------------ gate inputs

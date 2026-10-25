@@ -2,7 +2,7 @@
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261020-ws4-addons-1';
+const BUILD='20261025-toggles-server-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -89,11 +89,37 @@ const MODULES=[
   {id:'messages',title:'Messages',icon:'',desc:'Customer communications'},
 ];
 
+function serverToggles(){
+  // The server-side FeatureToggles record (business_records) for this
+  // business — the copy that follows the business across devices.
+  try{
+    const rows=(window.state&&window.state.snapshot&&window.state.snapshot.FeatureToggles)||[];
+    const mine=rows.filter(r=>text(r['Business ID']||r.businessId)===businessId());
+    const row=mine.sort((a,b)=>text(b['Updated Time']||b.updatedAt).localeCompare(text(a['Updated Time']||a.updatedAt)))[0];
+    if(row){
+      const t=row.Toggles||row.toggles;
+      if(t&&typeof t==='object') return t;
+    }
+  }catch(e){}
+  return null;
+}
+
 function getToggles(){
+  let local=null;
   try{
     const raw=localStorage.getItem('h38-feature-toggles-'+businessId());
-    if(raw) return JSON.parse(raw);
+    if(raw) local=JSON.parse(raw);
   }catch(e){}
+  const server=serverToggles();
+  if(local||server){
+    // Server wins per key: an owner's choice saved on any device is the
+    // business's setting everywhere. Local values remain as the fallback
+    // for keys the server record has never carried.
+    const out={};
+    if(local) Object.assign(out,local);
+    if(server) Object.assign(out,server);
+    return out;
+  }
   const defaults={};
   FEATURE_TOGGLES.forEach(f=>defaults[f.id]=f.default);
   return defaults;
@@ -118,10 +144,18 @@ function getModuleVisibility(){
 }
 
 function saveToggles(toggles){
-  localStorage.setItem('h38-feature-toggles-'+businessId(),JSON.stringify(toggles));
-  // Queue for sync
+  try{localStorage.setItem('h38-feature-toggles-'+businessId(),JSON.stringify(toggles));}catch(e){}
+  // Persist server-side per business (business_records FeatureToggles) so
+  // the setting follows the business across devices and browsers. The
+  // optimistic record is what the sync layer actually writes; without it
+  // this op never mapped to a server record and the toggles lived and
+  // died in one device's localStorage — the root cause of the Oct 2026
+  // mileage-arming failure (the phone toggle never reached the server,
+  // so the native runner never armed).
   if(typeof queueOperation==='function'){
-    queueOperation('SAVE_FEATURE_TOGGLES','FeatureToggles',businessId(),{toggles,updatedAt:new Date().toISOString()}).catch(()=>{});
+    const stamp=new Date().toISOString();
+    queueOperation('SAVE_FEATURE_TOGGLES','FeatureToggles',businessId(),{toggles,updatedAt:stamp},
+      {collection:'FeatureToggles',record:{'Business ID':businessId(),'Toggles':toggles,'Updated Time':stamp,'Record Version':1},idKeys:['Business ID']}).catch(()=>{});
   }
 }
 
@@ -803,7 +837,7 @@ function renderOwnerControls(){
    * data-module ids, storage keys, defaults and server writes below are
    * byte-identical in behavior to the previous list rendering — the same
    * inputs are emitted, now as cards in the .h38-addon-grid. */
-  const featureOn=f=>(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):toggles[f.id]);
+  const featureOn=f=>(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):isFeatureEnabled(f.id));
   const categories={};
   FEATURE_TOGGLES.forEach(f=>{
     if(!categories[f.category]) categories[f.category]=[];
@@ -1137,6 +1171,31 @@ window.H38OwnerControls={
   MODULES:MODULES,
   BUILD
 };
+
+// One-shot migration (2026-10-25): if this business has toggles saved in
+// this device's localStorage but no server FeatureToggles record yet,
+// push the local values up — owner/admin only, once per page load, and
+// only after the snapshot has hydrated (moduleSettings present), so an
+// existing server record is never overwritten by a stale local copy.
+let featureToggleSeedDone=false;
+function seedFeatureTogglesToServer(){
+  if(featureToggleSeedDone)return;
+  const bid=businessId();
+  if(!bid)return;
+  const snapshot=window.state&&window.state.snapshot;
+  if(!snapshot||!Array.isArray(snapshot.moduleSettings))return;
+  const user=snapshot.user;
+  const role=text(user&&(user.roleName||user.role)).toLowerCase();
+  if(role!=='owner'&&role!=='administrator')return;
+  if(serverToggles()){featureToggleSeedDone=true;return;}
+  let raw=null;
+  try{raw=localStorage.getItem('h38-feature-toggles-'+bid);}catch(e){}
+  if(!raw)return;
+  featureToggleSeedDone=true;
+  saveToggles(getToggles());
+}
+window.addEventListener('h38:business-snapshot-updated',()=>{try{seedFeatureTogglesToServer();}catch(e){}});
+setTimeout(()=>{try{seedFeatureTogglesToServer();}catch(e){}},4000);
 
 // Auto-apply on load
 if(document.readyState==='loading'){
