@@ -58,6 +58,9 @@ public final class TrackingService extends Service {
     private boolean updatesActive = false;
     private boolean drivingProfile = false;
     private TripStore tripStore;
+    // Latest fix seen, for the owner "Find my phone" heartbeat.
+    private double lastFixLat, lastFixLng, lastFixAcc;
+    private long lastFixMs = 0;
 
     private final LocationCallback locationCallback = new LocationCallback() {
         @Override public void onLocationResult(LocationResult result) {
@@ -66,6 +69,10 @@ public final class TrackingService extends Service {
                 if (loc == null) continue;
                 Double speed = loc.hasSpeed() ? (double) loc.getSpeed() : null;
                 double acc = loc.hasAccuracy() ? loc.getAccuracy() : -1;
+                lastFixLat = loc.getLatitude();
+                lastFixLng = loc.getLongitude();
+                lastFixAcc = acc;
+                lastFixMs = loc.getTime();
                 detector.onFix(new TripDetector.Fix(
                         loc.getLatitude(), loc.getLongitude(), acc, speed, loc.getTime()));
             }
@@ -81,10 +88,26 @@ public final class TrackingService extends Service {
                 }
                 handler.post(() -> applyGate(true));
                 SyncEngine.syncPendingTrips(TrackingService.this);
+                maybeReportOwnerPosition();
             });
             handler.postDelayed(this, GATE_RECHECK_MS);
         }
     };
+
+    /**
+     * Find-my-phone heartbeat: on the 15-minute gate recheck, report the
+     * latest fix — owners only, only while recording, only with a fix no
+     * older than 30 minutes. Employees are never position-reported by the
+     * background runner.
+     */
+    private void maybeReportOwnerPosition() {
+        if (gate != GateEvaluator.Gate.RECORDING || lastFixMs <= 0) return;
+        if (System.currentTimeMillis() - lastFixMs > 30L * 60L * 1000L) return;
+        GateEvaluator.Policy policy = PolicyStore.loadPolicy(TrackingService.this);
+        if (policy == null || !policy.ownerAdmin) return;
+        SyncEngine.reportOwnerPosition(TrackingService.this,
+                lastFixLat, lastFixLng, lastFixAcc, lastFixMs);
+    }
 
     private final Runnable syncRetry = new Runnable() {
         @Override public void run() {
@@ -107,7 +130,16 @@ public final class TrackingService extends Service {
                 Map<String, Object> payload = TripPayload.build(trip, tripId,
                         s.businessId, s.userId, s.userName, System.currentTimeMillis());
                 tripStore.add(SyncEngine.toJson(payload));
-                io.execute(() -> SyncEngine.syncPendingTrips(TrackingService.this));
+                io.execute(() -> {
+                    SyncEngine.syncPendingTrips(TrackingService.this);
+                    // A finished drive is also a fresh last-seen for
+                    // Find my phone (owners only).
+                    GateEvaluator.Policy policy = PolicyStore.loadPolicy(TrackingService.this);
+                    if (policy != null && policy.ownerAdmin) {
+                        SyncEngine.reportOwnerPosition(TrackingService.this,
+                                trip.endLat, trip.endLng, -1, trip.endedAtMs);
+                    }
+                });
             }
 
             @Override public void onDrivingChanged(boolean driving) {

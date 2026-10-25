@@ -101,6 +101,7 @@
       campaigns:['Campaign ID','campaignId'], featureRequests:['Feature Request ID','featureRequestId'],
       aiRecommendations:['Recommendation ID','recommendationId'], usageLogs:['Usage Log ID','usageLogId'], followUps:['Follow-up ID','followUpId'], communicationLogs:['Communication Log ID','communicationLogId'],
       crewLocationStamps:['Stamp ID','stampId'], crewPositions:['Crew Position ID','crewPositionId'],
+      FeatureToggles:['Business ID','businessId'],
       notifications:['Notification ID','notificationId']
     };
     return map[collection] || ['id'];
@@ -400,6 +401,7 @@
       case 'RECORD_SOCIAL_METRIC': return makeRecord(operation,'socialMetrics',{'Social Metric ID':id,'Business ID':operation.businessId,'Social Post ID':p.socialPostId,'Platform':p.platform || 'Manual','Metric Date':p.metricDate,'Reach':number(p.reach),'Engagements':number(p.engagements),'Leads':number(p.leads),'Revenue':number(p.revenue),'Source':p.source || 'Manual','Created Time':operation.localTimestamp || isoNow(),'Record Version':1});
       case 'SAVE_FEATURE_REQUEST': return makeRecord(operation,'featureRequests',{'Feature Request ID':p.featureRequestId || id,'Business ID':operation.businessId,'Requested By':auth.getState().userId,'Page Key':p.pageKey,'User Role':window.state?.snapshot?.user?.roleName || '','Title':p.title,'Problem':p.problem,'Current Workaround':p.currentWorkaround,'Frequency':p.frequency,'Proposed Action':p.proposedAction,'Status':'Open','Created Time':operation.localTimestamp || isoNow(),'Updated Time':isoNow(),'Record Version':1});
       case 'RECORD_USAGE_EVENT': return makeRecord(operation,'usageLogs',{'Usage Log ID':id,'Business ID':operation.businessId,'Page Key':p.pageKey,'Action Key':p.actionKey,'Device ID':p.deviceId,'Metadata':p.metadata || {},'Created Time':operation.localTimestamp || isoNow()});
+      case 'SAVE_FEATURE_TOGGLES': return makeRecord(operation,'FeatureToggles',{'Business ID':operation.businessId || id,'Toggles':p.toggles || {},'Updated Time':p.updatedAt || isoNow(),'Record Version':1});
       default: return null;
     }
   }
