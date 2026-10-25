@@ -576,7 +576,7 @@
     return false;
   }
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-open-settled-1',
+    build: '20261025-open-settled-2',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved slot (no layout shove: the space is already
      * reserved). Returns false when no slot exists so callers can fall back. */
@@ -587,9 +587,14 @@
       slot.classList.add('is-filled');
       slot.removeAttribute('aria-hidden');
       try {
-        requestAnimationFrame(function () {
-          try { if (node.isConnected) firstSlotStoreHeight(key, node.getBoundingClientRect().height); } catch (e) {}
-        });
+        // Remember the slot's settled height for the next open. The second,
+        // later pass captures stack-mates that anchor inside the slot right
+        // after the fill (e.g. the ready-to-work queue under the digest).
+        var measure = function () {
+          try { if (slot.isConnected) firstSlotStoreHeight(key, slot.getBoundingClientRect().height); } catch (e) {}
+        };
+        requestAnimationFrame(measure);
+        setTimeout(measure, 1200);
       } catch (e) {}
       return true;
     },
