@@ -66,6 +66,7 @@ def test_build_stamps_agree_across_the_release_surface():
     assert f"PROFITABILITY_BUILD='{BUILD}'" in authority
     runtime = (APP / 'runtime-rowid-fix.js').read_text(encoding='utf-8')
     assert f"PHONE_FIRST_BUILD='{BUILD}'" in runtime
+    assert f"const BUILD='{BUILD}'" in PHONE
     index = (APP / 'index.html').read_text(encoding='utf-8')
     assert f"owner-home.js?build={BUILD}" in index
     assert f"owner-home.css?build={BUILD}" in index
