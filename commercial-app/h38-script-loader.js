@@ -122,7 +122,7 @@
       './route-manager.js?build=20261026-map-tiles-1',
       './route-planner.js?build=20261026-day-fix-3',
       './northern-bouncie-fleet.js?build=20261026-map-tiles-1',
-      './fleet-providers.js?build=20261026-fleet-providers-1',
+      './fleet-providers.js?build=20261026-fleet-providers-2',
       './gps-dispatch.js?build=20261026-map-tiles-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
       './mileage.js?build=20261026-day-fix-3',

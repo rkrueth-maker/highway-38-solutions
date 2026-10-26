@@ -31,7 +31,7 @@
  * ========================================================================== */
 (function() {
 'use strict';
-var BUILD = '20261026-fleet-providers-1';
+var BUILD = '20261026-fleet-providers-2';
 var FEATURE_ID = 'fleet_providers';
 var ENDPOINT = 'fleet-providers';
 var BOUNCIE_ENDPOINT = 'nl-bouncie-fleet';
@@ -132,7 +132,16 @@ async function validSession(forceRefresh) {
   if (verified.error || !verified.data || !verified.data.user) { if (!forceRefresh) return validSession(true); throw sessionExpired(); }
   return session;
 }
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) { setTimeout(function() { reject(new Error(label + ' took too long. Check your connection and retry.')); }, ms); })
+  ]);
+}
 async function invoke(endpoint, action, body) {
+  return withTimeout(invokeInner(endpoint, action, body), 25000, 'The tracker service');
+}
+async function invokeInner(endpoint, action, body) {
   var db = client(); if (!db) throw new Error('Supabase client unavailable.');
   var session = await validSession();
   var token = session.access_token; if (!token) throw sessionExpired();
