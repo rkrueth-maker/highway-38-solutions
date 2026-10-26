@@ -1,23 +1,42 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T00:46:39.962Z",
+  "generatedAt": "2026-10-26T00:59:18.513Z",
   "base": null,
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
-    "artifacts/public-website-architecture/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/email-communications-sync/verification.json",
+    "artifacts/site-measurement-wizard/verification.json",
     "artifacts/unified-shell/assembly.json",
     "artifacts/unified-source-assembly/verification.json",
-    "launch-control/evidence/public-ecosystem-tools.json",
-    "launch-control/evidence/unified-app-architecture-verification.json"
+    "artifacts/universal-quote-builder-complete/verification.json",
+    "commercial-app/auth-cache-guard.js",
+    "commercial-app/bundle-core.js",
+    "commercial-app/desktop-navigation-authority.js",
+    "commercial-app/h38-script-loader.js",
+    "commercial-app/index.html",
+    "commercial-app/mileage.js",
+    "commercial-app/owner-home.js",
+    "commercial-app/phone-first-office.js",
+    "commercial-app/runtime-rowid-fix.js",
+    "commercial-app/service-worker.js",
+    "commercial-app/startup-relay-patch.js",
+    "commercial-app/supabase-session-recovery.js",
+    "commercial-app/version.json",
+    "launch-control/evidence/unified-app-architecture-verification.json",
+    "scripts/verify-owner-mobile-smoke.js",
+    "scripts/verify-owner-notifications.js",
+    "scripts/verify-phone-first-office-browser.js"
   ],
-  "fileCount": 6,
+  "fileCount": 25,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
+    "publicWebsite": true,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -25,20 +44,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
-    "externalActionBoundary": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
+    "externalActionBoundary": true,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js"
+    "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
-  "expensiveChecks": [],
-  "deploymentWorkflows": [],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
+  "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

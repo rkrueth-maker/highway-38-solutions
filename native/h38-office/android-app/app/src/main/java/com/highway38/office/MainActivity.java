@@ -87,10 +87,33 @@ public final class MainActivity extends Activity {
         configureWebView();
         webView.loadUrl(OFFICE_URL);
 
+        if (!PolicyStore.setupComplete(this) && alreadyArmed()) {
+            // An owner who armed tracking through the Office itself (signed
+            // in, permissions granted) but never tapped the wizard's final
+            // button used to get the wizard overlaid on EVERY launch —
+            // setup_complete was only ever set by that one button. Derive
+            // completion from ground truth instead: a stored session plus
+            // the permissions the wizard exists to collect means setup is
+            // done, whichever path granted them.
+            PolicyStore.setSetupComplete(this, true);
+        }
         if (!PolicyStore.setupComplete(this)) {
             showWizard(0);
         } else {
             TrackingController.reevaluate(this);
+        }
+    }
+
+    /** True when this phone is already fully set up by any path. */
+    private boolean alreadyArmed() {
+        try {
+            if (!PolicyStore.loadSession(this).present()) return false;
+            if (!StatusReporter.foregroundLocationGranted(this)) return false;
+            if (!StatusReporter.backgroundLocationGranted(this)) return false;
+            if (!StatusReporter.notificationsGranted(this)) return false;
+            return StatusReporter.batteryExempt(this);
+        } catch (Exception e) {
+            return false;
         }
     }
 

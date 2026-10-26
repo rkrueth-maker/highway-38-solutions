@@ -175,6 +175,11 @@ public final class TrackingService extends Service {
                 break;
             }
             case WAITING_CLOCKIN: {
+                // The typed startForeground below throws SecurityException
+                // on SDK 34+ when the location permission is not held —
+                // same fresh-install trap as the controller's start; an
+                // armed-but-unpermissioned service must stop, not crash.
+                if (!hasFineLocation()) { stopSelf(); return; }
                 startForegroundWith("Mileage tracking is on — starts when you clock in");
                 removeUpdates();
                 break;
@@ -254,10 +259,16 @@ public final class TrackingService extends Service {
                 .setContentIntent(pi)
                 .setOngoing(true)
                 .build();
-        if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
-        } else {
-            startForeground(NOTIFICATION_ID, n);
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
+            } else {
+                startForeground(NOTIFICATION_ID, n);
+            }
+        } catch (SecurityException ignored) {
+            // Permission revoked between the gate check and this call —
+            // stop quietly; tracking re-arms when the app next re-evaluates.
+            stopSelf();
         }
     }
 

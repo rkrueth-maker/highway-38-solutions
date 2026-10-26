@@ -23,13 +23,30 @@ public final class TrackingController {
         GateEvaluator.Gate gate = currentGate(ctx);
         Intent svc = new Intent(ctx, TrackingService.class);
         if (gate == GateEvaluator.Gate.RECORDING || gate == GateEvaluator.Gate.WAITING_CLOCKIN) {
-            if (Build.VERSION.SDK_INT >= 26) {
-                ctx.startForegroundService(svc);
-            } else {
-                ctx.startService(svc);
+            // A location foreground service may only be started while the
+            // location permission is held. On a fresh install the recording
+            // policy arms at sign-in (owners default on) BEFORE the setup
+            // wizard's location step grants that permission, and an
+            // unguarded startForegroundService then throws SecurityException
+            // in the caller — the app died on every open for a fresh owner
+            // install (2026-10-25, Amanda). Tracking must never be able to
+            // crash the app: skip the start while the permission is missing
+            // (the permission callbacks and the wizard re-evaluate when it
+            // is granted), and swallow any platform refusal (e.g. a
+            // background start after reboot) — the service re-arms on the
+            // next open, resume, or policy push.
+            if (!StatusReporter.foregroundLocationGranted(ctx)) return;
+            try {
+                if (Build.VERSION.SDK_INT >= 26) {
+                    ctx.startForegroundService(svc);
+                } else {
+                    ctx.startService(svc);
+                }
+            } catch (RuntimeException ignored) {
+                // ForegroundServiceStartNotAllowedException / SecurityException.
             }
         } else {
-            ctx.stopService(svc);
+            try { ctx.stopService(svc); } catch (RuntimeException ignored) {}
         }
     }
 }
