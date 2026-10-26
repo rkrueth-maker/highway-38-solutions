@@ -109,7 +109,7 @@
     const PAGE_SCHEDULE = [
       './guided-schedule.js?build=20261020-ws4-schedule-1',
       './plow-flow.js?build=20261011-plow-flow-1',
-      './route-planner.js?build=20261026-route-maps-3',
+      './route-planner.js?build=20261026-route-maps-4',
     ];
     const PAGE_MESSAGES = [
       './sms-provider.js?build=20261004-sms-seam-2',
@@ -120,7 +120,7 @@
     ];
     const PAGE_FLEET = [
       './route-manager.js?build=20261020-ws4-placeholders-1',
-      './route-planner.js?build=20261026-route-maps-3',
+      './route-planner.js?build=20261026-route-maps-4',
       './northern-bouncie-fleet.js?build=20261013-bouncie-reminder-1',
       './gps-dispatch.js?build=20261004-dispatch-2',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',

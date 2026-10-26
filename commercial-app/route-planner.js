@@ -101,7 +101,7 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261026-route-maps-3';
+var BUILD = '20261026-route-maps-4';
 var FEATURE_ID = 'route_planner';
 var OSRM_URL = 'https://router.project-osrm.org';
 var MAX_STOPS = 6;
@@ -288,12 +288,11 @@ async function drawMap(nodeId, markers, lineLatLngs) {
     node.innerHTML = '';
     var map = L.map(node, { zoomControl: true });
     liveMaps[nodeId] = map;
-    // Tiles: CARTO basemap built from OpenStreetMap data. The volunteer-run
-    // tile.openstreetmap.org servers 403 this app under their tile usage
-    // policy (observed live 2026-10-26), which would leave users a grey map;
-    // CARTO basemaps are published for app embedding, still OSM data.
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd', maxZoom: 20, attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+    // Tiles: standard OpenStreetMap tile layer, same as the app's other map
+    // modules. (CARTO's keyless basemaps were tried 2026-10-26 and now
+    // return "API KEY REQUIRED" watermark tiles, so they are not usable.)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     var bounds = [];
     markers.forEach(function(m) {
