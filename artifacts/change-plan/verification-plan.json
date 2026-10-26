@@ -1,16 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T09:57:34.954Z",
-  "base": "HEAD~1",
+  "generatedAt": "2026-10-26T10:09:49.434Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "commercial-app/gps-dispatch.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/route-planner.js",
+    "commercial-app/northern-bouncie-fleet.js",
+    "commercial-app/route-manager.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 5,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
