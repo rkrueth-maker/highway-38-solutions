@@ -1,20 +1,20 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T16:09:56.483Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-26T19:23:29.948Z",
+  "base": null,
   "head": "HEAD",
   "files": [
-    "commercial-app/h38-script-loader.js",
-    "commercial-app/index.html",
-    "commercial-app/live-customer-navigation-guard-20260910.js",
-    "commercial-app/office-scale-workflow.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/version.json"
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
+    "launch-control/evidence/unified-app-architecture-verification.json"
   ],
   "fileCount": 6,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": true,
+    "publicWebsite": false,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -25,28 +25,20 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": true,
+    "publicRendering": false,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-change-governance.js"
   ],
-  "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+  "expensiveChecks": [],
+  "deploymentWorkflows": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change.",
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
-  "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
-  ],
-  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
