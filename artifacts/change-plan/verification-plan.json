@@ -1,22 +1,27 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T15:46:04.112Z",
+  "generatedAt": "2026-10-26T15:53:15.551Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/app-13.js",
-    "commercial-app/customer-comms.js",
+    "commercial-app/book.html",
+    "commercial-app/customer-portal.html",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/owner-controls.js",
+    "commercial-app/owner-home.js",
+    "commercial-app/portal-requests.js",
     "commercial-app/service-worker.js",
-    "commercial-app/version.json"
+    "commercial-app/supabase-data.js",
+    "commercial-app/version.json",
+    "supabase/functions/h38-customer-portal/index.ts",
+    "supabase/functions/h38-owner-notify/index.ts",
+    "supabase/functions/h38-public-booking/index.ts"
   ],
-  "fileCount": 7,
+  "fileCount": 12,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": false,
+    "customerPortal": true,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -37,6 +42,7 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
+    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
