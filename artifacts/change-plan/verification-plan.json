@@ -1,21 +1,31 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T11:17:35.910Z",
+  "generatedAt": "2026-10-26T11:41:28.143Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "commercial-app/fleet-providers.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/mileage.js",
-    "commercial-app/route-planner.js",
     "commercial-app/service-worker.js",
-    "commercial-app/version.json"
+    "commercial-app/version.json",
+    "scripts/test-fleet-provider-mappers.mjs",
+    "supabase/config.toml",
+    "supabase/functions/fleet-providers/fixtures/expected.json",
+    "supabase/functions/fleet-providers/fixtures/geotab-devices.json",
+    "supabase/functions/fleet-providers/fixtures/geotab-status.json",
+    "supabase/functions/fleet-providers/fixtures/geotab-trips.json",
+    "supabase/functions/fleet-providers/fixtures/linxup-devices.json",
+    "supabase/functions/fleet-providers/fixtures/samsara-stats.json",
+    "supabase/functions/fleet-providers/fixtures/samsara-vehicles.json",
+    "supabase/functions/fleet-providers/index.ts",
+    "supabase/functions/fleet-providers/mappers.mjs"
   ],
-  "fileCount": 6,
+  "fileCount": 16,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": false,
+    "customerPortal": true,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -36,6 +46,7 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
+    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
