@@ -101,7 +101,7 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261026-route-maps-1';
+var BUILD = '20261026-route-maps-2';
 var FEATURE_ID = 'route_planner';
 var OSRM_URL = 'https://router.project-osrm.org';
 var MAX_STOPS = 6;
@@ -239,8 +239,15 @@ function loadLeaflet() {
     }
     var existing = document.querySelector('script[data-h38-route-leaflet],script[data-h38-dispatch-leaflet],script[data-h38-route-planner-leaflet]');
     if (existing) {
-      existing.addEventListener('load', function() { w.L && w.L.map ? resolve(w.L) : reject(new Error('Leaflet failed to load')); }, { once: true });
-      existing.addEventListener('error', function() { reject(new Error('Leaflet failed to load')); }, { once: true });
+      // The other module's script may have ALREADY loaded (its load event
+      // fired before we attached) — never wait on an event that already
+      // happened. Poll for window.L with a hard timeout instead.
+      var waited = 0;
+      var iv = setInterval(function() {
+        waited += 150;
+        if (w.L && w.L.map) { clearInterval(iv); resolve(w.L); }
+        else if (waited >= 9000) { clearInterval(iv); reject(new Error('Leaflet failed to load')); }
+      }, 150);
       return;
     }
     var s = document.createElement('script');
