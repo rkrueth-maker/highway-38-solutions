@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261025-today-lead-1';
+const BUILD='20261026-nobounce-1';
 let scheduled=false;
 const text=v=>String(v==null?'':v).trim();
 const num=v=>{const n=Number(String(v==null?'':v).replace(/[$,%]/g,''));return Number.isFinite(n)?n:0;};
@@ -36,7 +36,12 @@ function placeCockpitCard(card){
    * Without the slot, ensureCard's legacy placement stands. */
   const main=document.getElementById('mainContent');if(!main||!card)return;
   const slot=main.querySelector('#h38PlatformSlot');
-  if(!slot||card.parentElement===slot)return;
+  if(!slot){/* No reserved frame on this composition: park the card at the
+   * END of the workspace instead of leaving ensureCard's prepend above the
+   * screen header, so it can never shove already-painted content down
+   * (2026-10-26 bounce fix). */
+  main.appendChild(card);return;}
+  if(card.parentElement===slot)return;
   if(window.H38FirstScreen&&typeof window.H38FirstScreen.fill==='function')window.H38FirstScreen.fill('platform',card);
   else slot.appendChild(card);
 }

@@ -653,39 +653,35 @@
     else toast('Quick Start is loading. Try again in a moment.', true);
   }
 
-  /* ================= First-screen slots (opening-bounce fix, 2026-10-25) =================
-   * The Today workspace paints ONCE, with reserved slots for the first-screen
-   * cards that feature modules attach after render (mileage card, phone
-   * digest, profitability mini-card). Each slot reserves the height that card
-   * had when this device last settled (localStorage), falling back to a CSS
-   * default, so a late-arriving card fills space that already exists instead
-   * of shoving the whole screen down. Modules fill their slot through
-   * window.H38FirstScreen.fill(); when no slot exists they keep their legacy
-   * insert path. See owner-home.css (.h38-first-slot). */
-  const FIRST_SLOT_DEFAULTS = { mileage: 216, phoneToday: 680, profitability: 160, platform: 1400 };
+  /* ================= First-screen frames (opening-bounce fix v2, 2026-10-26) =================
+   * The owner home paints ONCE, in its final layout. Every card that feature
+   * modules attach after the first render lands in a frame whose height is
+   * reserved from the first frame (owner-home.css carries the per-slot,
+   * per-breakpoint heights) and NEVER shrinks while this view lives: filling
+   * a frame swaps its skeleton for the card inside the same reserved box, so
+   * nothing below the frame can move when its data lands.
+   * v1 (2026-10-25) reserved the height this device last settled at
+   * (localStorage) and dropped the reservation the moment a card filled.
+   * Both halves bounced: a learned height encodes a PREVIOUS day's content
+   * (a taller digest yesterday reserved 1333px for a 412px digest today, and
+   * the whole home rode up ~900px when it collapsed), and dropping the
+   * reservation on fill moved everything below whenever the fresh card's
+   * height differed from the guess. Heights are structural now — each is
+   * the card's own layout budget, from its CSS, at that breakpoint — never
+   * learned, never dropped. Taller content may still grow a frame (the
+   * reservation is a floor); shorter content leaves the difference as
+   * space inside the frame, never as movement.
+   * The platform stack is the one genuinely data-shaped frame. When both
+   * platform cards have filled it, fill() locks the frame to the stack's
+   * actual height a double-rAF later (same settle window as the fill), so
+   * a quiet tenant does not keep a tall empty reservation; the render's
+   * 6-second backstop locks or releases a frame whose cards never came.
+   * Modules fill their frame through window.H38FirstScreen.fill(); when no
+   * frame exists they keep their legacy insert path. See owner-home.css
+   * (.h38-first-slot, .h38-home-frame). */
   const FIRST_SLOT_IDS = { mileage: 'h38MileageSlot', phoneToday: 'h38PhoneTodaySlot', profitability: 'h38ProfitabilitySlot', platform: 'h38PlatformSlot' };
-  function firstSlotBusinessKey() {
-    try {
-      const b = (state.snapshot && state.snapshot.business) || {};
-      return String(b.businessId || b.businessKey || state.businessKey || 'default');
-    } catch (e) { return 'default'; }
-  }
-  function firstSlotStoredHeight(key) {
-    try {
-      const raw = localStorage.getItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key);
-      const n = parseInt(raw || '', 10);
-      return Number.isFinite(n) && n >= 40 && n <= 3200 ? n : 0;
-    } catch (e) { return 0; }
-  }
-  function firstSlotStoreHeight(key, height) {
-    try {
-      const n = Math.round(Number(height) || 0);
-      if (n >= 40 && n <= 3200) localStorage.setItem('h38-first-screen:' + firstSlotBusinessKey() + ':' + key, String(n));
-    } catch (e) { /* storage unavailable: CSS defaults still reserve space */ }
-  }
   function firstSlotHtml(key) {
-    const h = firstSlotStoredHeight(key) || FIRST_SLOT_DEFAULTS[key] || 160;
-    return '<div class="h38-first-slot h38-first-slot--' + key + '" id="' + FIRST_SLOT_IDS[key] + '" data-h38-first-slot="' + key + '" style="min-height:' + h + 'px" aria-hidden="true"></div>';
+    return '<div class="h38-first-slot h38-first-slot--' + key + '" id="' + FIRST_SLOT_IDS[key] + '" data-h38-first-slot="' + key + '" aria-hidden="true"></div>';
   }
   function firstSlotExpected(key) {
     try {
@@ -699,49 +695,72 @@
       if (key === 'platform') {
         /* The platform owner stack (Owner Command Center + Owner operating
          * cockpit, platform-next.js / platform-deepen.js) renders only for
-         * owners, and only when those modules are in the page. Use the same
-         * owner test the platform modules apply so the reservation exists
-         * exactly when the cards are coming. The slot sits directly under
-         * the Today block: the cards fill it there instead of prepending
-         * themselves above the screen header (the H38-tenant composition
-         * the first today-first pass missed, because the demo tenant's
-         * user is an administrator and never renders these cards). */
+         * owners. The decision uses ONLY snapshot data present at render —
+         * the same owner test the platform modules apply. v1 also required
+         * the platform scripts to already be in the page, but those scripts
+         * load late, so the answer raced the loader: some opens reserved
+         * the frame, others didn't, and on the unreserved opens the cards
+         * prepended themselves above the screen header or landed in a
+         * frame that appeared later — a different composition per open.
+         * The frame now exists on every owner open; the render's backstop
+         * timer releases it if the platform modules never load. (The demo
+         * tenant's user is an administrator, not an owner, so demo homes
+         * never reserve it and never render these cards.) */
         const u = (state.snapshot && state.snapshot.user) || {};
-        if (!(u.owner === true || /\bowner\b/i.test(String(u.roleName || u.role || '')))) return false;
-        return !!(window.H38_PLATFORM_NEXT || window.H38_PLATFORM_DEEPEN ||
-          document.querySelector('script[data-h38-platform-next],script[data-h38-platform-deepen],script[data-h38-ai-team-owner-polish]'));
+        return !!(u.owner === true || /\bowner\b/i.test(String(u.roleName || u.role || '')));
       }
     } catch (e) { return false; }
     return false;
   }
+  const platformFillState = { cards: {}, lockQueued: false };
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-stuck-heal-1',
+    build: '20261026-nobounce-1',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
-    /* Move node into its reserved slot (no layout shove: the space is already
-     * reserved). Returns false when no slot exists so callers can fall back. */
+    /* Move node into its reserved frame. The frame's reserved height does
+     * NOT change: the card replaces the skeleton inside the same box, so
+     * nothing below the frame moves. Returns false when no frame exists so
+     * callers can fall back. */
     fill: function (key, node) {
       const slot = document.getElementById(FIRST_SLOT_IDS[key] || '');
       if (!slot || !node) return false;
       if (node.parentElement !== slot) slot.appendChild(node);
       slot.classList.add('is-filled');
       slot.removeAttribute('aria-hidden');
-      try {
-        // Remember the slot's settled height for the next open. The second,
-        // later pass captures stack-mates that anchor inside the slot right
-        // after the fill (e.g. the ready-to-work queue under the digest).
-        var measure = function () {
-          try { if (slot.isConnected) firstSlotStoreHeight(key, slot.getBoundingClientRect().height); } catch (e) {}
-        };
-        requestAnimationFrame(measure);
-        setTimeout(measure, 1200);
-      } catch (e) {}
+      if (key === 'platform' && node.id) {
+        platformFillState.cards[node.id] = true;
+        if (platformFillState.cards['h38OwnerCommandCenter'] && platformFillState.cards['h38OwnerProfitabilityDeepening'] && !platformFillState.lockQueued) {
+          platformFillState.lockQueued = true;
+          // Both stack cards are in. Lock the frame to the stack's real
+          // height two frames out — the cards' own render pass has fully
+          // landed by then, and the lock lands in the same settle window
+          // as the fill, never as a later surprise.
+          requestAnimationFrame(function () { requestAnimationFrame(function () { window.H38FirstScreen.lockPlatform(); }); });
+        }
+      }
       return true;
     },
-    /* The card for this slot is not coming (feature off): release the space. */
+    /* Platform only: shrink the frame's reservation to the stack's actual
+     * height. Runs at most once per view (fill path or the render's 6s
+     * backstop); afterwards the reservation is a floor at the real height
+     * and re-renders inside the frame cannot move anything below it. */
+    lockPlatform: function () {
+      const slot = document.getElementById(FIRST_SLOT_IDS.platform);
+      if (!slot || slot.dataset.h38Locked) return false;
+      const h = slot.scrollHeight;
+      if (!(h > 0)) return false;
+      slot.dataset.h38Locked = '1';
+      slot.style.minHeight = h + 'px';
+      return true;
+    },
+    /* The card for this frame is not coming (feature off, module absent):
+     * collapse the reservation — but only while the frame is still empty.
+     * A filled frame NEVER collapses during the view: collapsing under
+     * painted content is exactly the bounce this system exists to kill. */
     release: function (key) {
       const slot = document.getElementById(FIRST_SLOT_IDS[key] || '');
       if (!slot) return false;
-      slot.classList.add('is-filled');
+      if (slot.classList.contains('is-filled')) return false;
+      slot.classList.add('is-released');
       return true;
     }
   });
@@ -984,8 +1003,29 @@
         </div>
       </section>`;
 
-    /* ---- Kit AI activity feed ("While You Were Away") ---- */
-    const kitFeedSlotHtml = '<div id="h38KitFeedSlot"></div>';
+    /* ---- Kit AI activity feed ("While You Were Away") ----
+     * The feed renders into this box right after the home paints (and its
+     * module can land after first paint), so the box carries a reserved
+     * height in owner-home.css: the feed fills space that already exists
+     * instead of growing the home body under the quick actions. */
+    const kitFeedSlotHtml = '<div id="h38KitFeedSlot" class="h38-kit-feed-slot"></div>';
+
+    /* ---- Late top cards (desktop): the time clock (erp-foundation.js),
+     * the customer-ready workspace (customer-readiness-polish.js) and the
+     * access context strip (office-access-completion.js) all attach AFTER
+     * the home paints, anchored under the screen header — measured on the
+     * H38 tenant they shoved the whole screen down ~707px about a second
+     * after first paint. Their frames are reserved here, in their settled
+     * order, and each module fills its frame instead of inserting into the
+     * flow. Desktop only: at phone widths these modules do not render on
+     * the owner home (the time card is CSS-hidden, the access strip skips
+     * full-access owners on mobile, the ready workspace anchors desktop).
+     * A frame whose card never arrives is collapsed by the backstop timer
+     * below, so a missing module leaves no permanent hole. ---- */
+    const trioFramesHtml = (window.matchMedia && window.matchMedia('(min-width: 761px)').matches) ? `
+      <div class="h38-home-frame h38-home-frame--time" id="h38TimeFrame" aria-hidden="true"></div>
+      <div class="h38-home-frame h38-home-frame--ready" id="h38ReadyFrame" aria-hidden="true"></div>
+      <div class="h38-home-frame h38-home-frame--access" id="h38AccessFrame" aria-hidden="true"></div>` : '';
 
     /* ---- Owner chat entry: the persistent Kit thread on the Hank page.
      * Shown unless the business has the owner_chat module turned off. ---- */
@@ -1032,7 +1072,7 @@
     const heroInBody = type === 'service' ? '' : heroHtml;
     const routeInBody = type === 'lawn-snow' ? '' : routeHtml;
     const scheduleInBody = (type === 'service' || type === 'lawn-snow') ? scheduleHtml : '';
-    $('mainContent').innerHTML = headerHtml + todayFirstHtml + mileageSlotHtml + platformSlotHtml + firstSlotsBelow + `
+    $('mainContent').innerHTML = headerHtml + trioFramesHtml + todayFirstHtml + mileageSlotHtml + platformSlotHtml + firstSlotsBelow + `
       <div class="h38-owner-home h38-type-${type}">
         ${qsHero}
         ${quickHtml}
@@ -1048,14 +1088,30 @@
 
     if (window.H38Flow) window.H38Flow.bindScreenHeader($('mainContent'), headerOpts);
 
-    /* ---- Platform slot safety release: if the platform modules turn out
-     * not to be loaded at all (no globals after a grace period), collapse
-     * the reservation so it never leaves a permanent gap under Today. When
-     * the modules ARE loaded they fill or release the slot themselves. ---- */
+    /* ---- Frame backstops: a reservation must never become a permanent
+     * hole when its card is not coming. Trio frames whose module never
+     * delivered collapse after a grace period; the platform frame locks to
+     * whatever stack height it reached, or releases when the platform
+     * modules are absent entirely. A FILLED frame is never collapsed —
+     * release() refuses — so these timers can only ever settle an empty
+     * reservation, in a degraded load, never move painted content. ---- */
+    if (trioFramesHtml) {
+      setTimeout(() => {
+        try {
+          ['h38TimeFrame', 'h38ReadyFrame', 'h38AccessFrame'].forEach(id => {
+            const frame = document.getElementById(id);
+            if (frame && !frame.classList.contains('is-filled')) frame.classList.add('is-released');
+          });
+        } catch (e) { /* frames already gone with a re-render */ }
+      }, 4000);
+    }
     if (platformSlotHtml) {
       setTimeout(() => {
         try {
-          if (!window.H38_PLATFORM_NEXT && !window.H38_PLATFORM_DEEPEN) window.H38FirstScreen.release('platform');
+          const slot = document.getElementById('h38PlatformSlot');
+          if (!slot) return;
+          if (slot.classList.contains('is-filled')) window.H38FirstScreen.lockPlatform();
+          else if (!window.H38_PLATFORM_NEXT && !window.H38_PLATFORM_DEEPEN) window.H38FirstScreen.release('platform');
         } catch (e) { /* slot already gone with a re-render */ }
       }, 6000);
     }
@@ -1102,7 +1158,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261011-owner-home-bold-numbers-1',
+    build: '20261026-nobounce-1',
     detectBusinessType: detectBusinessType
   });
 

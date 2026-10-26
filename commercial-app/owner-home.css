@@ -772,30 +772,80 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
   box-shadow: none !important;
 }
 
-/* ---------- First-screen reserved slots (opening-bounce fix, 2026-10-25) ----------
- * Slots are painted with the Today workspace and reserve the exact space of
- * the async first-screen cards (mileage, phone digest, profitability). The
- * inline min-height comes from this device's last settled height (or the
- * defaults in owner-home.js). Once a module fills its slot, .is-filled drops
- * the reservation in the same frame as the fill, so nothing below ever moves. */
+/* ---------- First-screen frames (opening-bounce fix v2, 2026-10-26) ----------
+ * Every late-arriving first-screen card lands in a frame whose height is
+ * reserved from the first paint and NEVER shrinks while the view lives.
+ * Filling swaps the skeleton for the card inside the same reserved box, so
+ * nothing below a frame can move when its data lands. Heights are
+ * structural — each card's own layout budget at that breakpoint, measured
+ * on the live H38 tenant — not learned from previous sessions: v1 learned
+ * heights encoded a previous day's content and dropped the reservation on
+ * fill, and the home still rode up or down by hundreds of pixels when the
+ * fresh card differed from the guess. A filled frame keeps its reservation
+ * as a floor (taller content may grow it; shorter content leaves the
+ * difference as space inside the frame, never as movement). The platform
+ * frame's reservation is additionally locked to the stack's real height
+ * by H38FirstScreen.lockPlatform() once both stack cards have filled. */
 .h38-first-slot {
   border-radius: 14px;
-  margin: 0 0 12px;
+  margin: 0;
   background: linear-gradient(100deg, rgba(23, 42, 63, .05), rgba(23, 42, 63, .11), rgba(23, 42, 63, .05));
   background-size: 200% 100%;
   animation: h38-first-slot-pulse 1.6s ease-in-out infinite;
 }
+.h38-first-slot--mileage { min-height: 313px; }
+.h38-first-slot--profitability { min-height: 160px; }
+.h38-first-slot--platform { min-height: 1400px; }
+@media (max-width: 760px) {
+  .h38-first-slot--mileage { min-height: 403px; }
+  .h38-first-slot--phoneToday { min-height: 568px; }
+}
 .h38-first-slot.is-filled {
-  min-height: 0 !important;
-  margin: 0;
   background: none;
   animation: none;
   border-radius: 0;
 }
+.h38-first-slot.is-released { display: none; }
+
+/* ---------- Late top-card frames (desktop, 2026-10-26) ----------
+ * The time clock, the customer-ready workspace and the access context
+ * strip attach after the home paints, anchored under the screen header.
+ * Their frames sit in the owner home's HTML in their settled order; each
+ * module fills its frame instead of inserting into the flow. Heights are
+ * each card's measured budget at desktop widths (the three together
+ * measured ~707px of post-paint shift on the H38 tenant before this fix).
+ * Frames render only at desktop widths (owner-home.js); a frame whose
+ * card never arrives is collapsed by the render's backstop timer. */
+.h38-home-frame {
+  border-radius: 14px;
+  margin: 0;
+  background: linear-gradient(100deg, rgba(23, 42, 63, .05), rgba(23, 42, 63, .11), rgba(23, 42, 63, .05));
+  background-size: 200% 100%;
+  animation: h38-first-slot-pulse 1.6s ease-in-out infinite;
+}
+.h38-home-frame--time { min-height: 113px; }
+.h38-home-frame--ready { min-height: 518px; }
+.h38-home-frame--access { min-height: 76px; }
+.h38-home-frame.is-filled {
+  background: none;
+  animation: none;
+  border-radius: 0;
+}
+.h38-home-frame.is-released { display: none; }
+
+/* ---------- Kit feed reserve (2026-10-26) ----------
+ * The "While You Were Away" feed fills this box after the home paints;
+ * reserving its settled height keeps the home body from growing under the
+ * quick actions when the feed lands. */
+.h38-kit-feed-slot { min-height: 144px; }
+@media (max-width: 760px) {
+  .h38-kit-feed-slot { min-height: 153px; }
+}
+
 @keyframes h38-first-slot-pulse {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .h38-first-slot { animation: none; }
+  .h38-first-slot, .h38-home-frame { animation: none; }
 }
