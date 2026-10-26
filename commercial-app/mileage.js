@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// H38 Mileage Tracking (Phone) — build 20261025-stuck-heal-1.
+// H38 Mileage Tracking (Phone) — build 20261026-route-maps-1.
 // Automatic drive detection + ask-later classification for the mileage log
 // (Rick's decisions, 2026-10-22):
 //  - Trips are detected automatically and queued; the driver classifies
@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261025-stuck-heal-1';
+var BUILD='20261026-route-maps-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -164,8 +164,158 @@ function startDay(){
   watch.blocked=false;watch.error='';
   pushNativePolicy(true);
   syncWatch();
+  persistDayStart();
 }
-function stopDay(){setRecordingOn(false);}
+function stopDay(){setRecordingOn(false);persistDayStop();}
+
+// ---------- server day records (2026-10-26) ----------
+// Start Day / Stop Day used to be device-local switches only: Rick pressed
+// Start Day, stayed home, and the server held no trace the day ever
+// bracketed (verified live 2026-10-26: only the app_session landed). The
+// day bracket is now a business record like everything else in the Office:
+// collection 'mileageDays', one row per person per day ('Day ID' =
+// DAY-<userId>-<yyyy-mm-dd>), written through the same queueOperation path
+// as trips and settings. Start writes who + started-at + the position fix
+// at start; Stop writes ended-at + end fix + the day's calculated mileage.
+// Mileage at Stop: the day's recorded trips when there are any; otherwise
+// the recorded-points line (start fix -> today's GPS stamps -> end fix),
+// labeled straight-line; a day that never moved closes at exactly 0.0 —
+// "record me not leaving the house" is a real, readable day record.
+var DAY_COLLECTION='mileageDays';
+function dayKeyLocal(d){
+  d=d||new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dayRecordId(dateStr){return 'DAY-'+(userId()||'anonymous')+'-'+(dateStr||dayKeyLocal());}
+function myDayRecord(dateStr){
+  var id=dayRecordId(dateStr);
+  return records(DAY_COLLECTION).find(function(r){return text(val(r,'Day ID','dayId'))===id;})||null;
+}
+function currentFix(){
+  var f=engine&&engine.lastFix;
+  if(f&&Number.isFinite(f.lat)&&Number.isFinite(f.lng)&&(f.lat||f.lng))return{lat:f.lat,lng:f.lng,acc:f.acc||0,at:f.at||0};
+  return null;
+}
+function freshFix(timeoutMs){
+  return new Promise(function(resolve){
+    var done=false;
+    function finish(f){if(!done){done=true;resolve(f||currentFix());}}
+    if(typeof navigator==='undefined'||!navigator.geolocation){finish(null);return;}
+    try{
+      navigator.geolocation.getCurrentPosition(function(pos){
+        finish({lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy||0),at:Date.now()});
+      },function(){finish(null);},{enableHighAccuracy:true,timeout:timeoutMs||4000,maximumAge:60000});
+    }catch(_){finish(null);}
+    setTimeout(function(){finish(null);},(timeoutMs||4000)+600);
+  });
+}
+function dayStartCacheKey(){return switchKey('daystart');}
+function dayMilesFromRecordedPoints(dateStr,endFix){
+  // Recorded points for the day, in time order: the day-start fix, this
+  // person's GPS location stamps, then the end fix. Consecutive points
+  // within 25 m collapse (a place, not a move).
+  var pts=[];
+  var day=myDayRecord(dateStr);
+  if(day){
+    var slat=num(val(day,'Start Lat')),slng=num(val(day,'Start Lng'));
+    if(slat&&slng)pts.push({lat:slat,lng:slng});
+  }else{
+    try{
+      var cached=JSON.parse(lsGet(dayStartCacheKey())||'null');
+      if(cached&&cached.date===dateStr&&cached.lat&&cached.lng)pts.push({lat:cached.lat,lng:cached.lng});
+    }catch(_){}
+  }
+  var dayStart=new Date(dateStr+'T00:00:00').getTime(),dayEnd=dayStart+86400000;
+  records('crewLocationStamps').forEach(function(r){
+    if(text(val(r,'User ID','userId'))!==userId())return;
+    if(text(val(r,'Location Status'))&&text(val(r,'Location Status'))!=='gps')return;
+    var t=new Date(text(val(r,'Timestamp','timestamp'))).getTime();
+    if(!(t>=dayStart&&t<dayEnd))return;
+    var lat=num(val(r,'Lat','lat')),lng=num(val(r,'Lng','lng'));
+    if(lat&&lng)pts.push({lat:lat,lng:lng});
+  });
+  if(endFix)pts.push({lat:endFix.lat,lng:endFix.lng});
+  var line=[];
+  pts.forEach(function(p){
+    if(line.length&&haversineM(line[line.length-1].lat,line[line.length-1].lng,p.lat,p.lng)<25)return;
+    line.push(p);
+  });
+  var meters=0;
+  for(var i=0;i+1<line.length;i++)meters+=haversineM(line[i].lat,line[i].lng,line[i+1].lat,line[i+1].lng);
+  return {miles:Math.round(meters/MILE*10)/10,points:line.length};
+}
+function dayMiles(dateStr,endFix){
+  var dayStart=new Date(dateStr+'T00:00:00').getTime(),dayEnd=dayStart+86400000;
+  var trips=myTrips().filter(function(r){
+    if(/^(deleted|void|cancelled)$/i.test(text(val(r,'Status','status'))))return false;
+    var t=new Date(text(val(r,'Started At','startedAt'))).getTime();
+    return t>=dayStart&&t<dayEnd;
+  });
+  if(trips.length){
+    var total=0;
+    trips.forEach(function(r){total+=num(val(r,'Miles','miles'));});
+    return {miles:Math.round(total*10)/10,source:'recorded trips',points:0};
+  }
+  var line=dayMilesFromRecordedPoints(dateStr,endFix);
+  if(line.points>=2)return {miles:line.miles,source:'recorded stops (straight-line)',points:line.points};
+  return {miles:0,source:'no movement recorded',points:line.points};
+}
+async function saveDayRecord(record){
+  await w.queueOperation('SAVE_MILEAGE_DAY','Mileage Day',record['Day ID'],
+    {dayId:record['Day ID'],date:record['Date'],status:record['Status'],startedAt:record['Started At']||'',endedAt:record['Ended At']||''},
+    {collection:DAY_COLLECTION,record:record,idKeys:['Day ID']});
+  try{w.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'mileage',collection:DAY_COLLECTION}}));}catch(_){}
+}
+async function persistDayStart(){
+  if(!enabled()||!userId()||typeof w.queueOperation!=='function')return;
+  var date=dayKeyLocal();
+  var existing=myDayRecord(date);
+  if(existing&&text(val(existing,'Status','status'))==='open')return; // bracket already open server-side
+  var fix=await freshFix(4000);
+  var stamp=nowIso();
+  // Session assist only (same-device Start -> Stop before the snapshot
+  // refreshes): the server row written below is the record of truth.
+  try{lsSet(dayStartCacheKey(),JSON.stringify({date:date,startedAt:stamp,lat:fix?fix.lat:'',lng:fix?fix.lng:''}));}catch(_){}
+  var record;
+  if(existing){
+    record=Object.assign({},existing,{
+      'Status':'open','Started At':stamp,'Ended At':'','End Lat':'','End Lng':'','End Accuracy':'',
+      'Miles':'','Miles Source':'','Updated Time':stamp,
+      'Record Version':num(val(existing,'Record Version','recordVersion'))+1});
+  }else{
+    record={'Day ID':dayRecordId(date),'Business ID':businessId(),'User ID':userId(),'User Name':userName(),
+      'Date':date,'Status':'open','Started At':stamp,'Ended At':'','Miles':'','Miles Source':'',
+      'Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+  }
+  if(fix){record['Start Lat']=fix.lat;record['Start Lng']=fix.lng;record['Start Accuracy']=fix.acc||'';record['Start Source']=nativeBridge()?'app':'web';}
+  else{record['Start Lat']='';record['Start Lng']='';record['Start Accuracy']='';record['Start Source']='no fix';}
+  try{await saveDayRecord(record);}catch(_){/* offline: the operation queue holds it; the local switch still arms recording */}
+}
+async function persistDayStop(){
+  if(!userId()||typeof w.queueOperation!=='function')return;
+  var date=dayKeyLocal();
+  var existing=myDayRecord(date);
+  var fix=await freshFix(4000);
+  var stamp=nowIso();
+  var result=dayMiles(date,fix);
+  var record;
+  if(existing){
+    record=Object.assign({},existing,{
+      'Status':'closed','Ended At':stamp,'Miles':result.miles,'Miles Source':result.source,
+      'Updated Time':stamp,'Record Version':num(val(existing,'Record Version','recordVersion'))+1});
+  }else{
+    var startedAt='';
+    try{var cached=JSON.parse(lsGet(dayStartCacheKey())||'null');if(cached&&cached.date===date)startedAt=cached.startedAt||'';}catch(_){}
+    record={'Day ID':dayRecordId(date),'Business ID':businessId(),'User ID':userId(),'User Name':userName(),
+      'Date':date,'Status':'closed','Started At':startedAt,'Start Lat':'','Start Lng':'','Start Accuracy':'','Start Source':'',
+      'Ended At':stamp,'Miles':result.miles,'Miles Source':result.source,
+      'Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+  }
+  if(fix){record['End Lat']=fix.lat;record['End Lng']=fix.lng;record['End Accuracy']=fix.acc||'';record['End Source']=nativeBridge()?'app':'web';}
+  else{record['End Lat']='';record['End Lng']='';record['End Accuracy']='';record['End Source']='no fix';}
+  try{lsSet(dayStartCacheKey(),null);}catch(_){}
+  try{await saveDayRecord(record);}catch(_){/* offline: the operation queue holds it */}
+}
 function offDuty(){return lsGet(switchKey('offduty'))==='1';}
 function setOffDuty(on){lsSet(switchKey('offduty'),on?'1':null);if(on)stopWatch();pushNativePolicy(true);}
 
@@ -1694,6 +1844,8 @@ w.H38Mileage=Object.freeze({
   recordingOn:recordingOn,
   startDay:startDay,
   stopDay:stopDay,
+  dayRecord:myDayRecord,
+  dayMiles:dayMiles,
   ownerPhones:ownerPhones,
   offDuty:offDuty,
   detectionEligible:detectionEligible,
@@ -1707,7 +1859,7 @@ w.H38Mileage=Object.freeze({
   myTrips:myTrips,
   myPlaces:myPlaces,
   decorate:decorate,
-  collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION},
+  collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION,days:DAY_COLLECTION},
   foregroundOnly:!nativeBridge(),
   nativeStatus:nativeStatus,
   processNativeTrips:processNativeTrips,
