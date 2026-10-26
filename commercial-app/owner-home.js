@@ -740,7 +740,7 @@
   }
   const platformFillState = { cards: {}, lockQueued: false };
   window.H38FirstScreen = Object.freeze({
-    build: '20261026-nobounce-2',
+    build: '20261026-nobounce-4',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved frame. The frame's reserved height does
      * NOT change: the card replaces the skeleton inside the same box, so
@@ -757,10 +757,17 @@
         if (platformFillState.cards['h38OwnerCommandCenter'] && platformFillState.cards['h38OwnerProfitabilityDeepening'] && !platformFillState.lockQueued) {
           platformFillState.lockQueued = true;
           // Both stack cards are in. Lock the frame to the stack's real
-          // height two frames out — the cards' own render pass has fully
-          // landed by then, and the lock lands in the same settle window
-          // as the fill, never as a later surprise.
-          requestAnimationFrame(function () { requestAnimationFrame(function () { window.H38FirstScreen.lockPlatform(); }); });
+          // height NOW, synchronously. The platform modules are core
+          // script tags and renderOwnerHome renders the stack inside its
+          // own task (see the synchronous platform render below), so this
+          // lock lands before the browser can paint the home: the frame's
+          // first painted height is its final height. The previous
+          // double-rAF deferral assumed the fill itself happened before
+          // first paint — true only while the modules were already in
+          // the page; when they arrived late (dynamic loader, network
+          // first), the deferred lock fired seconds after paint and
+          // everything below the frame visibly jumped.
+          window.H38FirstScreen.lockPlatform();
         }
       }
       return true;
@@ -795,6 +802,12 @@
 
   function renderOwnerHome() {
     actionHandlers.length = 0;
+    // Each home render builds a fresh platform frame; the fill/lock state
+    // belongs to that frame, so it starts empty for every render. Before
+    // nobounce-4 the state survived across renders, so a second Today view
+    // in the same session got a frame that could never lock.
+    platformFillState.cards = {};
+    platformFillState.lockQueued = false;
     const type = detectBusinessType();
     const cards = [];
 
@@ -1156,6 +1169,26 @@
       }
     } catch (e) { console.warn('[H38 kit feed]', e && e.message ? e.message : e); }
 
+    /* ---- Platform owner stack (Owner Command Center + Owner operating
+     * cockpit): render it NOW, inside this render task. platform-next.js
+     * and platform-deepen.js are core deferred script tags in index.html,
+     * so both modules are always loaded before any home render can run;
+     * rendering the stack synchronously here — and locking its frame
+     * synchronously in fill() — means the frame's first painted height
+     * is its final height on every open. Before nobounce-4 the modules
+     * arrived through a two-step dynamic loader (network-first), seconds
+     * after the home painted on a phone, and the frame then grew to fit
+     * the stack (or shrank at the lock), jumping everything below it —
+     * on owner sessions only, which is why test profiles never saw it.
+     * The modules' event-driven renders remain the refresh path for
+     * later snapshot updates. ---- */
+    try {
+      if (platformSlotHtml) {
+        if (window.H38_PLATFORM_NEXT && typeof window.H38_PLATFORM_NEXT.renderToday === 'function') window.H38_PLATFORM_NEXT.renderToday();
+        if (window.H38_PLATFORM_DEEPEN && typeof window.H38_PLATFORM_DEEPEN.renderToday === 'function') window.H38_PLATFORM_DEEPEN.renderToday();
+      }
+    } catch (e) { console.warn('[H38 platform stack]', e && e.message ? e.message : e); }
+
     /* ---- Wire buttons (the Today block now sits above .h38-owner-home, so
      * wire every owner-home action button under #mainContent) ---- */
     document.querySelectorAll('#mainContent [data-action-idx]').forEach(btn => {
@@ -1190,7 +1223,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261026-nobounce-2',
+    build: '20261026-nobounce-4',
     detectBusinessType: detectBusinessType
   });
 
