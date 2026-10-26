@@ -23,9 +23,18 @@ import { PROVIDERS, providerById, mapSamsaraVehicles, mapGeotabVehicles, mapGeot
  *     vehicles next to phone crews.
  * Owner/administrator membership is required for every action.
  * ========================================================================== */
-const BUILD = "20261026-fleet-providers-2";
+const BUILD = "20261026-fleet-providers-3";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+/* Current-secret pattern (same as h38-quickbooks-bridge serviceSecret()):
+ * this project migrated to the new Supabase key system — the working
+ * server secret lives in SUPABASE_SECRET_KEYS.default; the legacy
+ * SUPABASE_SERVICE_ROLE_KEY env is revoked and rejects Auth calls. */
+function serviceSecret() {
+  const current = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (current) { try { const parsed = JSON.parse(current); if (parsed?.default) return String(parsed.default); } catch (_) {} }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+}
+const SERVICE_KEY = serviceSecret();
 const TOKEN_KEY = Deno.env.get("FLEET_TOKEN_ENCRYPTION_KEY") || Deno.env.get("BOUNCIE_TOKEN_ENCRYPTION_KEY") || "";
 type Json = Record<string, unknown>;
 function clean(v: unknown, max = 3000) { return String(v ?? "").replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [REDACTED]").slice(0, max); }

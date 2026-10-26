@@ -31,7 +31,7 @@
  * ========================================================================== */
 (function() {
 'use strict';
-var BUILD = '20261026-fleet-providers-2';
+var BUILD = '20261026-fleet-providers-3';
 var FEATURE_ID = 'fleet_providers';
 var ENDPOINT = 'fleet-providers';
 var BOUNCIE_ENDPOINT = 'nl-bouncie-fleet';
@@ -157,7 +157,7 @@ async function invokeInner(endpoint, action, body) {
 }
 
 /* ---------- rendering ---------- */
-var runtime = { providers: [], loading: false, loaded: false, error: '', openForm: '', busy: '' };
+var runtime = { providers: [], loading: false, loaded: false, attempted: false, businessId: '', error: '', openForm: '', busy: '' };
 function statusPill(conn) {
   if (!conn) return '<span class="pill">not connected</span>';
   var s = text(conn.status);
@@ -211,7 +211,7 @@ function setMsg(card, providerId, msg, bad) {
 }
 function bind(card) {
   var retry = card.querySelector('[data-h38fp-retry]');
-  if (retry) retry.onclick = function() { load(card, true); };
+  if (retry) retry.onclick = function() { runtime.attempted = false; load(card, true); };
   card.querySelectorAll('[data-h38fp-open]').forEach(function(btn) {
     btn.onclick = function() { runtime.openForm = btn.getAttribute('data-h38fp-open'); render(card); };
   });
@@ -277,6 +277,11 @@ function bind(card) {
 async function load(card, force) {
   if (runtime.loading) return;
   if (runtime.loaded && !force) { render(card); return; }
+  /* Auto-load attempts once per business; failures wait for the Retry
+   * button. (Re-entering load() from the page hook after an error render
+   * would loop forever: render -> DOM mutation -> hook -> load.) */
+  if (runtime.attempted && !force) return;
+  runtime.attempted = true;
   runtime.loading = true; runtime.error = '';
   if (!runtime.loaded) render(card);
   try {
@@ -293,9 +298,12 @@ function fleetHook() {
   if (typeof document === 'undefined') return;
   var card = document.getElementById('h38FleetProvidersEntry');
   if (!visible() || text(w.state && w.state.page) !== 'fleet') {
-    if (card) { card.remove(); runtime.loaded = false; runtime.providers = []; }
+    if (card) { card.remove(); runtime.loaded = false; runtime.attempted = false; runtime.providers = []; }
     return;
   }
+  var bidNow = businessId();
+  if (runtime.businessId && runtime.businessId !== bidNow) { runtime.loaded = false; runtime.attempted = false; runtime.providers = []; }
+  runtime.businessId = bidNow;
   ensureStyle();
   var main = document.getElementById('mainContent');
   if (!main) return;
