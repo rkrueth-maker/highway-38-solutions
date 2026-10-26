@@ -342,7 +342,9 @@ async function initMap(stops){
     board.markers=[];
     node.innerHTML='';
     var map=L.map(node,{zoomControl:true});board.map=map;
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+    // Referrer fix (same as route-planner.js): the shell's no-referrer meta makes OSM's tile CDN answer with a ~7 KB placeholder block tile; per-tile referrerPolicy='origin' restores real tiles.
+    var RefererTileLayer=L.TileLayer.extend({createTile:function(coords,done){var t=L.TileLayer.prototype.createTile.call(this,coords,done);try{t.referrerPolicy='origin';}catch(_){}return t;}});
+    new RefererTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
     var bounds=[];
     points.forEach(function(p,idx){
       var icon=L.divIcon({className:'',html:'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+(p.sim?'#7c4dff':'#1976d2')+';border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>',iconSize:[22,22],iconAnchor:[11,11]});

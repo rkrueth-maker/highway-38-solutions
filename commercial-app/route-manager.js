@@ -420,7 +420,20 @@ async function renderRouteMap(nodeId, routeId) {
     node.innerHTML = '';
     var map = L.map(node, { zoomControl: true });
     activeMap = map;
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Tiles: same referrer fix as route-planner.js — the app shell sets
+    // <meta name="referrer" content="no-referrer">, and OSM's tile CDN
+    // answers referer-less requests with a small "blocked" placeholder tile
+    // (HTTP 200, ~7 KB) instead of the map. Setting referrerPolicy='origin'
+    // on each tile image overrides the page policy for tiles only, so real
+    // map tiles load.
+    var RefererTileLayer = L.TileLayer.extend({
+      createTile: function(coords, done) {
+        var t = L.TileLayer.prototype.createTile.call(this, coords, done);
+        try { t.referrerPolicy = 'origin'; } catch (_) {}
+        return t;
+      }
+    });
+    new RefererTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     var bounds = [];
