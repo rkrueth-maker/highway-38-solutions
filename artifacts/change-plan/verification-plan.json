@@ -1,18 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T11:00:44.934Z",
+  "generatedAt": "2026-10-26T11:10:12.395Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/db.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
     "commercial-app/mileage.js",
+    "commercial-app/route-planner.js",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-data.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 7,
+  "fileCount": 6,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
