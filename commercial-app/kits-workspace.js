@@ -399,7 +399,7 @@
     try {
       var form = document.getElementById('kwAiForm');
       if (form && typeof window.bindForm === 'function' && typeof window.askAi === 'function') {
-        window.bindForm(form, window.askAi);
+        window.bindForm('kwAiForm', window.askAi);
       } else if (form && typeof window.askAi === 'function') {
         form.onsubmit = function (e) {
           e.preventDefault();
