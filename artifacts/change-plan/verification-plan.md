@@ -1,6 +1,6 @@
 # Scope-aware verification plan
 
-- Files changed: 6
+- Files changed: 5
 - Scopes: none detected
 - Deployment workflows: none
 
