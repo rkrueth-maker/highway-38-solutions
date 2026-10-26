@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261026-day-fix-3';
+var BUILD='20261026-open-points-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -854,6 +854,7 @@ function onFix(position){
   if(!fix)return;
   engine.lastFix=fix;
   reportOwnerPosition(fix);
+  recordOpenPoint(fix).catch(function(){});
   // While a manual trip is open, accumulate its distance from live fixes.
   if(manual.trip){
     var last=manual.trip.lastFix;
@@ -1563,6 +1564,98 @@ function reportOwnerPosition(fix){
       {collection:POSITION_COLLECTION,record:record,idKeys:['Crew Position ID']}).catch(function(){});
   }catch(_){}
 }
+
+// ---------- recorded points: a point saved when the app is opened ----------
+// Rick's floor (2026-10-26): "when the app is opened at a place it records
+// a position; a day's stops in visit order and mileage between them can be
+// calculated from those opens, independent of always-on background
+// tracking." Until now NOTHING wrote a point on open: the only
+// crewLocationStamps writer was the crew module's manual stamp buttons
+// (arrived/departed need a chosen job), and this module routed fixes only
+// into the single overwritten OWNERPOS row and the drive detector — so a
+// tenant could report positions for months and hold zero recorded points.
+// recordOpenPoint() closes that by construction: any fix this module
+// accepts while recording is on (owner always; staff while clocked in —
+// the same eligibility as drive recording) also lands as a point in
+// crewLocationStamps, the store the recorded-stops view and the
+// recorded-points mileage line already read. Same write path and record
+// shape as the crew stamp flow (op SAVE_CREW_LOCATION_STAMP), stamped
+// 'app-open' so the two sources stay distinguishable.
+// Spacing: one point per visit. A fix within 100 m of the last saved
+// point AND less than 30 minutes after it is the same visit and is
+// skipped; a new place, or a later open at the same place, records.
+var POINT_COLLECTION='crewLocationStamps';
+var openPoint={at:0,lat:0,lng:0,loaded:false};
+var openPointBusy=false;
+function openPointKey(){return 'h38-mileage-openpoint-'+businessId()+'-'+(userId()||'anonymous');}
+function openPointOutboxKey(){return 'h38-mileage-openpoint-outbox-'+businessId()+'-'+(userId()||'anonymous');}
+function openPointLoad(){
+  if(openPoint.loaded)return;
+  openPoint.loaded=true;
+  try{
+    var raw=lsGet(openPointKey());
+    if(raw){var p=JSON.parse(raw);if(p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&(p.lat||p.lng)){openPoint.at=p.at||0;openPoint.lat=p.lat;openPoint.lng=p.lng;}}
+  }catch(_){}
+}
+function openPointStore(){
+  try{lsSet(openPointKey(),JSON.stringify({at:openPoint.at,lat:openPoint.lat,lng:openPoint.lng}));}catch(_){}
+}
+function openPointPayload(record){
+  return {stampId:record['Stamp ID'],stampType:record['Stamp Type'],jobId:record['Job ID']||'',scheduleEventId:record['Schedule Event ID']||'',taskId:record['Task ID']||'',
+    userId:record['User ID'],userName:record['User Name'],timestamp:record['Timestamp'],lat:record.Lat,lng:record.Lng,accuracy:record.Accuracy,manual:false};
+}
+async function recordOpenPoint(fix){
+  if(!fix||!Number.isFinite(fix.lat)||!Number.isFinite(fix.lng)||!(fix.lat||fix.lng))return false;
+  if(!enabled()||!recordingOn()||offDuty()||!detectionEligible())return false;
+  if(typeof w.queueOperation!=='function'||!userId()||!businessId())return false;
+  openPointLoad();
+  var nowMs=fix.at||Date.now();
+  if(openPoint.at&&haversineM(openPoint.lat,openPoint.lng,fix.lat,fix.lng)<100&&nowMs-openPoint.at<30*60000)return false;
+  if(openPointBusy)return false;
+  openPointBusy=true;
+  // Claim the spacing slot before the async write so the burst of fixes
+  // one open produces collapses into a single point.
+  openPoint.at=nowMs;openPoint.lat=fix.lat;openPoint.lng=fix.lng;openPointStore();
+  var stamp=new Date(nowMs).toISOString();
+  var id=newId('CREWSTAMP');
+  var record={'Stamp ID':id,'Business ID':businessId(),'Job ID':'','Schedule Event ID':'','Task ID':'',
+    'User ID':userId(),'User Name':userName(),'Stamp Type':'app-open','Timestamp':stamp,
+    'Lat':fix.lat,'Lng':fix.lng,'Accuracy':fix.acc==null?'':Math.round(fix.acc),
+    'Location Status':'gps','Manual':false,'Location Message':'',
+    'Created Time':stamp,'Updated Time':stamp,'Record Version':1};
+  try{
+    await w.queueOperation('SAVE_CREW_LOCATION_STAMP','Crew Location Stamp',id,openPointPayload(record),
+      {collection:POINT_COLLECTION,record:record,idKeys:['Stamp ID']});
+  }catch(err){
+    // Same durability rule as day records: a failed point write is held
+    // in a per-business on-device outbox and retried by later decorate
+    // passes (the write upserts by Stamp ID, so a retry can never
+    // double-file the point) instead of vanishing silently.
+    try{lsSet(openPointOutboxKey(),JSON.stringify(record));}catch(_){}
+    openPointBusy=false;
+    return false;
+  }
+  openPointBusy=false;
+  try{w.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'mileage',collection:POINT_COLLECTION,stampId:id}}));}catch(_){}
+  return true;
+}
+async function flushOpenPointOutbox(){
+  if(openPointBusy||!enabled()||!userId()||typeof w.queueOperation!=='function')return;
+  var raw=null;
+  try{raw=lsGet(openPointOutboxKey());}catch(_){}
+  if(!raw)return;
+  var record=null;
+  try{record=JSON.parse(raw);}catch(_){}
+  if(!record||!record['Stamp ID']){try{lsSet(openPointOutboxKey(),null);}catch(_){}return;}
+  openPointBusy=true;
+  try{
+    await w.queueOperation('SAVE_CREW_LOCATION_STAMP','Crew Location Stamp',record['Stamp ID'],openPointPayload(record),
+      {collection:POINT_COLLECTION,record:record,idKeys:['Stamp ID']});
+    try{lsSet(openPointOutboxKey(),null);}catch(_){}
+    try{w.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'mileage',collection:POINT_COLLECTION,stampId:record['Stamp ID']}}));}catch(_){}
+  }catch(_){/* still held; the next decorate pass retries */}
+  openPointBusy=false;
+}
 function ownerUsers(){
   var map={};
   records('users').forEach(function(row){
@@ -1871,6 +1964,7 @@ function decorate(){
   if(!userId()||!businessId())return;
   syncTripStateToBusiness();
   flushDayOutbox();
+  flushOpenPointOutbox();
   renderCard();
   renderSection();
   renderReportCard();
@@ -1909,7 +2003,7 @@ function installHooks(){
       try{
         navigator.geolocation.getCurrentPosition(function(position){
           var fix=goodFix(position);
-          if(fix)checkMissedDrive(fix);
+          if(fix){checkMissedDrive(fix);recordOpenPoint(fix).catch(function(){});}
         },function(){},{enableHighAccuracy:false,maximumAge:60000,timeout:10000});
       }catch(_){}
     },2500);
@@ -1937,6 +2031,7 @@ w.H38Mileage=Object.freeze({
   dayRecord:myDayRecord,
   dayMiles:dayMiles,
   ownerPhones:ownerPhones,
+  recordOpenPoint:recordOpenPoint,
   offDuty:offDuty,
   detectionEligible:detectionEligible,
   policyLine:policyLine,
@@ -1949,7 +2044,7 @@ w.H38Mileage=Object.freeze({
   myTrips:myTrips,
   myPlaces:myPlaces,
   decorate:decorate,
-  collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION,days:DAY_COLLECTION},
+  collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION,days:DAY_COLLECTION,points:POINT_COLLECTION},
   foregroundOnly:!nativeBridge(),
   nativeStatus:nativeStatus,
   processNativeTrips:processNativeTrips,

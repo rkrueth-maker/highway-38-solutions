@@ -135,7 +135,7 @@
       './fleet-providers.js?build=20261026-fleet-providers-6',
       './gps-dispatch.js?build=20261026-map-tiles-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
-      './mileage.js?build=20261026-day-fix-3',
+      './mileage.js?build=20261026-open-points-1',
       './plow-flow.js?build=20261011-plow-flow-1',
     ];
     // Mileage (2026-10-22): detection has to start when the app opens, and
@@ -143,7 +143,7 @@
     // Today group. It stays dark unless the tenant pilot switch and the
     // Owner Controls feature toggle are both on (see mileage.js).
     const PAGE_TODAY = [
-      './mileage.js?build=20261026-day-fix-3',
+      './mileage.js?build=20261026-open-points-1',
     ];
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',

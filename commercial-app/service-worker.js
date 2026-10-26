@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20261026-nobounce-6';
+const CACHE_NAME='h38-business-office-20261026-open-points-1';
 
 const PREVIOUS_FIELD_MODE_CACHE_NAME='h38-business-office-20260918-0145';
 const PREVIOUS_ERP_CACHE_NAME='h38-business-office-20260903-2110';
