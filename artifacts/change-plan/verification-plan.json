@@ -1,15 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T10:09:49.434Z",
+  "generatedAt": "2026-10-26T11:00:44.934Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/gps-dispatch.js",
+    "commercial-app/db.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/northern-bouncie-fleet.js",
-    "commercial-app/route-manager.js",
+    "commercial-app/mileage.js",
     "commercial-app/service-worker.js",
+    "commercial-app/supabase-data.js",
     "commercial-app/version.json"
   ],
   "fileCount": 7,
