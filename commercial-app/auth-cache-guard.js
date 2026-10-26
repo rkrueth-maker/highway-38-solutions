@@ -23,7 +23,7 @@ function h38InstallCurrentOfficeWorker(){
   const h38PageLoadTime=Date.now();
   const reloadOnControllerChange=()=>{if(reloading||!desktop())return;try{if(sessionStorage.getItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY)==='1')return;sessionStorage.setItem(H38_AUTH_CACHE_DESKTOP_RELOAD_KEY,'1');}catch(_){}try{if(typeof state!=='undefined'&&state&&state.snapshot)return;}catch(_){}if(Date.now()-h38PageLoadTime<15000)return;reloading=true;location.reload();};
   navigator.serviceWorker.addEventListener('controllerchange',reloadOnControllerChange);
-  navigator.serviceWorker.register(`./service-worker.js?build=${H38_AUTH_CACHE_SERVICE_WORKER_BUILD}`,{scope:'./',updateViaCache:'none'}).then(registration=>registration.update().catch(()=>{})).catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
+  navigator.serviceWorker.register('./service-worker.js',{scope:'./',updateViaCache:'none'}).then(registration=>registration.update().catch(()=>{})).catch(error=>console.warn('Business Office service worker refresh:',error?.message||String(error)));
 }
 
 function h38TabletLike(){const ua=String(navigator.userAgent||'');const width=Math.max(0,Number(window.innerWidth||document.documentElement?.clientWidth||screen?.width||0));const ipadDesktop=String(navigator.platform||'')==='MacIntel'&&Number(navigator.maxTouchPoints||0)>1;const androidTablet=/android/i.test(ua)&&!/\bmobile\b/i.test(ua);return ipadDesktop||androidTablet||(Number(navigator.maxTouchPoints||0)>0&&width>=600&&width<=1400);}
