@@ -1,15 +1,16 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T09:41:00.900Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-26T09:57:34.954Z",
+  "base": "HEAD~1",
   "head": "HEAD",
   "files": [
+    "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/owner-home.css",
+    "commercial-app/route-planner.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 4,
+  "fileCount": 5,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

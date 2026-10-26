@@ -101,7 +101,7 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261026-route-maps-4';
+var BUILD = '20261026-route-maps-5';
 var FEATURE_ID = 'route_planner';
 var OSRM_URL = 'https://router.project-osrm.org';
 var MAX_STOPS = 6;
@@ -288,12 +288,30 @@ async function drawMap(nodeId, markers, lineLatLngs) {
     node.innerHTML = '';
     var map = L.map(node, { zoomControl: true });
     liveMaps[nodeId] = map;
-    // Tiles: standard OpenStreetMap tile layer, same as the app's other map
-    // modules. (CARTO's keyless basemaps were tried 2026-10-26 and now
-    // return "API KEY REQUIRED" watermark tiles, so they are not usable.)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    // Tiles: standard OpenStreetMap tile layer. One wrinkle: the app shell
+    // sets <meta name="referrer" content="no-referrer">, and OSM's tile CDN
+    // answers referer-less requests with a small "blocked" placeholder tile
+    // (HTTP 200, ~7 KB) instead of the map. Setting referrerPolicy='origin'
+    // on each tile image overrides the page policy for tiles only, so real
+    // map tiles load. Verified in-browser 2026-10-26 (echo-server header
+    // check + live tile responses). CARTO's keyless basemaps were also
+    // tried and now return "API KEY REQUIRED" watermark tiles — unusable.
+    var tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    var tileOpts = { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' };
+    var tileLayer = null;
+    try {
+      var RefererTileLayer = L.TileLayer.extend({
+        createTile: function(coords, done) {
+          var t = L.TileLayer.prototype.createTile.call(this, coords, done);
+          try { t.referrerPolicy = 'origin'; } catch (_) {}
+          return t;
+        }
+      });
+      tileLayer = new RefererTileLayer(tileUrl, tileOpts);
+    } catch (_) {
+      tileLayer = L.tileLayer(tileUrl, tileOpts);
+    }
+    tileLayer.addTo(map);
     var bounds = [];
     markers.forEach(function(m) {
       L.marker([m.lat, m.lng], { icon: numberedIcon(L, m.label, m.color || '#1976d2') }).addTo(map)
