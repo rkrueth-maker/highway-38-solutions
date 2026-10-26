@@ -1,21 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T11:46:47.174Z",
+  "generatedAt": "2026-10-26T11:50:25.216Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
-    "artifacts/unified-shell/assembly.json",
-    "artifacts/unified-source-assembly/verification.json",
     "commercial-app/fleet-providers.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
     "commercial-app/service-worker.js",
     "commercial-app/version.json",
-    "launch-control/evidence/unified-app-architecture-verification.json",
     "supabase/functions/fleet-providers/index.ts"
   ],
-  "fileCount": 10,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
