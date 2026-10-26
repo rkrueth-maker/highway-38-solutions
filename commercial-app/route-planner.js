@@ -101,7 +101,7 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261026-route-maps-5';
+var BUILD = '20261026-day-fix-2';
 var FEATURE_ID = 'route_planner';
 var OSRM_URL = 'https://router.project-osrm.org';
 var MAX_STOPS = 6;
@@ -721,6 +721,13 @@ async function renderRecorded(card) {
         if (token !== ui.recToken) return;
         if (milesNode) milesNode.textContent = 'Distance between recorded stops: ' + fmtMiles(line.meters) + ' (straight-line \u2014 the route service didn\u2019t answer).';
       }
+    } else if (firstUser.stamps.length) {
+      // Every stamp sits at one place (the line collapses to a single
+      // point): say so with the calculated mileage instead of leaving the
+      // mileage line blank (2026-10-26 — a stationary test day on the
+      // Sandbox rendered 32 stops and no mileage statement at all).
+      var onlyNode = body.querySelector('[data-h38rp-rec-miles="' + firstUser.userId.replace(/"/g, '') + '"]');
+      if (onlyNode) onlyNode.textContent = 'All recorded stops are at one place \u2014 0.0 mi between them.';
     }
   }
   await drawMap('h38rpRecMap', mapMarkers, mapLine);

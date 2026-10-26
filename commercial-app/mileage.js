@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261026-day-fix-1';
+var BUILD='20261026-day-fix-2';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
