@@ -1,4 +1,4 @@
-/* H38 Owner Chat — build 20261026-owner-chat-1
+/* H38 Owner Chat — build 20261026-owner-chat-2
  *
  * The owner's live chat with their Office (Kit). It lives on the existing
  * 'ai' page (Kit's Workspace, the chat at the bottom) — no new page, nav
@@ -38,7 +38,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261026-owner-chat-1';
+  var BUILD = '20261026-owner-chat-2';
   var COLLECTION = 'ownerChatMessages';
   var MAX_THREAD_ROWS = 200;
   var WATCH_SOFT_CAP_MS = 15 * 60 * 1000;

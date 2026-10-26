@@ -22,7 +22,7 @@ function renderAi(){
     '<div class="actions"><button>Ask Hank</button></div></form></section></div>';
   if(window.H38Flow)window.H38Flow.bindScreenHeader(document.getElementById('mainContent'),h38AiHead);
   var form = document.getElementById('kwAiForm');
-  if (form) bindForm(form, askAi);
+  if (form) bindForm('kwAiForm', askAi);
 }
 async function askAi(data,form){const question=requireValue(data.question,'Ask a question first.');if(window.H38_OWNER_CHAT&&typeof window.H38_OWNER_CHAT.handlesWorkspaceChat==='function'&&window.H38_OWNER_CHAT.handlesWorkspaceChat()){form.reset();await window.H38_OWNER_CHAT.send(question);return;}state.aiChat.push({role:'user',body:question});form.reset();renderAi();let answer;if(navigator.onLine&&state.bridgeReady){try{const result=await state.bridge.request('aiAsk',{businessId:state.businessId,question,pageKey:state.page,aiConversationId:state.aiConversationId});state.aiConversationId=result.aiConversationId;answer=result.answer;}catch(error){answer=localAi(question);}}else answer=localAi(question);state.aiChat.push({role:'assistant',body:answer});renderAi();speak(answer);}
 function localAi(question){const q=question.toLowerCase(),knowledge=records('aiKnowledge'),tokens=q.split(/\W+/).filter(token=>token.length>2),ranked=knowledge.map(row=>({row,score:tokens.reduce((sum,token)=>sum+(`${v(row,'Topic')} ${v(row,'Title')} ${v(row,'Content')}`.toLowerCase().includes(token)?1:0),0)})).sort((a,b)=>b.score-a.score);return ranked[0]?.score?ranked.slice(0,3).map(item=>`${v(item.row,'Title')}: ${v(item.row,'Content')}`).join('\n\n'):'I can still capture work offline. Product-specific cloud AI and provider actions require a connection.';}
