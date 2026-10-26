@@ -1,19 +1,16 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T09:34:11.320Z",
-  "base": "HEAD~1",
+  "generatedAt": "2026-10-26T09:35:18.761Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/route-planner.js",
+    "commercial-app/owner-home.css",
+    "commercial-app/owner-home.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 8,
+  "fileCount": 5,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
