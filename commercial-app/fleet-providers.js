@@ -31,7 +31,7 @@
  * ========================================================================== */
 (function() {
 'use strict';
-var BUILD = '20261026-fleet-providers-4';
+var BUILD = '20261026-fleet-providers-5';
 var FEATURE_ID = 'fleet_providers';
 var ENDPOINT = 'fleet-providers';
 var BOUNCIE_ENDPOINT = 'nl-bouncie-fleet';
@@ -168,7 +168,20 @@ async function invokeInner(endpoint, action, body) {
 }
 
 /* ---------- rendering ---------- */
-var runtime = { providers: [], loading: false, loaded: false, attempted: false, businessId: '', error: '', openForm: '', busy: '' };
+var runtime = { providers: [], loading: false, loaded: false, attempted: false, businessId: '', error: '', openForm: '', busy: '', renderedSig: '' };
+function currentCard() { return typeof document !== 'undefined' ? document.getElementById('h38FleetProvidersEntry') : null; }
+/* The app re-renders #mainContent as snapshots update, which replaces the
+ * card element. Rendering therefore always targets the LIVE element by id
+ * and re-renders whenever the live element is empty or the state changed
+ * (the route-planner pattern) — a captured element goes stale silently. */
+function renderState() {
+  var card = currentCard(); if (!card) return;
+  var sig = [runtime.businessId, runtime.loading ? 1 : 0, runtime.loaded ? 1 : 0, runtime.error, runtime.openForm, runtime.busy,
+    runtime.providers.map(function(p) { return p.id + ':' + (p.connection ? p.connection.status : '-'); }).join(',')].join('|');
+  if (sig === runtime.renderedSig && card.innerHTML) return;
+  runtime.renderedSig = sig;
+  render(card);
+}
 function statusPill(conn) {
   if (!conn) return '<span class="pill">not connected</span>';
   var s = text(conn.status);
@@ -216,18 +229,19 @@ function render(card) {
     '<p class="h38-fp-note">Connect a tracker account and vehicle positions show on the dispatch map and in recorded stops — next to phone crews, same screens. Credentials are checked with the provider first, then stored encrypted on the server. Nothing is stored if the provider rejects them.</p>' + body;
   bind(card);
 }
-function setMsg(card, providerId, msg, bad) {
+function setMsg(providerId, msg, bad) {
+  var card = currentCard(); if (!card) return;
   var node = card.querySelector('[data-h38fp-msg="' + providerId + '"]');
   if (node) { node.textContent = msg; node.style.color = bad ? '#b3261e' : '#2e7d32'; }
 }
 function bind(card) {
   var retry = card.querySelector('[data-h38fp-retry]');
-  if (retry) retry.onclick = function() { runtime.attempted = false; load(card, true); };
+  if (retry) retry.onclick = function() { runtime.attempted = false; load(true); };
   card.querySelectorAll('[data-h38fp-open]').forEach(function(btn) {
-    btn.onclick = function() { runtime.openForm = btn.getAttribute('data-h38fp-open'); render(card); };
+    btn.onclick = function() { runtime.openForm = btn.getAttribute('data-h38fp-open'); renderState(); };
   });
   card.querySelectorAll('[data-h38fp-cancel]').forEach(function(btn) {
-    btn.onclick = function() { runtime.openForm = ''; render(card); };
+    btn.onclick = function() { runtime.openForm = ''; renderState(); };
   });
   card.querySelectorAll('[data-h38fp-form]').forEach(function(form) {
     form.onsubmit = async function(ev) {
@@ -235,39 +249,39 @@ function bind(card) {
       var providerId = form.getAttribute('data-h38fp-form');
       var creds = {};
       new FormData(form).forEach(function(v, k) { creds[k] = text(v); });
-      runtime.busy = providerId; render(card);
+      runtime.busy = providerId; renderState();
       try {
         await invoke(ENDPOINT, 'connect', { provider: providerId, credentials: creds });
         runtime.openForm = '';
         toast('Connected. Run Sync now to pull vehicles and positions.');
-        await load(card, true);
-      } catch (err) { runtime.busy = ''; render(card); setMsg(card, providerId, text(err && err.message || err), true); }
+        await load(true);
+      } catch (err) { runtime.busy = ''; renderState(); setMsg(providerId, text(err && err.message || err), true); }
       runtime.busy = '';
     };
   });
   card.querySelectorAll('[data-h38fp-oauth]').forEach(function(btn) {
     btn.onclick = async function() {
       var providerId = btn.getAttribute('data-h38fp-oauth');
-      runtime.busy = providerId; render(card);
+      runtime.busy = providerId; renderState();
       try {
         var result = await invoke(BOUNCIE_ENDPOINT, 'oauth-start', { returnUrl: location.href });
         if (result.authUrl) { location.href = result.authUrl; return; }
         throw new Error('The provider did not return a sign-in link.');
-      } catch (err) { runtime.busy = ''; render(card); setMsg(card, providerId, text(err && err.message || err), true); }
+      } catch (err) { runtime.busy = ''; renderState(); setMsg(providerId, text(err && err.message || err), true); }
     };
   });
   card.querySelectorAll('[data-h38fp-sync]').forEach(function(btn) {
     btn.onclick = async function() {
       var providerId = btn.getAttribute('data-h38fp-sync');
       var provider = runtime.providers.find(function(p) { return p.id === providerId; });
-      runtime.busy = providerId; render(card);
+      runtime.busy = providerId; renderState();
       try {
         var endpoint = provider && provider.delegatedFunction ? provider.delegatedFunction : ENDPOINT;
         var result = await invoke(endpoint, 'sync', { provider: providerId });
         var extra = result.provisional ? ' (provisional mapper — check the vehicles look right)' : '';
         toast('Synced ' + (result.vehicles != null ? result.vehicles : '—') + ' vehicle(s)' + (result.trips ? ', ' + result.trips + ' trip(s)' : '') + extra + '.');
-        await load(card, true);
-      } catch (err) { runtime.busy = ''; render(card); setMsg(card, providerId, text(err && err.message || err), true); }
+        await load(true);
+      } catch (err) { runtime.busy = ''; renderState(); setMsg(providerId, text(err && err.message || err), true); }
       runtime.busy = '';
     };
   });
@@ -275,33 +289,34 @@ function bind(card) {
     btn.onclick = async function() {
       var providerId = btn.getAttribute('data-h38fp-disconnect');
       if (!confirm('Disconnect this tracker? Saved credentials are removed. Vehicles already pulled stay in Fleet.')) return;
-      runtime.busy = providerId; render(card);
+      runtime.busy = providerId; renderState();
       try {
         await invoke(ENDPOINT, 'disconnect', { provider: providerId });
         toast('Disconnected.');
-        await load(card, true);
-      } catch (err) { runtime.busy = ''; render(card); setMsg(card, providerId, text(err && err.message || err), true); }
+        await load(true);
+      } catch (err) { runtime.busy = ''; renderState(); setMsg(providerId, text(err && err.message || err), true); }
       runtime.busy = '';
     };
   });
 }
-async function load(card, force) {
-  if (runtime.loading) return;
-  if (runtime.loaded && !force) { render(card); return; }
-  /* Auto-load attempts once per business; failures wait for the Retry
-   * button. (Re-entering load() from the page hook after an error render
-   * would loop forever: render -> DOM mutation -> hook -> load.) */
-  if (runtime.attempted && !force) return;
+async function load(force) {
+  /* Network fetch happens once per business (auto) — re-entering after a
+   * failure waits for Retry, so a render-triggered hook cannot loop.
+   * Rendering is separate: renderState() paints the current state into
+   * whatever card element is live, so app re-renders never strand a
+   * blank replacement card. */
+  if (runtime.loading) { renderState(); return; }
+  if ((runtime.loaded || runtime.attempted) && !force) { renderState(); return; }
   runtime.attempted = true;
   runtime.loading = true; runtime.error = '';
-  if (!runtime.loaded) render(card);
+  renderState();
   try {
     var result = await invoke(ENDPOINT, 'providers', {});
     runtime.providers = Array.isArray(result.providers) ? result.providers : [];
     runtime.loaded = true;
   } catch (err) { runtime.error = text(err && err.message || err); }
   runtime.loading = false;
-  render(card);
+  renderState();
 }
 
 /* ---------- page hook ---------- */
@@ -328,10 +343,10 @@ function fleetHook() {
     try {
       if (new URLSearchParams(location.search).get('bouncie') === 'connected') toast('Bouncie connected. Run Sync now to pull vehicles and trips.');
     } catch (_) {}
-    load(card, false);
+    load(false);
     return;
   }
-  if (!runtime.loaded) load(card, false);
+  load(false);
 }
 
 /* ---------- boot ---------- */
