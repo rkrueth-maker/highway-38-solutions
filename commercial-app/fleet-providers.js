@@ -31,7 +31,7 @@
  * ========================================================================== */
 (function() {
 'use strict';
-var BUILD = '20261026-fleet-providers-5';
+var BUILD = '20261026-fleet-providers-6';
 var FEATURE_ID = 'fleet_providers';
 var ENDPOINT = 'fleet-providers';
 var BOUNCIE_ENDPOINT = 'nl-bouncie-fleet';
@@ -320,7 +320,9 @@ async function load(force) {
 }
 
 /* ---------- page hook ---------- */
+var diag = { hooks: 0, lastError: '' };
 function fleetHook() {
+  diag.hooks++;
   if (typeof document === 'undefined') return;
   var card = document.getElementById('h38FleetProvidersEntry');
   if (!visible() || text(w.state && w.state.page) !== 'fleet') {
@@ -360,12 +362,12 @@ function start() {
     new MutationObserver(function() {
       if (raf) return;
       raf = true;
-      requestAnimationFrame(function() { raf = false; try { fleetHook(); } catch (e) {} });
+      requestAnimationFrame(function() { raf = false; try { fleetHook(); } catch (e) { diag.lastError = text(e && e.message || e); } });
     }).observe(document.documentElement, { childList: true, subtree: true });
   }
-  try { w.addEventListener('h38:business-snapshot-updated', function() { try { fleetHook(); } catch (e) {} }); } catch (e) {}
+  try { w.addEventListener('h38:business-snapshot-updated', function() { try { fleetHook(); } catch (e) { diag.lastError = text(e && e.message || e); } }); } catch (e) {}
   fleetHook();
-  w.H38FleetProviders = Object.freeze({ build: BUILD, enabled: enabled, feature: FEATURE_DEF });
+  w.H38FleetProviders = Object.freeze({ build: BUILD, enabled: enabled, feature: FEATURE_DEF, diagnostics: function() { return { hooks: diag.hooks, lastError: diag.lastError, loading: runtime.loading, loaded: runtime.loaded, attempted: runtime.attempted, error: runtime.error, providers: runtime.providers.length, sig: runtime.renderedSig }; } });
 }
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
