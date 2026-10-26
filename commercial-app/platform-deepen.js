@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261026-nobounce-1';
+const BUILD='20261026-nobounce-4';
 let scheduled=false;
 const text=v=>String(v==null?'':v).trim();
 const num=v=>{const n=Number(String(v==null?'':v).replace(/[$,%]/g,''));return Number.isFinite(n)?n:0;};
@@ -55,5 +55,5 @@ function render(){renderOwner();renderDispatch();renderOffline();assistant();}
 function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;render();});}
 window.addEventListener('h38:office-page-rendered',schedule);window.addEventListener('h38:business-snapshot-updated',schedule);window.addEventListener('online',schedule);window.addEventListener('offline',schedule);window.addEventListener('pageshow',schedule);
 schedule();
-window.H38_PLATFORM_DEEPEN=Object.freeze({build:BUILD,ownerModel,dispatchDepth,offlineModel,ownerBrief,safeguards:Object.freeze({taskManagerScheduleAuthority:true,existingOfflineQueueOnly:true,noInventedRouting:true,physicalOfflineAcceptanceRequired:true,aiArbitraryWrites:false,automaticScheduling:false,automaticAccountingWrites:false})});
+window.H38_PLATFORM_DEEPEN=Object.freeze({build:BUILD,renderToday:render,ownerModel,dispatchDepth,offlineModel,ownerBrief,safeguards:Object.freeze({taskManagerScheduleAuthority:true,existingOfflineQueueOnly:true,noInventedRouting:true,physicalOfflineAcceptanceRequired:true,aiArbitraryWrites:false,automaticScheduling:false,automaticAccountingWrites:false})});
 })();

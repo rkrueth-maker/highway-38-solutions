@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261026-nobounce-1';
+const BUILD='20261026-nobounce-4';
 let renderQueued=false;
 const text=v=>String(v==null?'':v).trim();
 const num=v=>{const n=Number(String(v==null?'':v).replace(/[$,%]/g,''));return Number.isFinite(n)?n:0;};
@@ -62,5 +62,5 @@ function assistant(){const base=window.H38_ASSISTANT_COMMAND_BUS;if(!base||base.
 function render(){renderOwner();renderDispatch();renderAccounting();renderOffline();assistant();}
 function scheduleRender(){if(renderQueued)return;renderQueued=true;queueMicrotask(()=>{renderQueued=false;render();});}
 window.addEventListener('h38:office-page-rendered',scheduleRender);window.addEventListener('h38:business-snapshot-updated',scheduleRender);window.addEventListener('online',scheduleRender);window.addEventListener('offline',scheduleRender);window.addEventListener('pageshow',scheduleRender);document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleRender();});
-window.H38_PLATFORM_NEXT=Object.freeze({build:BUILD,saveEntity,dispatchModel,ownerIntelligence,platformBrief,safeguards:Object.freeze({taskManagerAuthority:true,userScopedOfflineQueue:true,tenantIsolation:true,quickBooksSecretsInBrowser:false,quickBooksExternalWrites:false,aiSecondWritePath:false,automaticApproval:false,automaticCustomerSending:false,automaticPurchasing:false,automaticPayment:false,automaticScheduling:false})});scheduleRender();
+window.H38_PLATFORM_NEXT=Object.freeze({build:BUILD,renderToday:render,saveEntity,dispatchModel,ownerIntelligence,platformBrief,safeguards:Object.freeze({taskManagerAuthority:true,userScopedOfflineQueue:true,tenantIsolation:true,quickBooksSecretsInBrowser:false,quickBooksExternalWrites:false,aiSecondWritePath:false,automaticApproval:false,automaticCustomerSending:false,automaticPurchasing:false,automaticPayment:false,automaticScheduling:false})});scheduleRender();
 })();
