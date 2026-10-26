@@ -832,6 +832,24 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
   border-radius: 0;
 }
 .h38-home-frame.is-released { display: none; }
+@media (max-width: 760px) {
+  /* Phone: the framed cards are secondary detail (the phone digest's
+   * toggle territory), never first-screen content. Zero-height clipped
+   * frames mean a card can land early, late, or in the wrong order and
+   * still move nothing; expanding the phone details expands the frames
+   * with everything else the toggle reveals. */
+  .h38-home-frame {
+    min-height: 0;
+    height: 0;
+    overflow: hidden;
+    animation: none;
+    background: none;
+  }
+  #mainContent[data-h38-phone-details='1'] .h38-home-frame {
+    height: auto;
+    overflow: visible;
+  }
+}
 
 /* ---------- Kit feed reserve (2026-10-26) ----------
  * The "While You Were Away" feed fills this box after the home paints;
