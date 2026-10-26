@@ -196,7 +196,7 @@
       if (Date.now() - h38RecoveryPageLoad < 15000) return;
       location.reload();
     });
-    navigator.serviceWorker.register(`./service-worker.js?build=${build}`, {
+    navigator.serviceWorker.register('./service-worker.js', {
       scope: './',
       updateViaCache: 'none'
     }).then(registration => registration.update()).catch(error => {

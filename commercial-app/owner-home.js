@@ -715,7 +715,7 @@
     return false;
   }
   window.H38FirstScreen = Object.freeze({
-    build: '20261025-attention-agree-1',
+    build: '20261025-stuck-heal-1',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved slot (no layout shove: the space is already
      * reserved). Returns false when no slot exists so callers can fall back. */

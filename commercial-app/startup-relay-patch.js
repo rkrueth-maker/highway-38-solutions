@@ -21,6 +21,6 @@
     };
   }
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register(`./service-worker.js?build=${relayBuild}`,{updateViaCache:'none'}).then(registration=>registration.update().catch(()=>{})).catch(()=>{});
+    navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).then(registration=>registration.update().catch(()=>{})).catch(()=>{});
   }
 })();

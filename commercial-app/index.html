@@ -18,7 +18,45 @@
   (function(){
     var KEY='h38-app-version';
     var HEAL_KEY='h38-app-version-heal';
+    var RESET_KEY='h38-app-version-reset';
     var lastRun=0;
+    /* Stuck-client reset (2026-10-25): a client whose service worker wedged
+       mid-install keeps serving the old build forever — update checks
+       succeed, the new worker never activates, and competing registrations
+       (register() was called with several different ?build= script URLs)
+       keep the old worker in charge. Bookkeeping alone cannot cure that:
+       this version check already recorded the new version while the old
+       files kept serving. The cure that does not depend on the wedged
+       worker is to unregister every registration and delete the app caches
+       once per version, then reload — the next load fetches everything
+       fresh and a single clean service worker installs in the background.
+       Guarded by a per-version localStorage marker so it can never loop. */
+    function resetStuckServiceWorker(done){
+      var finished=false;
+      function finish(){ if(finished)return; finished=true; done(); }
+      try{ setTimeout(finish,1500); }catch(e){ finish(); return; }
+      try{
+        var jobs=[];
+        if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){
+          jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){
+            var unregs=[];
+            for(var i=0;i<regs.length;i++)unregs.push(regs[i].unregister());
+            return Promise.all(unregs);
+          }).catch(function(){}));
+        }
+        if(window.caches&&caches.keys){
+          jobs.push(caches.keys().then(function(keys){
+            var dels=[];
+            for(var i=0;i<keys.length;i++){
+              if(keys[i].indexOf('h38-business-office-')===0)dels.push(caches.delete(keys[i]));
+            }
+            return Promise.all(dels);
+          }).catch(function(){}));
+        }
+        if(!jobs.length){ finish(); return; }
+        Promise.all(jobs).then(finish).catch(finish);
+      }catch(e){ finish(); }
+    }
     function check(){
       var now=Date.now();
       if(now-lastRun<60000)return; /* throttle foreground re-checks */
@@ -40,9 +78,19 @@
               try{healed=sessionStorage.getItem(HEAL_KEY);}catch(e){}
               if(healed===v)return; /* already healed once this session */
               try{sessionStorage.setItem(HEAL_KEY,v);}catch(e){}
-              var u=window.location.href.split('#')[0];
-              u+=(u.indexOf('?')>=0?'&':'?')+'_refresh='+Date.now();
-              window.location.replace(u);
+              var reloadFresh=function(){
+                var u=window.location.href.split('#')[0];
+                u+=(u.indexOf('?')>=0?'&':'?')+'_refresh='+Date.now();
+                window.location.replace(u);
+              };
+              var resetFor=null;
+              try{resetFor=localStorage.getItem(RESET_KEY);}catch(e){}
+              if(resetFor!==v){
+                try{localStorage.setItem(RESET_KEY,v);}catch(e){}
+                resetStuckServiceWorker(reloadFresh);
+              }else{
+                reloadFresh();
+              }
             }else if(!last){
               localStorage.setItem(KEY,v);
             }
@@ -124,7 +172,7 @@
   <link rel="stylesheet" href="./owner-controls.css?build=20261003-owner-controls-1">
   <link rel="stylesheet" href="./owner-notifications.css?build=20261013-owner-notify-4">
   <link rel="stylesheet" href="./smart-upload.css?build=20260920-final-real-office-1">
-  <link rel="stylesheet" href="./owner-home.css?build=20261025-attention-agree-1">
+  <link rel="stylesheet" href="./owner-home.css?build=20261025-stuck-heal-1">
   <link rel="stylesheet" href="./h38-visual-refresh.css?build=20261020-ws4-phasec-1">
   <link rel="stylesheet" href="./customer-360-authority.css?build=20261013-complete-scan-fixes-1" data-h38-customer-360="1">
   <link rel="stylesheet" href="./customer-workspace-documents.css?build=20261012-mobile-polish-1" data-h38-customer-workspace="1">
@@ -192,7 +240,7 @@
   <script defer src="./h38-flow-helpers.js?build=20261022-perperson-1"></script>
   <script defer src="./kit-activity-feed.js?build=20261011-kit-feed-bold-numbers-1"></script>
   <link rel="stylesheet" href="./kits-workspace.css?build=20261011-kits-workspace-1">
-  <script defer src="./owner-home.js?build=20261025-attention-agree-1"></script>
+  <script defer src="./owner-home.js?build=20261025-stuck-heal-1"></script>
   <script defer src="./quick-start.js?build=20261013-rescan-fixes-1"></script>
   <script defer src="./guided-payroll.js?build=20261020-payroll-run-1"></script>
   <script defer src="./pay-bills.js?build=20261011-phase2-1"></script>
@@ -247,7 +295,7 @@
   <script defer src="./assistant-command-runtime.js?build=20260824-assistant-command-runtime-1"></script>
   <script defer src="./customer-readiness-polish.js?build=20261020-myhank-settings-1"></script>
   <script defer src="./context-continuity.js?build=20260919-context-continuity-iphone-1"></script>
-  <script defer src="./desktop-navigation-authority.js?build=20261025-attention-agree-1"></script>
+  <script defer src="./desktop-navigation-authority.js?build=20261025-stuck-heal-1"></script>
   <script defer src="./live-customer-navigation-guard-20260910.js?build=20261020-myhank-settings-1"></script>
   <script defer src="./kit-link.js?build=20261002-kit-link-1"></script>
   <script defer src="./ai-handoff.js?build=20261002-ai-handoff-1"></script>

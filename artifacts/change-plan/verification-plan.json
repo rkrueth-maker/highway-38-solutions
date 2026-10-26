@@ -1,43 +1,23 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-25T21:50:58.658Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-26T00:46:39.962Z",
+  "base": null,
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "commercial-app/desktop-navigation-authority.js",
-    "commercial-app/h38-script-loader.js",
-    "commercial-app/index.html",
-    "commercial-app/mileage.js",
-    "commercial-app/owner-home.js",
-    "commercial-app/phone-first-office.js",
-    "commercial-app/runtime-rowid-fix.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/version.json",
-    "scripts/verify-owner-mobile-smoke.js",
-    "scripts/verify-owner-notifications.js",
-    "scripts/verify-phone-first-office-browser.js",
-    "tests/test_live_customer_navigation_guard_20260910.py",
-    "tests/test_messages_inbox_entry_20261013.py",
-    "tests/test_office_attention_agreement_20261025.py",
-    "tests/test_office_opening_settled_20261025.py",
-    "tests/test_office_today_before_mileage_20261025.py",
-    "tests/test_office_today_first_20261025.py",
-    "tests/test_office_today_first_command_center_20261025.py",
-    "tests/test_offline_mode_polish_20261012.py",
-    "tests/test_owner_notifications.py",
-    "tests/test_platform_push_deepening.py",
-    "tests/test_task_manager_training_videos.py"
+    "artifacts/public-website-architecture/verification.json",
+    "artifacts/unified-shell/assembly.json",
+    "artifacts/unified-source-assembly/verification.json",
+    "launch-control/evidence/public-ecosystem-tools.json",
+    "launch-control/evidence/unified-app-architecture-verification.json"
   ],
-  "fileCount": 26,
+  "fileCount": 6,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": true,
+    "publicWebsite": false,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -45,28 +25,20 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
-    "authenticatedRendering": true,
-    "externalActionBoundary": true,
+    "publicRendering": false,
+    "authenticatedRendering": false,
+    "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-change-governance.js"
   ],
-  "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+  "expensiveChecks": [],
+  "deploymentWorkflows": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change.",
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
-  "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
-  ],
-  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
