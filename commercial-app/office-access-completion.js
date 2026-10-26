@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260916-mobile-owner-access-more-1';
+const BUILD='20261026-nobounce-1';
 const FINANCE_PAGES=['money','accounting','payroll','tax','reports'];
 const ADMIN_PAGES=['people','controls','settings'];
 const text=value=>String(value==null?'':value).trim();
@@ -42,6 +42,7 @@ function enhanceToday(){
   if(full&&mobile())return;
   const node=document.createElement('section');node.id='h38AccessRoleContext';node.className='h38-access-context';
   if(full){node.innerHTML='<p><strong>Full Office access</strong><span class="muted small">Owner/Admin areas are available below the daily work pages.</span></p>';const actions=document.createElement('div');actions.className='actions';[['money','Invoices'],['people','Employees'],['reports','Reports'],['settings','Office Settings']].filter(([key])=>allowed().has(key)).forEach(([key,name])=>{const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=name;button.onclick=()=>open(key);actions.appendChild(button);});node.appendChild(actions);}else{node.innerHTML=`<p><strong>${role().includes('staff')?'Staff':'Restricted'} view</strong><span class="muted small">Employee administration, accounting, payroll, tax and owner controls are hidden by your signed-in permissions.</span></p>`;const signOut=document.getElementById('authSignOutButton');if(signOut){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Switch account';button.onclick=()=>signOut.click();node.appendChild(button);}}
+  const accessFrame=document.getElementById('h38AccessFrame');if(accessFrame){accessFrame.appendChild(node);accessFrame.classList.add('is-filled');accessFrame.removeAttribute('aria-hidden');return;}
   const anchor=document.querySelector('#mainContent #h38PhoneToday')||document.querySelector('#mainContent #h38DigestGrid')||head();if(anchor)anchor.insertAdjacentElement('afterend',node);else document.getElementById('mainContent')?.prepend(node);
 }
 function enhance(){
