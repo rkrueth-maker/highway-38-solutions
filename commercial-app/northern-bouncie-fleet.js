@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261013-bouncie-reminder-1';
+const BUILD='20261026-bouncie-plumb-1';
 const ENDPOINT='nl-bouncie-fleet';
 // Push deep links (the hourly Bouncie reminder) land here with
 // ?fleetTab=settings so the owner arrives on the connect screen directly.
@@ -50,11 +50,18 @@ async function invoke(action,body={}){
   const db=client();if(!db)throw new Error('Supabase client unavailable.');
   const session=await validSession();
   const token=session.access_token;if(!token)throw sessionExpired();
-  if(db.functions&&typeof db.functions.setAuth==='function')db.functions.setAuth(token);
-  const result=await db.functions.invoke(ENDPOINT,{body:{action,businessId:businessId(),...body},headers:{authorization:`Bearer ${token}`,'x-client-info':'northern-bouncie-fleet-v2'}});
-  if(result.error)throw new Error(text(result.error.message||result.error));
-  if(result.data?.status!=='PASS'){const message=text(result.data?.message||'Fleet provider request failed.');if(/auth session is invalid|session is invalid or expired/i.test(message))throw sessionExpired();throw new Error(message);}
-  return result.data;
+  /* Plain fetch, NOT db.functions.invoke: in this app the invoke path
+   * delivers a doubled Authorization header ("Bearer <t> Bearer <t>") to
+   * the function, which the Auth API rejects as an invalid session — the
+   * "expired session" failure every Bouncie connect/sync hit (proven live
+   * 2026-10-26: same token via fetch passes, via invoke fails). Mirrors
+   * fleet-providers.js. */
+  const base=text(db.supabaseUrl||'');if(!base)throw new Error('Supabase client unavailable.');
+  const response=await fetch(`${base}/functions/v1/${ENDPOINT}`,{method:'POST',headers:{'content-type':'application/json',apikey:text(db.supabaseKey||''),authorization:`Bearer ${token}`,'x-client-info':'northern-bouncie-fleet-v2'},body:JSON.stringify({action,businessId:businessId(),...body})});
+  let data=null;try{data=await response.json();}catch(_){data=null;}
+  if(!response.ok&&!data)throw new Error(`Fleet provider request failed (${response.status}).`);
+  if(data?.status!=='PASS'){const message=text(data?.message||'Fleet provider request failed.');if(/auth session is invalid|session is invalid or expired/i.test(message))throw sessionExpired();throw new Error(message);}
+  return data;
 }
 async function load(force=false){if(runtime.loading||!active())return;if(!force&&Date.now()-runtime.lastLoad<10000){render();return;}runtime.loading=true;runtime.error='';render();try{await query();}catch(error){runtime.error=text(error?.message||error);}runtime.loading=false;render();}
 function vehicleLabel(v){return text(v.nickname||[v.year,v.make,v.model].filter(Boolean).join(' ')||v.vin||v.provider_device_id)||'Vehicle';}

@@ -1,9 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD="20260929-nl-bouncie-fleet-3";
+const BUILD="20261026-nl-bouncie-fleet-4";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
-const SERVICE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
+/* Current-secret pattern (same as fleet-providers / h38-quickbooks-bridge
+ * serviceSecret()): this project migrated to the new Supabase key system —
+ * the working server secret lives in SUPABASE_SECRET_KEYS.default; the
+ * legacy SUPABASE_SERVICE_ROLE_KEY env is kept only as a fallback. */
+function serviceSecret(){const current=Deno.env.get("SUPABASE_SECRET_KEYS");if(current){try{const parsed=JSON.parse(current);if(parsed?.default)return String(parsed.default);}catch(_){}}return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";}
+const SERVICE_KEY=serviceSecret();
 const CLIENT_ID=Deno.env.get("BOUNCIE_CLIENT_ID")||"";
 const CLIENT_SECRET=Deno.env.get("BOUNCIE_CLIENT_SECRET")||"";
 const TOKEN_KEY=Deno.env.get("BOUNCIE_TOKEN_ENCRYPTION_KEY")||"";
@@ -29,7 +34,10 @@ async function keyMaterial(){if(!TOKEN_KEY)throw new Error("BOUNCIE_TOKEN_ENCRYP
 async function encrypt(value:string){const nonce=crypto.getRandomValues(new Uint8Array(12)),key=await keyMaterial();const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv:nonce},key,new TextEncoder().encode(value)));return{cipher:b64url(ct),nonce:b64url(nonce)};}
 async function decrypt(cipher:string,nonce:string){const key=await keyMaterial();const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromB64url(nonce)},key,fromB64url(cipher));return new TextDecoder().decode(pt);}
 function safeReturn(value:unknown){try{const u=new URL(clean(value,1000)||DEFAULT_RETURN);return ALLOWED_RETURN_ORIGINS.has(u.origin)?u.toString():DEFAULT_RETURN;}catch(_){return DEFAULT_RETURN;}}
-async function signedUser(req:Request){const token=bearer(req);if(!token)throw new Error("Supabase Auth session is required.");const service=db();const {data,error}=await service.auth.getUser(token);if(error||!data.user)throw new Error("Supabase Auth session is invalid or expired.");return{service,user:data.user};}
+/* Session validation via the Auth REST API — the repo's proven pattern
+ * (h38-quote-ai, fleet-providers). Do not go back to the supabase-js
+ * service-client auth.getUser() path here. */
+async function signedUser(req:Request){const token=bearer(req);if(!token)throw new Error("Supabase Auth session is required.");const service=db();const res=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{authorization:`Bearer ${token}`,apikey:SERVICE_KEY,"x-client-info":BUILD},signal:AbortSignal.timeout(15000)});const user=await res.json().catch(()=>({})) as Json;if(!res.ok||typeof user.id!=="string"||!user.id){console.warn(JSON.stringify({event:"nl-bouncie-fleet-auth-rejected",status:res.status,errorCode:clean(user.error_code||user.code||"",120)}));throw new Error("Supabase Auth session is invalid or expired.");}return{service,user:{id:user.id as string}};}
 async function member(service:ReturnType<typeof db>,userId:string,businessId:string,admin=false){const {data,error}=await service.from("business_memberships").select("role,status").eq("business_id",businessId).eq("auth_user_id",userId).eq("status","active").maybeSingle();if(error)throw error;if(!data)throw new Error("Active business membership is required.");const role=clean(data.role,60).toLowerCase();if(admin&&!["owner","administrator"].includes(role))throw new Error("Owner or Administrator access is required.");return role;}
 async function proof(service:ReturnType<typeof db>,businessId:string,userId:string|null,action:string,details:Json){try{await service.from("business_proof_log").insert({business_id:businessId,actor_user_id:userId,action_type:action,entity_type:"Fleet",result:"PASS",details,external_action_occurred:false});}catch(_){} }
 function configured(){const missing=[];if(!CLIENT_ID)missing.push("BOUNCIE_CLIENT_ID");if(!CLIENT_SECRET)missing.push("BOUNCIE_CLIENT_SECRET");if(!TOKEN_KEY)missing.push("BOUNCIE_TOKEN_ENCRYPTION_KEY");if(!STATE_SECRET)missing.push("BOUNCIE_STATE_SECRET");if(!WEBHOOK_KEY)missing.push("BOUNCIE_WEBHOOK_KEY");return missing;}
