@@ -101,7 +101,7 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261026-day-fix-2';
+var BUILD = '20261026-day-fix-3';
 var FEATURE_ID = 'route_planner';
 var OSRM_URL = 'https://router.project-osrm.org';
 var MAX_STOPS = 6;
