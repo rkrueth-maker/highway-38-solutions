@@ -31,7 +31,7 @@
  * ========================================================================== */
 (function() {
 'use strict';
-var BUILD = '20261026-fleet-providers-3';
+var BUILD = '20261026-fleet-providers-4';
 var FEATURE_ID = 'fleet_providers';
 var ENDPOINT = 'fleet-providers';
 var BOUNCIE_ENDPOINT = 'nl-bouncie-fleet';
@@ -145,15 +145,26 @@ async function invokeInner(endpoint, action, body) {
   var db = client(); if (!db) throw new Error('Supabase client unavailable.');
   var session = await validSession();
   var token = session.access_token; if (!token) throw sessionExpired();
-  if (db.functions && typeof db.functions.setAuth === 'function') db.functions.setAuth(token);
-  var result = await db.functions.invoke(endpoint, { body: Object.assign({ action: action, businessId: businessId() }, body || {}), headers: { authorization: 'Bearer ' + token, 'x-client-info': 'fleet-providers-v1' } });
-  if (result.error) throw new Error(text(result.error.message || result.error));
-  if (!result.data || result.data.status !== 'PASS') {
-    var message = text((result.data && result.data.message) || 'Fleet provider request failed.');
+  /* Plain fetch, NOT db.functions.invoke: in this app the invoke path
+   * delivers a doubled Authorization header ("Bearer <t> Bearer <t>") to
+   * the function, which the Auth API rejects as malformed (proven live
+   * 2026-10-26: same token via fetch passes, via invoke fails). */
+  var base = text(db.supabaseUrl || ''); var apiKey = text(db.supabaseKey || '');
+  if (!base) throw new Error('Supabase client unavailable.');
+  var response = await fetch(base + '/functions/v1/' + endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', apikey: apiKey, authorization: 'Bearer ' + token, 'x-client-info': 'fleet-providers-v1' },
+    body: JSON.stringify(Object.assign({ action: action, businessId: businessId() }, body || {}))
+  });
+  var data = null;
+  try { data = await response.json(); } catch (_) { data = null; }
+  if (!response.ok && !data) throw new Error('Fleet provider request failed (' + response.status + ').');
+  if (!data || data.status !== 'PASS') {
+    var message = text((data && data.message) || 'Fleet provider request failed.');
     if (/auth session is invalid|session is invalid or expired/i.test(message)) throw sessionExpired();
     throw new Error(message);
   }
-  return result.data;
+  return data;
 }
 
 /* ---------- rendering ---------- */

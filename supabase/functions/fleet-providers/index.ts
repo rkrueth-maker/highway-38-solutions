@@ -23,7 +23,7 @@ import { PROVIDERS, providerById, mapSamsaraVehicles, mapGeotabVehicles, mapGeot
  *     vehicles next to phone crews.
  * Owner/administrator membership is required for every action.
  * ========================================================================== */
-const BUILD = "20261026-fleet-providers-3";
+const BUILD = "20261026-fleet-providers-4";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 /* Current-secret pattern (same as h38-quickbooks-bridge serviceSecret()):
  * this project migrated to the new Supabase key system — the working
