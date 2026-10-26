@@ -201,10 +201,10 @@
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
     ];
     const PAGE_AI = [
-      './kits-workspace.js?build=20261026-owner-chat-2',
+      './kits-workspace.js?build=20261026-owner-chat-3',
     ];
     const PAGE_ASSISTANT = [
-      './kits-workspace.js?build=20261026-owner-chat-2',
+      './kits-workspace.js?build=20261026-owner-chat-3',
     ];
     const PAGE_SOCIAL = [
       './deal-alerts.js?build=20261008-inventory-module-1',

@@ -1,4 +1,4 @@
-/* H38 Owner Chat — build 20261026-owner-chat-2
+/* H38 Owner Chat — build 20261026-owner-chat-3
  *
  * The owner's live chat with their Office (Kit). It lives on the existing
  * 'ai' page (Kit's Workspace, the chat at the bottom) — no new page, nav
@@ -38,7 +38,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261026-owner-chat-2';
+  var BUILD = '20261026-owner-chat-3';
   var COLLECTION = 'ownerChatMessages';
   var MAX_THREAD_ROWS = 200;
   var WATCH_SOFT_CAP_MS = 15 * 60 * 1000;
@@ -118,6 +118,7 @@
       runtime.businessId = bid;
       runtime.messages = [];
       runtime.pendingTasks = [];
+      runtime.emptyRetried = false;
     }
     return tid;
   }
@@ -376,8 +377,17 @@
     try {
       await loadThread();
       renderBubbles();
-      /* If a reply landed while the owner was elsewhere, nothing else to
-       * do — the thread render above already shows it. */
+      /* Cold-boot guard: on a slow first load the session identity or the
+       * snapshot may not have settled when the first read runs, and the
+       * thread can come back empty even though it exists. If this thread
+       * looks empty, read it once more a few seconds later so the owner
+       * sees their history without having to send a message first. */
+      if (!runtime.messages.length && !runtime.emptyRetried) {
+        runtime.emptyRetried = true;
+        setTimeout(function () {
+          if (!runtime.messages.length && document.getElementById('kwAiChat')) hydrateAndRender();
+        }, 3500);
+      }
     } catch (e) {
       var box = document.getElementById('kwAiChat');
       if (box && !runtime.messages.length) {
