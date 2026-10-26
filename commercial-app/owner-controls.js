@@ -193,7 +193,7 @@ function isModuleVisible(moduleId){
  * business_module_settings row for it exists and is not enabled.
  * Capabilities stay with allowedPages() in the nav renderers; this
  * predicate covers the moduleSettings + visibility inputs only. */
-const PAGE_SERVER_MODULE_KEYS={inventory:'inventory_enabled',machineShop:'machine_shop',machine_shop:'machine_shop',repairGuide:'repair_guide',vendors:'recommended_vendors'};
+const PAGE_SERVER_MODULE_KEYS={inventory:'inventory_enabled',machineShop:'machine_shop',machine_shop:'machine_shop',repairGuide:'repair_guide',vendors:'recommended_vendors',ownerChat:'owner_chat'};
 function h38ModuleVisible(pageKey){
   const key=text(pageKey);
   if(!key) return true;

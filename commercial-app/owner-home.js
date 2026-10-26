@@ -987,6 +987,17 @@
     /* ---- Kit AI activity feed ("While You Were Away") ---- */
     const kitFeedSlotHtml = '<div id="h38KitFeedSlot"></div>';
 
+    /* ---- Owner chat entry: the persistent Kit thread on the Hank page.
+     * Shown unless the business has the owner_chat module turned off. ---- */
+    const ownerChatEntryHtml = (typeof window.H38ModuleVisible !== 'function' || window.H38ModuleVisible('ownerChat') !== false) ? `
+      <section class="card h38-owner-chat-entry">
+        <div class="row-top">
+          <div><h2>💬 Chat with your Office</h2>
+          <p class="muted">Ask Kit about jobs, the schedule, customers or money — or give an instruction and Kit carries it out and confirms in the thread. Start on your phone, finish at your desk; the thread is saved.</p></div>
+          <button type="button" data-action-idx="${registerAction(() => { openPage('ai'); setTimeout(() => { const ta = document.querySelector('#kwAiForm textarea'); if (ta) { ta.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { ta.focus({ preventScroll: true }); } catch (e) {} } }, 500); })}">Open chat</button>
+        </div>
+      </section>` : '';
+
     /* ---- Quick Start hero banner (new businesses: first value in 60 seconds) ---- */
     const qsHero = isNewBusiness ? `
       <section class="h38-qs-hero">
@@ -1029,6 +1040,7 @@
         ${routeInBody}
         ${cardsHtml}
         ${kitFeedSlotHtml}
+        ${ownerChatEntryHtml}
         ${extraHtml}
         ${tasksHtml}
         ${scheduleInBody}
