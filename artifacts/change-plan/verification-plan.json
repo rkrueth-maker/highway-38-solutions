@@ -1,18 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T12:11:38.370Z",
+  "generatedAt": "2026-10-26T12:26:12.462Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "commercial-app/fleet-providers.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
+    "commercial-app/northern-bouncie-fleet.js",
     "commercial-app/service-worker.js",
     "commercial-app/version.json",
-    "supabase/functions/fleet-providers/index.ts"
+    "supabase/functions/nl-bouncie-fleet/index.ts"
   ],
-  "fileCount": 7,
+  "fileCount": 6,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
