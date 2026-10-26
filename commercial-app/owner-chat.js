@@ -1,4 +1,4 @@
-/* H38 Owner Chat — build 20261026-owner-chat-3
+/* H38 Owner Chat — build 20261026-owner-chat-4
  *
  * The owner's live chat with their Office (Kit). It lives on the existing
  * 'ai' page (Kit's Workspace, the chat at the bottom) — no new page, nav
@@ -38,7 +38,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261026-owner-chat-3';
+  var BUILD = '20261026-owner-chat-4';
   var COLLECTION = 'ownerChatMessages';
   var MAX_THREAD_ROWS = 200;
   var WATCH_SOFT_CAP_MS = 15 * 60 * 1000;
@@ -397,34 +397,53 @@
   }
 
   /* Wrap the workspace renderer so opening the Hank page hydrates the
-   * chat from the server thread before/after it draws. The workspace
-   * object is frozen, so replace the window reference with a frozen
-   * wrapper that preserves its shape. */
+   * chat from the server thread after it draws. The workspace object is
+   * frozen, so replace the window reference with a frozen wrapper that
+   * preserves its shape, tagged so a later re-load of the workspace
+   * module (the script loader lists it twice) is detected and re-wrapped. */
   function install() {
-    if (runtime.installed) return true;
     var ws = window.H38KitsWorkspace;
     if (!ws || typeof ws.render !== 'function') return false;
+    if (ws.render.__h38OwnerChatWrapped) { runtime.installed = true; return true; }
     var baseRender = ws.render;
     var wrapped = async function () {
       var result = await baseRender.apply(this, arguments);
       hydrateAndRender();
       return result;
     };
+    wrapped.__h38OwnerChatWrapped = true;
     try {
       window.H38KitsWorkspace = Object.freeze({ render: wrapped, build: ws.build });
     } catch (e) {
       window.H38KitsWorkspace = { render: wrapped, build: ws.build };
     }
     runtime.installed = true;
-    /* If the chat is already on screen (module loaded late), hydrate now. */
-    if (document.getElementById('kwAiChat')) hydrateAndRender();
     return true;
   }
 
-  var installTries = 0;
-  (function tryInstall() {
-    if (install()) return;
-    if (installTries++ < 160) setTimeout(tryInstall, 250);
+  /* The wrap alone is not a reliable trigger: depending on load order the
+   * workspace can be re-registered after this module installs, and the
+   * chat can also be drawn by the app-16 fallback renderer. So watch for
+   * this module's own chat box and hydrate each new box element once.
+   * The checks are cheap and scoped to the chat element only. */
+  var hydratedBoxes = (typeof WeakSet === 'function') ? new WeakSet() : null;
+  var hydratedBoxFallback = null;
+  function boxHydrated(box) {
+    return hydratedBoxes ? hydratedBoxes.has(box) : hydratedBoxFallback === box;
+  }
+  function markBoxHydrated(box) {
+    if (hydratedBoxes) hydratedBoxes.add(box); else hydratedBoxFallback = box;
+  }
+  (function watch() {
+    try {
+      install();
+      var box = document.getElementById('kwAiChat');
+      if (box && !boxHydrated(box) && handlesWorkspaceChat()) {
+        markBoxHydrated(box);
+        hydrateAndRender();
+      }
+    } catch (e) {}
+    setTimeout(watch, 1500);
   })();
 
   window.H38_OWNER_CHAT = Object.freeze({
