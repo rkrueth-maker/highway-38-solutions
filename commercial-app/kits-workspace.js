@@ -355,7 +355,10 @@
   }
 
   function renderChat() {
-    /* Existing chat, demoted to the bottom. askAi/toggleVoice stay in app-16.js. */
+    /* The owner chat. askAi/toggleVoice stay in app-16.js; when the owner
+     * chat module (owner-chat.js) is enabled, askAi routes here through
+     * window.H38_OWNER_CHAT: messages persist as a server thread and Kit
+     * answers through the ai_handoff_tasks rails. */
     var history = '';
     try {
       var chat = (window.state && window.state.aiChat) || [];
@@ -363,14 +366,15 @@
         ? chat.map(function (m) {
             return '<div class="ai-bubble ' + escHtml(m.role) + '">' + escHtml(m.body) + '</div>';
           }).join('')
-        : '<div class="ai-bubble assistant">Ask Hank anything about your business — quotes, schedule, customers, money.</div>';
+        : '<div class="ai-bubble assistant">This is your thread with Kit. Ask about jobs, the schedule, customers, quotes or money — or give an instruction and Kit will carry it out and confirm it here.</div>';
     } catch (e) {}
     return '<section class="card kw-chat">' +
-      '<h2>Ask Hank</h2>' +
+      '<h2>Chat with your Office</h2>' +
+      '<p class="muted small" style="margin:0 0 8px">Kit reads your business as it is right now. Ask a question, or give an instruction like "add a follow-up for Johnson tomorrow." Replies land here in about a minute, and the thread is saved — start on your phone, finish at your desk.</p>' +
       '<div id="kwAiChat" class="ai-chat">' + history + '</div>' +
-      '<form id="kwAiForm"><label>Question</label>' +
-      '<textarea name="question" required placeholder="What should I work on next?"></textarea>' +
-      '<div class="actions"><button>Ask Hank</button>' +
+      '<form id="kwAiForm"><label>Message</label>' +
+      '<textarea name="question" required placeholder="Ask a question, or tell Kit what to do..."></textarea>' +
+      '<div class="actions"><button>Send</button>' +
       '<button type="button" class="secondary" id="kwAiVoiceButton">Ask by voice</button></div></form>' +
       '</section>';
   }
@@ -479,10 +483,10 @@
       sectionLabel('💡', 'Suggestions', suggestions.length || null, suggestions.length ? 'kw-count-amber' : '') +
       '<div class="kw-suggest-list">' + suggestHtml + '</div>' +
 
-      sectionLabel('💬', 'Ask Hank', null) +
+      sectionLabel('💬', 'Chat with your Office', null) +
       renderChat() +
 
-      '<p class="kw-fineprint">Hank drafts and suggests — nothing is sent, purchased, or changed without your approval.</p>' +
+      '<p class="kw-fineprint">Kit carries out your instructions inside the Office and confirms them in the thread. Customer texts and emails, and anything that moves money, always stop for your yes first.</p>' +
       '</div>';
 
     bindAll();
