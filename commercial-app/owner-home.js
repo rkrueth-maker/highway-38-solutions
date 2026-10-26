@@ -714,7 +714,7 @@
   }
   const platformFillState = { cards: {}, lockQueued: false };
   window.H38FirstScreen = Object.freeze({
-    build: '20261026-nobounce-1',
+    build: '20261026-nobounce-2',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved frame. The frame's reserved height does
      * NOT change: the card replaces the skeleton inside the same box, so
@@ -1010,22 +1010,27 @@
      * instead of growing the home body under the quick actions. */
     const kitFeedSlotHtml = '<div id="h38KitFeedSlot" class="h38-kit-feed-slot"></div>';
 
-    /* ---- Late top cards (desktop): the time clock (erp-foundation.js),
-     * the customer-ready workspace (customer-readiness-polish.js) and the
+    /* ---- Late top cards: the time clock (erp-foundation.js), the
+     * customer-ready workspace (customer-readiness-polish.js) and the
      * access context strip (office-access-completion.js) all attach AFTER
      * the home paints, anchored under the screen header — measured on the
-     * H38 tenant they shoved the whole screen down ~707px about a second
-     * after first paint. Their frames are reserved here, in their settled
-     * order, and each module fills its frame instead of inserting into the
-     * flow. Desktop only: at phone widths these modules do not render on
-     * the owner home (the time card is CSS-hidden, the access strip skips
-     * full-access owners on mobile, the ready workspace anchors desktop).
+     * H38 tenant they shoved the whole desktop screen down ~707px about a
+     * second after first paint. Their frames are reserved here, in their
+     * settled order, and each module fills its frame instead of inserting
+     * into the flow. The frames exist at phone widths too: there they are
+     * zero-height and clipped (owner-home.css), because on mobile these
+     * modules otherwise anchor after the phone digest — landing INSIDE the
+     * digest's frame at full height until the phone layer's hiding rules
+     * catch up, a race that bounced the phone home by ~1000px on the
+     * opens it lost. Inside a clipped frame the cards can arrive in any
+     * order at any time and move nothing; the digest's "Show full Office
+     * details" toggle expands the frames with the rest of the details.
      * A frame whose card never arrives is collapsed by the backstop timer
      * below, so a missing module leaves no permanent hole. ---- */
-    const trioFramesHtml = (window.matchMedia && window.matchMedia('(min-width: 761px)').matches) ? `
+    const trioFramesHtml = `
       <div class="h38-home-frame h38-home-frame--time" id="h38TimeFrame" aria-hidden="true"></div>
       <div class="h38-home-frame h38-home-frame--ready" id="h38ReadyFrame" aria-hidden="true"></div>
-      <div class="h38-home-frame h38-home-frame--access" id="h38AccessFrame" aria-hidden="true"></div>` : '';
+      <div class="h38-home-frame h38-home-frame--access" id="h38AccessFrame" aria-hidden="true"></div>`;
 
     /* ---- Owner chat entry: the persistent Kit thread on the Hank page.
      * Shown unless the business has the owner_chat module turned off. ---- */
@@ -1158,7 +1163,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261026-nobounce-1',
+    build: '20261026-nobounce-2',
     detectBusinessType: detectBusinessType
   });
 
