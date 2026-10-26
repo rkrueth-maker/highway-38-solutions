@@ -824,7 +824,7 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
   animation: h38-first-slot-pulse 1.6s ease-in-out infinite;
 }
 .h38-home-frame--time { min-height: 113px; }
-.h38-home-frame--ready { min-height: 518px; }
+.h38-home-frame--ready { min-height: 720px; }
 .h38-home-frame--access { min-height: 76px; }
 .h38-home-frame.is-filled {
   background: none;
