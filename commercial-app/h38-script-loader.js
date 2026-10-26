@@ -113,7 +113,7 @@
     // status save with none of that behavior. Load it with Work too; same
     // ?build= URL as PAGE_MESSAGES so the loader dedupes it.
     const PAGE_WORK = [
-      './customer-comms.js?build=20261026-auto-invoice-2',
+      './customer-comms.js?build=20261026-auto-invoice-3',
     ];
     const PAGE_SCHEDULE = [
       './guided-schedule.js?build=20261020-ws4-schedule-1',
@@ -126,7 +126,7 @@
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './customer-comms.js?build=20261026-auto-invoice-2',
+      './customer-comms.js?build=20261026-auto-invoice-3',
     ];
     const PAGE_FLEET = [
       './route-manager.js?build=20261026-map-tiles-1',
