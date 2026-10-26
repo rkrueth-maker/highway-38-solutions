@@ -1,27 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T15:53:15.551Z",
+  "generatedAt": "2026-10-26T16:00:07.570Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/book.html",
-    "commercial-app/customer-portal.html",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/owner-home.js",
-    "commercial-app/portal-requests.js",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-data.js",
-    "commercial-app/version.json",
-    "supabase/functions/h38-customer-portal/index.ts",
-    "supabase/functions/h38-owner-notify/index.ts",
-    "supabase/functions/h38-public-booking/index.ts"
+    "commercial-app/version.json"
   ],
-  "fileCount": 12,
+  "fileCount": 4,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -42,7 +34,6 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
