@@ -119,10 +119,10 @@
       './customer-comms.js?build=20261007-mark-complete-fix-2',
     ];
     const PAGE_FLEET = [
-      './route-manager.js?build=20261020-ws4-placeholders-1',
+      './route-manager.js?build=20261026-map-tiles-1',
       './route-planner.js?build=20261026-route-maps-5',
-      './northern-bouncie-fleet.js?build=20261013-bouncie-reminder-1',
-      './gps-dispatch.js?build=20261004-dispatch-2',
+      './northern-bouncie-fleet.js?build=20261026-map-tiles-1',
+      './gps-dispatch.js?build=20261026-map-tiles-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
       './mileage.js?build=20261026-route-maps-1',
       './plow-flow.js?build=20261011-plow-flow-1',
