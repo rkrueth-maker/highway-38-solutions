@@ -15,6 +15,7 @@ const FEATURE_TOGGLES=[
   {id:'customer_signatures',title:'Customer signatures',desc:'Require customer signature on completed work.',icon:'✍️',default:false,category:'Jobs'},
   {id:'quote_approval',title:'Quote approval workflow',desc:'Require owner approval before quotes can be sent.',icon:'✅',default:true,category:'Quotes'},
   {id:'auto_reminders',title:'Auto payment reminders',desc:'Automatically send payment reminders for overdue invoices.',icon:'🔔',default:false,category:'Money'},
+  {id:'auto_invoice_on_complete',title:'Invoice draft when a job is done',desc:'When a job is marked complete, the Office drafts its invoice for you — priced from the job\'s quote where it has one, or at $0 with a note if the job had no price — and all you do is review it and tap send in Money. Nothing is ever sent automatically. On by default; turn this off to prepare invoices by hand like before.',icon:'🧾',default:true,category:'Money'},
   {id:'payroll_check_printing',title:'Payroll check printing',desc:'Print paychecks on check stock from your own bank, straight from a finalized pay run. The Office prints the date, employee, amounts and pay stub only — the MICR line and account numbers stay on your bank stock. Off by default.',icon:'🖨️',default:false,category:'Money'},
   {id:'gps_tracking',title:'GPS location tracking',desc:'Track staff location during work hours.',icon:'📍',default:false,category:'Fleet'},
   {id:'ai_suggestions',title:'AI suggestions',desc:'Show AI-powered suggestions throughout the app.',icon:'🤖',default:true,category:'AI'},

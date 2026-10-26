@@ -116,7 +116,7 @@
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './customer-comms.js?build=20261007-mark-complete-fix-2',
+      './customer-comms.js?build=20261026-auto-invoice-1',
     ];
     const PAGE_FLEET = [
       './route-manager.js?build=20261026-map-tiles-1',

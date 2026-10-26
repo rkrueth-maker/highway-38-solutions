@@ -427,6 +427,128 @@ async function maybeAutoAskReview(job){
   if(!ok)return {skipped:'declined'};
   return askForReview(job['Job ID']||job.jobId);
 }
+// ---------- Auto invoice draft on job completion ----------
+// Rick's call (2026-10-26): "invoice drafts itself the second a job is
+// marked done — owner just taps send." So when a job completes, draft its
+// invoice in the same invoices collection the Money screen uses, priced
+// from the job's quote lines where the job carries them. NOTHING sends:
+// the draft is a normal Money draft ("Send Allowed: No") and the send step
+// stays exactly the existing owner action in Money.
+var AUTO_INVOICE_SOURCE='Auto-draft on job completion';
+var moneyNum=function(v){
+  if(typeof v==='number')return isFinite(v)?v:0;
+  var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));
+  return isFinite(n)?n:0;
+};
+var round2=function(n){return Math.round(n*100)/100;};
+function autoInvoiceEnabled(){
+  // Owner Controls toggle, stored server-side per business (FeatureToggles
+  // collection). Default ON — including when Owner Controls is not loaded.
+  try{
+    if(window.H38OwnerControls&&typeof window.H38OwnerControls.isEnabled==='function'){
+      return window.H38OwnerControls.isEnabled('auto_invoice_on_complete')!==false;
+    }
+  }catch(e){}
+  return true;
+}
+function getQuoteById(quoteId){
+  var list=[];
+  try{ list=(typeof records==='function'?records('quotes'):[])||[]; }catch(e){ return null; }
+  for(var i=0;i<list.length;i++){
+    if(String(list[i]['Quote ID']||list[i].quoteId||'')===String(quoteId))return list[i];
+  }
+  return null;
+}
+function existingJobInvoice(jobId){
+  var list=[];
+  try{ list=(typeof records==='function'?records('invoices'):[])||[]; }catch(e){ return null; }
+  for(var i=0;i<list.length;i++){
+    if(String(list[i]['Job ID']||list[i].jobId||'')!==String(jobId))continue;
+    var st=text(list[i]['Status']||'').toLowerCase();
+    if(!/void|delet|cancel/.test(st))return list[i];
+  }
+  return null;
+}
+function autoInvoiceLines(job){
+  // Price cascade — never invents a price:
+  // quote lines -> quote total -> the job's own stated rate -> $0.
+  var title=text(job['Project Title']||job['Job Name']||job['Job Number']||'Job work');
+  var quoteId=text(job['Quote ID']||job['Source Quote ID']||job.quoteId||'');
+  var quote=quoteId?getQuoteById(quoteId):null;
+  if(quote&&Array.isArray(quote.lines)&&quote.lines.length){
+    var lines=quote.lines.map(function(l){
+      return {
+        description:text(l&&l.description)||title,
+        quantity:moneyNum(l&&l.quantity)||1,
+        unit:text(l&&l.unit)||'each',
+        unitPrice:moneyNum(l&&l.unitPrice)
+      };
+    });
+    var subtotal=round2(lines.reduce(function(s,l){return s+l.quantity*l.unitPrice;},0));
+    var tax=round2(moneyNum(quote.Tax));
+    return {lines:lines,subtotal:subtotal,tax:tax,total:round2(subtotal+tax),priced:subtotal>0||tax>0};
+  }
+  if(quote){
+    var quoteTotal=round2(moneyNum(quote.Total));
+    if(quoteTotal>0)return {lines:[{description:title,quantity:1,unit:'each',unitPrice:quoteTotal}],subtotal:quoteTotal,tax:0,total:quoteTotal,priced:true};
+  }
+  var rate=round2(moneyNum(job['Service Rate']||job['Plowing Rate']||job['Mowing Rate']||job['Rate']||job.serviceRate));
+  if(rate>0)return {lines:[{description:title,quantity:1,unit:'each',unitPrice:rate}],subtotal:rate,tax:0,total:rate,priced:true};
+  return {lines:[{description:title,quantity:1,unit:'each',unitPrice:0}],subtotal:0,tax:0,total:0,priced:false};
+}
+async function autoDraftInvoiceForJob(job){
+  var jobId=text(job&&((job['Job ID']||job.jobId)));
+  if(!jobId||typeof queueOperation!=='function')return {skipped:'unavailable'};
+  if(!autoInvoiceEnabled())return {skipped:'disabled'};
+  var existing=existingJobInvoice(jobId);
+  if(existing)return {skipped:'exists',invoiceId:text(existing['Invoice ID'])};
+  var built=autoInvoiceLines(job);
+  var id=(typeof window.newId==='function'?window.newId('INVOICE'):'INVOICE-'+Date.now());
+  var stamp=(typeof now==='function'?now():new Date().toISOString());
+  var record={
+    'Invoice ID':id,
+    'Business ID':text(window.state&&window.state.businessId),
+    'Customer ID':text(job['Customer ID']||job.customerId),
+    'Job ID':jobId,
+    'Invoice Number':'LOCAL-'+Date.now(),
+    'Status':'Draft',
+    'Send Allowed':'No',
+    'Delivery Status':'Not Sent',
+    'Due Date':'',
+    'Subtotal':built.subtotal,
+    'Tax':built.tax,
+    'Total':built.total,
+    'Balance':built.total,
+    'Source':AUTO_INVOICE_SOURCE,
+    lines:built.lines,
+    'Created Time':stamp,
+    'Updated Time':stamp,
+    'Record Version':1
+  };
+  if(!built.priced){
+    record['Notes']='Auto-drafted when this job was marked done. The job and its quote had no price on them, so set the amount here before you send it.';
+  }
+  await queueOperation('SAVE_INVOICE','Invoice',id,
+    {invoiceId:id,customerId:record['Customer ID'],jobId:jobId,dueDate:'',lines:built.lines,tax:built.tax},
+    {collection:'invoices',record:record,idKeys:['Invoice ID']});
+  // The server lifecycle trigger created a "Prepare invoice" owner task
+  // when the job was saved complete (no invoice existed at that moment).
+  // Re-saving the job now that the draft exists lets the same reconcile
+  // close that task — the owner's next step is reviewing the draft, not
+  // preparing one. Best-effort: if this touch fails, the task still
+  // closes on the job's next save.
+  try{
+    var fresh=getJob(jobId)||job;
+    var touch=Object.assign({},fresh,{
+      'Updated Time':(typeof now==='function'?now():new Date().toISOString()),
+      'Record Version':(parseInt(fresh['Record Version']||fresh.recordVersion||0,10)||0)+1
+    });
+    await queueOperation('SAVE_JOB','Job',jobId,{jobId:jobId,record:touch},
+      {collection:'jobs',record:touch,idKeys:['Job ID']});
+  }catch(e){/* the Prepare-invoice task closes on the job's next save instead */}
+  return {created:true,invoiceId:id,total:built.total,priced:built.priced};
+}
+
 async function markJobComplete(jobId){
   var job=getJob(jobId);
   if(!job)throw new Error('Job not found.');
@@ -456,7 +578,22 @@ async function markJobComplete(jobId){
     }
     throw error;
   }
-  if(typeof toast==='function')toast('Job marked complete.');
+  // Auto-draft the invoice (Rick's 2026-10-26 call). A draft failure must
+  // never break completion — the job is already saved complete.
+  var autoInvoice=null;
+  try{autoInvoice=await autoDraftInvoiceForJob(record);}catch(e){autoInvoice={failed:String(e&&e.message||e)};}
+  if(typeof toast==='function'){
+    if(autoInvoice&&autoInvoice.created){
+      toast(autoInvoice.priced
+        ?'Job marked complete. Invoice drafted — review & send in Money.'
+        :'Job marked complete. Invoice drafted at $0 — set the amount in Money, then review & send.');
+    }else if(autoInvoice&&autoInvoice.skipped==='exists'){
+      toast('Job marked complete. An invoice already exists for this job — review & send in Money.');
+    }else{
+      toast('Job marked complete.');
+      if(autoInvoice&&autoInvoice.failed)toast('The invoice draft could not be created ('+autoInvoice.failed+'). Prepare the invoice in Money as usual.',true);
+    }
+  }
   // Auto review prompt (respects the per-tenant toggle)
   try{await maybeAutoAskReview(Object.assign({},record));}catch(e){
     if(typeof toast==='function')toast('Review request: '+(e.message||e),true);
@@ -512,6 +649,8 @@ window.H38CustomerComms={
   reviewRequestsLog:reviewRequestsLog,
   maybeAutoAskReview:maybeAutoAskReview,
   markJobComplete:markJobComplete,
+  autoDraftInvoiceForJob:autoDraftInvoiceForJob,
+  autoInvoiceEnabled:autoInvoiceEnabled,
   onMyWayEnabled:function(){return commsFeatureEnabled('on_my_way_texts');},
   autoReviewEnabled:function(){return commsFeatureEnabled('auto_review_requests');},
   autoSendReviewEnabled:function(){return commsFeatureEnabled('auto_send_review_requests');}
