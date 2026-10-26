@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261026-route-maps-1';
+var BUILD='20261026-day-fix-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -159,6 +159,7 @@ function setRecordingOn(on){lsSet(switchKey('on'),on?'1':'0');if(!on)stopWatch()
 // anything is armed too (full background tracking); Stop Day is how an
 // owner turns that off until the next Start Day.
 function startDay(){
+  syncTripStateToBusiness();
   lsSet(switchKey('offduty'),null);
   lsSet(switchKey('on'),'1');
   watch.blocked=false;watch.error='';
@@ -166,7 +167,39 @@ function startDay(){
   syncWatch();
   persistDayStart();
 }
-function stopDay(){setRecordingOn(false);persistDayStop();}
+async function stopDay(){
+  syncTripStateToBusiness();
+  // One clear day model (fixed 2026-10-26): Stop Day ends the day AND
+  // anything still running inside it. The old stopDay only flipped the
+  // recording switch, so a manual trip kept running — the banner still
+  // read "Trip running" after "Day stopped" (owner proof pass). Close a
+  // running manual trip at its last recorded point, and finalize a
+  // detected drive the same way settleOnOpen does, BEFORE the day record
+  // is written so the day's miles include them.
+  if(manual.trip){
+    var mt=manual.trip,mtLast=mt.lastFix||(mt.startLat!=null?{lat:mt.startLat,lng:mt.startLng,at:Date.parse(mt.startedAt)||Date.now()}:null);
+    var mtFinished={startedAt:mt.startedAt,
+      endedAt:new Date(mtLast?mtLast.at:Date.now()).toISOString(),
+      startLat:mt.startLat,startLng:mt.startLng,
+      endLat:mtLast?mtLast.lat:null,endLng:mtLast?mtLast.lng:null,
+      miles:mt.miles||0,source:'manual',
+      startLabel:endpointLabel(mt.startLat,mt.startLng),
+      endLabel:mtLast?endpointLabel(mtLast.lat,mtLast.lng):''};
+    manual.trip=null;manualSave();
+    if(mtFinished.miles>=0.2){try{await closeTrip(mtFinished,'Day stopped while this trip was still open — it ends at the last recorded point.');}catch(_){}}
+  }
+  if(engine.phase==='driving'&&engine.trip){
+    var et=engine.trip;
+    var etFinished={startedAt:et.startedAt,endedAt:new Date(et.lastAt||Date.now()).toISOString(),
+      startLat:et.startLat,startLng:et.startLng,endLat:et.lastLat,endLng:et.lastLng,
+      miles:et.miles,source:'auto',
+      startLabel:endpointLabel(et.startLat,et.startLng),endLabel:endpointLabel(et.lastLat,et.lastLng)};
+    engine.phase='idle';engine.anchor={lat:et.lastLat,lng:et.lastLng,at:Date.now()};engine.trip=null;engine.stillSince=0;engineSave();
+    if(etFinished.miles>=0.2){try{await closeTrip(etFinished,'Day stopped while this drive was still open — it ends at the last recorded point.');}catch(_){}}
+  }
+  setRecordingOn(false);
+  persistDayStop();
+}
 
 // ---------- server day records (2026-10-26) ----------
 // Start Day / Stop Day used to be device-local switches only: Rick pressed
@@ -260,11 +293,44 @@ function dayMiles(dateStr,endFix){
   if(line.points>=2)return {miles:line.miles,source:'recorded stops (straight-line)',points:line.points};
   return {miles:0,source:'no movement recorded',points:line.points};
 }
+// Day-write durability (fixed 2026-10-26): a failed queue write used to be
+// swallowed by a blanket catch under the comment "the operation queue
+// holds it" — but when the queue write ITSELF is what fails (the offline
+// store's connection mid-close, see db.js), nothing is held anywhere: the
+// owner proof pass pressed Start trip + Stop Day on the Sandbox and the
+// server ended with zero day rows and zero error trace. Now a failed day
+// write is stashed verbatim in a per-business localStorage outbox, the
+// user is told plainly, and flushDayOutbox() retries it on later decorate
+// passes until it lands (the write is an upsert by Day ID, so a retry
+// can never double-file a day).
+var DAY_OUTBOX_KEY=function(){return 'h38-mileage-day-outbox-'+businessId()+'-'+(userId()||'anonymous');};
+var dayOutboxBusy=false,dayOutboxLastTry=0;
 async function saveDayRecord(record){
-  await w.queueOperation('SAVE_MILEAGE_DAY','Mileage Day',record['Day ID'],
-    {dayId:record['Day ID'],date:record['Date'],status:record['Status'],startedAt:record['Started At']||'',endedAt:record['Ended At']||''},
-    {collection:DAY_COLLECTION,record:record,idKeys:['Day ID']});
+  try{
+    await w.queueOperation('SAVE_MILEAGE_DAY','Mileage Day',record['Day ID'],
+      {dayId:record['Day ID'],date:record['Date'],status:record['Status'],startedAt:record['Started At']||'',endedAt:record['Ended At']||''},
+      {collection:DAY_COLLECTION,record:record,idKeys:['Day ID']});
+  }catch(err){
+    try{lsSet(DAY_OUTBOX_KEY(),JSON.stringify(record));}catch(_){}
+    try{console.warn('H38Mileage: day record held in the on-phone outbox for retry —',err&&err.message||err);}catch(_){}
+    toast('That day change could not be sent just now. It is saved on this phone and will send on its own — check back in a minute.',true);
+    throw err;
+  }
+  try{lsSet(DAY_OUTBOX_KEY(),null);}catch(_){}
   try{w.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'mileage',collection:DAY_COLLECTION}}));}catch(_){}
+}
+async function flushDayOutbox(){
+  if(dayOutboxBusy||!enabled()||!userId()||typeof w.queueOperation!=='function')return;
+  if(Date.now()-dayOutboxLastTry<15000)return;
+  var raw=null;
+  try{raw=lsGet(DAY_OUTBOX_KEY());}catch(_){}
+  if(!raw)return;
+  dayOutboxBusy=true;dayOutboxLastTry=Date.now();
+  try{
+    var record=JSON.parse(raw);
+    if(record&&record['Day ID'])await saveDayRecord(record);
+  }catch(_){/* still held; the next decorate pass retries */}
+  dayOutboxBusy=false;
 }
 async function persistDayStart(){
   if(!enabled()||!userId()||typeof w.queueOperation!=='function')return;
@@ -289,7 +355,7 @@ async function persistDayStart(){
   }
   if(fix){record['Start Lat']=fix.lat;record['Start Lng']=fix.lng;record['Start Accuracy']=fix.acc||'';record['Start Source']=nativeBridge()?'app':'web';}
   else{record['Start Lat']='';record['Start Lng']='';record['Start Accuracy']='';record['Start Source']='no fix';}
-  try{await saveDayRecord(record);}catch(_){/* offline: the operation queue holds it; the local switch still arms recording */}
+  try{await saveDayRecord(record);}catch(_){/* held in the on-phone outbox by saveDayRecord and retried by flushDayOutbox; the local switch still arms recording */}
 }
 async function persistDayStop(){
   if(!userId()||typeof w.queueOperation!=='function')return;
@@ -314,7 +380,7 @@ async function persistDayStop(){
   if(fix){record['End Lat']=fix.lat;record['End Lng']=fix.lng;record['End Accuracy']=fix.acc||'';record['End Source']=nativeBridge()?'app':'web';}
   else{record['End Lat']='';record['End Lng']='';record['End Accuracy']='';record['End Source']='no fix';}
   try{lsSet(dayStartCacheKey(),null);}catch(_){}
-  try{await saveDayRecord(record);}catch(_){/* offline: the operation queue holds it */}
+  try{await saveDayRecord(record);}catch(_){/* held in the on-phone outbox by saveDayRecord and retried by flushDayOutbox */}
 }
 function offDuty(){return lsGet(switchKey('offduty'))==='1';}
 function setOffDuty(on){lsSet(switchKey('offduty'),on?'1':null);if(on)stopWatch();pushNativePolicy(true);}
@@ -696,24 +762,44 @@ function tripObjectFromRow(row){
 //   parked (anchor known) -> moving (left the anchor area) -> parked again
 //   after sustained stillness -> trip closed and sorted (auto-file/queue).
 // Only endpoints + total distance are kept; the route itself is not stored.
-var ENGINE_KEY=function(){return 'h38-mileage-engine-'+businessId()+'-'+(userId()||'anonymous');};
-var MISSED_KEY=function(){return 'h38-mileage-missed-'+businessId()+'-'+(userId()||'anonymous');};
+var ENGINE_KEY=function(biz){return 'h38-mileage-engine-'+(biz||businessId())+'-'+(userId()||'anonymous');};
+var MISSED_KEY=function(biz){return 'h38-mileage-missed-'+(biz||businessId())+'-'+(userId()||'anonymous');};
 var engine={phase:'idle',anchor:null,trip:null,stillSince:0,lastFix:null};
 var watch={id:null,blocked:false,error:''};
 var manual={trip:null};
 
+// Trip/day state is PER BUSINESS (fixed 2026-10-26). The in-memory engine
+// and manual-trip objects used to load once at script boot and were then
+// saved under whichever business happened to be selected later — a trip
+// started in one business bled onto the next business's home (owner proof
+// pass: a Sandbox trip banner appeared on the Highway 38 tenant and was
+// copied into that business's storage key). tripStateBiz records which
+// business the in-memory state belongs to; every save writes under that
+// business's key, and syncTripStateToBusiness() banks the old business's
+// state and loads the new one's whenever the selection changed.
+var tripStateBiz='';
 function engineLoad(){
+  engine={phase:'idle',anchor:null,trip:null,stillSince:0,lastFix:null};
   try{
-    var raw=lsGet(ENGINE_KEY());
+    var raw=lsGet(ENGINE_KEY(tripStateBiz));
     if(raw){var parsed=JSON.parse(raw);if(parsed&&typeof parsed==='object')engine=parsed;}
   }catch(_){}
   if(!engine||typeof engine!=='object')engine={phase:'idle',anchor:null,trip:null,stillSince:0,lastFix:null};
 }
-function engineSave(){lsSet(ENGINE_KEY(),JSON.stringify(engine));}
+function engineSave(){if(tripStateBiz)lsSet(ENGINE_KEY(tripStateBiz),JSON.stringify(engine));}
 function missedLoad(){
-  try{var raw=lsGet(MISSED_KEY());var parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_){return [];}
+  try{var raw=lsGet(MISSED_KEY(tripStateBiz));var parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[];}catch(_){return [];}
 }
-function missedSave(list){lsSet(MISSED_KEY(),JSON.stringify(list||[]));}
+function missedSave(list){if(tripStateBiz)lsSet(MISSED_KEY(tripStateBiz),JSON.stringify(list||[]));}
+function syncTripStateToBusiness(){
+  var biz=businessId();
+  if(!biz||biz===tripStateBiz)return;
+  if(tripStateBiz){engineSave();manualSave();}
+  tripStateBiz=biz;
+  engineLoad();
+  manualLoad();
+}
+try{tripStateBiz=businessId();}catch(_){}
 
 function goodFix(position){
   if(!position||!position.coords)return null;
@@ -869,6 +955,7 @@ function syncWatch(){
 // and notice a possible missed drive (parked anchor far behind us after
 // a long gap). The missed drive is a prompt, never a fabricated record.
 function settleOnOpen(){
+  syncTripStateToBusiness();
   engineLoad();manualLoad();
   var now=Date.now();
   if(engine.phase==='driving'&&engine.trip){
@@ -915,10 +1002,10 @@ function checkMissedDrive(fix){
 }
 
 // ---------- manual trips ----------
-var MANUAL_KEY=function(){return 'h38-mileage-manual-'+businessId()+'-'+(userId()||'anonymous');};
-function manualSave(){lsSet(MANUAL_KEY(),manual.trip?JSON.stringify(manual.trip):null);}
+var MANUAL_KEY=function(biz){return 'h38-mileage-manual-'+(biz||businessId())+'-'+(userId()||'anonymous');};
+function manualSave(){if(tripStateBiz)lsSet(MANUAL_KEY(tripStateBiz),manual.trip?JSON.stringify(manual.trip):null);}
 function manualLoad(){
-  try{var raw=lsGet(MANUAL_KEY());manual.trip=raw?JSON.parse(raw):null;}catch(_){manual.trip=null;}
+  try{var raw=lsGet(MANUAL_KEY(tripStateBiz));manual.trip=raw?JSON.parse(raw):null;}catch(_){manual.trip=null;}
 }
 function capturePositionOnce(){
   return new Promise(function(resolve){
@@ -933,6 +1020,7 @@ function capturePositionOnce(){
   });
 }
 async function manualStart(){
+  syncTripStateToBusiness();
   if(!enabled()){toast('Mileage Tracking is off for this business.',true);return;}
   if(manual.trip){toast('A manual trip is already running.');return;}
   var fix=await capturePositionOnce();
@@ -1781,6 +1869,8 @@ function decorate(){
     return;
   }
   if(!userId()||!businessId())return;
+  syncTripStateToBusiness();
+  flushDayOutbox();
   renderCard();
   renderSection();
   renderReportCard();

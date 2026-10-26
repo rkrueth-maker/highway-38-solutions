@@ -101,6 +101,7 @@
       campaigns:['Campaign ID','campaignId'], featureRequests:['Feature Request ID','featureRequestId'],
       aiRecommendations:['Recommendation ID','recommendationId'], usageLogs:['Usage Log ID','usageLogId'], followUps:['Follow-up ID','followUpId'], communicationLogs:['Communication Log ID','communicationLogId'],
       crewLocationStamps:['Stamp ID','stampId'], crewPositions:['Crew Position ID','crewPositionId'],
+      mileageDays:['Day ID','dayId'], mileageTrips:['Trip ID','tripId'], mileagePlaces:['Place ID','placeId'], mileageSettings:['Settings ID','settingsId'],
       FeatureToggles:['Business ID','businessId'],
       notifications:['Notification ID','notificationId']
     };
@@ -165,7 +166,7 @@
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, propertyRows, notificationRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, propertyRows, notificationRows, stampRows, positionRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
@@ -211,6 +212,20 @@
       // they are the owner's alert inbox — never let the broad query's
       // newest-first cap crowd them out on a churn-heavy tenant.
       fetchCollectionRows(db, businessId, 'notifications'),
+      // Same cap, fleet/mileage edition (found 2026-10-26, owner-session
+      // proof pass): crew location stamps, positions and the mileage day/
+      // trip records had NO explicit fetch, so on a churn-heavy tenant the
+      // broad query's newest-first cap crowded them out of the snapshot —
+      // the Fleet "Recorded stops & mileage" view read "No recorded stops"
+      // for a date holding 35 stamps in the database, the recorded-stops
+      // day frame never appeared, and the mileage module could not see
+      // its own day records. Fetch them explicitly, paged, like the rest.
+      fetchCollectionRows(db, businessId, 'crewLocationStamps'),
+      fetchCollectionRows(db, businessId, 'crewPositions'),
+      fetchCollectionRows(db, businessId, 'mileageDays'),
+      fetchCollectionRows(db, businessId, 'mileageTrips'),
+      fetchCollectionRows(db, businessId, 'mileagePlaces'),
+      fetchCollectionRows(db, businessId, 'mileageSettings'),
       optionalQuery(db.from('business_memberships').select('id,auth_user_id,invited_email,role,status,accepted_at').eq('business_id',businessId).in('status',['active','invited']).order('created_at',{ascending:true}), []),
       optionalQuery(db.from('price_book_items').select('id,item_code,category,description,unit,unit_cost,sell_price,reorder_point,sellable,rentable,rental_rate,advertise,source_type,source_note,approval_status,active,updated_at').eq('business_id',businessId).eq('active',true).order('category').order('description').range(0,999), []),
       optionalQuery(db.from('business_approvals').select('*').eq('business_id',businessId).order('requested_at',{ascending:false}).limit(250), []),
@@ -223,7 +238,7 @@
     // business_records identity is (collection, record_key): merge each once
     // so overlapping fetches never double-count a payment or expense.
     const mergedRecordKeys = new Set();
-    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...propertyRows,...notificationRows].forEach(row => {
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows].forEach(row => {
       const collection = row.collection;
       const recordKey = text(row.record_key);
       if (recordKey) {
