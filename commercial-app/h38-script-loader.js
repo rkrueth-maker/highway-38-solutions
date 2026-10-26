@@ -110,6 +110,7 @@
       './guided-schedule.js?build=20261020-ws4-schedule-1',
       './plow-flow.js?build=20261011-plow-flow-1',
       './route-planner.js?build=20261026-day-fix-3',
+      './portal-requests.js?build=20261026-portal-requests-1',
     ];
     const PAGE_MESSAGES = [
       './sms-provider.js?build=20261004-sms-seam-2',
