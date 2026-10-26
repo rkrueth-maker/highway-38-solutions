@@ -21,6 +21,13 @@ verify_jwt = true
 [functions.nl-bouncie-fleet]
 verify_jwt = false
 
+# Fleet Providers validates the caller's Supabase session itself (same
+# pattern as nl-bouncie-fleet): every POST action fails closed with the
+# function's own error when the session is missing, expired, or not an
+# owner/administrator of the target business.
+[functions.fleet-providers]
+verify_jwt = false
+
 # Intuit redirects into this function without a Supabase JWT. POST actions perform
 # explicit Supabase session validation and the OAuth callback validates encrypted,
 # short-lived tenant/user state before touching connection records.
