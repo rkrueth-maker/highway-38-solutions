@@ -122,6 +122,40 @@ async function bookingEnabledFor(
   return data?.enabled === true;
 }
 
+// The business's own services, from the `services` collection the Office
+// maintains (onboarding "What you offer and pricing" writes these rows). The
+// booking form offers exactly these names so a customer picks the business's
+// real service — e.g. a snow business's "Snow Plowing" — instead of a generic
+// list. Service names are the business's public offerings (the form itself
+// displays them); they are returned only when booking is enabled. An empty
+// result means the page falls back to its generic list.
+async function businessServices(sb: any, businessId: string): Promise<string[]> {
+  const { data, error } = await sb
+    .from("business_records")
+    .select("payload")
+    .eq("business_id", businessId)
+    .eq("collection", "services")
+    .eq("record_status", "active")
+    .order("updated_at", { ascending: true })
+    .limit(100);
+  if (error) throw error;
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const row of data || []) {
+    const p = (row && row.payload) || {};
+    const status = clean(p["Status"] ?? p["status"], 40);
+    if (/inactive|archiv|delet|disabled/i.test(status)) continue;
+    const name = clean(p["Service Name"] ?? p["serviceName"] ?? p["Name"] ?? p["name"], 80);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+    if (names.length >= 60) break;
+  }
+  return names;
+}
+
 // Anonymous bookings still need created_by/updated_by (NOT NULL, no default).
 // Attribute the row to the tenant's owner (or an administrator) — the payload
 // itself records Source: "Online booking" so the origin stays clear.
@@ -167,7 +201,9 @@ export async function handleBookingRequest(
       : null;
 
   // Public status check: lets the booking page show "not available" instead of
-  // a dead form. Returns only the boolean — no tenant data leaks.
+  // a dead form. When booking is enabled it also returns the business's own
+  // service names — its public offerings, shown on the form itself. When
+  // booking is off, only the boolean is returned — no tenant data leaks.
   if (req.method === "GET") {
     const businessId = (rawBusinessId || DEFAULT_BUSINESS_ID).trim();
     if (!UUID_RE.test(businessId)) {
@@ -175,7 +211,9 @@ export async function handleBookingRequest(
     }
     try {
       const enabled = await bookingEnabledFor(sb, businessId);
-      return json(200, { enabled }, headers);
+      if (!enabled) return json(200, { enabled }, headers);
+      const services = await businessServices(sb, businessId);
+      return json(200, { enabled, services }, headers);
     } catch (e) {
       console.error("[h38-public-booking] status check failed:", e);
       return json(500, { error: "Booking is unavailable right now. Please call us directly." }, headers);

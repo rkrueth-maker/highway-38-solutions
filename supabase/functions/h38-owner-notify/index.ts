@@ -251,7 +251,10 @@ async function scanBusiness(sb: any, businessId: string): Promise<{ created: num
           sourceId: row.record_key, eventKey: "created",
           title: `New booking request — ${name}`,
           body: [svc, when].filter(Boolean).join(" · ") || "Online booking",
-          linkPage: "work", linkRecordId: row.record_key, customerId: "", customerName: name,
+          // The Service Requests inbox lives on the Schedule page
+          // (portal-requests.js) — land the owner there, where the request
+          // can be scheduled or dismissed.
+          linkPage: "schedule", linkRecordId: row.record_key, customerId: "", customerName: name,
         });
       }
     } catch (e) { errors.push(`booking_requests: ${text((e as Error)?.message, 200)}`); }

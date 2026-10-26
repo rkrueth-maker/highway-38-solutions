@@ -435,6 +435,41 @@ function portalUrl(request: Request, businessId: string, token: string): string 
   return `${base}?business=${encodeURIComponent(businessId)}&token=${encodeURIComponent(token)}`;
 }
 
+// The business's own services, from the `services` collection the Office
+// maintains (onboarding "What you offer and pricing" and Settings write these
+// rows). The Book form offers exactly these names so a customer picks the
+// business's real service — e.g. a snow business's "Snow Plowing" — instead of
+// a generic list. Inactive/archived rows are excluded; an empty result means
+// the client falls back to its generic list.
+async function businessServices(
+  service: ReturnType<typeof serviceClient>,
+  businessId: string,
+): Promise<string[]> {
+  const { data } = await service
+    .from("business_records")
+    .select("payload")
+    .eq("business_id", businessId)
+    .eq("collection", "services")
+    .eq("record_status", "active")
+    .order("updated_at", { ascending: true })
+    .limit(100);
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const row of data || []) {
+    const p = (row.payload || {}) as JsonObject;
+    const status = clean(pick(p, "Status", "status"), 40);
+    if (/inactive|archiv|delet|disabled/i.test(status)) continue;
+    const name = clean(pick(p, "Service Name", "serviceName", "Name", "name"), 120);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+    if (names.length >= 60) break;
+  }
+  return names;
+}
+
 // ---- Session bundle (what the customer is allowed to see) ----
 
 async function buildSessionBundle(
@@ -576,10 +611,12 @@ async function buildSessionBundle(
     });
 
   const paymentsState = await onlinePaymentsState(service, businessId);
+  const services = await businessServices(service, businessId);
 
   return {
     business: { id: businessId, name: business?.display_name || "Highway 38" },
     payments: { onlineEnabled: paymentsState.ready },
+    services,
     customer: {
       name: clean(pick(customer, "Customer Name", "name"), 120),
       email: clean(pick(customer, "Email", "email"), 120),

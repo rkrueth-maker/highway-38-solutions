@@ -225,6 +225,27 @@ $('tabBar').addEventListener('click',function(e){
   window.scrollTo(0,0);
 });
 
+// ---- Book form services ----
+// The session bundle carries this business's own services (from the Office's
+// services list). When the business has services, the form offers exactly
+// those — e.g. a snow business's "Snow Plowing" — plus "Other". When it has
+// none, the generic list already in the markup stays (fallback).
+function fillServiceOptions(){
+  var list=(bundle&&Array.isArray(bundle.services))?bundle.services.filter(function(s){return typeof s==='string'&&s.trim();}):[];
+  if(!list.length)return;
+  var sel=$('bService');if(!sel)return;
+  var current=sel.value;
+  var html='<option value="">Choose a service…</option>';
+  var hasOther=false;
+  list.forEach(function(name){
+    if(/^other$/i.test(name.trim()))hasOther=true;
+    html+='<option>'+esc(name)+'</option>';
+  });
+  if(!hasOther)html+='<option>Other</option>';
+  sel.innerHTML=html;
+  if(current)sel.value=current;
+}
+
 // ---- Render ----
 function statusPill(s){
   s=String(s||'');var cls='';
@@ -246,6 +267,7 @@ function renderPortal(){
   $('statQuotes').textContent=openQuotes.length;
   $('statDue').textContent=money(due);
   $('statAppts').textContent=bundle.appointments.length;
+  fillServiceOptions();
 
   // Action list
   var acts=[];

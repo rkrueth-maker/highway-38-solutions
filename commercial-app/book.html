@@ -103,12 +103,34 @@ function showError(msg){
   errBox.hidden=false;
 }
 
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+// The status response carries this business's own services (from the
+// Office's services list) when booking is enabled. When the business has
+// services, the form offers exactly those — e.g. a snow business's
+// "Snow Plowing" — plus "Other". When it has none, the generic list already
+// in the markup stays (fallback).
+function fillServiceOptions(list){
+  if(!Array.isArray(list))return;
+  var names=list.filter(function(s){return typeof s==='string'&&s.trim();});
+  if(!names.length)return;
+  var sel=document.getElementById('fService');if(!sel)return;
+  var html='<option value="">Choose a service…</option>';
+  var hasOther=false;
+  names.forEach(function(name){
+    if(/^other$/i.test(name.trim()))hasOther=true;
+    html+='<option>'+escHtml(name)+'</option>';
+  });
+  if(!hasOther)html+='<option>Other</option>';
+  sel.innerHTML=html;
+}
+
 // Gate the form on the tenant's online-booking switch. Fail closed: if the
 // status check fails, show the "not available" card rather than a dead form.
 fetch(FN_URL+'?action=status&business_id='+encodeURIComponent(businessId))
   .then(function(res){return res.json().then(function(out){return{ok:res.ok,out:out};});})
   .then(function(r){
-    if(r.ok&&r.out&&r.out.enabled===true){show(formCard);}
+    if(r.ok&&r.out&&r.out.enabled===true){fillServiceOptions(r.out.services);show(formCard);}
     else{show(offCard);}
   })
   .catch(function(){show(offCard);});

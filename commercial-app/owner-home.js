@@ -412,6 +412,32 @@
     } catch (e) { return null; }
   }
 
+  /* New customer service requests (booking_requests, written by the customer
+   * portal and the online booking page). Rick's rule: the Office notifies the
+   * owner on any customer activity — a request that lands must count here,
+   * so "All clear!" can never paint over an unworked request. The list
+   * itself is worked from the Service Requests inbox on the Schedule page
+   * (portal-requests.js), where it can be scheduled or dismissed. */
+  function getNewServiceRequests() {
+    try {
+      const requests = intelRows('booking_requests')
+        .filter(r => /^new/i.test(intelText(intelValue(r, ['Status', 'status']))));
+      if (!requests.length) return null;
+      const newest = requests.slice().sort((a, b) =>
+        String(intelValue(b, ['Created Time', 'createdTime'])).localeCompare(String(intelValue(a, ['Created Time', 'createdTime']))))[0];
+      const who = intelText(intelValue(newest, ['Customer Name', 'customerName'])) || 'A customer';
+      const svc = intelText(intelValue(newest, ['Service', 'service']));
+      return {
+        count: requests.length,
+        summary: 'Newest: ' + who + (svc ? ' — ' + svc : '') + '. Work them from the Schedule page.',
+        urgent: true,
+        action: 'Open requests →',
+        actionFn: () => openPage('schedule'),
+        aiPrompt: 'What new service requests came in, and which should I schedule first?'
+      };
+    } catch (e) { return null; }
+  }
+
   /* ================= Project collectors (multi-day work) ================= */
 
   function getActiveProjects() {
@@ -786,6 +812,7 @@
     /* ---- Platform attention cards (all types): the same items the Owner
      * Command Center lists, so "Needs you now" and the Command Center can
      * never disagree — and "All clear!" only paints when both are empty. ---- */
+    pushCard(cards, '📥', 'Service requests', getNewServiceRequests());
     pushCard(cards, '🧭', 'Slipping jobs', getSlippingJobs());
     pushCard(cards, '📞', 'Follow-ups overdue', getOverdueFollowups());
     pushCard(cards, '🔁', 'Recurring visits due', getRecurringDue());
