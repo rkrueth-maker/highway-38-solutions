@@ -1,21 +1,22 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T12:26:12.462Z",
+  "generatedAt": "2026-10-26T15:46:04.112Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "commercial-app/app-13.js",
+    "commercial-app/customer-comms.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/northern-bouncie-fleet.js",
+    "commercial-app/owner-controls.js",
     "commercial-app/service-worker.js",
-    "commercial-app/version.json",
-    "supabase/functions/nl-bouncie-fleet/index.ts"
+    "commercial-app/version.json"
   ],
-  "fileCount": 6,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -36,7 +37,6 @@
     "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
