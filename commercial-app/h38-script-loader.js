@@ -106,6 +106,15 @@
     const PAGE_TASKS = [
       './tasks-page.js?build=20261011-phase4-1',
     ];
+    // Work (2026-10-26): the Work page's Mark Complete buttons and status
+    // select route through H38CustomerComms.markJobComplete (review prompt
+    // + auto invoice draft), but customer-comms only loaded with the
+    // Messages group — a cold Work session silently fell back to a bare
+    // status save with none of that behavior. Load it with Work too; same
+    // ?build= URL as PAGE_MESSAGES so the loader dedupes it.
+    const PAGE_WORK = [
+      './customer-comms.js?build=20261026-auto-invoice-2',
+    ];
     const PAGE_SCHEDULE = [
       './guided-schedule.js?build=20261020-ws4-schedule-1',
       './plow-flow.js?build=20261011-plow-flow-1',
@@ -117,7 +126,7 @@
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './customer-comms.js?build=20261026-auto-invoice-1',
+      './customer-comms.js?build=20261026-auto-invoice-2',
     ];
     const PAGE_FLEET = [
       './route-manager.js?build=20261026-map-tiles-1',
@@ -232,6 +241,7 @@
     'customers': PAGE_CUSTOMERS,
     'meetings': PAGE_MEETINGS,
     'tasks': PAGE_TASKS,
+    'work': PAGE_WORK,
     'schedule': PAGE_SCHEDULE,
     'messages': PAGE_MESSAGES,
     'fleet': PAGE_FLEET,
