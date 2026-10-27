@@ -94,6 +94,24 @@ public final class PolicyStore {
     }
 
     public static void clearSession(Context ctx) {
+        // Owner grace (1.0.4): the web layer fires its auth-cleared event
+        // for far more than a deliberate sign-out — an update heal wiping
+        // the WebView session, a tenant-scope change, a refresh-token
+        // rotation landing badly. On 1.0.0–1.0.3 every one of those wiped
+        // the native session + policy too, so background tracking died
+        // with the WebView's sign-in and only ever lived in the shadow of
+        // a recently-opened app — exactly the observed "output only at
+        // app opens" pattern. For an OWNER's own phone the recording
+        // switches are the stop control, not the WebView's auth state:
+        // keep the snapshot (marked cleared-at for honesty) and let the
+        // next real push supersede it. Employees keep the strict wipe —
+        // their consent state must never outlive a sign-out.
+        GateEvaluator.Policy p = null;
+        try { p = loadPolicy(ctx); } catch (Exception ignored) {}
+        if (p != null && p.ownerAdmin) {
+            state(ctx).edit().putLong("p_cleared_at", System.currentTimeMillis()).apply();
+            return;
+        }
         try { sessionPrefs(ctx).edit().clear().apply(); } catch (Exception ignored) {}
         state(ctx).edit().clear().apply();
     }
@@ -145,6 +163,9 @@ public final class PolicyStore {
         s.businessId = j.optString("businessId", s.businessId);
         s.businessKey = j.optString("businessKey", s.businessKey);
         saveSession(ctx, s);
+        // A live push supersedes any owner-grace snapshot kept by
+        // clearSession — fresh sign-in state wins.
+        state(ctx).edit().remove("p_cleared_at").apply();
 
         GateEvaluator.Policy p = new GateEvaluator.Policy(
                 j.optBoolean("signedIn", false),

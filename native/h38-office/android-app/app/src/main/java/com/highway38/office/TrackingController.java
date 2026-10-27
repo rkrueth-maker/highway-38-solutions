@@ -1,5 +1,7 @@
 package com.highway38.office;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -45,8 +47,41 @@ public final class TrackingController {
             } catch (RuntimeException ignored) {
                 // ForegroundServiceStartNotAllowedException / SecurityException.
             }
+            scheduleWatchdog(ctx);
         } else {
             try { ctx.stopService(svc); } catch (RuntimeException ignored) {}
+        }
+    }
+
+    // -------------------------------------------------------------- watchdog
+
+    /**
+     * Survival chain (1.0.4). Before 1.0.4 the service's only resurrection
+     * paths were a reboot (BootReceiver) and somebody opening the app —
+     * and several OEM builds suppress the START_STICKY restart after the
+     * task is swiped away, so a killed watcher could stay dead for days
+     * while its notification-free absence looked exactly like "armed".
+     * This one-shot alarm re-evaluates the gate every ~30 minutes while
+     * tracking is armed; the watchdog broadcast itself calls reevaluate,
+     * which re-arms the service if needed and schedules the next beat.
+     * It only ever runs while the gate is armed (it is scheduled solely
+     * from the armed branch above), and nothing here survives a
+     * force-stop — Android reserves that kill for the user, honestly.
+     */
+    private static final long WATCHDOG_MS = 30L * 60L * 1000L;
+    private static final int WATCHDOG_REQUEST = 3802;
+
+    private static void scheduleWatchdog(Context ctx) {
+        try {
+            AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return;
+            Intent i = new Intent(ctx, BootReceiver.class).setAction(BootReceiver.ACTION_WATCHDOG);
+            PendingIntent pi = PendingIntent.getBroadcast(ctx, WATCHDOG_REQUEST, i,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + WATCHDOG_MS, pi);
+        } catch (Exception ignored) {
+            // Alarms are a resilience bonus, never a reason to fail a start.
         }
     }
 }

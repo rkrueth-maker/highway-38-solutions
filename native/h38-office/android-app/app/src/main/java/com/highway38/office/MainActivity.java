@@ -26,6 +26,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -51,6 +52,13 @@ public final class MainActivity extends Activity {
 
     static final String OFFICE_URL = "https://highway38solutions.com/commercial-app/";
     private static final String OFFICE_HOST = "highway38solutions.com";
+    // Google sign-in return deep link (1.0.4). The web layer starts OAuth
+    // with this exact redirect URI (it is on the Supabase redirect
+    // allow-list); Android delivers the return to this activity, and
+    // handleAuthCallback hands the ?code= to the WebView, where the PKCE
+    // verifier lives.
+    static final String AUTH_CALLBACK_SCHEME = "h38office";
+    static final String AUTH_CALLBACK_HOST = "auth-callback";
     private static final int REQ_LOCATION_FG = 4201;
     private static final int REQ_NOTIFICATIONS = 4202;
     private static final int REQ_WEB_FILE = 4203;
@@ -85,7 +93,11 @@ public final class MainActivity extends Activity {
         applySafeAreaInsets();
 
         configureWebView();
-        webView.loadUrl(OFFICE_URL);
+        // A cold start from the Google sign-in deep link goes straight to
+        // the callback URL instead of the plain Office URL.
+        if (!handleAuthCallback(getIntent())) {
+            webView.loadUrl(OFFICE_URL);
+        }
 
         if (!PolicyStore.setupComplete(this) && alreadyArmed()) {
             // An owner who armed tracking through the Office itself (signed
@@ -143,6 +155,36 @@ public final class MainActivity extends Activity {
             controller.setAppearanceLightStatusBars(true);
             controller.setAppearanceLightNavigationBars(true);
         }
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleAuthCallback(intent);
+    }
+
+    /**
+     * Google sign-in return path. Supabase redirects the Custom Tab to
+     * h38office://auth-callback?code=… (or with error details when sign-in
+     * fails or is cancelled); the manifest filter delivers that here.
+     * The deep link's query/fragment is replayed onto the Office origin
+     * and loaded in the WebView — the PKCE verifier and the auth client
+     * live in that origin's storage, so the exchange and the plain-
+     * language return notices run exactly as they do in a browser.
+     * Returns true when the intent was an auth callback.
+     */
+    private boolean handleAuthCallback(Intent intent) {
+        if (intent == null || webView == null) return false;
+        Uri data = intent.getData();
+        if (data == null || !AUTH_CALLBACK_SCHEME.equals(data.getScheme())
+                || !AUTH_CALLBACK_HOST.equals(data.getHost())) return false;
+        StringBuilder url = new StringBuilder(OFFICE_URL);
+        String query = data.getEncodedQuery();
+        if (query != null && !query.isEmpty()) url.append('?').append(query);
+        String fragment = data.getEncodedFragment();
+        if (fragment != null && !fragment.isEmpty()) url.append('#').append(fragment);
+        webView.loadUrl(url.toString());
+        return true;
     }
 
     @Override protected void onResume() {
@@ -235,6 +277,15 @@ public final class MainActivity extends Activity {
         Uri uri = Uri.parse(url);
         String host = uri.getHost() == null ? "" : uri.getHost();
         String scheme = uri.getScheme() == null ? "" : uri.getScheme();
+        if (isAuthFlowUrl(uri, host)) {
+            // Google refuses OAuth inside embedded WebViews, and a
+            // detached full-browser hop has no way back into this WebView.
+            // The auth flow gets a Chrome Custom Tab instead: same browser
+            // profile (the owner's Google session just works), and its
+            // final redirect is our own deep link, which lands back here.
+            openAuthTab(uri);
+            return true;
+        }
         if (host.equals(OFFICE_HOST) || host.endsWith(".supabase.co")) return false; // stay in the app
         if (scheme.equals("https") || scheme.equals("http")) {
             try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
@@ -247,6 +298,31 @@ public final class MainActivity extends Activity {
             return true;
         }
         return false;
+    }
+
+    /** True for the two hops of a Google sign-in round-trip. */
+    private boolean isAuthFlowUrl(Uri uri, String host) {
+        if ("accounts.google.com".equals(host)) return true;
+        // The Supabase authorize endpoint itself: catch the flow at its
+        // first hop, before Google's page can load inside the WebView.
+        return host.endsWith(".supabase.co")
+                && String.valueOf(uri.getPath()).startsWith("/auth/v1/authorize");
+    }
+
+    private void openAuthTab(Uri uri) {
+        try {
+            new CustomTabsIntent.Builder()
+                    .setShowTitle(false)
+                    .build()
+                    .launchUrl(this, uri);
+        } catch (Exception e) {
+            // No Custom Tabs provider on this phone: a full browser still
+            // returns through the same deep link, so the flow completes.
+            try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); }
+            catch (Exception ignored) {
+                Toast.makeText(this, "Could not open Google sign-in.", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {

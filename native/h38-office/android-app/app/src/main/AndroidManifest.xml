@@ -34,11 +34,23 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Google sign-in return (1.0.4): Supabase redirects the
+                 Custom Tab to this exact deep link (it is the redirectTo
+                 the web layer passes and is on the Supabase redirect
+                 allow-list); singleTop delivers it to onNewIntent, which
+                 hands the ?code= to the WebView. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="h38office" android:host="auth-callback" />
             </intent-filter>
         </activity>
 
@@ -53,6 +65,9 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- An in-place APK update kills the tracking service
+                     process; this is its only automatic way back (1.0.4). -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
     </application>

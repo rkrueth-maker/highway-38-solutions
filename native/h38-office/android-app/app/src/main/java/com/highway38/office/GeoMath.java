@@ -16,6 +16,25 @@ public final class GeoMath {
         return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1.0, Math.sqrt(a)));
     }
 
+    /**
+     * Parked-watcher movement trigger. The TripDetector only accepts fixes
+     * with accuracy &le; 65 m, but the low-power parked location profile
+     * routinely delivers fixes far coarser than that away from Wi-Fi — so
+     * the detector alone can never see a drive begin. This coarse trigger
+     * is the escape hatch: any fix (accuracy up to 500 m; negative =
+     * unknown, which passes) landing more than 250 m from the parked
+     * anchor means "the phone is really moving — switch to high-accuracy
+     * and let the detector judge." Never used to measure distance itself.
+     */
+    public static final double CONFIRM_ACCURACY_M = 500.0;
+    public static final double CONFIRM_DISPLACEMENT_M = 250.0;
+
+    public static boolean shouldConfirmDrive(double anchorLat, double anchorLng,
+                                             double lat, double lng, double accuracyM) {
+        if (accuracyM > CONFIRM_ACCURACY_M) return false;
+        return haversineM(anchorLat, anchorLng, lat, lng) > CONFIRM_DISPLACEMENT_M;
+    }
+
     /** Destination point after travelling {@code distanceM} metres at {@code bearingDeg} (0 = north). */
     public static double[] destination(double lat, double lng, double bearingDeg, double distanceM) {
         double d = distanceM / EARTH_RADIUS_M;

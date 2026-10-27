@@ -1,21 +1,31 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-27T08:13:02.695Z",
-  "base": "ce80c65",
+  "generatedAt": "2026-10-27T08:19:47.318Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
+    ".github/workflows/h38-office-android-release.yml",
     "commercial-app/index.html",
-    "commercial-app/mobile-runtime-stability.js",
-    "commercial-app/service-worker.js",
-    "commercial-app/version.json"
+    "commercial-app/supabase-auth.js",
+    "commercial-app/version.json",
+    "native/h38-office/android-app/app/build.gradle",
+    "native/h38-office/android-app/app/src/main/AndroidManifest.xml",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/BootReceiver.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/GeoMath.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/MainActivity.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/OfficeBridge.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/PolicyStore.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/TrackingController.java",
+    "native/h38-office/android-app/app/src/main/java/com/highway38/office/TrackingService.java",
+    "native/h38-office/android-app/app/src/test/java/com/highway38/office/GeoMathTest.java"
   ],
-  "fileCount": 4,
+  "fileCount": 14,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },

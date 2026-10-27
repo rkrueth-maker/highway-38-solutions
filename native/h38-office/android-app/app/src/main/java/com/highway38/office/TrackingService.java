@@ -23,10 +23,12 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.Tasks;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The always-on mileage watcher. Runs as a foreground service whenever the
@@ -62,6 +64,40 @@ public final class TrackingService extends Service {
     private double lastFixLat, lastFixLng, lastFixAcc;
     private long lastFixMs = 0;
 
+    // --- Parked movement confirm window (1.0.4) ---------------------------
+    // The detector only accepts fixes with accuracy <= 65 m, but the
+    // balanced-power parked profile away from Wi-Fi delivers cell-grade
+    // fixes far coarser than that — so on 1.0.0–1.0.3 a drive could begin
+    // and end without the detector ever seeing one acceptable fix: the
+    // high-accuracy profile only engaged AFTER a detection that the parked
+    // profile could not produce. The raw anchor below breaks the circle:
+    // coarse displacement past a loose threshold buys a 3-minute
+    // high-accuracy window in which the detector can do its precise work.
+    private static final long CONFIRM_WINDOW_MS = 180_000L;
+    private double rawAnchorLat, rawAnchorLng;
+    private boolean rawAnchorSet = false;
+    private boolean confirming = false;
+
+    // Identity snapshot taken whenever the gate is RECORDING. A trip that
+    // completes after the native session was wiped is filed under this
+    // snapshot and QUEUED — never silently dropped (1.0.0–1.0.3 dropped
+    // it outright when the session read came back empty).
+    private PolicyStore.Session sessionSnapshot;
+
+    private final Runnable confirmExpiry = new Runnable() {
+        @Override public void run() {
+            confirming = false;
+            if (gate == GateEvaluator.Gate.RECORDING && updatesActive && !drivingProfile) {
+                applyProfile(false);
+            }
+            if (lastFixMs > 0) {
+                rawAnchorLat = lastFixLat;
+                rawAnchorLng = lastFixLng;
+                rawAnchorSet = true;
+            }
+        }
+    };
+
     private final LocationCallback locationCallback = new LocationCallback() {
         @Override public void onLocationResult(LocationResult result) {
             if (result == null) return;
@@ -73,6 +109,36 @@ public final class TrackingService extends Service {
                 lastFixLng = loc.getLongitude();
                 lastFixAcc = acc;
                 lastFixMs = loc.getTime();
+
+                if (!drivingProfile) {
+                    // Movement trigger: coarse but far = really moving.
+                    if (!confirming && rawAnchorSet
+                            && GeoMath.shouldConfirmDrive(rawAnchorLat, rawAnchorLng,
+                                    loc.getLatitude(), loc.getLongitude(), acc)) {
+                        confirming = true;
+                        handler.post(() -> {
+                            if (gate == GateEvaluator.Gate.RECORDING && updatesActive && !drivingProfile) {
+                                applyProfile(true);
+                                handler.removeCallbacks(confirmExpiry);
+                                handler.postDelayed(confirmExpiry, CONFIRM_WINDOW_MS);
+                            } else {
+                                confirming = false;
+                            }
+                        });
+                    }
+                    // The raw anchor only follows settled fixes, exactly
+                    // like the detector's parked anchor.
+                    boolean settledFix = speed != null
+                            ? speed < TripDetector.STILL_SPEED_MPS
+                            : (rawAnchorSet && GeoMath.haversineM(rawAnchorLat, rawAnchorLng,
+                                    loc.getLatitude(), loc.getLongitude()) <= TripDetector.STILL_RADIUS_M);
+                    if (!rawAnchorSet || settledFix) {
+                        rawAnchorLat = loc.getLatitude();
+                        rawAnchorLng = loc.getLongitude();
+                        rawAnchorSet = true;
+                    }
+                }
+
                 detector.onFix(new TripDetector.Fix(
                         loc.getLatitude(), loc.getLongitude(), acc, speed, loc.getTime()));
             }
@@ -88,11 +154,44 @@ public final class TrackingService extends Service {
                 }
                 handler.post(() -> applyGate(true));
                 SyncEngine.syncPendingTrips(TrackingService.this);
+                refreshSessionSnapshot();
+                refreshLastFixFromCurrentLocation();
                 maybeReportOwnerPosition();
             });
             handler.postDelayed(this, GATE_RECHECK_MS);
         }
     };
+
+    private void refreshSessionSnapshot() {
+        PolicyStore.Session s = PolicyStore.loadSession(this);
+        if (s.present()) sessionSnapshot = s;
+    }
+
+    /**
+     * Actively fetch one current fix for the heartbeat. On 1.0.0–1.0.3 the
+     * heartbeat only reused whatever the location callback had last
+     * delivered — and the parked request's 40 m minimum displacement
+     * meant a stationary phone delivered one fix and then went silent, so
+     * the "fix no older than 30 minutes" gate below starved forever while
+     * the phone sat still. A heartbeat must ask, not wait.
+     */
+    private void refreshLastFixFromCurrentLocation() {
+        if (gate != GateEvaluator.Gate.RECORDING || !hasFineLocation()) return;
+        try {
+            Location loc = Tasks.await(
+                    fused.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null),
+                    12, TimeUnit.SECONDS);
+            if (loc != null) {
+                lastFixLat = loc.getLatitude();
+                lastFixLng = loc.getLongitude();
+                lastFixAcc = loc.hasAccuracy() ? loc.getAccuracy() : -1;
+                lastFixMs = loc.getTime();
+            }
+        } catch (Exception ignored) {
+            // No fix right now (airplane mode, GPS off): the heartbeat
+            // freshness gate simply skips this round, as before.
+        }
+    }
 
     /**
      * Find-my-phone heartbeat: on the 15-minute gate recheck, report the
@@ -125,7 +224,14 @@ public final class TrackingService extends Service {
         detector = new TripDetector(new TripDetector.Listener() {
             @Override public void onTripCompleted(TripDetector.CompletedTrip trip) {
                 PolicyStore.Session s = PolicyStore.loadSession(TrackingService.this);
-                if (!s.present()) return;
+                if (!s.present()) s = sessionSnapshot;
+                if (s == null || s.businessId.isEmpty() || s.userId.isEmpty()) {
+                    // Never armed with an identity — the gate only reaches
+                    // RECORDING after a session push, so this guard should
+                    // be unreachable; if it is ever hit there is honestly
+                    // nothing to file the trip under.
+                    return;
+                }
                 String tripId = TripPayload.newTripId();
                 Map<String, Object> payload = TripPayload.build(trip, tripId,
                         s.businessId, s.userId, s.userName, System.currentTimeMillis());
@@ -171,6 +277,7 @@ public final class TrackingService extends Service {
                 startForegroundWith(drivingProfile
                         ? "Mileage tracking is on — recording this drive"
                         : "Mileage tracking is on");
+                refreshSessionSnapshot();
                 if (!updatesActive) requestUpdates(false);
                 break;
             }
@@ -200,19 +307,32 @@ public final class TrackingService extends Service {
         }
     }
 
+    /** Detector-driven profile change: driving confirmed, or drive over. */
     private void requestUpdates(boolean driving) {
-        if (!hasFineLocation()) return;
         drivingProfile = driving;
-        LocationRequest req;
         if (driving) {
+            // The detector confirmed the drive itself — the confirm
+            // window has done its job.
+            confirming = false;
+            handler.removeCallbacks(confirmExpiry);
+        }
+        applyProfile(driving);
+    }
+
+    private void applyProfile(boolean highAccuracy) {
+        if (!hasFineLocation()) return;
+        LocationRequest req;
+        if (highAccuracy) {
             req = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5_000)
                     .setMinUpdateIntervalMillis(3_000)
                     .setMinUpdateDistanceMeters(10)
                     .build();
         } else {
+            // No minimum displacement (1.0.4): the old 40 m floor meant a
+            // stationary phone delivered one fix and went silent, which
+            // starved both the raw anchor above and the heartbeat.
             req = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 60_000)
                     .setMinUpdateIntervalMillis(30_000)
-                    .setMinUpdateDistanceMeters(40)
                     .build();
         }
         try {
@@ -229,6 +349,9 @@ public final class TrackingService extends Service {
         try { fused.removeLocationUpdates(locationCallback); } catch (Exception ignored) {}
         updatesActive = false;
         drivingProfile = false;
+        confirming = false;
+        rawAnchorSet = false;
+        handler.removeCallbacks(confirmExpiry);
         detector.reset();
     }
 
