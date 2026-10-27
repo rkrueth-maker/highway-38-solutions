@@ -366,6 +366,19 @@
           return;
         }
         showNotice('Opening Google sign-in…', false);
+        // Preflight: if the Google provider is not enabled on the server yet,
+        // the authorize endpoint answers with a raw error page instead of
+        // sending the browser back here. Check first and fail in place with a
+        // plain notice; once the provider is switched on this same button
+        // goes straight through.
+        try {
+          const settingsResponse = await fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.publishableKey } });
+          const settings = settingsResponse.ok ? await settingsResponse.json() : null;
+          if (settings && settings.external && settings.external.google !== true) {
+            showNotice('Google sign-in is not switched on for the Office yet. Sign in with your email and Office password above.', true);
+            return;
+          }
+        } catch (settingsError) { /* settings unreachable — try the sign-in anyway */ }
         const { error } = await initClient().auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo: currentRedirectUrl(), queryParams: { prompt: 'select_account' } }
