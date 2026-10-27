@@ -31,6 +31,10 @@ body.h38-auth-locked main{padding:clamp(20px,4vw,52px) 18px 72px}
 .h38-auth-card .notice{margin-top:13px;font-size:.78rem;text-align:left}
 .h38-auth-card .h38-autofill-help{margin:.65rem 0 0;line-height:1.4;text-align:left}
 .h38-auth-card .h38-saved-login{grid-column:1/-1;width:100%;min-height:48px}
+.h38-auth-card .h38-auth-or{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:var(--muted);font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.h38-auth-card .h38-auth-or::before,.h38-auth-card .h38-auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.h38-auth-card .h38-google-signin{width:100%;min-height:48px}
+.h38-auth-card .h38-google-note{margin:.55rem 0 0;line-height:1.4;text-align:left}
 .h38-recovery-card{max-width:560px;margin:28px auto;text-align:left}
 .h38-recovery-card h1{margin:.35rem 0 .55rem;color:var(--navy)}
 #earlySecureSignInButton,#earlyRetryButton{display:none!important}

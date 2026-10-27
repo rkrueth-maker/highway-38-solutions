@@ -43,6 +43,7 @@
   function safeMessage(error) {
     const raw = String(error && error.message ? error.message : error || 'Secure sign-in failed.');
     // Map technical Supabase errors to plain-language messages
+    if (/provider is not enabled|provider_disabled/i.test(raw)) return 'Google sign-in is not switched on for the Office yet. Sign in with your email and Office password.';
     if (/invalid login credentials/i.test(raw)) return 'Email or password is incorrect. Check both and try again.';
     if (/user not found|no user/i.test(raw)) return 'No account found for this email address.';
     if (/email not confirmed/i.test(raw)) return 'Please confirm your email address first, then sign in.';
@@ -55,6 +56,33 @@
 
   function currentRedirectUrl() {
     return String(config.authRedirectUrl || (location.origin + location.pathname));
+  }
+
+  function inNativeApp() {
+    return /H38OfficeAndroid/i.test(String(navigator.userAgent || '')) || !!window.AndroidH38Office;
+  }
+
+  // When Google sign-in cannot complete, Supabase sends the browser back to
+  // this page with error details in the URL. Turn that into one plain notice
+  // and clean the error out of the address bar; never touch a live session
+  // code in the same URL — the Auth client exchanges that itself.
+  function oauthReturnMessage() {
+    try {
+      const params = new URLSearchParams(location.search);
+      const code = String(params.get('error_code') || params.get('error') || '');
+      const description = String(params.get('error_description') || '');
+      if (!code && !description) return '';
+      ['error', 'error_code', 'error_description'].forEach(key => params.delete(key));
+      const rest = params.toString();
+      history.replaceState(history.state, '', location.pathname + (rest ? `?${rest}` : '') + location.hash);
+      if (/provider/i.test(code) || /provider/i.test(description)) {
+        return 'Google sign-in is not switched on for the Office yet. Sign in with your email and Office password below.';
+      }
+      if (/access_denied|cancel/i.test(`${code} ${description}`)) {
+        return 'Google sign-in was cancelled. Nothing changed — sign in with your email and Office password, or try Google again.';
+      }
+      return 'Google sign-in did not complete. Sign in with your email and Office password below.';
+    } catch (error) { return ''; }
   }
 
   function selectedBusinessKey(userId) {
@@ -310,7 +338,7 @@
       authPanelRendered(mode);
       return;
     }
-    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">Business Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage your Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div id="h38AuthNotice" class="notice">Secure sign-in and access rules determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
+    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">Business Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage your Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div class="h38-auth-or" aria-hidden="true"><span>or</span></div><button id="h38GoogleSignIn" class="secondary h38-google-signin" type="button">Sign in with Google</button><p class="muted small h38-google-note">Use the Google account that has the same email as your Office account — it opens this same account and your same business, not a new one.</p><div id="h38AuthNotice" class="notice">Secure sign-in and access rules determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
     installAccessIntentControls(target);
     document.getElementById('h38AuthForm').onsubmit = async event => {
       event.preventDefault();
@@ -325,6 +353,28 @@
         await runtime.bridge?.connect();
       } catch (error) { showNotice(safeMessage(error), true); }
     };
+    const googleButton = document.getElementById('h38GoogleSignIn');
+    if (googleButton) googleButton.onclick = async () => {
+      try {
+        if (inNativeApp()) {
+          // The app shell sends google.com links out to the phone browser and
+          // has no return path back into this WebView yet, so a Google
+          // round-trip started here cannot land back in the app. Say so
+          // plainly instead of stranding the owner in the browser. The app
+          // update that adds the return path makes this button live in-app.
+          showNotice('Google sign-in cannot finish inside the app yet — it needs the app update being prepared for it. For now, sign in here with your email and Office password.', true);
+          return;
+        }
+        showNotice('Opening Google sign-in…', false);
+        const { error } = await initClient().auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: currentRedirectUrl(), queryParams: { prompt: 'select_account' } }
+        });
+        if (error) throw error;
+      } catch (error) { showNotice(safeMessage(error), true); }
+    };
+    const oauthMessage = oauthReturnMessage();
+    if (oauthMessage) showNotice(oauthMessage, true);
     document.getElementById('h38ResetPassword').onclick = async () => {
       try {
         const email = String(document.getElementById('h38AuthEmail').value || '').trim().toLowerCase();
