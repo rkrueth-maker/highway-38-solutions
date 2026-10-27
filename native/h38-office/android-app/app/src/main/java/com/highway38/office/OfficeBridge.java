@@ -30,6 +30,17 @@ public final class OfficeBridge {
         return StatusReporter.statusJson(activity).toString();
     }
 
+    /**
+     * Capability flag for the web sign-in page (1.0.4): this build can run
+     * Google sign-in to completion in-app — the OAuth round-trip opens in
+     * a Chrome Custom Tab and returns through the h38office:// deep link
+     * into this WebView. The web layer asks before starting OAuth because
+     * older builds have no return path and must keep the plain notice.
+     */
+    @JavascriptInterface public boolean supportsGoogleSignIn() {
+        return true;
+    }
+
     /** App identity, Deals build() parity. */
     @JavascriptInterface public String appInfo() {
         JSONObject j = new JSONObject();

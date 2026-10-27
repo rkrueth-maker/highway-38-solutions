@@ -373,13 +373,15 @@
     const googleButton = document.getElementById('h38GoogleSignIn');
     if (googleButton) googleButton.onclick = async () => {
       try {
-        if (inNativeApp()) {
-          // The app shell sends google.com links out to the phone browser and
-          // has no return path back into this WebView yet, so a Google
-          // round-trip started here cannot land back in the app. Say so
-          // plainly instead of stranding the owner in the browser. The app
-          // update that adds the return path makes this button live in-app.
-          showNotice('Google sign-in cannot finish inside the app yet — it needs the app update being prepared for it. For now, sign in here with your email and Office password.', true);
+        // Inside the app shell (APK 1.0.4+), Google sign-in runs in a
+        // Chrome Custom Tab and returns through the app's own deep link —
+        // the shell hands the ?code= back into this WebView, where the
+        // PKCE verifier lives, so the exchange completes here exactly as
+        // it does in a browser. Older app builds keep the plain notice:
+        // their shell has no return path and a round-trip would strand
+        // the owner in the phone browser.
+        if (inNativeApp() && !window.AndroidH38Office?.supportsGoogleSignIn?.()) {
+          showNotice('Google sign-in cannot finish inside this app build yet — it needs the app update being prepared for it. For now, sign in here with your email and Office password.', true);
           return;
         }
         showNotice('Opening Google sign-in…', false);
@@ -398,7 +400,13 @@
         } catch (settingsError) { /* settings unreachable — try the sign-in anyway */ }
         const { error } = await initClient().auth.signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: currentRedirectUrl(), queryParams: { prompt: 'select_account' } }
+          options: {
+            // In-app: return to the app's deep link, NOT this page's URL —
+            // the return has to re-enter through the shell (see above).
+            // This exact URI is on the Supabase redirect allow-list.
+            redirectTo: inNativeApp() ? 'h38office://auth-callback' : currentRedirectUrl(),
+            queryParams: { prompt: 'select_account' }
+          }
         });
         if (error) throw error;
       } catch (error) { showNotice(safeMessage(error), true); }
