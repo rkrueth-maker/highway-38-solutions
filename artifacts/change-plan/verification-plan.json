@@ -1,21 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-27T08:07:50.404Z",
-  "base": "a999d37",
+  "generatedAt": "2026-10-27T08:13:02.695Z",
+  "base": "ce80c65",
   "head": "HEAD",
   "files": [
-    "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/mileage.js",
     "commercial-app/mobile-runtime-stability.js",
-    "commercial-app/phone-first-office.js",
-    "commercial-app/runtime-rowid-fix.js",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-auth.js",
-    "commercial-app/supabase-startup.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 10,
+  "fileCount": 4,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
