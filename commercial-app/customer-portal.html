@@ -104,6 +104,15 @@ button.block{width:100%}
 
     <div class="view" id="view-quotes">
       <div class="card"><h2>Quotes</h2><div id="quoteList"></div></div>
+      <div class="card" id="signPanel" hidden>
+        <h2>Sign &amp; accept</h2>
+        <p class="small" id="signSummary" style="margin-bottom:10px"></p>
+        <div id="signErr" class="err" hidden></div>
+        <div class="field"><label for="signName">Type your full name to sign</label><input id="signName" type="text" maxlength="80" autocomplete="name" placeholder="Your full name"></div>
+        <p class="small" id="signDepositNote" style="margin-bottom:12px"></p>
+        <div class="row"><button class="block" id="signSubmitBtn">Sign &amp; accept</button><button class="secondary block" id="signCancelBtn" type="button">Not yet</button></div>
+        <p class="note">Typing your name is your signature. We store it, with the date and time, on this exact quote version.</p>
+      </div>
     </div>
 
     <div class="view" id="view-invoices">
@@ -283,6 +292,7 @@ function renderPortal(){
   }).join(''):'<p class="muted">No upcoming visits scheduled.</p>';
 
   // Quotes
+  var sdOn=!!(bundle.signedDeposit&&bundle.signedDeposit.enabled===true);
   $('quoteList').innerHTML=bundle.quotes.length?bundle.quotes.map(function(q){
     var canAct=/presented|sent/i.test(q.status);
     var tiersHtml='';
@@ -290,14 +300,15 @@ function renderPortal(){
       tiersHtml=q.tiers.map(function(t,i){
         return '<div class="tier'+(i===1?' popular':'')+'">'+(i===1?'<div class="tag">Most popular</div>':'')+'<div class="tname">'+esc(t.name)+'</div><div class="tprice">'+money(t.total)+'</div><div class="muted small">'+esc(t.description||'')+'</div>'+
         (t.items||[]).map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join('')+
-        (canAct?'<button class="block" style="margin-top:10px" data-approve="'+esc(q.id)+'" data-tier-index="'+i+'">Approve '+esc(t.name)+'</button>':'')+'</div>';
+        (canAct?(sdOn?'<button class="block" style="margin-top:10px" data-sign="'+esc(q.id)+'" data-tier-index="'+i+'">Sign &amp; approve '+esc(t.name)+'</button>':'<button class="block" style="margin-top:10px" data-approve="'+esc(q.id)+'" data-tier-index="'+i+'">Approve '+esc(t.name)+'</button>'):'')+'</div>';
       }).join('');
     }
     var linesHtml=(q.lines||[]).length?'<h3>Line items</h3>'+q.lines.map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join(''):'';
+    var signedHtml=q.signedBy?'<div class="small" style="margin-top:6px">✍️ Signed by <strong>'+esc(q.signedBy)+'</strong>'+(q.signedAt?' · '+esc(fmtDate(q.signedAt)):'')+(Number(q.depositAmount)>0?' · Deposit '+money(q.depositAmount)+' ('+esc(q.depositPercent)+'% of the quote total)':'')+'</div>':'';
     return '<div class="item"><div class="top"><strong>'+esc(q.title||('Quote '+(q.number||'')))+'</strong>'+statusPill(q.status)+'</div>'+
-      '<div class="muted small">'+esc(q.number||'')+' · Total '+money(q.total)+'</div>'+
+      '<div class="muted small">'+esc(q.number||'')+' · Total '+money(q.total)+'</div>'+signedHtml+
       (q.scope?'<p class="small" style="margin:8px 0">'+esc(q.scope)+'</p>':'')+tiersHtml+linesHtml+
-      (canAct&&!(q.tiers&&q.tiers.length===3)?'<div class="row" style="margin-top:10px"><button class="block" data-approve="'+esc(q.id)+'">Approve quote</button><button class="secondary block" data-decline="'+esc(q.id)+'">Decline</button></div>':'')+
+      (canAct&&!(q.tiers&&q.tiers.length===3)?(sdOn?'<div class="row" style="margin-top:10px"><button class="block" data-sign="'+esc(q.id)+'">Review &amp; sign</button><button class="secondary block" data-decline="'+esc(q.id)+'">Decline</button></div>':'<div class="row" style="margin-top:10px"><button class="block" data-approve="'+esc(q.id)+'">Approve quote</button><button class="secondary block" data-decline="'+esc(q.id)+'">Decline</button></div>'):'')+
       (canAct&&(q.tiers&&q.tiers.length===3)?'<button class="secondary block" data-decline="'+esc(q.id)+'">Decline all options</button>':'')+
     '</div>';
   }).join(''):'<p class="muted">No quotes yet.</p>';
@@ -325,6 +336,8 @@ document.addEventListener('click',function(e){
   if(g){var b=document.querySelector('#tabBar button[data-view="'+g.dataset.goto+'"]');if(b)b.click();return;}
   var ap=e.target.closest('[data-approve]');
   if(ap){var qid=ap.dataset.approve;var found=((typeof bundle!=='undefined'&&bundle&&bundle.quotes)||[]).find(function(x){return x.id===qid;})||null;approveQuote(qid,ap.dataset.tierIndex!==undefined&&ap.dataset.tierIndex!==''?Number(ap.dataset.tierIndex):null,found);return;}
+  var sg=e.target.closest('[data-sign]');
+  if(sg){var sqid=sg.dataset.sign;var sfound=((typeof bundle!=='undefined'&&bundle&&bundle.quotes)||[]).find(function(x){return x.id===sqid;})||null;openSignPanel(sqid,sg.dataset.tierIndex!==undefined&&sg.dataset.tierIndex!==''?Number(sg.dataset.tierIndex):null,sfound);return;}
   var dc=e.target.closest('[data-decline]');
   if(dc){declineQuote(dc.dataset.decline);return;}
   var py=e.target.closest('[data-pay]');
@@ -341,6 +354,41 @@ function approveQuote(quoteId,tierIndex,quote){
     if(r.ok)loadSession(sessionToken);
   });
 }
+// ---- Signed acceptance (only offered when the business turned it on) ----
+// The server is the authority: it re-checks the tenant switch, the exact
+// quote revision and the deposit percent, and creates the one deposit
+// invoice. This panel only collects the typed name.
+var signCtx=null;
+function openSignPanel(quoteId,tierIndex,quote){
+  if(!quote)return;
+  var tier=(quote.tiers&&typeof tierIndex==='number')?quote.tiers[tierIndex]:null;
+  var total=tier?tierTotalClient(tier):(Number(quote.total)||0);
+  var pct=Number(quote.depositPercent);
+  if(!isFinite(pct))pct=(bundle&&bundle.signedDeposit&&Number(bundle.signedDeposit.depositPercent))||50;
+  var deposit=Math.round((total*pct/100)*100)/100;
+  signCtx={quoteId:quoteId,tierIndex:(typeof tierIndex==='number'?tierIndex:null),revision:quote.revision};
+  $('signSummary').textContent='You are accepting '+(quote.title||('Quote '+(quote.number||'')))+(tier?(' — the '+tier.name+' option'):'')+' at '+money(total)+'.';
+  $('signDepositNote').textContent=deposit>0?('A deposit of '+money(deposit)+' ('+pct+'% of the quote total) is due on signing. We will contact you about the deposit and scheduling.'):'No deposit is due on signing. We will contact you to schedule the work.';
+  $('signErr').hidden=true;
+  $('signName').value='';
+  $('signPanel').hidden=false;
+  $('signPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(function(){try{$('signName').focus();}catch(e){}},250);
+}
+$('signCancelBtn').addEventListener('click',function(){$('signPanel').hidden=true;signCtx=null;});
+$('signSubmitBtn').addEventListener('click',function(){
+  if(!signCtx)return;
+  var name=$('signName').value.trim();
+  var err=$('signErr');
+  if(name.length<2){err.textContent='Type your full name to sign.';err.hidden=false;return;}
+  err.hidden=true;
+  var btn=$('signSubmitBtn');btn.disabled=true;btn.textContent='Signing…';
+  api('sign-quote',{session_token:sessionToken,quote_id:signCtx.quoteId,tier_index:signCtx.tierIndex,expected_revision:signCtx.revision,signer_name:name}).then(function(r){
+    btn.disabled=false;btn.textContent='Sign & accept';
+    if(r.ok){$('signPanel').hidden=true;signCtx=null;alert((r.o&&r.o.message)||'Quote signed and accepted.');loadSession(sessionToken);}
+    else{err.textContent=(r.o&&(r.o.error||r.o.message))||'Signing failed. Please try again.';err.hidden=false;}
+  }).catch(function(){btn.disabled=false;btn.textContent='Sign & accept';err.textContent='Could not reach the portal. Please try again.';err.hidden=false;});
+});
 function declineQuote(quoteId){
   var reason=prompt('Anything we should know? (optional)')||'';
   api('decline-quote',{session_token:sessionToken,quote_id:quoteId,reason:reason}).then(function(r){
