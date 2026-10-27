@@ -1,17 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-27T07:52:00.655Z",
-  "base": null,
+  "generatedAt": "2026-10-27T08:07:50.404Z",
+  "base": "a999d37",
   "head": "HEAD",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md"
+    "commercial-app/h38-script-loader.js",
+    "commercial-app/index.html",
+    "commercial-app/mileage.js",
+    "commercial-app/mobile-runtime-stability.js",
+    "commercial-app/phone-first-office.js",
+    "commercial-app/runtime-rowid-fix.js",
+    "commercial-app/service-worker.js",
+    "commercial-app/supabase-auth.js",
+    "commercial-app/supabase-startup.js",
+    "commercial-app/version.json"
   ],
-  "fileCount": 3,
+  "fileCount": 10,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": false,
+    "publicWebsite": true,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -22,20 +29,28 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": false,
+    "publicRendering": true,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
-    "node scripts/verify-change-governance.js"
+    "node scripts/verify-change-governance.js",
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
-  "expensiveChecks": [],
-  "deploymentWorkflows": [],
-  "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change.",
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  "expensiveChecks": [
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
+  "deploymentWorkflows": [
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
