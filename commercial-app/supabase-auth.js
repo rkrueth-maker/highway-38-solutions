@@ -338,7 +338,24 @@
       authPanelRendered(mode);
       return;
     }
-    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">Business Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage your Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form"><label><span>Email address</span><input id="h38AuthEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div class="h38-auth-or" aria-hidden="true"><span>or</span></div><button id="h38GoogleSignIn" class="secondary h38-google-signin" type="button">Sign in with Google</button><p class="muted small h38-google-note">Use the Google account that has the same email as your Office account — it opens this same account and your same business, not a new one.</p><div id="h38AuthNotice" class="notice">Secure sign-in and access rules determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
+    // A live sign-in form is never re-created under the user's fingers
+    // (2026-10-27, build 20261027-session-keep-1). On a dead-session cold
+    // open the gate paints from the first 'sign-in-required' status, and
+    // the session-recovery sign-out fires a SECOND 'sign-in-required'
+    // moments later — re-rendering the gate while the owner is filling
+    // it. A password-manager fill that committed into the first form
+    // instance is wiped with it, so the submit then sends an empty
+    // password and the correct saved login is "rejected"; typing into
+    // the now-stable second form works, which is exactly the owner's
+    // report. Preserve the live form (values, focus, autofill commit)
+    // and let the repeat render update nothing but the detail text.
+    if (target.querySelector('#h38AuthForm')) {
+      const help = target.querySelector('#h38AuthRoleHelp');
+      if (help && detail) help.textContent = detail;
+      authPanelRendered(mode || 'signin');
+      return;
+    }
+    target.innerHTML = `<section class="welcome h38-access-gate"><div class="h38-access-intro"><p class="h38-access-kicker">Business Office secure access</p><h1>One Office. The right workspace for every role.</h1><p>${esc(detail || 'Owners, administrators, site managers, foremen, and employees use the same secure Office sign-in.')}</p><div class="h38-access-options" aria-label="Choose sign-in guidance"><button class="h38-access-option is-active" type="button" data-h38-access-intent="office" aria-pressed="true"><span class="h38-access-icon" aria-hidden="true">⌂</span><span><strong>Owner or administrator</strong><small>Business controls, team access, and approvals</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="site-manager" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">▦</span><span><strong>Site manager / foreman</strong><small>Authorized site, schedule, and crew work</small></span></button><button class="h38-access-option" type="button" data-h38-access-intent="employee" aria-pressed="false"><span class="h38-access-icon" aria-hidden="true">✓</span><span><strong>Employee</strong><small>Assigned tasks, time, and field updates</small></span></button><a class="h38-access-option h38-customer-access" href="../customer-portal.html"><span class="h38-access-icon" aria-hidden="true">◎</span><span><strong>Customer</strong><small>Projects, quotes, invoices, files, and messages</small></span><span aria-hidden="true">→</span></a></div><p class="h38-access-boundary"><strong>Your choice does not grant a role.</strong> Supabase Auth, active business membership, and Row Level Security decide exactly what opens.</p></div><div class="h38-auth-card"><p id="h38AuthAudience" class="h38-auth-audience">Owner or administrator</p><h2 id="h38AuthTitle">Sign in to manage your Office</h2><p id="h38AuthRoleHelp" class="muted">Use the account connected to your active owner or administrator membership.</p><form id="h38AuthForm" class="auth-form" autocomplete="on"><label><span>Email address</span><input id="h38AuthEmail" name="username" type="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" required></label><label><span>Password</span><input id="h38AuthPassword" name="password" type="password" autocomplete="current-password" required></label><div class="welcome-actions"><button class="primary" type="submit">Sign in securely</button><button id="h38ResetPassword" class="secondary" type="button">Reset password</button></div></form><div class="h38-auth-or" aria-hidden="true"><span>or</span></div><button id="h38GoogleSignIn" class="secondary h38-google-signin" type="button">Sign in with Google</button><p class="muted small h38-google-note">Use the Google account that has the same email as your Office account — it opens this same account and your same business, not a new one.</p><div id="h38AuthNotice" class="notice">Secure sign-in and access rules determine access. Saved links and selected sign-in guidance never grant permission.</div></div></section>`;
     installAccessIntentControls(target);
     document.getElementById('h38AuthForm').onsubmit = async event => {
       event.preventDefault();
@@ -510,6 +527,25 @@
         }
         runtime.session = session;
         runtime.user = session.user;
+        // Sign-in -> home is a single clean swap (2026-10-27, build
+        // 20261027-session-keep-1): the moment a session is confirmed,
+        // tear the sign-in gate out of the DOM and reset scroll BEFORE
+        // the membership RPC and the heavy home render. The startup
+        // module hears 'h38:auth-session-established' and paints the
+        // light connecting cover into the emptied container, so no
+        // frame — on any phone, however slow its rasterizer — can show
+        // the sign-in card together with home content (Rick's
+        // 2026-10-26 19:38 recording, ~38s frame: home cards stacked
+        // above the still-visible sign-in card).
+        try {
+          const gate = document.querySelector('.h38-access-gate');
+          if (gate) {
+            const main = document.getElementById('mainContent');
+            if (main) main.innerHTML = '';
+            window.scrollTo(0, 0);
+            window.dispatchEvent(new CustomEvent('h38:auth-session-established', { detail: { userId: session.user.id } }));
+          }
+        } catch (_) {}
         await setUserScope(session.user.id);
         const signOutButton = document.getElementById('authSignOutButton');
         if (signOutButton) {
