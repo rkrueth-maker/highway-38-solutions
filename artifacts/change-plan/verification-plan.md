@@ -1,7 +1,7 @@
 # Scope-aware verification plan
 
-- Files changed: 3
-- Scopes: none detected
+- Files changed: 9
+- Scopes: performanceReliability
 - Deployment workflows: none
 
 ## Fast checks
