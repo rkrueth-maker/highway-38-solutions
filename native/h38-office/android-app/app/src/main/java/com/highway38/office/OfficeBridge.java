@@ -41,6 +41,35 @@ public final class OfficeBridge {
         return true;
     }
 
+    /**
+     * The native-held session pair, for web-side session re-unification
+     * (1.0.4, web build 20261027-session-bridge-1). There is ONE Supabase
+     * refresh-token chain with two holders: this store and the WebView's
+     * localStorage. The SyncEngine refreshes hourly in the background and
+     * rotates the chain; while the web layer is alive it re-pushes the
+     * fresh pair back here (mileage.js, on TOKEN_REFRESHED/SIGNED_IN),
+     * but after a web-dead gap the WebView can wake holding a stale copy
+     * whose refresh attempt reads as token reuse and gets the whole
+     * chain revoked — the owner is signed out through no action of his
+     * own. On open, before its first refresh, the web layer asks here
+     * and adopts this pair via setSession() when it is the fresher one,
+     * so both holders resume from the same link of the chain. Returns
+     * "{}" when no pair is stored.
+     */
+    @JavascriptInterface public String getSession() {
+        PolicyStore.Session s = PolicyStore.loadSession(activity);
+        JSONObject j = new JSONObject();
+        try {
+            if (!s.accessToken.isEmpty() && !s.refreshToken.isEmpty()) {
+                j.put("accessToken", s.accessToken);
+                j.put("refreshToken", s.refreshToken);
+                j.put("expiresAtMs", s.expiresAtMs);
+                j.put("authUserId", s.authUserId);
+            }
+        } catch (Exception ignored) {}
+        return j.toString();
+    }
+
     /** App identity, Deals build() parity. */
     @JavascriptInterface public String appInfo() {
         JSONObject j = new JSONObject();

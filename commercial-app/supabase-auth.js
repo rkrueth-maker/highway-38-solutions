@@ -130,6 +130,47 @@
     return runtime.client;
   }
 
+  let nativeSessionAdoption = null;
+
+  // Session re-unification (2026-10-27, build 20261027-session-bridge-1):
+  // one refresh-token chain, two holders — this WebView's localStorage
+  // and the native app's encrypted store. The native SyncEngine keeps
+  // refreshing in the background and rotates the chain; mileage.js
+  // re-pushes the fresh pair to native on every web-side refresh, but
+  // after a web-dead gap (app closed for hours) the WebView can wake
+  // holding a stale copy, and refreshing with it reads as refresh-token
+  // reuse: Supabase revokes the WHOLE chain and the owner is signed out
+  // (proven 2026-10-27 — chain revoked 90 seconds before his manual
+  // sign-in). So before the first refresh on open, adopt the native
+  // pair when the bridge offers one that is at least as fresh as the
+  // stored web copy. An in-flight web auth return (OAuth code, recovery
+  // link) owns the session instead and is never adopted over. Runs once
+  // per page load; best-effort — any failure leaves the normal path.
+  function adoptNativeSession(client) {
+    if (nativeSessionAdoption) return nativeSessionAdoption;
+    nativeSessionAdoption = (async () => {
+      try {
+        if (/(access_token|refresh_token|type=recovery)/.test(String(location.hash || ''))) return;
+        if (new URLSearchParams(location.search).has('code')) return;
+        const bridge = window.AndroidH38Office;
+        if (!bridge || typeof bridge.getSession !== 'function') return;
+        const offered = JSON.parse(String(bridge.getSession() || '{}'));
+        const access = String(offered && offered.accessToken || '');
+        const refresh = String(offered && offered.refreshToken || '');
+        if (!access || !refresh) return;
+        try {
+          const key = Object.keys(localStorage).find(name => /^sb-.*-auth-token$/.test(name));
+          const stored = key ? JSON.parse(localStorage.getItem(key) || 'null') : null;
+          if (stored && stored.access_token === access && stored.refresh_token === refresh) return;
+          const storedExpiresMs = stored && stored.expires_at ? Number(stored.expires_at) * 1000 : 0;
+          if (storedExpiresMs > Number(offered.expiresAtMs || 0)) return;
+        } catch (_) { /* unreadable store — adopt the native pair */ }
+        await client.auth.setSession({ access_token: access, refresh_token: refresh });
+      } catch (_) { /* adoption is best-effort; the normal path still runs */ }
+    })();
+    return nativeSessionAdoption;
+  }
+
   function rolePermissions(role) {
     if (role === 'owner') return { all: true };
     if (role === 'administrator') return {
@@ -464,6 +505,9 @@
       // subject (user id) is a no-op; a different user, a sign-out, or a
       // not-ready bridge still runs the full path below.
       if (this._connectPromise) return this._connectPromise;
+      // Re-unify with the native session holder before ANY session read
+      // or refresh on this open (see adoptNativeSession).
+      await adoptNativeSession(initClient());
       if (this.ready && this._connectedUserId && runtime.user && runtime.user.id === this._connectedUserId) {
         // The no-op is only valid when the CURRENT Supabase session still
         // belongs to the connected user and the tenant selection inputs
@@ -492,6 +536,10 @@
     async _connectOnce() {
       try {
         const client = initClient();
+        // Same adoption as connect(), ahead of the listener install and
+        // the first getSession() below — memoized, so this is free when
+        // connect() already ran it.
+        await adoptNativeSession(client);
         if (!runtime.subscription) {
           const listener = client.auth.onAuthStateChange((event, session) => {
             if (event === 'PASSWORD_RECOVERY') {
