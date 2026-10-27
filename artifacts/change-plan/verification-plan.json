@@ -1,18 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-27T08:11:04.694Z",
-  "base": null,
+  "generatedAt": "2026-10-27T08:13:02.695Z",
+  "base": "ce80c65",
   "head": "HEAD",
   "files": [
     "commercial-app/index.html",
-    "commercial-app/supabase-auth.js",
-    "commercial-app/version.json",
-    "native/h38-office/android-app/app/build.gradle",
-    "native/h38-office/android-app/app/src/main/AndroidManifest.xml",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/MainActivity.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/OfficeBridge.java"
+    "commercial-app/mobile-runtime-stability.js",
+    "commercial-app/service-worker.js",
+    "commercial-app/version.json"
   ],
-  "fileCount": 7,
+  "fileCount": 4,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
