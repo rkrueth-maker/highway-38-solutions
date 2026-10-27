@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261027-session-keep-1';
+const BUILD='20261027-session-keep-2';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
@@ -399,7 +399,7 @@ function stabilizeAfterRender(){
   document.body.classList.toggle('h38-field-scroll-lock',fieldOpen);
   if(!fieldOpen&&window.H38_FIELD_VISIT_CORE?.state?.open!==true)document.body.classList.remove('field-visit-open');
   ensurePrimaryNav();hideStrayQuoteActions();polishVisiblePage();installManualTouchScroll();
-  document.body.dataset.h38ProductionPolish='3';
+  if(document.body.dataset.h38ProductionPolish!=='3')document.body.dataset.h38ProductionPolish='3';
   const current=statePage(),main=document.getElementById('mainContent');
   if(main&&lastPage&&current&&current!==lastPage&&!interacting())main.scrollTo({top:0,left:0,behavior:'instant'});
   if(current)lastPage=current;
@@ -490,8 +490,20 @@ window.addEventListener('pageshow',()=>{wrapOpenPage();wrapRenderNav();stabilize
 window.addEventListener('focus',stabilizeAfterRender);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('h38:auth-cleared',ensurePrimaryNav);
-const observer=new MutationObserver(()=>{wrapOpenPage();wrapRenderNav();schedule();if(activeVisit()?.walkthroughAi?.status==='NEEDS_INPUT')showTerminalPresentation(activeVisit().walkthroughAi.message);});
-observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','aria-hidden']});
+/* The observer must not feed on no-change writes (2026-10-27, build
+   20261027-session-keep-2). Attribute writes that set the value a node
+   already has still queue mutation records, and this module's own
+   stabilize pass makes such writes (class toggles at steady state, the
+   production-polish flag) — on the live build that loop ran ~27
+   stabilize passes/sec on a settled screen. Records whose attribute
+   value did not actually change are ignored; only real childList
+   changes and real attribute changes schedule a pass. */
+const observer=new MutationObserver(records=>{
+  const meaningful=records.some(m=>m.type==='childList'||m.oldValue!==m.target.getAttribute?.(m.attributeName));
+  if(!meaningful)return;
+  wrapOpenPage();wrapRenderNav();schedule();if(activeVisit()?.walkthroughAi?.status==='NEEDS_INPUT')showTerminalPresentation(activeVisit().walkthroughAi.message);
+});
+observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['class','hidden','aria-hidden']});
 setInterval(()=>void settleWalkthroughReview(),2500);
 setTimeout(()=>{wrapOpenPage();wrapRenderNav();stabilizeAfterRender();void settleWalkthroughReview();},0);
 setTimeout(()=>{wrapOpenPage();wrapRenderNav();stabilizeAfterRender();void settleWalkthroughReview();},500);
