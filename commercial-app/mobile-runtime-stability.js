@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261022-phone-layout-2';
+const BUILD='20261027-session-keep-1';
 const MOBILE='(max-width: 760px)';
 const REVIEW_WORK_MAX_MS=60000;
 const OWNER_PRIMARY=[['today','⌂','Home'],['quotes','🧾','Quotes'],['schedule','🗓','Schedule'],['customers','👤','Customers']];
@@ -135,13 +135,26 @@ function clearInlineLocks(){
   }
 }
 function restoreChrome(){document.querySelectorAll('.topbar,.business-bar,.app-shell,#mainNav,#mainContent').forEach(node=>{node?.style.removeProperty('visibility');node?.style.removeProperty('opacity');});}
+/* Write-only-on-change (2026-10-27, build 20261027-session-keep-1).
+   This module's own body MutationObserver re-schedules a stabilize pass
+   on any class/childList change under <body>, and stabilize re-runs the
+   polish functions — so any UNCONDITIONAL textContent/title write in a
+   polish function re-triggers the observer forever (~20 passes/sec
+   measured on a settled Schedule screen: brand strong, screen-head
+   purpose and the read-agenda button rewritten 246 times in 12 idle
+   seconds). On the owner's phone WebView each rewrite repaints the
+   sticky chrome — the repeating slight up-and-down jerk on every
+   screen. Polish may only write when the value actually differs; then
+   a settled screen produces zero mutations and holds perfectly still. */
+const setTextIfChanged=(node,value)=>{if(node&&value!=null&&node.textContent!==value)node.textContent=value;};
+const setTitleIfChanged=(node,value)=>{if(node&&value!=null&&node.title!==value)node.title=value;};
 function polishChrome(){
   const brand=document.querySelector('.topbar .brand strong');
   if(brand){
     const tenantKey=window.state?.snapshot?.business?.businessKey||document.body.dataset.businessKey;
     if(tenantKey&&tenantKey!=='highway38'){
-      brand.textContent=brand.dataset.h38ShortBrand||brand.dataset.h38FullBrand||text(brand.textContent);
-      brand.title=brand.dataset.h38FullBrand||text(brand.textContent);
+      setTextIfChanged(brand,brand.dataset.h38ShortBrand||brand.dataset.h38FullBrand||text(brand.textContent));
+      setTitleIfChanged(brand,brand.dataset.h38FullBrand||text(brand.textContent));
       return;
     }
     // F2 (recordings 2026-10-13): while the tenant is not known yet, keep the
@@ -151,8 +164,8 @@ function polishChrome(){
     // name once it loads; only the highway38 tenant itself uses 'H38 Office'.
     if(tenantKey!=='highway38')return;
     if(!brand.dataset.h38FullBrand)brand.dataset.h38FullBrand=text(brand.textContent)||'Highway 38 Solutions';
-    brand.textContent='H38 Office';
-    brand.title=brand.dataset.h38FullBrand;
+    setTextIfChanged(brand,'H38 Office');
+    setTitleIfChanged(brand,brand.dataset.h38FullBrand);
   }
 }
 function moreDialog(){
@@ -255,13 +268,13 @@ function polishCustomers(main){
 }
 function polishSchedule(main){
   const head=main.querySelector('.page-head'),p=head?.querySelector('p');
-  if(p)p.textContent='Agenda-first scheduling for the work you need to reach next.';
-  const read=document.getElementById('readScheduleButton');if(read)read.textContent='Read agenda';
+  setTextIfChanged(p,'Agenda-first scheduling for the work you need to reach next.');
+  const read=document.getElementById('readScheduleButton');setTextIfChanged(read,'Read agenda');
   const grid=main.querySelector(':scope > .grid');if(!grid)return;
   const cards=Array.from(grid.children).filter(node=>node.classList?.contains('card'));
   const add=cards.find(card=>cardHeading(card).toLowerCase()==='add schedule event');
   const upcoming=cards.find(card=>['upcoming','agenda'].includes(cardHeading(card).toLowerCase()));
-  const heading=upcoming?.querySelector('h2');if(heading)heading.textContent='Agenda';
+  const heading=upcoming?.querySelector('h2');setTextIfChanged(heading,'Agenda');
   upcoming?.classList.add('h38-schedule-agenda');
   if(add)wrapToolCard(add,'Add schedule event',true);
   if(upcoming&&grid.firstElementChild!==upcoming)grid.insertBefore(upcoming,grid.firstChild);

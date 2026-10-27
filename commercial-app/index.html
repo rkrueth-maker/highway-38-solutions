@@ -32,8 +32,31 @@
        fresh and a single clean service worker installs in the background.
        Guarded by a per-version localStorage marker so it can never loop. */
     function resetStuckServiceWorker(done){
+      /* Session preservation (2026-10-27, build 20261027-session-keep-1):
+         an app update must NEVER sign the owner out. The reset below is
+         specified to clear service workers and app caches only — the
+         Supabase session lives in localStorage ('sb-*-auth-token'), which
+         no step here deletes. To make that guarantee structural rather
+         than incidental, snapshot the auth-token entries before the reset
+         and restore any that are missing or changed before the reload, so
+         even a future reset step that touches storage cannot strand the
+         user on the sign-in page. */
+      var savedAuth=[];
+      try{
+        for(var ai=0;ai<localStorage.length;ai++){
+          var ak=localStorage.key(ai);
+          if(ak&&/^sb-.*-auth-token(\.\d+)?$/.test(ak))savedAuth.push([ak,localStorage.getItem(ak)]);
+        }
+      }catch(e){}
+      function restoreAuth(){
+        try{
+          for(var ri=0;ri<savedAuth.length;ri++){
+            if(localStorage.getItem(savedAuth[ri][0])!==savedAuth[ri][1])localStorage.setItem(savedAuth[ri][0],savedAuth[ri][1]);
+          }
+        }catch(e){}
+      }
       var finished=false;
-      function finish(){ if(finished)return; finished=true; done(); }
+      function finish(){ if(finished)return; finished=true; restoreAuth(); done(); }
       try{ setTimeout(finish,1500); }catch(e){ finish(); return; }
       try{
         var jobs=[];
@@ -229,12 +252,12 @@
   <script defer src="./bridge.js?build=20260806-0344"></script>
   <script defer src="./supabase-config.js?build=20261013-startup-dedupe-1"></script>
   <script defer src="./supabase-single-client.js?build=20260808-2308"></script>
-  <script defer src="./supabase-auth.js?build=20261027-google-signin-2"></script>
+  <script defer src="./supabase-auth.js?build=20261027-session-keep-1"></script>
   <script defer src="./supabase-invite-activation.js?build=20260910-0100"></script>
   <script defer src="./auth-session-guard.js?build=20260806-0344"></script>
   <script defer src="./supabase-session-recovery.js?build=20261013-icon-session-bands-1"></script>
   <script defer src="./app-01.js?build=20261022-native-bridge-1"></script>
-  <script defer src="./runtime-rowid-fix.js?build=20261020-myhank-settings-1"></script>
+  <script defer src="./runtime-rowid-fix.js?build=20261027-session-keep-1"></script>
   <script defer src="./app-02.js?build=20261022-native-bridge-1"></script>
   <script defer src="./app-03.js?build=20261020-ws4-today-1"></script>
   <script defer src="./h38-flow-helpers.js?build=20261022-perperson-1"></script>
@@ -275,7 +298,7 @@
   <script defer src="./supabase-portal-hydration.js?build=20261020-gbb-ws1-1"></script>
   <script defer src="./auth-cache-guard.js?build=20261020-myhank-settings-1"></script>
   <script defer src="./startup-fix.js?build=20261013-startup-dedupe-1"></script>
-  <script defer src="./supabase-startup.js?build=20261020-myhank-settings-1"></script>
+  <script defer src="./supabase-startup.js?build=20261027-session-keep-1"></script>
   <script defer src="./app-19.js?build=20261022-phone-layout-1"></script>
   <script defer src="./supabase-final-startup.js?build=20261013-fix-sweep-1"></script>
   <script defer src="./app-18.js?build=20260806-0344"></script>
@@ -284,12 +307,12 @@
   <script defer src="./office-account-identity.js?build=20260922-office-account-identity-mobile-clean-2"></script>
   <script defer src="./auth-autofill.js?build=20260910-office-access-1"></script>
   <script defer src="./supabase-no-legacy-office.js?build=20261020-myhank-settings-1"></script>
-  <script defer src="./h38-script-loader.js?build=20261026-open-points-1"></script>
+  <script defer src="./h38-script-loader.js?build=20261027-session-keep-1"></script>
   <script defer src="./flow-tightening.js?build=20261022-perperson-1"></script>
   <script defer src="./job-centered-flow.js?build=20261020-myhank-settings-1"></script>
   <script defer src="./mobile-flow-polish-v2.js?build=20261013-quote-trust-clutter-1"></script>
   <script defer src="./mobile-scroll-native-authority.js?build=20260826-mobile-scroll-native-authority-1"></script>
-  <script defer src="./mobile-runtime-stability.js?build=20261022-phone-layout-2"></script>
+  <script defer src="./mobile-runtime-stability.js?build=20261027-session-keep-1"></script>
   <script defer src="./communications-native-receptionist.js?build=20261001-natural-receptionist-3"></script>
   <script defer src="./assistant-tenant-actions.js?build=20260929-readable-action-preview-8"></script>
   <script defer src="./assistant-command-runtime.js?build=20260824-assistant-command-runtime-1"></script>
