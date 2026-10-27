@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261026-open-points-1';
+var BUILD='20261027-session-keep-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -1730,7 +1730,35 @@ function nativeStatus(){
   try{return JSON.parse(b.getStatus());}catch(_){return null;}
 }
 var nativePushAt=0;
+// One rotating chain, kept in lockstep while the web layer is alive
+// (2026-10-27, build 20261027-session-keep-1). The web session's refresh
+// token is shared with the native layer through this bridge, and Supabase
+// ROTATES it on every refresh: whichever side refreshes owns the only
+// valid token afterwards. Native refreshes hourly in the background and
+// stores the new token natively; if the web layer later presents its
+// older stored token, GoTrue treats that as refresh-token reuse and
+// revokes the whole session — Rick's 2026-10-26 chain: native rotations
+// 15:22/16:35/18:02/19:27 CDT, web copy frozen at the 14:11 sign-in,
+// chain revoked 19:37:02 CDT on his next open, sign-in wall at 19:38.
+// So: every time THIS layer rotates the token, push the fresh pair down
+// immediately instead of waiting for the next decorate. (The remaining
+// window — web dead while native rotates — needs the native bridge to
+// expose its stored session back to the web layer; see report.)
+var nativeSessionSyncBound=false;
+function bindNativeSessionSync(){
+  if(nativeSessionSyncBound)return;
+  nativeSessionSyncBound=true;
+  try{
+    var shared=w.H38_SUPABASE_SHARED_CLIENT;
+    var client=shared&&typeof shared.ensure==='function'?shared.ensure():null;
+    if(!client||!client.auth||typeof client.auth.onAuthStateChange!=='function')return;
+    client.auth.onAuthStateChange(function(event){
+      if(event==='TOKEN_REFRESHED'||event==='SIGNED_IN')pushNativePolicy(true);
+    });
+  }catch(_){}
+}
 async function pushNativePolicy(force){
+  bindNativeSessionSync();
   var b=nativeBridge();
   if(!b)return;
   var nowMs=Date.now();

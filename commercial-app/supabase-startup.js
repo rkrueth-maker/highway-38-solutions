@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20261020-myhank-settings-1';
+const H38_SUPABASE_STARTUP_BUILD='20261027-session-keep-1';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -356,6 +356,19 @@ loadBusiness=async function(businessId,quiet=false){
     return false;
   }
 };
+
+// Sign-in gate teardown cover (2026-10-27, build 20261027-session-keep-1):
+// supabase-auth.js clears the gate DOM and dispatches this event the moment
+// a session is confirmed; paint the light brand cover into the emptied
+// container so the compositor has a cheap, single-surface frame while the
+// membership RPC and the heavy first home render complete. Guarded to the
+// gate actually being on screen — a warm open with a live session keeps
+// its existing cover untouched.
+window.addEventListener('h38:auth-session-established',()=>{
+  if(!document.querySelector('.h38-access-gate')&&document.getElementById('mainContent')?.firstElementChild)return;
+  try{window.scrollTo(0,0);}catch(_){}
+  renderWelcome('connecting');
+});
 
 window.H38_OFFICE_STARTUP=Object.freeze({
   enabled:true,

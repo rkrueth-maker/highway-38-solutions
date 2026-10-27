@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261025-stuck-heal-1';
+const BUILD='20261027-session-keep-1';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -107,22 +107,45 @@ function ensureSiteStepper(){
 function cleanupDesktop(){
   if(mobile())return;document.body.classList.remove('h38-phone-first-office');for(const id of ['h38PhoneCreateButton','h38PhoneToday','h38PhoneCustomerFinder','h38PhoneCustomerTools','h38SiteStepper','h38PhoneCreateDialog'])document.getElementById(id)?.remove();try{window.H38FirstScreen?.release?.('phoneToday');}catch(_){}const main=document.getElementById('mainContent');main?.classList.remove('h38-phone-simplified');main?.removeAttribute('data-h38-phone-details');main?.querySelectorAll('[data-h38-phone-secondary]').forEach(n=>n.removeAttribute('data-h38-phone-secondary'));
 }
+/* Ready-signal + reconcile loop fix (2026-10-27, build
+   20261027-session-keep-1). Measured on the live build at phone width:
+   673 'h38:phone-first-ready' dispatches and 6,767 DOM mutations in 30
+   idle seconds on a settled Schedule screen (~22 dispatches/sec,
+   sustained indefinitely). The chain was self-sustaining: this module's
+   MutationObserver saw childList writes made by listeners reacting to
+   its own ready dispatch, reconciled, and dispatched again — and every
+   dispatch made downstream decorators rewrite header/screen-head text
+   nodes, which is the repeating slight up-and-down jerk the owner sees
+   on EVERY screen. Two structural breaks:
+   1. The ready event is TRANSITION-ONLY: it fires when the ready
+      signature (page + required sections present) changes, never on a
+      repeat reconcile of the same state.
+   2. The MutationObserver ignores batches produced while this module's
+      own reconcile is running, so its writes can never re-trigger it. */
+let lastReadySignature='';
+let reconciling=false;
 function signalStartupReady(){
-  if(!mobile()||!signedIn()||fieldOpen())return false;
-  if(!document.getElementById('h38PhoneCreateButton'))return false;
-  if(state().page==='today'&&!document.getElementById('h38PhoneToday'))return false;
+  if(!mobile()||!signedIn()||fieldOpen()){lastReadySignature='';return false;}
+  if(!document.getElementById('h38PhoneCreateButton')){lastReadySignature='';return false;}
+  if(state().page==='today'&&!document.getElementById('h38PhoneToday')){lastReadySignature='';return false;}
+  const signature=BUILD+'|'+String(state().page||'');
+  if(document.documentElement.dataset.h38PhoneFirstReady==='ready'&&lastReadySignature===signature)return true;
+  lastReadySignature=signature;
   document.documentElement.dataset.h38PhoneFirstReady='ready';
   window.dispatchEvent(new CustomEvent('h38:phone-first-ready',{detail:{build:BUILD,page:String(state().page||'')}}));
   return true;
 }
 function runReconcile(){
   scheduled=false;
-  if(!mobile()){cleanupDesktop();delete document.documentElement.dataset.h38PhoneFirstReady;return;}
-  if(!signedIn()){delete document.documentElement.dataset.h38PhoneFirstReady;return;}
-  ensureStyle();document.body.classList.add('h38-phone-first-office');ensureCreate();ensureToday();ensureCustomers();ensureSiteStepper();signalStartupReady();
+  reconciling=true;
+  try{
+    if(!mobile()){cleanupDesktop();lastReadySignature='';delete document.documentElement.dataset.h38PhoneFirstReady;return;}
+    if(!signedIn()){lastReadySignature='';delete document.documentElement.dataset.h38PhoneFirstReady;return;}
+    ensureStyle();document.body.classList.add('h38-phone-first-office');ensureCreate();ensureToday();ensureCustomers();ensureSiteStepper();signalStartupReady();
+  }finally{reconciling=false;}
 }
 function reconcile(){if(scheduled)return;scheduled=true;queueMicrotask(()=>requestAnimationFrame(runReconcile));}
 window.addEventListener?.('h38:office-page-rendered',reconcile);window.addEventListener?.('h38:business-snapshot-updated',reconcile);window.addEventListener?.('h38:authoritative-startup-ready',reconcile);window.addEventListener?.('pageshow',reconcile);window.addEventListener?.('resize',reconcile);window.visualViewport?.addEventListener?.('resize',reconcile);
-observer=new MutationObserver(ms=>{if(ms.some(m=>m.type==='childList'&&(m.target.id==='mainContent'||m.target.closest?.('#mainContent,#h38FieldVisitApp')||Array.from(m.addedNodes||[]).some(n=>n.nodeType===1&&(n.id==='h38FieldVisitApp'||n.querySelector?.('#h38FieldVisitApp'))))))reconcile();});observer.observe(document.documentElement,{subtree:true,childList:true});queueMicrotask(reconcile);
+observer=new MutationObserver(ms=>{if(reconciling)return;if(ms.some(m=>m.type==='childList'&&(m.target.id==='mainContent'||m.target.closest?.('#mainContent,#h38FieldVisitApp')||Array.from(m.addedNodes||[]).some(n=>n.nodeType===1&&(n.id==='h38FieldVisitApp'||n.querySelector?.('#h38FieldVisitApp'))))))reconcile();});observer.observe(document.documentElement,{subtree:true,childList:true});queueMicrotask(reconcile);
 window.H38_PHONE_FIRST_OFFICE=Object.freeze({enabled:true,build:BUILD,navigationDelegatedToMobileAuthority:true,customerFirst:true,schedulePrimary:true,jobsInMore:true,floatingCreate:true,floatingCreateAvoidsCaptureControls:true,universalBottomSafeZone:true,readableNavigationAt320:true,toastClearsFloatingCreate:true,groupedMoreDelegated:true,simplifiedToday:true,customerFinder:true,customerQuickActions:true,siteVisitStepper:true,desktopUnchanged:true,eventDrivenStartup:true,noStartupTimer:true,startupReadyMarker:true,automaticCustomerSending:false,automaticApproval:false,automaticPayment:false,reconcile});
 })();
