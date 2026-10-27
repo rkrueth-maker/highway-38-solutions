@@ -1,7 +1,7 @@
 # Scope-aware verification plan
 
-- Files changed: 14
-- Scopes: publicWebsite, authenticatedApp, performanceReliability
+- Files changed: 8
+- Scopes: publicWebsite, authenticatedApp, customerPortal
 - Deployment workflows: .github/workflows/pages-branch-fallback.yml, .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
 ## Fast checks
@@ -10,6 +10,7 @@
 - `node scripts/verify-public-ecosystem-tools.js`
 - `node scripts/verify-unified-app-architecture.js`
 - `node scripts/verify-business-office.js`
+- `node scripts/verify-customer-portal-security.js`
 - `node scripts/verify-h38-office-access.js`
 
 ## Expensive or live checks
