@@ -349,8 +349,9 @@ function isSignedDepositEnabled(){
 }
 function signedDepositPercent(){
   const row=signedDepositSettingRow();
-  const n=Number(row&&row.config&&row.config.depositPercent);
-  return Number.isFinite(n)?Math.min(100,Math.max(0,n)):SIGNED_DEPOSIT_DEFAULT_PERCENT;
+  const raw=row&&row.config?row.config.depositPercent:undefined;
+  const n=Number(raw);
+  return raw!==undefined&&raw!==null&&Number.isFinite(n)?Math.min(100,Math.max(0,n)):SIGNED_DEPOSIT_DEFAULT_PERCENT;
 }
 // Owner/admin only. Mirrors the toggle + default percent to
 // business_module_settings and keeps the local toggle in sync. Throws when
@@ -362,7 +363,7 @@ async function setSignedDepositEnabled(enabled,percent){
   if(!bid) throw new Error('Open a business first.');
   const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
   if(!api) throw new Error('Secure settings connection is unavailable.');
-  const pctRaw=Number(percent);
+  const pctRaw=(typeof percent==='string'&&percent.trim()==='')?NaN:Number(percent);
   const pct=Number.isFinite(pctRaw)?Math.min(100,Math.max(0,pctRaw)):signedDepositPercent();
   const cfg={depositPercent:pct,updatedAt:new Date().toISOString()};
   const row={business_id:bid,module_key:SIGNED_DEPOSIT_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};

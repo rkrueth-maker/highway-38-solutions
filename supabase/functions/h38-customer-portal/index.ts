@@ -229,8 +229,11 @@ async function signedDepositSettings(
     .maybeSingle();
   if (error) throw error;
   const config = ((data?.config || {}) as JsonObject);
-  const raw = Number(config.depositPercent);
-  const depositPercent = Number.isFinite(raw) ? Math.min(100, Math.max(0, raw)) : DEFAULT_DEPOSIT_PERCENT;
+  const rawPct = config.depositPercent;
+  const rawNum = Number(rawPct);
+  const depositPercent = rawPct !== undefined && rawPct !== null && Number.isFinite(rawNum)
+    ? Math.min(100, Math.max(0, rawNum))
+    : DEFAULT_DEPOSIT_PERCENT;
   return { enabled: data?.enabled === true, depositPercent };
 }
 
