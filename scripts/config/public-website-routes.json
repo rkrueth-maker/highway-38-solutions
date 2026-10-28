@@ -31,6 +31,13 @@
    "visibility": "public"
   },
   {
+   "path": "free-tools.html",
+   "label": "Free Tools",
+   "canonical": "https://highway38solutions.com/free-tools.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
    "path": "project-services.html",
    "label": "Project Services",
    "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/project-services.html",
@@ -200,7 +207,6 @@
   "product.html": "pricing.html",
   "packages.html": "pricing.html",
   "tools.html": "sample-library-now.html",
-  "free-tools.html": "sample-library-now.html",
   "tool-center.html": "sample-library-now.html",
   "proof.html": "sample-library-now.html",
   "forgeiq.html": "solutions.html",
