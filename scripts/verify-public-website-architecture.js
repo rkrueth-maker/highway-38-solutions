@@ -78,6 +78,9 @@ for(const route of customerPages){
   }else if(page==='sample-library-now.html'){
     const allowed=[canonicalJs,publicExamplesData];
     check('sample library public script budget',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
+  }else if(page==='free-tools.html'){
+    const allowed=[canonicalJs,'free-tools-gate.js'];
+    check('free tools page uses shell and download gate scripts',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
   }else check(`${page} public script budget`,scripts.length===1,scripts.join(', '));
   if(styles.length>7)warn(`${page} stylesheet count`,`${styles.length} stylesheets`);
 }
