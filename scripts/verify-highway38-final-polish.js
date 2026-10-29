@@ -84,8 +84,8 @@ check('legacy Universal route redirects to embedded house section',universalRedi
 check('Universal package viewer supports print and full-size CAD',universalViewer.includes('Print / Save PDF')&&universalViewer.includes('@page cad{size:17in 11in landscape'));
 check('cabin walkthrough opens all 21 detailed quotes',cabin.includes('Open All 21 Quotes')&&(cabin.match(/\['\d{2}-/g)||[]).length===21&&cabin.includes('Business Office system coverage'));
 
-check('request flow uses secure direct submission',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
-check('request flow uses approved offer selector',request.includes('pricing-data.js')&&request.includes('id="offer"')&&!request.includes('id="bundle"'));
+check('request flow uses secure direct submission',request.includes('id="request-submit"')&&request.includes('data-intake-endpoint=')&&request.includes('data-request-step="3"')&&!request.includes('data-request-step="1"'));
+check('request slim form carries no offer selector or bundle field',!request.includes('id="offer"')&&!request.includes('id="bundle"')&&!request.includes('pricing-data.js'));
 check('request flow keeps email fallback and draft recovery',request.includes('id="email-summary" hidden>Email fallback')&&requestClient.includes('emailFallback')&&requestClient.includes('H38Platform.saveDraft')&&requestClient.includes('H38Platform.loadDraft'));
 check('secure intake creates internal Owner-review record only',/function doPost\(event\)/.test(intake)&&/Owner Approval Required/.test(intake)&&!/sendEmail|GmailApp|MailApp/.test(intake));
 check('secure intake preserves idempotency protection',/H38_PUBLIC_INTAKE_/.test(intake)&&/DUPLICATE_ACCEPTED/.test(intake));

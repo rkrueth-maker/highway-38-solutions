@@ -73,9 +73,9 @@ check('Office demo defines fourteen quotes and ten CAD sheets',(publicDemo.match
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
 const intake=read('apps-script/unified-shell/Unified_PublicIntake.gs');
-check('request flow preserves three controlled steps',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`)));
+check('request flow preserves one slim controlled step',request.includes('data-request-step="3"')&&!request.includes('data-request-step="1"')&&!request.includes('data-request-step="2"'));
 check('request form uses secure existing intake endpoint',request.includes('data-intake-endpoint="https://script.google.com/macros/s/'));
-check('request uses final offer selector',request.includes('pricing-data.js')&&request.includes('id="offer"')&&!request.includes('id="bundle"'));
+check('request slim form carries no offer selector or bundle field',!request.includes('pricing-data.js')&&!request.includes('id="offer"')&&!request.includes('id="bundle"'));
 check('request saves progress and returns confirmation',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft')&&requestFlow.includes('Request received')&&requestFlow.includes('requestId'));
 check('request keeps email as fallback only',requestFlow.includes('emailFallback')&&request.includes('id="email-summary" hidden'));
 check('intake remains duplicate-protected and Owner reviewed',intake.includes('DUPLICATE_ACCEPTED')&&intake.includes('Owner Approval Required')&&intake.includes('External actions remain locked'));
