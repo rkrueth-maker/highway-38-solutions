@@ -126,6 +126,16 @@ for (const f of ['quote-mobile-stabilization.js', 'bundle-features.js']) {
   check(f + ': save map carries internalUnitCost', src.includes('internalUnitCost:num(l.internalUnitCost)'));
 }
 
+// 10. Hydration regression (found live 2026-10-30): openQuote must carry the
+//     internal cost snapshot from the saved record into builder state, in both
+//     the app-07.js source and its bundle-pages.js copy — otherwise reopened
+//     quotes lose their cost layer and the profit guard reports $0.
+for (const f of ['app-07.js', 'bundle-pages.js']) {
+  const src = fs.readFileSync(path.join(APP, f), 'utf8');
+  check(f + ': openQuote hydrates cost snapshot', src.includes('...h38LineCostSnapshot(line)'));
+  check(f + ': snapshot helper reads internalUnitCost', src.includes("snap.internalUnitCost=num(cost)"));
+}
+
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);
   failures.forEach((f) => console.error(' - ' + f));
