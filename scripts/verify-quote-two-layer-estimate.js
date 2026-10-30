@@ -136,6 +136,42 @@ for (const f of ['app-07.js', 'bundle-pages.js']) {
   check(f + ': snapshot helper reads internalUnitCost', src.includes("snap.internalUnitCost=num(cost)"));
 }
 
+// 11. Swivl refinements (2026-10-30): cost categories + calculator + photo review.
+check('cost categories are the six Swivl-shape categories', JSON.stringify(I.costCategories) === JSON.stringify(['labor', 'material', 'tools_equipment', 'vehicle', 'subcontractor', 'other']), JSON.stringify(I.costCategories));
+check('legacy sources group under Other', I.costCategory('manual') === 'other' && I.costCategory('allowance') === 'other' && I.costCategory('labor') === 'labor' && I.costCategory('vehicle') === 'vehicle');
+const catCosts = I.categoryCosts([
+  { quantity: 2, unitPrice: 100, internalUnitCost: 30, costSource: 'material' },
+  { quantity: 1, unitPrice: 50, internalUnitCost: 20, costSource: 'labor' },
+  { quantity: 1, unitPrice: 10, internalUnitCost: 5, costSource: 'manual' },
+]);
+check('category costs group line snapshots', catCosts.material === 60 && catCosts.labor === 20 && catCosts.other === 5 && catCosts.vehicle === 0, JSON.stringify(catCosts));
+sandbox.state.quote.costCalculator = { markups: { material: 50 }, targetMarginPct: 40 };
+const calcHtml = I.calculatorHtml([{ quantity: 3, unitPrice: 110, internalUnitCost: 42, costSource: 'material' }]);
+check('calculator equation: cost 126 + markup 63 = price 189 at material 50%', calcHtml.includes('Total Internal Cost') && calcHtml.includes('$126.00') && calcHtml.includes('$63.00') && calcHtml.includes('$189.00'), calcHtml.slice(0, 300));
+check('calculator target margin: 40% on $126 cost needs $210.00', calcHtml.includes('Price for 40% margin') && calcHtml.includes('$210.00'));
+check('calculator block is owner-only', calcHtml.includes('data-owner-only="true"') && calcHtml.includes('data-calc-markup="material"') && calcHtml.includes('data-calc-target'));
+const app06Src = read(path.join(APP, 'app-06.js'));
+check('photo chain stages suggestions (no direct push into the quote)', app06Src.includes('state.quotePhotoReview=built') && !app06Src.includes('q.lines.push(newLine)'));
+check('photo review checkpoint exists with Convert to Estimate', app06Src.includes('Convert to Estimate') && app06Src.includes('data-photo-review-pick') && app06Src.includes('renderQuotePhotoReview'));
+check('calculator persists on save (app-06)', app06Src.includes("'Cost Calculator':state.quote.costCalculator||null"));
+check('calculator persists on save (stabilization)', read(path.join(APP, 'quote-mobile-stabilization.js')).includes("'Cost Calculator':state.quote?.costCalculator||null"));
+check('calculator hydrates on open (app-07)', read(path.join(APP, 'app-07.js')).includes("costCalculator:v(row,'Cost Calculator','costCalculator')||null"));
+
+// 12. Split preview (2026-10-30): the builder preview pane is the EXISTING live
+//     customer preview module (same sanitized projection, no second renderer),
+//     laid out two-pane on laptop with a Form/Preview toggle on small screens.
+const previewSrc = read(path.join(APP, 'quote-live-customer-preview.js'));
+check('preview module is the two-layer-6 build', previewSrc.includes("BUILD='20261030-two-layer-6'"));
+check('preview still renders through the shared sanitized projection', previewSrc.includes('H38_QUOTE_INTERNAL') && previewSrc.includes('customerLine('));
+check('split layout + phone toggle present', previewSrc.includes('h38-builder-split') && previewSrc.includes('h38BuilderViewToggle') && previewSrc.includes('data-h38-phone-view') && previewSrc.includes('ensureSplit'));
+check('preview injector points at the new build', read(path.join(APP, 'quote-final-phone-fix.js')).includes('quote-live-customer-preview.js?build=20261030-two-layer-6'));
+for (const f of ['quote-live-customer-preview.js', 'quote-print-safe.js', 'quote-pdf-send-live-fix.js', 'quote-customer-options.js']) {
+  const src = read(path.join(APP, f));
+  check(f + ': no calculator state leaks', !src.includes('costCalculator') && !src.includes('calcMarkup') && !src.includes('Cost Calculator'));
+}
+{ const src = read(path.join(ROOT, 'customer-portal-quote-delivery.js')); check('customer-portal-quote-delivery.js: no calculator state leaks', !src.includes('costCalculator') && !src.includes('calcMarkup') && !src.includes('Cost Calculator')); }
+
+
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);
   failures.forEach((f) => console.error(' - ' + f));
