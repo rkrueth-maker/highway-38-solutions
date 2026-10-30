@@ -1,0 +1,54 @@
+/* H38 AI Estimator shell (Fix Round 2, workstream A)
+ * Two-pane Swivl-pattern estimator: conversation left, live priced
+ * canvas right. Loaded on demand with the quotes page group only —
+ * never at startup. All classes are h38-est- prefixed; no shared
+ * stylesheet is modified. */
+.h38-est{display:grid;gap:14px}
+.h38-est-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.h38-est-head h1{margin:0}
+.h38-est-head p{margin:4px 0 0;color:#607285;font-size:.9rem;max-width:56ch}
+.h38-est-convert{white-space:nowrap}
+.h38-est-convert:disabled{opacity:.45;cursor:not-allowed}
+.h38-est-panes{display:grid;grid-template-columns:400px minmax(0,1fr);gap:14px;align-items:start}
+.h38-est-left,.h38-est-right{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:16px;display:grid;gap:12px}
+.h38-est-left h2,.h38-est-right h2{margin:0;font-size:1.05rem}
+.h38-est-chips{display:flex;flex-wrap:wrap;gap:8px}
+.h38-est-chip{border:1px solid #cbd5e1;background:#f8fafc;border-radius:999px;padding:7px 12px;cursor:pointer;font-size:.88rem}
+.h38-est-chip[aria-pressed="true"]{background:#0b2438;color:#fff;border-color:#0b2438}
+.h38-est-examples{display:grid;gap:8px}
+.h38-est-example{border:1px dashed #cbd5e1;background:#fff;border-radius:10px;padding:9px 11px;cursor:pointer;text-align:left;font-size:.88rem;color:#33475c}
+.h38-est-example:hover{border-color:#0b2438;background:#f8fafc}
+.h38-est-log{display:grid;gap:8px;max-height:300px;overflow:auto}
+.h38-est-msg{border-radius:12px;padding:9px 11px;font-size:.9rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.h38-est-msg--owner{background:#eef4f8;border:1px solid #d4e4ed}
+.h38-est-msg--hank{background:#fffaf2;border:1px solid #ead7bb}
+.h38-est-msg--error{background:#fdf0f0;border:1px solid #eec9c9}
+.h38-est-inputrow{display:grid;gap:8px}
+.h38-est-inputrow textarea{width:100%;min-height:74px;resize:vertical}
+.h38-est-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.h38-est-disclaimer{color:#607285;font-size:.78rem;margin:0}
+.h38-est-photo-note{font-size:.82rem;color:#52616d}
+.h38-est-empty{border:1.5px dashed #cbd5e1;border-radius:14px;padding:22px;display:grid;gap:12px;background:#fbfcfe}
+.h38-est-empty ol{margin:0;padding-left:1.25rem;display:grid;gap:10px;line-height:1.45}
+.h38-est-empty p{margin:0;color:#607285}
+.h38-est-lines{display:grid;gap:10px}
+.h38-est-line{border:1px solid #e2e8f0;border-radius:12px;padding:10px;display:grid;gap:8px;background:#fff}
+.h38-est-line-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.h38-est-line-desc{font-weight:600;flex:1}
+.h38-est-line-remove{border:0;background:transparent;font-size:1.05rem;cursor:pointer;color:#8a2c2c;padding:2px 6px}
+.h38-est-line-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.h38-est-line-grid label{font-size:.75rem;color:#607285;display:grid;gap:3px}
+.h38-est-line-grid input{width:100%}
+.h38-est-line-amount{font-weight:700;align-self:end;padding-bottom:6px}
+.h38-est-line small{color:#607285}
+.h38-est-totals{border-top:2px solid #0b2438;padding-top:10px;display:grid;gap:4px}
+.h38-est-totals .row-top{display:flex;justify-content:space-between}
+.h38-est-totals .grand{font-size:1.1rem}
+.h38-est-loading{display:grid;gap:8px}
+.h38-est-skel{height:52px;border-radius:12px;background:linear-gradient(90deg,#eef2f6,#f8fafc,#eef2f6)}
+.h38-est-back{margin-bottom:2px}
+@media(max-width:860px){
+  .h38-est-panes{grid-template-columns:1fr}
+  .h38-est-line-grid{grid-template-columns:1fr 1fr}
+  .h38-est-log{max-height:220px}
+}

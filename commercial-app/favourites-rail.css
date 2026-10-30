@@ -1,0 +1,103 @@
+/* H38 Favourites rail — build 20261030-r2-favourites-1
+ * Styles for favourites-rail.js. Decorates the canonical #mainNav;
+ * no second navigation styling system. */
+
+/* Star toggle inside a canonical nav item */
+#mainNav > button[data-page],
+#mainNav > button[data-h38-primary] { position: relative; }
+.h38-fav-star {
+  margin-left: auto;
+  padding: 2px 4px;
+  font-size: .95rem;
+  line-height: 1;
+  color: var(--muted, #667085);
+  opacity: .45;
+  cursor: pointer;
+  border-radius: 6px;
+  flex: 0 0 auto;
+}
+.h38-fav-star:hover, .h38-fav-star:focus-visible { opacity: 1; color: #b8860b; outline: 2px solid rgba(184,134,11,.4); }
+.h38-fav-star.is-fav { opacity: 1; color: #d99a06; }
+#h38PrimaryMoreDialog button[data-more-page] { position: relative; }
+#h38PrimaryMoreDialog .h38-fav-star { font-size: 1.05rem; }
+
+/* Rail — shared */
+.h38-fav-rail { box-sizing: border-box; }
+.h38-fav-label {
+  padding: 10px 12px 4px;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+  color: #b8860b;
+  user-select: none;
+}
+.h38-fav-chips { display: flex; flex-direction: column; gap: 2px; padding: 0 4px 6px; }
+.h38-fav-chip-wrap { display: flex; align-items: stretch; gap: 0; }
+.h38-fav-chip {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(217,154,6,.10);
+  color: var(--navy, #0b2438);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.h38-fav-chip:hover { background: rgba(217,154,6,.20); }
+.h38-fav-unstar {
+  flex: 0 0 auto;
+  min-width: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #d99a06;
+  font-size: .95rem;
+  cursor: pointer;
+}
+.h38-fav-unstar:hover { background: rgba(217,154,6,.16); }
+
+/* Wide screens: rail sits at the top of the sidebar, above Daily work */
+@media (min-width: 761px) {
+  .h38-fav-rail--sidebar { border-bottom: 1px solid var(--line, #d6e0e8); margin-bottom: 4px; }
+}
+
+/* Phone widths: compact horizontal shortcut row fixed just above the
+ * shell's bottom primary nav (the mobile nav pattern). */
+@media (max-width: 760px) {
+  .h38-fav-rail--mobile {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    z-index: 2400;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: var(--card, #fff);
+    box-shadow: 0 -4px 16px rgba(11,36,56,.10);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .h38-fav-rail--mobile .h38-fav-label { padding: 0 2px 0 0; white-space: nowrap; }
+  .h38-fav-rail--mobile .h38-fav-chips {
+    flex-direction: row;
+    gap: 6px;
+    padding: 0;
+  }
+  .h38-fav-rail--mobile .h38-fav-chip-wrap { flex: 0 0 auto; }
+  .h38-fav-rail--mobile .h38-fav-chip {
+    min-height: 38px;
+    padding: 6px 8px;
+    white-space: nowrap;
+    border-radius: 999px;
+  }
+  .h38-fav-rail--mobile .h38-fav-unstar { min-width: 28px; }
+}
