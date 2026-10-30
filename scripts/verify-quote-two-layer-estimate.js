@@ -161,10 +161,12 @@ check('calculator hydrates on open (app-07)', read(path.join(APP, 'app-07.js')).
 //     customer preview module (same sanitized projection, no second renderer),
 //     laid out two-pane on laptop with a Form/Preview toggle on small screens.
 const previewSrc = read(path.join(APP, 'quote-live-customer-preview.js'));
-check('preview module is the two-layer-6 build', previewSrc.includes("BUILD='20261030-two-layer-6'"));
+check('preview module is the two-layer-6 build', previewSrc.includes("BUILD='20261030-two-layer-11'"));
 check('preview still renders through the shared sanitized projection', previewSrc.includes('H38_QUOTE_INTERNAL') && previewSrc.includes('customerLine('));
+check('preview host self-heals into the builder grid', previewSrc.includes('host.parentElement!==draft.parentElement'));
+check('preview mount cannot starve under continuous mutations (bounded debounce)', previewSrc.includes('observerPendingSince'));
 check('split layout + phone toggle present', previewSrc.includes('h38-builder-split') && previewSrc.includes('h38BuilderViewToggle') && previewSrc.includes('data-h38-phone-view') && previewSrc.includes('ensureSplit'));
-check('preview injector points at the new build', read(path.join(APP, 'quote-final-phone-fix.js')).includes('quote-live-customer-preview.js?build=20261030-two-layer-6'));
+check('preview injector points at the new build', read(path.join(APP, 'quote-final-phone-fix.js')).includes('quote-live-customer-preview.js?build=20261030-two-layer-11'));
 for (const f of ['quote-live-customer-preview.js', 'quote-print-safe.js', 'quote-pdf-send-live-fix.js', 'quote-customer-options.js']) {
   const src = read(path.join(APP, f));
   check(f + ': no calculator state leaks', !src.includes('costCalculator') && !src.includes('calcMarkup') && !src.includes('Cost Calculator'));
@@ -178,6 +180,14 @@ for (const f of ['quote-live-customer-preview.js', 'quote-print-safe.js', 'quote
 check('quoteFromPhotos resolves photos from documents by Source ID', app06Src.includes("v(r,'Source ID','sourceId')") && app06Src.includes('records(\'documents\')'));
 check('quoteFromPhotos falls back to the attachments store', app06Src.includes("v(r,'Related Record ID','relatedRecordId')"));
 check('unsaved quote gets save-first guidance', app06Src.includes('Save this draft first so its photos upload'));
+
+// 14. Save-upload repair (2026-10-30): picked quote photos must upload on
+//     plain Save (creating the Source-ID documents the photo chain reads) —
+//     previously they uploaded only via the separate Build Quote button.
+for (const f of ['quote-mobile-stabilization.js', 'bundle-features.js']) {
+  const src = read(path.join(APP, f));
+  check(f + ': save uploads picked photos', src.includes('await uploadAll(qid)') && src.includes('if(qid&&pending())'));
+}
 
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);
