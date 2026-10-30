@@ -102,7 +102,13 @@ function lineDescription(line){return text(val(line,'Description','description')
 function lineUnit(line){return normalize(val(line,'Unit','unit'));}
 function lineCatalogId(line){return text(val(line,'catalogId','Catalog ID','Price Book ID','priceBookId','assemblyId','itemId'));}
 function explicitUnitCost(line){
-  const keys=['directCostPerUnit','Direct Cost Per Unit','unitCost','Unit Cost','cost','Cost'];
+  /* The two-layer estimate snapshot wins: a line's own internalUnitCost
+     (snapshotted onto the quote line when it was built) is checked FIRST,
+     so this owner layer never re-prices or re-costs an issued quote's
+     lines from the price book at render time. The price-book match below
+     is only an estimate for lines that carry no cost of their own, and it
+     never touches the line's sell price. */
+  const keys=['internalUnitCost','directCostPerUnit','Direct Cost Per Unit','unitCost','Unit Cost','cost','Cost'];
   for(const key of keys){if(line&&line[key]!==undefined&&line[key]!==null&&line[key]!==''&&number(line[key])>=0)return{known:true,cost:number(line[key]),source:'quote line'};}
   return{known:false,cost:0,source:''};
 }
