@@ -47,7 +47,7 @@
 .h38-request-page{background:#f5f1eb}.h38-request-shell{max-width:1120px;margin:2rem auto 4rem;padding:0 1rem}.h38-request-card{background:var(--h38-paper);border:1px solid var(--h38-line);border-radius:18px;box-shadow:var(--h38-shadow);overflow:hidden}
 .h38-stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--h38-line);padding:1.2rem 1.4rem;background:#fff}
 .h38-stepper button{border:0;background:transparent;display:flex;align-items:center;gap:.7rem;color:#617080;text-align:left;font-weight:800;padding:.45rem;min-height:44px;cursor:default}
-.h38-stepper .step-number{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--h38-navy);font-weight:900}.h38-stepper button.is-active{color:var(--h38-ink)}.h38-stepper button.is-active .step-number{background:var(--h38-navy);color:#fff}
+.h38-stepper .step-number{position:static;flex:0 0 auto;background:transparent;color:inherit;width:29px;height:29px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--h38-navy);font-weight:900}.h38-stepper button.is-active{color:var(--h38-ink)}.h38-stepper button.is-active .step-number{background:var(--h38-navy);color:#fff}
 .h38-request-step{padding:2rem 2.2rem}.h38-request-step[hidden]{display:none}.h38-request-step h2{font-size:clamp(1.8rem,4vw,2.8rem);margin:.1rem 0 .4rem}.h38-request-step>p{color:var(--h38-muted)}
 .h38-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.85rem;margin:1.4rem 0 1rem}
 .h38-choice-card{position:relative;display:grid;place-items:center;text-align:center;gap:.6rem;min-height:190px;border:1px solid var(--h38-line);border-radius:12px;background:#fff;padding:1.1rem;cursor:pointer;transition:.16s ease}

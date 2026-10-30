@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>H38 Quick Calc — Machinist Calculator</title>
+<meta name="description" content="Free machinist calculator by Highway 38 Solutions. Speeds & feeds, drill & tap charts, weights, threading, shop math, and your own shop's custom calculators. Works offline.">
+<meta name="theme-color" content="#0f172a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="appbar">
+  <img src="logo.png" alt="Highway 38 Solutions logo">
+  <div>
+    <div class="t1">H38 Quick Calc</div>
+    <div class="t2">by Highway 38 Solutions</div>
+  </div>
+  <button class="ghost" data-go="about">About</button>
+</header>
+<nav class="chipnav" id="chipnav">
+  <button data-go="home" class="on">Tools</button>
+  <button data-go="feeds">Feeds &amp; Speeds</button>
+  <button data-go="drilltap">Drill &amp; Tap</button>
+  <button data-go="weights">Weights</button>
+  <button data-go="convert">Convert</button>
+  <button data-go="threading">Threading</button>
+  <button data-go="geometry">Geometry</button>
+  <button data-go="gears">Gears</button>
+  <button data-go="welding">Welding</button>
+  <button data-go="myshop">My Shop</button>
+</nav>
+<main>
+<!-- ================= HOME ================= -->
+<section class="screen active" id="scr-home">
+  <h2 class="scr-title">Shop calculators</h2>
+  <p class="sub">Free, works offline. Built from a working machinist's own workbook.</p>
+  <div class="group-label">Everyday</div>
+  <div class="toolgrid">
+    <button class="tool" data-go="feeds">⚙️ Speeds &amp; Feeds<small>Mill &amp; lathe RPM, feed, MRR, finish</small></button>
+    <button class="tool" data-go="drilltap">🔧 Drill &amp; Tap<small>Drill chart, tap drills, thread data, 3-wire</small></button>
+    <button class="tool" data-go="weights">⚖️ Weights<small>Bar, plate, sheet + job yields</small></button>
+    <button class="tool" data-go="convert">🔁 Convert<small>Fractions, units, hardness</small></button>
+  </div>
+  <div class="group-label">Shop math</div>
+  <div class="toolgrid">
+    <button class="tool" data-go="threading">🔩 Threading<small>Helix, depths, passes, infeed schedule</small></button>
+    <button class="tool" data-go="chip">🍟 Chip Thinning<small>Actual &amp; adjusted chip load</small></button>
+    <button class="tool" data-go="ball">🏀 Ball Nose<small>Effective dia, RPM, scallop</small></button>
+    <button class="tool" data-go="geometry">📐 Geometry<small>Triangle, bolt circle, sine bar, points</small></button>
+    <button class="tool" data-go="gears">🌀 Gears &amp; Taper<small>DP, module, centers, ratios, tapers</small></button>
+    <button class="tool" data-go="press">🗜️ Press Force<small>Cutting tonnage + stripping</small></button>
+  </div>
+  <div class="group-label">Reference</div>
+  <div class="toolgrid">
+    <button class="tool" data-go="codes">🔢 G &amp; M Codes<small>G-code &amp; M-code quick reference</small></button>
+    <button class="tool" data-go="welding">🔥 Welding<small>Fillet &amp; heat input, MIG/TIG starters, electrodes, symbols</small></button>
+    <button class="tool" data-go="reference">📖 Reference<small>Reams, countersinks, pierce, tool life</small></button>
+    <button class="tool" data-go="myshop">🏭 My Shop<small>Your die stacks &amp; custom calculators</small></button>
+  </div>
+</section>
+
+<!-- ================= FEEDS ================= -->
+<section class="screen" id="scr-feeds">
+  <h2 class="scr-title">Speeds &amp; Feeds</h2>
+  <div class="seg" id="fm-mode">
+    <button data-m="mill" class="on">Mill</button>
+    <button data-m="lathe">Lathe</button>
+  </div>
+  <div id="fm-mill">
+    <div class="card">
+      <div class="grid2">
+        <div><label class="f">Surface speed (SFM)</label><input type="number" id="fm-sfm" inputmode="decimal" value="400"></div>
+        <div><label class="f">Tool diameter (in)</label><input type="number" id="fm-dia" inputmode="decimal" value="0.5"></div>
+        <div><label class="f">Teeth / flutes</label><input type="number" id="fm-teeth" inputmode="numeric" value="4"></div>
+        <div><label class="f">Chip load (IPT)</label><input type="number" id="fm-ipt" inputmode="decimal" value="0.003"></div>
+        <div><label class="f">Depth of cut (in, opt.)</label><input type="number" id="fm-doc" inputmode="decimal" value="0.05"></div>
+        <div><label class="f">Width of cut (in, opt.)</label><input type="number" id="fm-woc" inputmode="decimal" value="0.25"></div>
+      </div>
+      <div class="results" id="fm-out"></div>
+    </div>
+    <div class="card">
+      <h3>Surface finish (milling)</h3>
+      <div class="grid2">
+        <div><label class="f">Feed per rev (IPR)</label><input type="number" id="fmf-ipr" inputmode="decimal" value="0.012"></div>
+        <div><label class="f">Corner / nose radius (in)</label><input type="number" id="fmf-nose" inputmode="decimal" value="0.031"></div>
+      </div>
+      <div class="results" id="fmf-out"></div>
+      <p class="note">Theoretical scallop height Rt = feed² ÷ (8 × nose radius) — the standard geometry, same as turning. Ra is shown as the customary Rt ÷ 4 approximation. Real finish depends on runout, rigidity, and material.</p>
+    </div>
+  </div>
+  <div id="fm-lathe" style="display:none">
+    <div class="card">
+      <div class="grid2">
+        <div><label class="f">Surface speed (SFM)</label><input type="number" id="fl-sfm" inputmode="decimal" value="300"></div>
+        <div><label class="f">Work diameter (in)</label><input type="number" id="fl-dia" inputmode="decimal" value="2"></div>
+        <div><label class="f">Feed (IPR)</label><input type="number" id="fl-ipr" inputmode="decimal" value="0.008"></div>
+        <div><label class="f">Depth of cut (in, opt.)</label><input type="number" id="fl-doc" inputmode="decimal" value="0.06"></div>
+        <div><label class="f">Tool nose radius (in)</label><input type="number" id="fl-nose" inputmode="decimal" value="0.031"></div>
+      </div>
+      <div class="results" id="fl-out"></div>
+    </div>
+    <div class="card">
+      <h3>Finish planner (turning)</h3>
+      <div class="grid2">
+        <div><label class="f">Target finish (Rt µin)</label><input type="number" id="fl-ra" inputmode="decimal" value="63"></div>
+      </div>
+      <div class="results" id="fl-ra-out"></div>
+      <p class="note">Rt is the theoretical peak-to-valley scallop height (feed² ÷ (8 × nose radius)); for a target Ra, plan on Rt ≈ 4 × Ra. Workbook note: finish calcs assume 80° diamond / trigon inserts; 55° &amp; 35° inserts run rougher.</p>
+    </div>
+    <div class="card">
+      <h3>Tool life / speed adjustment</h3>
+      <div class="grid2">
+        <div><label class="f">SFM that gives 15-min life</label><input type="number" id="fl-life-sfm" inputmode="decimal" value="300"></div>
+        <div><label class="f">Time in cut per part (min)</label><input type="number" id="fl-ppi" inputmode="decimal" value="0.5"></div>
+      </div>
+      <label class="f">Wanted tool life (minutes of cut)</label>
+      <select id="fl-life-min"></select>
+      <div class="results" id="fl-life-out"></div>
+      <p class="note">Speed adjustment uses Taylor's tool-life equation (V × T<sup>n</sup> = C, n = 0.25 for carbide — the Machinery's Handbook standard relation) from the 15-minute base life.</p>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Cutting speed — starting SFM by material</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Material</th><th>HSS</th><th>Carbide</th></tr></thead>
+      <tbody id="fm-sfmrec-out"></tbody></table>
+    </div>
+    <p class="warn">⚠ Starting ranges only, from standard textbook tables — adjust to your machine, setup, coolant, and the tooling maker's recommendations. Drilling usually starts at the low end; part-offs and form tools lower still.</p>
+  </div>
+  <div class="card">
+    <h3>RPM quick chart — SFM × diameter</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr id="fm-rpm-head"></tr></thead>
+      <tbody id="fm-rpm-out"></tbody></table>
+    </div>
+    <p class="note">RPM = SFM × 3.82 ÷ diameter — the same math as the calculators on this screen. Find your surface speed in the chart above, then read across to your cutter or work diameter.</p>
+  </div>
+</section>
+
+<!-- ================= DRILL & TAP ================= -->
+<section class="screen" id="scr-drilltap">
+  <h2 class="scr-title">Drill &amp; Tap</h2>
+  <div class="seg" id="dt-mode">
+    <button data-m="chart" class="on">Drill chart</button>
+    <button data-m="tap">Tap drills</button>
+    <button data-m="thread">Thread data</button>
+    <button data-m="wire">3-wire</button>
+    <button data-m="npt">NPT drills</button>
+    <button data-m="nptdim">NPT dims</button>
+    <button data-m="pitch">Metric pitches</button>
+  </div>
+  <div id="dt-chart">
+    <div class="card">
+      <label class="f">Type a decimal, size, or tap (e.g. 0.201, #7, 1/4-20)</label>
+      <input type="search" id="dt-search" placeholder="Search the drill chart…">
+      <div class="scrollbox" style="margin-top:10px">
+        <table class="data"><thead><tr><th>Size</th><th>Decimal</th><th>mm</th><th>Tap drill for</th></tr></thead>
+        <tbody id="dt-tbody"></tbody></table>
+      </div>
+      <p class="note">220 drills — number, letter, fraction, and metric — from the workbook chart.</p>
+    </div>
+  </div>
+  <div id="dt-tap" style="display:none">
+    <div class="card">
+      <div class="seg" id="td-kind">
+        <button data-m="numbered" class="on">Numbered screw</button>
+        <button data-m="inch">Inch</button>
+        <button data-m="metric">Metric</button>
+      </div>
+      <div id="td-f-numbered" class="grid2">
+        <div><label class="f">Screw number (0–12)</label><input type="number" id="td-num" inputmode="numeric" value="10"></div>
+        <div><label class="f">Threads per inch</label><input type="number" id="td-num-tpi" inputmode="numeric" value="32"></div>
+      </div>
+      <div id="td-f-inch" class="grid2" style="display:none">
+        <div><label class="f">Major diameter (in)</label><input type="number" id="td-dia" inputmode="decimal" value="0.25"></div>
+        <div><label class="f">Threads per inch</label><input type="number" id="td-inch-tpi" inputmode="numeric" value="20"></div>
+      </div>
+      <div id="td-f-metric" class="grid2" style="display:none">
+        <div><label class="f">Major diameter (mm)</label><input type="number" id="td-diamm" inputmode="decimal" value="10"></div>
+        <div><label class="f">Pitch (mm)</label><input type="number" id="td-pitch" inputmode="decimal" value="1.5"></div>
+      </div>
+      <div class="results" id="td-out"></div>
+      <p class="note">Cut tap = major − pitch; form tap = major − pitch/2 (workbook formulas). Nearest stocked drill is shown for the cut tap.</p>
+    </div>
+  </div>
+  <div id="dt-thread" style="display:none">
+    <div class="card">
+      <div class="seg" id="th-kind">
+        <button data-m="un" class="on">UN (inch)</button>
+        <button data-m="metric">Metric</button>
+      </div>
+      <div class="grid2">
+        <div><label class="f" id="th-dia-label">Major diameter (in)</label><input type="number" id="th-dia" inputmode="decimal" value="0.25"></div>
+        <div><label class="f" id="th-pitch-label">Threads per inch</label><input type="number" id="th-tpi" inputmode="decimal" value="20"></div>
+      </div>
+      <label class="f">Wanted thread engagement: <span id="th-pct-label">75%</span></label>
+      <input type="range" id="th-pct" min="50" max="100" step="5" value="75">
+      <div class="results" id="th-out"></div>
+      <p class="note">Basic pitch diameter &amp; minors (60° profile). Tap drill sized on the standard % -of-thread basis; nearest chart drill shown.</p>
+    </div>
+  </div>
+  <div id="dt-wire" style="display:none">
+    <div class="card">
+      <div class="grid2">
+        <div><label class="f">Threads per inch (or pitch below)</label><input type="number" id="tw-tpi" inputmode="decimal" value="20"></div>
+        <div><label class="f">Pitch (in) — overrides TPI</label><input type="number" id="tw-pitch" inputmode="decimal" placeholder="optional"></div>
+        <div><label class="f">Wire diameter (in)</label><input type="number" id="tw-wire" inputmode="decimal" value="0.02887"></div>
+        <div><label class="f">Pitch diameter (in)</label><input type="number" id="tw-pd" inputmode="decimal" value="0.2175"></div>
+        <div><label class="f">Measured over wires (in)</label><input type="number" id="tw-mow" inputmode="decimal" placeholder="to check PD"></div>
+      </div>
+      <div class="results" id="tw-out"></div>
+      <p class="note">60° threads: M = PD + 3W − 0.86603 × pitch. Best wire = 0.57735 × pitch (touches at the pitch line).</p>
+    </div>
+  </div>
+  <div id="dt-npt" style="display:none">
+    <div class="card">
+      <h3>NPT tap drills — standard chart</h3>
+      <div class="scrollbox">
+        <table class="data"><thead><tr><th>Pipe size</th><th>TPI</th><th>Pipe OD</th><th>Tap drill</th><th>Decimal</th></tr></thead>
+        <tbody id="dt-npt-out"></tbody></table>
+      </div>
+      <p class="note">The widely published standard drill sizes for taper pipe taps, 1/16″–2″. If you taper-ream the hole first, your tap maker's chart may call for a smaller drill — check it for production work.</p>
+    </div>
+  </div>
+  <div id="dt-nptdim" style="display:none">
+    <div class="card">
+      <h3>NPT pipe dimensions — ASME B1.20.1</h3>
+      <div class="scrollbox">
+        <table class="data"><thead><tr><th>Pipe size</th><th>OD</th><th>TPI</th><th>Pitch</th><th>Hand-tight L1</th><th>Effective L2</th></tr></thead>
+        <tbody id="dt-nptdim-out"></tbody></table>
+      </div>
+      <p class="note">Basic dimensions per ASME B1.20.1. L1 is the hand-tight engagement length — how far the fitting should screw in by hand (turns shown). L2 is the effective external thread length. Wrench makeup adds roughly 2–3 turns past hand-tight. Tap drills are on the NPT drills tab.</p>
+    </div>
+  </div>
+  <div id="dt-pitch" style="display:none">
+    <div class="card">
+      <h3>Metric thread pitches — coarse &amp; fine</h3>
+      <div class="scrollbox">
+        <table class="data"><thead><tr><th>Size</th><th>Coarse</th><th>Fine</th><th>Extra fine</th></tr></thead>
+        <tbody id="dt-pitch-out"></tbody></table>
+      </div>
+      <p class="note">Standard ISO pitches (mm). The Thread Data tab computes pitch diameter, minors, and tap drills for any of these.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WEIGHTS ================= -->
+<section class="screen" id="scr-weights">
+  <h2 class="scr-title">Weights &amp; Yields</h2>
+  <p class="sub">Shop allowances (end allowance, kerf, scrap) come from My Shop settings.</p>
+  <div class="card">
+    <h3>Sheet / plate</h3>
+    <div class="grid3">
+      <div><label class="f">Length (in)</label><input type="number" id="w-l" inputmode="decimal" value="48"></div>
+      <div><label class="f">Width (in)</label><input type="number" id="w-w" inputmode="decimal" value="36"></div>
+      <div><label class="f">Thickness (in)</label><input type="number" id="w-t" inputmode="decimal" value="0.25"></div>
+    </div>
+    <label class="f">…or pick a sheet gauge (steel)</label>
+    <select id="w-gauge"><option value="">— thickness above —</option></select>
+    <label class="f">Material</label>
+    <select id="w-mat">
+      <option value="steel">Steel</option><option value="stainless">Stainless</option><option value="aluminum">Aluminum</option>
+    </select>
+    <div class="results" id="w-sheet-out"></div>
+  </div>
+  <div class="card">
+    <h3>Round bar</h3>
+    <div class="grid2">
+      <div><label class="f">Diameter (in)</label><input type="number" id="w-rd" inputmode="decimal" value="1.5"></div>
+      <div><label class="f">Length (in)</label><input type="number" id="w-rl" inputmode="decimal" value="12"></div>
+    </div>
+    <div class="results" id="w-round-out"></div>
+  </div>
+  <div class="card">
+    <h3>Bar yield</h3>
+    <div class="grid3">
+      <div><label class="f">Bar length (ft)</label><input type="number" id="w-bar-ft" inputmode="decimal" value="12"></div>
+      <div><label class="f">Part length (in)</label><input type="number" id="w-part" inputmode="decimal" value="2.5"></div>
+      <div><label class="f">Kerf / cutoff (in)</label><input type="number" id="w-kerf" inputmode="decimal" value="0.25"></div>
+    </div>
+    <div class="results" id="w-bar-out"></div>
+    <p class="note">Uses the round-bar weight above and your My Shop allowances.</p>
+  </div>
+  <div class="card">
+    <h3>Tubing yield</h3>
+    <div class="grid2">
+      <div><label class="f">Tube length (ft)</label><input type="number" id="w-tub-ft" inputmode="decimal" value="20"></div>
+      <div><label class="f">Part length (in)</label><input type="number" id="w-tub-part" inputmode="decimal" value="6"></div>
+    </div>
+    <div class="results" id="w-tub-out"></div>
+  </div>
+  <div class="card">
+    <h3>Laser / blanking yield</h3>
+    <div class="grid3">
+      <div><label class="f">Parts per sheet</label><input type="number" id="w-laser-parts" inputmode="numeric" value="24"></div>
+      <div><label class="f">Shear width (in)</label><input type="number" id="w-bl-width" inputmode="decimal" value="6"></div>
+      <div><label class="f">Parts per strip</label><input type="number" id="w-bl-per" inputmode="numeric" value="8"></div>
+    </div>
+    <div class="results" id="w-yield-out"></div>
+    <p class="note">Uses the sheet weight above (sheet length from My Shop settings).</p>
+  </div>
+</section>
+
+<!-- ================= CONVERT ================= -->
+<section class="screen" id="scr-convert">
+  <h2 class="scr-title">Convert</h2>
+  <div class="card">
+    <h3>Fraction ⇄ decimal ⇄ mm</h3>
+    <label class="f">Type a fraction (1 3/16), decimal (1.1875), or decimal + mm</label>
+    <input type="text" id="cv-frac" inputmode="text" value="1 3/16" placeholder="e.g. 13/64">
+    <div class="results" id="cv-frac-out"></div>
+  </div>
+  <div class="card">
+    <h3>Units</h3>
+    <div class="grid2">
+      <div><label class="f">Value</label><input type="number" id="cv-val" inputmode="decimal" value="1"></div>
+      <div><label class="f">Conversion</label>
+        <select id="cv-kind">
+          <option value="inToMm">inches → mm</option><option value="mmToIn">mm → inches</option>
+          <option value="inToM">inches → meters</option><option value="mToIn">meters → inches</option>
+          <option value="ftToM">feet → meters</option><option value="mToFt">meters → feet</option>
+          <option value="fToC">°F → °C</option><option value="cToF">°C → °F</option>
+          <option value="hpToKw">HP → kW</option><option value="kwToHp">kW → HP</option>
+        </select></div>
+    </div>
+    <div class="results" id="cv-out"></div>
+  </div>
+  <div class="card">
+    <h3>Hardness — Brinell ⇄ Rockwell C</h3>
+    <div class="grid2">
+      <div><label class="f">Rockwell C (20–65)</label><input type="number" id="cv-hrc" inputmode="decimal" value="40"></div>
+      <div><label class="f">Brinell HBW (226–739)</label><input type="number" id="cv-bhn" inputmode="decimal" value="371"></div>
+    </div>
+    <div class="results" id="cv-hard-out"></div>
+    <p class="note">ASTM E140 Table 1 conversion for non-austenitic steels (Brinell with carbide ball, HBW). Conversions are approximate — values between table rows are interpolated.</p>
+  </div>
+</section>
+
+<!-- ================= THREADING ================= -->
+<section class="screen" id="scr-threading">
+  <h2 class="scr-title">Threading</h2>
+  <div class="card">
+    <div class="seg" id="tr-form">
+      <button data-m="un60" class="on">60° UN</button>
+      <button data-m="acme">Acme</button>
+      <button data-m="stub">Stub Acme</button>
+      <button data-m="npt">NPT</button>
+    </div>
+    <div class="grid2">
+      <div><label class="f">Threads per inch</label><input type="number" id="tr-tpi" inputmode="decimal" value="12"></div>
+      <div><label class="f">Thread diameter (in, for helix)</label><input type="number" id="tr-dia" inputmode="decimal" value="1"></div>
+    </div>
+    <div class="results" id="tr-out"></div>
+    <p class="note" id="tr-note"></p>
+  </div>
+  <div class="card">
+    <h3>Infeed schedule (diminishing)</h3>
+    <div class="grid2">
+      <div><label class="f">Total radial depth (in)</label><input type="number" id="tr-depth" inputmode="decimal" value="0.0511"></div>
+      <div><label class="f">Passes</label><input type="number" id="tr-passes" inputmode="numeric" value="8"></div>
+    </div>
+    <div class="scrollbox" style="margin-top:10px">
+      <table class="data"><thead><tr><th>Pass</th><th>Infeed</th><th>Cumulative</th></tr></thead>
+      <tbody id="tr-sched"></tbody></table>
+    </div>
+    <p class="note">Standard constant-chip-area (square-root) schedule: cumulative depth at pass n = total × √(n ÷ N), so each pass removes an equal share of the thread profile's area.</p>
+  </div>
+</section>
+
+<!-- ================= CHIP ================= -->
+<section class="screen" id="scr-chip">
+  <h2 class="scr-title">Chip Thinning</h2>
+  <div class="card">
+    <div class="grid3">
+      <div><label class="f">Programmed chip load (IPT)</label><input type="number" id="ch-clpt" inputmode="decimal" value="0.004"></div>
+      <div><label class="f">Radial depth of cut (in)</label><input type="number" id="ch-rdoc" inputmode="decimal" value="0.05"></div>
+      <div><label class="f">Tool diameter (in)</label><input type="number" id="ch-dia" inputmode="decimal" value="0.5"></div>
+    </div>
+    <div class="results" id="ch-out"></div>
+    <p class="note">Below 50% radial engagement the chip thins: <b>actual</b> is what the edge really sees at your programmed load; <b>adjusted</b> is the load to program to hit your target chip.</p>
+  </div>
+  <div class="card">
+    <h3>Workbook factor table</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>RDOC ÷ Dia</th><th>× actual</th><th>× adjust</th></tr></thead>
+      <tbody id="ch-tbody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BALL ================= -->
+<section class="screen" id="scr-ball">
+  <h2 class="scr-title">Ball Nose &amp; Scallop</h2>
+  <div class="card">
+    <div class="seg" id="b-mode">
+      <button data-m="tip" class="on">Tip cutting</button>
+      <button data-m="surfacing">Surfacing</button>
+    </div>
+    <div class="grid3">
+      <div><label class="f">Ball diameter (in)</label><input type="number" id="b-dia" inputmode="decimal" value="0.75"></div>
+      <div><label class="f">Axial depth (in)</label><input type="number" id="b-depth" inputmode="decimal" value="0.05"></div>
+      <div><label class="f">Cutting speed (SFM)</label><input type="number" id="b-vc" inputmode="decimal" value="350"></div>
+      <div><label class="f">Feed per tooth (in)</label><input type="number" id="b-feed" inputmode="decimal" value="0.003"></div>
+      <div><label class="f">Effective teeth</label><input type="number" id="b-effteeth" inputmode="numeric" value="2"></div>
+      <div><label class="f">Machine max RPM</label><input type="number" id="b-maxrpm" inputmode="numeric" value="8000"></div>
+    </div>
+    <div class="results" id="b-out"></div>
+    <p class="note">RPM comes from the true geometric effective diameter at your depth of cut — De = 2√(depth × (D − depth)) — in both modes. Adjusted feed compensates when cutting off the tip.</p>
+  </div>
+  <div class="card">
+    <h3>Scallop / stepover</h3>
+    <div class="grid2">
+      <div><label class="f">Wanted scallop height (in)</label><input type="number" id="b-sh" inputmode="decimal" value="0.001"></div>
+      <div><label class="f">…or stepover (in)</label><input type="number" id="b-so" inputmode="decimal" value="0.05"></div>
+    </div>
+    <div class="results" id="b-sc-out"></div>
+  </div>
+</section>
+
+<!-- ================= GEOMETRY ================= -->
+<section class="screen" id="scr-geometry">
+  <h2 class="scr-title">Geometry</h2>
+  <div class="card">
+    <h3>Right triangle</h3>
+    <p class="note">Fill any <b>two</b> fields (sides a/b, hypotenuse c, angles A/B in degrees), the rest solve.</p>
+    <div class="grid3">
+      <div><label class="f">Side a</label><input type="number" id="g-a" inputmode="decimal"></div>
+      <div><label class="f">Side b</label><input type="number" id="g-b" inputmode="decimal"></div>
+      <div><label class="f">Hypotenuse c</label><input type="number" id="g-c" inputmode="decimal"></div>
+      <div><label class="f">Angle A (opp. a)</label><input type="number" id="g-A" inputmode="decimal"></div>
+      <div><label class="f">Angle B (opp. b)</label><input type="number" id="g-B2" inputmode="decimal"></div>
+    </div>
+    <div class="results" id="g-tri-out"></div>
+  </div>
+  <div class="card">
+    <h3>Bolt circle</h3>
+    <div class="grid3">
+      <div><label class="f">Circle diameter</label><input type="number" id="g-bc-dia" inputmode="decimal" value="3"></div>
+      <div><label class="f">Holes</label><input type="number" id="g-bc-n" inputmode="numeric" value="6"></div>
+      <div><label class="f">First hole angle (°)</label><input type="number" id="g-bc-start" inputmode="decimal" value="0"></div>
+    </div>
+    <div class="scrollbox" style="margin-top:10px">
+      <table class="data"><thead><tr><th>Hole</th><th>Angle°</th><th>X</th><th>Y</th></tr></thead>
+      <tbody id="g-bc-out"></tbody></table>
+    </div>
+    <p class="note">X/Y from center; angle measured counter-clockwise from 3 o'clock.</p>
+  </div>
+  <div class="card">
+    <h3>Sine bar</h3>
+    <div class="grid3">
+      <div><label class="f">Bar length (in)</label><input type="number" id="g-sine-l" inputmode="decimal" value="5"></div>
+      <div><label class="f">Angle (°)</label><input type="number" id="g-sine-ang" inputmode="decimal" value="30"></div>
+      <div><label class="f">…or stack height (in)</label><input type="number" id="g-sine-h" inputmode="decimal" placeholder="optional"></div>
+    </div>
+    <div class="results" id="g-sine-out"></div>
+  </div>
+  <div class="card">
+    <h3>Drill point &amp; chamfer depth</h3>
+    <div class="grid3">
+      <div><label class="f">Drill diameter</label><input type="number" id="g-pt-dia" inputmode="decimal" value="0.5"></div>
+      <div><label class="f">Point angle (°)</label><input type="number" id="g-pt-ang" inputmode="decimal" value="118"></div>
+      <div><label class="f">Chamfer from dia</label><input type="number" id="g-cf-from" inputmode="decimal" value="0.25"></div>
+      <div><label class="f">Chamfer to dia</label><input type="number" id="g-cf-to" inputmode="decimal" value="0.35"></div>
+      <div><label class="f">Chamfer angle (° incl.)</label><input type="number" id="g-cf-ang" inputmode="decimal" value="90"></div>
+    </div>
+    <div class="results" id="g-pt-out"></div>
+    <p class="note">Add the point depth to your drilled depth when you need a full-diameter depth.</p>
+  </div>
+  <div class="card">
+    <h3>Taper solver</h3>
+    <div class="grid3">
+      <div><label class="f">Big diameter (in)</label><input type="number" id="g-tp-big" inputmode="decimal" value="1"></div>
+      <div><label class="f">Small diameter (in)</label><input type="number" id="g-tp-small" inputmode="decimal" value="0.5"></div>
+      <div><label class="f">Length of taper (in)</label><input type="number" id="g-tp-len" inputmode="decimal" value="6"></div>
+    </div>
+    <div class="results" id="g-tp-out"></div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label class="f">…or taper per foot (in/ft)</label><input type="number" id="g-tp-tpf" inputmode="decimal" placeholder="optional"></div>
+      <div><label class="f">Small end becomes (in)</label><input type="number" id="g-tp-inv" inputmode="decimal" placeholder="optional"></div>
+    </div>
+    <div class="results" id="g-tp-inv-out"></div>
+    <p class="note">Taper per foot is how tapers are usually called out (e.g. Morse tapers ≈ 5/8 in/ft). The inverse works from the big diameter above: big end − taper over the length.</p>
+  </div>
+</section>
+
+<!-- ================= GEARS ================= -->
+<section class="screen" id="scr-gears">
+  <h2 class="scr-title">Gear Basics</h2>
+  <p class="sub">Standard full-depth involute gear relations — addendum 1 ÷ DP, dedendum 1.25 ÷ DP (module gears: 1 × and 1.25 × module).</p>
+  <div class="card">
+    <div class="seg" id="gr-mode">
+      <button data-m="dp" class="on">Diametral pitch</button>
+      <button data-m="mod">Module</button>
+      <button data-m="pair">Gear pair</button>
+      <button data-m="od">From OD</button>
+    </div>
+    <div id="gr-dp">
+      <div class="grid2">
+        <div><label class="f">Teeth</label><input type="number" id="gr-n" inputmode="numeric" value="20"></div>
+        <div><label class="f">Diametral pitch (DP)</label><input type="number" id="gr-dpv" inputmode="decimal" value="10"></div>
+      </div>
+      <div class="results" id="gr-dp-out"></div>
+    </div>
+    <div id="gr-mod" style="display:none">
+      <div class="grid2">
+        <div><label class="f">Teeth</label><input type="number" id="gr-mn" inputmode="numeric" value="30"></div>
+        <div><label class="f">Module (mm)</label><input type="number" id="gr-mm" inputmode="decimal" value="2"></div>
+      </div>
+      <div class="results" id="gr-mod-out"></div>
+    </div>
+    <div id="gr-pair" style="display:none">
+      <div class="grid3">
+        <div><label class="f">Pinion teeth</label><input type="number" id="gr-p1" inputmode="numeric" value="20"></div>
+        <div><label class="f">Gear teeth</label><input type="number" id="gr-p2" inputmode="numeric" value="40"></div>
+        <div><label class="f">DP (or module if metric)</label><input type="number" id="gr-pdp" inputmode="decimal" value="10"></div>
+        <div><label class="f">Pinion RPM (opt.)</label><input type="number" id="gr-prpm" inputmode="decimal" value="1000"></div>
+      </div>
+      <label class="f">Pitch system</label>
+      <div class="seg" id="gr-pair-sys">
+        <button data-m="dp" class="on">DP (inches)</button>
+        <button data-m="mod">Module (mm)</button>
+      </div>
+      <div class="results" id="gr-pair-out"></div>
+    </div>
+    <div id="gr-od" style="display:none">
+      <div class="grid3">
+        <div><label class="f">Teeth (counted)</label><input type="number" id="gr-on" inputmode="numeric" value="22"></div>
+        <div><label class="f">Outside diameter (in)</label><input type="number" id="gr-ood" inputmode="decimal" value="2.4"></div>
+        <div><label class="f">…or OD (mm)</label><input type="number" id="gr-oodmm" inputmode="decimal" placeholder="optional"></div>
+      </div>
+      <div class="results" id="gr-od-out"></div>
+      <p class="note">For a standard full-depth gear, OD = (teeth + 2) ÷ DP — so a measured OD and a tooth count identify the pitch. Worn or non-standard gears can read off.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRESS ================= -->
+<section class="screen" id="scr-press">
+  <h2 class="scr-title">Press Force</h2>
+  <div class="card">
+    <div class="grid2">
+      <div><label class="f">Cut length / perimeter (mm)</label><input type="number" id="p-len" inputmode="decimal" value="100"></div>
+      <div><label class="f">Stock thickness (mm)</label><input type="number" id="p-thk" inputmode="decimal" value="2"></div>
+      <div><label class="f">Material tensile strength (MPa)</label><input type="number" id="p-tensile" inputmode="decimal" value="400"></div>
+      <div><label class="f">Material (shear % of tensile)</label>
+        <select id="p-mat">
+          <option value="coldRolledSteel">Cold-rolled steel (80%)</option>
+          <option value="stainless">Stainless (90%)</option>
+          <option value="aluminum">Aluminum (50%)</option>
+        </select></div>
+      <div><label class="f">Stripping allowance (% of cutting)</label><input type="number" id="p-strip" inputmode="decimal" value="15"></div>
+    </div>
+    <div class="results" id="p-out"></div>
+    <p class="note">F = cut length × thickness × shear strength, from the workbook's press notes. Ejection ≈ 10% of cutting force.</p>
+  </div>
+  <div class="card">
+    <h3>Spring deflection (workbook rule)</h3>
+    <div class="grid2">
+      <div><label class="f">Stock thickness (mm)</label><input type="number" id="p-spring-t" inputmode="decimal" value="2"></div>
+      <div><label class="f">Multiplier (3–4)</label><input type="number" id="p-spring-mult" inputmode="decimal" value="3.5"></div>
+    </div>
+    <div class="results" id="p-spring-out"></div>
+    <p class="note">Y = (3 to 4) × (t + 2) mm, from the workbook's press notes.</p>
+  </div>
+</section>
+
+<!-- ================= G & M CODES ================= -->
+<section class="screen" id="scr-codes">
+  <h2 class="scr-title">G &amp; M Codes</h2>
+  <p class="sub">The common Fanuc-style codes, grouped the way you look them up. Type to filter — try "tap", "coolant", or a code like G84.</p>
+  <div class="card">
+    <div class="seg" id="cd-mode">
+      <button data-m="g" class="on">G codes</button>
+      <button data-m="m">M codes</button>
+    </div>
+    <input type="search" id="cd-search" placeholder="Search codes…">
+    <div class="scrollbox" style="margin-top:10px">
+      <table class="data"><thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+      <tbody id="cd-tbody"></tbody></table>
+    </div>
+    <p class="warn">⚠ Common codes — always confirm against your machine's control. Some codes do different jobs on different controls and machine builders.</p>
+  </div>
+</section>
+
+<!-- ================= WELDING ================= -->
+<section class="screen" id="scr-welding">
+  <h2 class="scr-title">Welding</h2>
+  <p class="sub">Shop welding math and starting points: fillet throats, heat input, MIG and TIG starter settings, stick electrodes, and the basic weld symbols. Settings here get you close — your machine's door chart and a test bead on scrap win.</p>
+  <div class="card">
+    <h3>Fillet weld — leg ⇄ throat</h3>
+    <div class="seg" id="wd-fil-mode">
+      <button data-m="leg" class="on">Leg → throat</button>
+      <button data-m="throat">Throat → leg</button>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label class="f" id="wd-fil-label">Leg size (in)</label><input type="number" id="wd-fil-v" inputmode="decimal" value="0.25"></div>
+      <div><label class="f">Units</label>
+        <div class="seg" id="wd-fil-unit">
+          <button data-m="in" class="on">inches</button>
+          <button data-m="mm">mm</button>
+        </div></div>
+    </div>
+    <div class="results" id="wd-fil-out"></div>
+    <p class="note">For an equal-leg fillet with a flat face, the theoretical throat is the leg × 0.7071 — the shortest distance from the root to the face, and the throat is the dimension weld strength is figured from.</p>
+  </div>
+  <div class="card">
+    <h3>Heat input</h3>
+    <div class="grid3">
+      <div><label class="f">Volts</label><input type="number" id="wd-hi-v" inputmode="decimal" value="20"></div>
+      <div><label class="f">Amps</label><input type="number" id="wd-hi-a" inputmode="decimal" value="180"></div>
+      <div><label class="f">Travel speed</label><input type="number" id="wd-hi-s" inputmode="decimal" value="12"></div>
+    </div>
+    <label class="f">Travel speed units</label>
+    <div class="seg" id="wd-hi-unit">
+      <button data-m="in" class="on">in/min</button>
+      <button data-m="mm">mm/min</button>
+    </div>
+    <div class="results" id="wd-hi-out"></div>
+    <p class="note">Gross heat input H = volts × amps × 60 ÷ travel speed. This is arc energy before any arc-efficiency factor — a welding code that works in effective heat input applies its own factor.</p>
+  </div>
+  <div class="card">
+    <h3>MIG starting points — mild steel, ER70S-6 wire, C25 gas</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Thickness</th><th>Wire (in)</th><th>Volts</th><th>Wire feed (ipm)</th></tr></thead>
+      <tbody id="wd-mig-out"></tbody></table>
+    </div>
+    <p class="warn">⚠ Starting points only — set by test bead on scrap before the real joint. These are the ranges the machine makers commonly publish on their door charts for C25-shielded ER70S-6; your own machine's chart takes precedence, and joint type, position, and stick-out all move the numbers.</p>
+  </div>
+  <div class="card">
+    <h3>TIG amps — rule of thumb</h3>
+    <div class="grid2">
+      <div><label class="f">Thickness (in)</label><input type="number" id="wd-tig-in" inputmode="decimal" value="0.125"></div>
+      <div><label class="f">…or thickness (mm)</label><input type="number" id="wd-tig-mm" inputmode="decimal" placeholder="optional"></div>
+    </div>
+    <label class="f">Material</label>
+    <div class="seg" id="wd-tig-mat">
+      <button data-m="steel" class="on">Steel (DC)</button>
+      <button data-m="stainless">Stainless (DC)</button>
+      <button data-m="aluminum">Aluminum (AC)</button>
+    </div>
+    <div class="results" id="wd-tig-out"></div>
+    <p class="note">The shop rule of thumb is roughly 1 amp per 0.001 in of thickness for steel. Stainless runs a little less; aluminum on AC needs more to get a puddle started. Tungsten size, joint fit-up, and position all move the real setting — start here and adjust on the puddle.</p>
+  </div>
+  <div class="card">
+    <h3>Stick electrode decoder (AWS A5.1)</h3>
+    <label class="f">Classification (e.g. 7018, with or without the E)</label>
+    <input type="text" id="wd-el-code" value="7018" placeholder="Type an electrode code…">
+    <div id="wd-el-out"></div>
+    <p class="note">Decodes the standard AWS A5.1 positions of a carbon-steel stick classification: strength, welding position, and coating/usability class.</p>
+  </div>
+  <div class="card">
+    <h3>Common stick electrodes</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Rod</th><th>Weld metal</th><th>Coating</th><th>Known for</th></tr></thead>
+      <tbody id="wd-rods-out"></tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Weld symbols (AWS A2.4 basics)</h3>
+    <p class="note">Every symbol hangs on a horizontal reference line, and the arrow points at the joint. A symbol <b>below</b> the line means weld the <b>arrow side</b> — the side the arrow touches. A symbol <b>above</b> the line means the <b>other side</b>. Symbols on both sides mean weld both sides, and a tail on the end of the line carries extra notes — process, electrode, or spec.</p>
+    <div class="scrollbox" style="margin-top:10px">
+      <table class="data"><thead><tr><th>Symbol</th><th>Weld</th><th>Meaning</th></tr></thead>
+      <tbody id="wd-sym-out"></tbody></table>
+    </div>
+    <p class="warn">⚠ The basics only — groove angles, root openings, sizes, and finish marks all ride on the same drawing symbols. Read the full print (and AWS A2.4) before welding to it.</p>
+  </div>
+</section>
+
+<!-- ================= REFERENCE ================= -->
+<section class="screen" id="scr-reference">
+  <h2 class="scr-title">Reference</h2>
+  <div class="card">
+    <h3>Reaming — speeds &amp; feeds by material</h3>
+    <label class="f">Material group</label>
+    <select id="rf-ream-mat"></select>
+    <div id="rf-ream-out"></div>
+  </div>
+  <div class="card">
+    <h3>Countersinks &amp; clearance holes</h3>
+    <div class="seg" id="rf-cs-mode">
+      <button data-m="unified" class="on">Unified (inch)</button>
+      <button data-m="metric">Metric</button>
+    </div>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Thread</th><th>Tap</th><th>Close</th><th>Free</th><th>82° csink</th></tr></thead>
+      <tbody id="rf-cs-out"></tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Socket head cap screws — head &amp; hex sizes</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Size</th><th>Head dia (max)</th><th>Head ht (max)</th><th>Hex socket</th></tr></thead>
+      <tbody id="rf-shcs-out"></tbody></table>
+    </div>
+    <p class="note">Standard ASME B18.3 dimensions — use the head diameter to size your counterbore, and allow clearance on top of it. Looking for G &amp; M codes? They're on the home screen under Reference.</p>
+  </div>
+  <div class="card">
+    <h3>Socket head cap screws — metric (ISO 4762)</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Size</th><th>Head dia (max)</th><th>Head ht (max)</th><th>Hex socket</th></tr></thead>
+      <tbody id="rf-mshcs-out"></tbody></table>
+    </div>
+    <p class="note">Millimeters. Head diameter and height are maximums — size your counterbore off the head diameter, plus clearance.</p>
+  </div>
+  <div class="card">
+    <h3>Flat head (countersunk) screws — head sizes</h3>
+    <div class="seg" id="rf-fh-mode">
+      <button data-m="metric" class="on">Metric — ISO 10642 (90°)</button>
+      <button data-m="inch">Inch — ASME B18.3 (82°)</button>
+    </div>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Size</th><th>Head dia (max)</th><th>Head ht (max)</th><th>Hex socket</th></tr></thead>
+      <tbody id="rf-fh-out"></tbody></table>
+    </div>
+    <p class="note">Nominal catalog dimensions — the head height is the countersink depth that leaves the head flush. Check your fastener maker's drawing for production work.</p>
+  </div>
+  <div class="card">
+    <h3>ISO fits &amp; tolerances (ISO 286, hole basis)</h3>
+    <div class="grid3">
+      <div><label class="f">Nominal size (mm)</label><input type="number" id="rf-fit-dia" inputmode="decimal" value="25"></div>
+      <div><label class="f">Hole</label>
+        <select id="rf-fit-hole">
+          <option value="H6">H6</option><option value="H7" selected>H7</option><option value="H8">H8</option>
+          <option value="H9">H9</option><option value="H11">H11</option><option value="JS6">JS6</option><option value="JS7">JS7</option>
+        </select></div>
+      <div><label class="f">Shaft</label>
+        <select id="rf-fit-shaft">
+          <option value="g6" selected>g6</option><option value="f7">f7</option><option value="h6">h6</option>
+          <option value="h7">h7</option><option value="h9">h9</option><option value="js6">js6</option>
+          <option value="k6">k6</option><option value="m6">m6</option><option value="n6">n6</option><option value="p6">p6</option>
+        </select></div>
+    </div>
+    <div class="results" id="rf-fit-out"></div>
+    <p class="note">Limits computed from the ISO 286 tolerance grades and fundamental deviations — the same numbers as the published limit tables, for sizes 1–500 mm.</p>
+  </div>
+  <div class="card">
+    <h3>Insert designation decoder (ISO 1832)</h3>
+    <label class="f">Designation (e.g. CNMG432 or CNMG120408)</label>
+    <input type="text" id="rf-ins-code" value="CNMG432" placeholder="Type an insert code…">
+    <div class="seg" id="rf-ins-sys" style="margin-top:10px">
+      <button data-m="inch" class="on">Inch code</button>
+      <button data-m="metric">Metric code</button>
+    </div>
+    <div id="rf-ins-out"></div>
+    <p class="note">Decodes the standard ISO positions: shape, clearance, tolerance, type, size, thickness, corner radius. Letters after the radius are the maker's own edge/chipbreaker codes.</p>
+  </div>
+  <div class="card">
+    <h3>Pierce sizes (weld nuts &amp; fasteners)</h3>
+    <label class="f">Section</label>
+    <select id="rf-pierce-sec"></select>
+    <div class="scrollbox" style="margin-top:10px">
+      <table class="data"><thead><tr><th>Item</th><th>Pierce size</th></tr></thead>
+      <tbody id="rf-pierce-out"></tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Surface finish Ra ⇄ Rz (approximate)</h3>
+    <div class="grid2">
+      <div><label class="f">Ra (µm)</label><input type="number" id="rf-ra" inputmode="decimal" value="1.6"></div>
+      <div><label class="f">Rz (µm)</label><input type="number" id="rf-rz" inputmode="decimal" value="7.2"></div>
+    </div>
+    <div class="results" id="rf-finish-out"></div>
+    <p class="note">Shop approximation (Rz ≈ 4.5 × Ra). Real conversions vary by process — ranges overlap.</p>
+  </div>
+  <div class="card">
+    <h3>Bolt torque (T = K × D × F)</h3>
+    <div class="grid3">
+      <div><label class="f">Condition (K)</label>
+        <select id="rf-tq-k"><option value="0.2">Dry (0.20)</option><option value="0.15">Lubed (0.15)</option><option value="0.11">Waxed / plated (0.11)</option></select></div>
+      <div><label class="f">Bolt diameter (in)</label><input type="number" id="rf-tq-dia" inputmode="decimal" value="0.5"></div>
+      <div><label class="f">Wanted clamp load (lb)</label><input type="number" id="rf-tq-clamp" inputmode="decimal" value="8000"></div>
+    </div>
+    <div class="results" id="rf-tq-out"></div>
+  </div>
+  <div class="card">
+    <h3>Weight per foot (steel) &amp; knurl blank</h3>
+    <div id="rf-wf-out"></div>
+    <div class="grid2">
+      <div><label class="f">Knurl blank diameter (in)</label><input type="number" id="rf-kn-dia" inputmode="decimal" value="1.25"></div>
+      <div><label class="f">Knurl pitch (TPI)</label><input type="number" id="rf-kn-tpi" inputmode="decimal" value="14"></div>
+    </div>
+    <div class="results" id="rf-kn-out"></div>
+  </div>
+  <div class="card">
+    <h3>Center drills — Type A (60°) &amp; spot drills</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Size</th><th>Drill Ø</th><th>Body Ø</th><th>Point length</th></tr></thead>
+      <tbody id="rf-cd-out"></tbody></table>
+    </div>
+    <p class="note">Standard combined drill &amp; countersink sizes (ASA B5.20, plain Type A). Point length is the 60° cone from drill Ø to body Ø — drill that deep to seat the full cone. Bell type (Type B, 100° guard) uses the same drill and body sizes with a rounded protective guard around the point. Overall length varies by maker.</p>
+    <p class="note"><b>Spot drills:</b> common sizes run 1/8″–1″ in 90°, 118°, and 120° points. Spot with an angle equal to or wider than the drill's point (120° spot for 118° drills, 140° for 135° split points), and spot to at least the chamfer diameter you want — a 90° spot drill both spots and chamfers in one pass.</p>
+  </div>
+  <div class="card">
+    <h3>Keyways &amp; keyseats — parallel keys (ASME B17.1)</h3>
+    <div class="scrollbox">
+      <table class="data"><thead><tr><th>Shaft Ø (in)</th><th>Key W × H</th><th>Shaft keyseat depth</th><th>Hub keyway depth</th></tr></thead>
+      <tbody id="rf-kw-out"></tbody></table>
+    </div>
+    <p class="note">Standard parallel key sizes per ASME B17.1, for shafts 1/4″–3″. Nominal depth is half the key height on both sides; the standard controls the measured dimension across the bottom of the keyseat (shaft: D − depth; hub: bore Ø + depth) and the fit class — check B17.1 for production tolerances.</p>
+  </div>
+  <div class="card">
+    <h3>O-ring sizes — AS568 dash numbers</h3>
+    <label class="f">Type a dash number or a size (e.g. -214, 1.359)</label>
+    <input type="search" id="rf-oring-search" placeholder="Search O-rings…">
+    <div class="scrollbox" style="margin-top:10px">
+      <table class="data"><thead><tr><th>Dash</th><th>ID</th><th>OD</th><th>Cross-section</th></tr></thead>
+      <tbody id="rf-oring-out"></tbody></table>
+    </div>
+    <p class="note">Nominal inside diameter, outside diameter, and cross-section in inches, per AS568. Coverage: -001 through -028, the full -100 series (-102 to -178), and -201 through -250 of the -200 series — the sizes a machine shop actually grabs. The -300 series uses a 0.210″ cross-section and the -400 series 0.275″.</p>
+  </div>
+</section>
+
+<!-- ================= MY SHOP ================= -->
+<section class="screen" id="scr-myshop">
+  <h2 class="scr-title">My Shop</h2>
+  <p class="sub">Your shop's own numbers — saved on this device only. The built-in calculators above stay locked to verified standard math; everything here is yours.</p>
+  <div class="card">
+    <h3>Shop settings (used by Weights)</h3>
+    <div class="grid2">
+      <div><label class="f">End allowance (in)</label><input type="number" id="ms-end" inputmode="decimal"></div>
+      <div><label class="f">Extra per part (in)</label><input type="number" id="ms-perpart" inputmode="decimal"></div>
+      <div><label class="f">Scrap factor (×)</label><input type="number" id="ms-scrap" inputmode="decimal"></div>
+      <div><label class="f">Sheet length (in)</label><input type="number" id="ms-sheetlen" inputmode="decimal"></div>
+      <div><label class="f">Steel density <span class="nb">(lb/in³)</span></label><input type="number" id="ms-den-steel" inputmode="decimal"></div>
+      <div><label class="f">Aluminum density <span class="nb">(lb/in³)</span></label><input type="number" id="ms-den-al" inputmode="decimal"></div>
+    </div>
+    <button class="act" id="ms-save" style="margin-top:12px">Save settings</button>
+    <span class="note" id="ms-saved"></span>
+  </div>
+  <div class="card">
+    <h3>Die stacks — spring pockets &amp; counterbores</h3>
+    <p class="note">Save each die's stack dimensions once; the depth calculations run on YOUR numbers. (Pattern from a die-shop workbook — the constants 0.10 / 0.05 are clearances you can edit per stack.)</p>
+    <div id="ms-stacks"></div>
+    <div class="grid2">
+      <div><label class="f">Stack name</label><input type="text" id="ms-st-name" placeholder="e.g. Die 12 — bracket"></div>
+      <div><label class="f">Stripper thickness</label><input type="number" id="ms-st-stripper" inputmode="decimal"></div>
+      <div><label class="f">Base punch thickness</label><input type="number" id="ms-st-punch" inputmode="decimal"></div>
+      <div><label class="f">Base thickness</label><input type="number" id="ms-st-base" inputmode="decimal"></div>
+      <div><label class="f">Shoulder bolt length</label><input type="number" id="ms-st-bolt" inputmode="decimal"></div>
+      <div><label class="f">Spring length</label><input type="number" id="ms-st-spring" inputmode="decimal"></div>
+      <div><label class="f">Punch clearance const (0.10)</label><input type="number" id="ms-st-clr" inputmode="decimal" value="0.1"></div>
+      <div><label class="f">Spring clearance const (0.05)</label><input type="number" id="ms-st-sclr" inputmode="decimal" value="0.05"></div>
+    </div>
+    <button class="act" id="ms-st-save" style="margin-top:12px">Save die stack</button>
+    <div class="err" id="ms-st-err"></div>
+  </div>
+  <div class="card">
+    <h3>Custom calculators</h3>
+    <p class="note">Name up to 6 inputs, then write a formula using those names. Allowed: + − × ÷ ^ ( ) and sqrt, sin, cos, tan, atan, log, exp, abs, round, min, max, pi, e. Angles in degrees. Nothing is evaluated as code — a safe math parser only.</p>
+    <div id="ms-calcs"></div>
+    <label class="f">Calculator name</label>
+    <input type="text" id="ms-cc-name" placeholder="e.g. Hex stock across corners">
+    <div id="ms-cc-inputs"></div>
+    <button class="ghost" id="ms-cc-addinput">+ Add input</button>
+    <label class="f">Formula (use input names)</label>
+    <input type="text" id="ms-cc-formula" placeholder="e.g. flat * 1.1547">
+    <label class="f">Result unit</label>
+    <input type="text" id="ms-cc-unit" placeholder="in">
+    <div style="margin-top:12px"><button class="act" id="ms-cc-save">Save calculator</button></div>
+    <div class="err" id="ms-cc-err"></div>
+  </div>
+  <div class="card">
+    <h3>Backup my shop data</h3>
+    <div class="seg">
+      <button id="ms-export">Export (download file)</button>
+      <button id="ms-import-btn">Import file</button>
+    </div>
+    <input type="file" id="ms-import" accept="application/json" style="display:none">
+    <div class="note" id="ms-io-note"></div>
+  </div>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section class="screen" id="scr-about">
+  <h2 class="scr-title">About H38 Quick Calc</h2>
+  <div class="card">
+    <p><b>H38 Quick Calc</b> — a free machinist calculator by <b>Highway 38 Solutions</b>.</p>
+    <p>Built from the working workbook of Rick Krueth, CNC machinist — the same math used on real jobs, cleaned up and phone-friendly. Every built-in formula was checked against published machining references; where the workbook's shop factors differed from the published standards (Machinery's Handbook / ASTM), the standards are used, per Rick's ruling.</p>
+    <p class="note">Reference tool only — verify critical cuts, threads, and press tonnage against your machine, tooling, and material certs before you run. Custom calculators in My Shop are your own formulas; double-check them like you would any hand math.</p>
+  </div>
+  <div class="card">
+    <p style="font-size:18px"><b>Runs on paperwork?</b> The H38 Office runs your whole shop office — quotes, jobs, invoices, scheduling — built by the same shop.</p>
+    <p><a href="https://highway38solutions.com/business-in-a-box.html" target="_blank" rel="noopener">See the H38 Office →</a></p>
+  </div>
+</section>
+</main>
+<footer class="appfoot">
+  <div class="cta">Runs on paperwork? <b>The H38 Office runs your whole shop office.</b><br>
+  <a href="https://highway38solutions.com/business-in-a-box.html" target="_blank" rel="noopener">See the H38 Office →</a></div>
+  <p>H38 Quick Calc — free from Highway 38 Solutions, Grand Rapids, Minnesota. Works fully offline once installed. Your My Shop data never leaves this device.</p>
+</footer>
+<script src="calc.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>

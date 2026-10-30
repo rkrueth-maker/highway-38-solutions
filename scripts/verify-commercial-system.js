@@ -79,9 +79,9 @@ check('Universal demonstration removes the result-board and renovation tangents'
 check('Office demo defines complete records',(publicDemo.match(/Object\.freeze\(\{n:'\d{2}',key:/g)||[]).length===14&&(publicDemo.match(/Object\.freeze\(\{n:'(?:G|A|M|P|E|C-S-L)-/g)||[]).length===10&&publicRoute.includes('boRenderUniversalPublicExamples_'));
 const request=read('start-request.html');
 const requestFlow=read('request-flow.js');
-check('request page keeps three-step secure intake',[1,2,3].every(step=>request.includes(`data-request-step="${step}"`))&&request.includes('id="request-submit"')&&request.includes('data-intake-endpoint='));
+check('request page keeps slim one-step secure intake',request.includes('data-request-step="3"')&&!request.includes('data-request-step="1"')&&request.includes('id="name"')&&request.includes('id="email"')&&request.includes('id="problem"')&&request.includes('id="request-submit"')&&request.includes('data-intake-endpoint='));
 check('request page preserves no-charge and Owner review language',/No charge|no-charge/i.test(request)&&/owner review/i.test(request));
-check('request uses approved offer selector',request.includes('pricing-data.js')&&request.includes('id="offer"')&&!request.includes('id="bundle"'));
+check('request slim form carries no offer selector or bundle field',!request.includes('id="offer"')&&!request.includes('id="bundle"')&&!request.includes('pricing-data.js'));
 check('request page preserves draft recovery and email fallback',requestFlow.includes('H38Platform.saveDraft')&&requestFlow.includes('H38Platform.loadDraft')&&requestFlow.includes('emailFallback'));
 const portal=read('portal.html');
 check('public Owner gateway opens one unified Business Office',portal.includes('Opening Highway 38 Business Office')&&portal.includes('location.replace(target)')&&!/<iframe\b/i.test(portal));

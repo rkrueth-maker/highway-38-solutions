@@ -44,6 +44,9 @@ const ALLOWED_ORIGINS = new Set([
 const MODULE_KEY = "customer_portal";
 const BOOKING_MODULE_KEY = "online_booking";
 const ONLINE_PAYMENTS_MODULE_KEY = "online_payments";
+const SIGNED_DEPOSIT_MODULE_KEY = "signed_deposit_acceptance";
+const DEPOSIT_INVOICE_SOURCE = "Deposit on signed quote acceptance";
+const DEFAULT_DEPOSIT_PERCENT = 50;
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") || "";
 const TOKEN_COLLECTION = "portal_tokens";
 const INVITE_COLLECTION = "portal_invite_requests";
@@ -206,6 +209,42 @@ async function moduleEnabled(service: ReturnType<typeof serviceClient>, business
     .maybeSingle();
   if (error) throw error;
   return data?.enabled === true;
+}
+
+// Signed quote acceptance + deposit settings for a tenant. The enforcement
+// source is the business_module_settings row (module_key =
+// "signed_deposit_acceptance"): missing row or enabled !== true means OFF —
+// the default for every tenant. The business's default deposit percent
+// lives in the row's config.depositPercent (50 when never set); a quote's
+// own "Deposit Percent" overrides it at signing time.
+async function signedDepositSettings(
+  service: ReturnType<typeof serviceClient>,
+  businessId: string,
+): Promise<{ enabled: boolean; depositPercent: number }> {
+  const { data, error } = await service
+    .from("business_module_settings")
+    .select("enabled, config")
+    .eq("business_id", businessId)
+    .eq("module_key", SIGNED_DEPOSIT_MODULE_KEY)
+    .maybeSingle();
+  if (error) throw error;
+  const config = ((data?.config || {}) as JsonObject);
+  const rawPct = config.depositPercent;
+  const rawNum = Number(rawPct);
+  const depositPercent = rawPct !== undefined && rawPct !== null && Number.isFinite(rawNum)
+    ? Math.min(100, Math.max(0, rawNum))
+    : DEFAULT_DEPOSIT_PERCENT;
+  return { enabled: data?.enabled === true, depositPercent };
+}
+
+// Per-quote override wins; otherwise the business default applies.
+function quoteDepositPercent(q: JsonObject, businessDefault: number): number {
+  const rawStr = String(pick(q, "Deposit Percent", "depositPercent") ?? "").trim();
+  if (rawStr !== "") {
+    const n = Number(rawStr);
+    if (Number.isFinite(n)) return Math.min(100, Math.max(0, n));
+  }
+  return businessDefault;
 }
 
 // Online payments (Stripe Connect) state for a tenant. Ready only when the
@@ -493,6 +532,8 @@ async function buildSessionBundle(
     .maybeSingle();
   const customer = ((customerRow?.payload || {}) as JsonObject);
 
+  const signedDeposit = await signedDepositSettings(service, businessId);
+
   const { data: quoteRows } = await service
     .from("business_records")
     .select("record_key,payload,updated_at")
@@ -532,6 +573,12 @@ async function buildSessionBundle(
           quantity: numberValue(pick(l, "quantity", "Quantity")),
           unitPrice: numberValue(pick(l, "unitPrice", "Unit Price", "rate")),
         })),
+        signedBy: clean(pick(p, "Signed By Name", "signedByName"), 80),
+        signedAt: clean(pick(p, "Signed At", "signedAt"), 40),
+        signedRevision: numberValue(pick(p, "Signed Revision", "signedRevision")),
+        depositPercent: quoteDepositPercent(p, signedDeposit.depositPercent),
+        depositAmount: numberValue(pick(p, "Deposit Amount", "depositAmount")),
+        depositInvoiceId: clean(pick(p, "Deposit Invoice ID", "depositInvoiceId"), 120),
         updatedAt: r.updated_at,
       };
     });
@@ -616,6 +663,7 @@ async function buildSessionBundle(
   return {
     business: { id: businessId, name: business?.display_name || "Highway 38" },
     payments: { onlineEnabled: paymentsState.ready },
+    signedDeposit: { enabled: signedDeposit.enabled, depositPercent: signedDeposit.depositPercent },
     services,
     customer: {
       name: clean(pick(customer, "Customer Name", "name"), 120),
@@ -959,6 +1007,208 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
       });
       await writeProof(sb, session.businessId, "PORTAL_QUOTE_APPROVED", "Quote", quoteId, "OK", { tier: approvalTierName, tierId: approvalTierId, chosenTotal: approvalTotal });
       return reply(req, 200, { ok: true, message: "Quote approved. We will contact you to schedule the work." });
+    }
+
+    // ---- sign-quote: typed-name signature acceptance + automatic deposit
+    // invoice. Runs ONLY when the tenant turned on signed deposit
+    // acceptance in Owner Controls (business_module_settings row
+    // "signed_deposit_acceptance", enabled = true). Missing row or
+    // enabled !== true => 403 — the feature is OFF by default for every
+    // tenant and the plain approve-quote flow above stays the only path.
+    // The signature (typed name + timestamp) is stored on the quote tied
+    // to the EXACT revision signed (expected_revision must match, same
+    // guard as approve-quote). On signing, exactly ONE deposit invoice is
+    // created for that quote revision: the dedupe lookup below reuses an
+    // existing one, and a signed quote leaves PRESENTED/SENT status, so
+    // retries and re-renders can never mint a second. The deposit percent
+    // is the quote's own "Deposit Percent" when set, otherwise the
+    // business default from the setting's config (50 when never set).
+    // The deposit invoice is a plain Office invoice record (Draft, never
+    // sent by this action); the office records the deposit against it by
+    // hand — Venmo, Cash App, check or cash — through the normal payment
+    // rails. Nothing is emailed or texted to the customer here, and no
+    // online checkout of any kind is created. ----
+    if (postAction === "sign-quote") {
+      const settings = await signedDepositSettings(sb, session.businessId);
+      if (!settings.enabled) {
+        return reply(req, 403, { error: "Signed acceptance isn't turned on for this business. Please call us to accept this quote." });
+      }
+      const quoteId = clean(body.quote_id || body.quoteId, 120);
+      const signerName = clean(body.signer_name || body.signerName, MAX.name);
+      const tierIndexRaw = body.tier_index ?? body.tierIndex;
+      const tierIndex = tierIndexRaw === undefined || tierIndexRaw === null || tierIndexRaw === "" ? null : Math.trunc(numberValue(tierIndexRaw));
+      const expectedRevisionRaw = body.expected_revision ?? body.expectedRevision;
+      const expectedRevision = expectedRevisionRaw === undefined || expectedRevisionRaw === null || expectedRevisionRaw === "" ? null : Math.trunc(numberValue(expectedRevisionRaw));
+      if (!quoteId) return reply(req, 400, { error: "Invalid request." });
+      if (signerName.length < 2) return reply(req, 400, { error: "Type your full name to sign." });
+      const { data: row, error } = await sb
+        .from("business_records")
+        .select("id,record_key,payload")
+        .eq("business_id", session.businessId)
+        .eq("collection", "quotes")
+        .eq("record_key", quoteId)
+        .eq("record_status", "active")
+        .maybeSingle();
+      if (error) throw error;
+      if (!row) return reply(req, 404, { error: "Quote not found." });
+      const q = (row.payload || {}) as JsonObject;
+      if (clean(pick(q, "Customer ID", "customerId"), 120) !== session.customerKey) {
+        return reply(req, 403, { error: "Quote not found." });
+      }
+      const status = clean(pick(q, "Status", "status"), 40).toUpperCase();
+      if (!["PRESENTED", "SENT"].includes(status)) {
+        return reply(req, 409, { error: "This quote can no longer be signed online. Please call us." });
+      }
+      const currentRevision = quoteRevisionOf(q);
+      if (expectedRevision === null || expectedRevision !== currentRevision) {
+        return reply(req, 409, { error: "This quote changed since you opened it. Please reload and review the current version before signing." });
+      }
+      const now = new Date().toISOString();
+      const tiered = isTieredQuotePayload(q);
+      let updated: JsonObject;
+      let approvalTierId = "";
+      let approvalTierName = "";
+      if (tiered) {
+        if (tierIndex === null || tierIndex < 0 || tierIndex > 2) {
+          return reply(req, 400, { error: "Choose which option you are signing for." });
+        }
+        const tiers = quoteTiersOf(q);
+        const tier = tiers[tierIndex];
+        if (!tier || !Array.isArray(tier.items) || !tier.items.length) {
+          return reply(req, 400, { error: "That option has no line items and cannot be signed for." });
+        }
+        const applied = applyAcceptedOption(q, tierIndex, now);
+        updated = applied.updated;
+        approvalTierId = clean(pick(applied.tier, "id"), 20) || TIER_IDS[tierIndex];
+        approvalTierName = clean(pick(applied.tier, "name"), 40);
+      } else {
+        updated = {
+          ...q,
+          "Status": "Approved",
+          "Customer Approved Time": now,
+          "Customer Decision": "Accepted",
+          "Updated Time": now,
+          "Record Version": numberValue(pick(q, "Record Version", "recordVersion")) + 1,
+        };
+        delete updated.__localPending;
+      }
+      const acceptedTotal = numberValue(pick(updated, "Total", "total"));
+      const pct = quoteDepositPercent(q, settings.depositPercent);
+      const depositAmount = round2(acceptedTotal * pct / 100);
+      const actorId = await attributionUserId(sb, session.businessId);
+      // Dedupe: an existing deposit invoice for this exact quote revision
+      // is reused, never duplicated (covers a retry after the invoice was
+      // created but the quote write failed, and any double submit).
+      let depositInvoiceId = "";
+      if (depositAmount > 0) {
+        const { data: invRows, error: invErr } = await sb
+          .from("business_records")
+          .select("record_key,payload")
+          .eq("business_id", session.businessId)
+          .eq("collection", "invoices")
+          .eq("record_status", "active")
+          .limit(500);
+        if (invErr) throw invErr;
+        const found = (invRows || []).find((r) => {
+          const p = (r.payload || {}) as JsonObject;
+          return clean(pick(p, "Quote ID", "quoteId"), 120) === quoteId
+            && numberValue(pick(p, "Deposit For Revision", "depositForRevision")) === currentRevision
+            && clean(pick(p, "Source", "source"), 80) === DEPOSIT_INVOICE_SOURCE
+            && !/void/i.test(clean(pick(p, "Status", "status"), 40));
+        });
+        if (found) depositInvoiceId = found.record_key;
+      }
+      if (depositAmount > 0 && !depositInvoiceId) {
+        depositInvoiceId = `INVOICE-${crypto.randomUUID().toUpperCase()}`;
+        const quoteNumber = clean(pick(q, "Quote Number", "quoteNumber"), 60);
+        const { error: insErr } = await sb.from("business_records").insert({
+          business_id: session.businessId,
+          collection: "invoices",
+          record_key: depositInvoiceId,
+          record_status: "active",
+          created_by: actorId,
+          updated_by: actorId,
+          payload: {
+            "Invoice ID": depositInvoiceId,
+            "Invoice Number": `LOCAL-${Date.now()}`,
+            "Business ID": session.businessId,
+            "Customer ID": session.customerKey,
+            "Quote ID": quoteId,
+            "Source": DEPOSIT_INVOICE_SOURCE,
+            "Status": "Draft",
+            "Send Allowed": "No",
+            "Delivery Status": "Not Sent",
+            "Total": depositAmount,
+            "Subtotal": depositAmount,
+            "Tax": 0,
+            "Balance": depositAmount,
+            "Due Date": "",
+            "lines": [{
+              description: `Deposit — ${pct}% of Quote ${quoteNumber || quoteId} (signed acceptance)`,
+              quantity: 1,
+              unit: "each",
+              unitPrice: depositAmount,
+            }],
+            "Deposit Percent": pct,
+            "Deposit For Quote": quoteId,
+            "Deposit For Revision": currentRevision,
+            "Signed By Name": signerName,
+            "Signed At": now,
+            "Created Time": now,
+            "Updated Time": now,
+            "Record Version": 1,
+          },
+        });
+        if (insErr) throw insErr;
+      }
+      updated["Customer Decision"] = "Accepted — signed";
+      updated["Signed By Name"] = signerName;
+      updated["Signed At"] = now;
+      updated["Signature Type"] = "Typed name";
+      updated["Signed Revision"] = currentRevision;
+      updated["Deposit Percent"] = pct;
+      updated["Deposit Amount"] = depositAmount;
+      updated["Deposit Invoice ID"] = depositInvoiceId;
+      updated["Deposit Required"] = depositAmount > 0 ? "Yes" : "No";
+      const { error: upErr } = await sb.from("business_records").update({
+        payload: updated,
+        updated_at: now,
+      }).eq("id", row.id);
+      if (upErr) throw upErr;
+      await sb.from("business_records").insert({
+        business_id: session.businessId,
+        collection: APPROVAL_COLLECTION,
+        record_key: `APPROVAL-${Date.now()}-${quoteId.slice(-6)}`,
+        record_status: "active",
+        created_by: actorId,
+        updated_by: actorId,
+        payload: {
+          "Quote ID": quoteId,
+          "Customer ID": session.customerKey,
+          "Decision": "Approved — signed",
+          "Signed By Name": signerName,
+          "Signed At": now,
+          "Signed Revision": currentRevision,
+          "Tier": approvalTierId,
+          "Tier Name": approvalTierName,
+          "Total": acceptedTotal,
+          "Deposit Percent": pct,
+          "Deposit Amount": depositAmount,
+          "Deposit Invoice ID": depositInvoiceId,
+          "Status": "New — owner converts to job",
+          "Business ID": session.businessId,
+          "Created Time": now,
+          "Record Version": 1,
+        },
+      });
+      await writeProof(sb, session.businessId, "PORTAL_QUOTE_SIGNED", "Quote", quoteId, "OK", { tier: approvalTierName, tierId: approvalTierId, acceptedTotal, signerName, signedRevision: currentRevision, depositPercent: pct, depositAmount, depositInvoiceId });
+      return reply(req, 200, {
+        ok: true,
+        message: depositAmount > 0
+          ? `Quote signed and accepted. A deposit invoice for $${depositAmount.toFixed(2)} was created — we will contact you about the deposit and scheduling.`
+          : "Quote signed and accepted. We will contact you to schedule the work.",
+        deposit: { invoiceId: depositInvoiceId, amount: depositAmount, percent: pct },
+      });
     }
 
     // ---- decline-quote ----

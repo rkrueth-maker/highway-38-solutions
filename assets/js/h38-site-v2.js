@@ -28,14 +28,14 @@
     ],
     footer:[
       {heading:'Start',links:[['Ask the H38 Helper','#h38-helper'],['Start a Project','start-request.html'],['Pricing','pricing.html'],['Interactive Quote Demo','quote-builder-demo.html']]},
-      {heading:'Explore',links:[['H38 Business System','business-in-a-box.html'],['Divisions','divisions.html'],['Meet the Crew','crew.html'],['Tips & Facts','tips.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html']]},
+      {heading:'Explore',links:[['H38 Business System','business-in-a-box.html'],['Divisions','divisions.html'],['Meet the Crew','crew.html'],['Tips & Facts','tips.html'],['Public Business Office Demo',OFFICE_DEMO],['Project Examples','quote-builder.html#examples'],['What We Do','solutions.html'],['Custom Digital Services','custom-digital-services.html'],['Free Tools','free-tools.html']]},
       {heading:'Trust',links:[['Implementation','implementation.html'],['Security & Reliability','security-reliability.html'],['FAQ','faq.html'],["What's Included & Coming Soon",'included.html'],['About','about.html'],['Contact','contact.html'],['Privacy','privacy.html'],['Terms','terms.html']]},
       {heading:'Call or Text',links:[['(218) 212-5299','tel:+12182125299']]},
       {heading:'Private',links:[['Owner Access','portal.html']]}
     ],
     redirects:{
       'catalog.html':'pricing.html','products.html':'pricing.html','product.html':'pricing.html','packages.html':'pricing.html',
-      'tools.html':'quote-builder.html#examples','free-tools.html':'quote-builder.html#examples','tool-center.html':'quote-builder.html#examples','proof.html':'quote-builder.html#examples',
+      'tools.html':'quote-builder.html#examples','tool-center.html':'quote-builder.html#examples','proof.html':'quote-builder.html#examples',
       'forgeiq.html':'solutions.html','services.html':'solutions.html','specials.html':'pricing.html',
       'business-in-a-box-pricing.html':'pricing.html'
     },

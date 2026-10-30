@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261027-session-keep-1';
+const BUILD='20261028-phone-fixes-1';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -20,10 +20,10 @@ function ensureStyle(){
   if(document.getElementById('h38PhoneFirstOfficeStyle'))return;
   const s=document.createElement('style');s.id='h38PhoneFirstOfficeStyle';s.textContent=`
 @media(max-width:760px){
- :root{--h38-bottom-ui-clearance:calc(172px + env(safe-area-inset-bottom,0px))}
+ :root{--h38-bottom-ui-clearance:calc(184px + env(safe-area-inset-bottom,0px))}
  body.h38-phone-first-office #h38NewActionButton{display:none!important}
  body.h38-phone-first-office #mainContent{padding-bottom:var(--h38-bottom-ui-clearance)!important;scroll-padding-bottom:var(--h38-bottom-ui-clearance)!important}
- .h38-phone-create{position:fixed;right:16px;bottom:calc(142px + env(safe-area-inset-bottom,0px));z-index:2490;width:58px;height:58px;border-radius:50%;border:0;box-shadow:0 10px 28px rgba(11,36,56,.28);font-size:30px;font-weight:900;display:grid;place-items:center;background:var(--navy,#0b2438);color:#fff}.h38-phone-create[hidden],body:has(dialog[open]) .h38-phone-create{display:none!important}
+ .h38-phone-create{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2490;width:58px;height:58px;border-radius:50%;border:0;box-shadow:0 10px 28px rgba(11,36,56,.28);font-size:30px;font-weight:900;display:grid;place-items:center;background:var(--navy,#0b2438);color:#fff}.h38-phone-create[hidden],body:has(dialog[open]) .h38-phone-create{display:none!important}
  body.h38-phone-first-office .toast{right:84px!important;bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100vw - 104px)!important}
  .h38-phone-create-dialog{width:min(520px,calc(100vw - 18px));max-height:82dvh;border:0;border-radius:18px;padding:0}.h38-phone-create-dialog::backdrop{background:rgba(0,0,0,.55)}
  .h38-phone-create-shell{padding:16px;display:grid;gap:14px}.h38-phone-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.h38-phone-sheet-head h2{margin:0}.h38-phone-sheet-head p{margin:4px 0 0;color:var(--muted,#607285);font-size:.86rem}
@@ -72,7 +72,14 @@ function openCustomer(cid){if(!cid)return;if(window.H38_CUSTOMER_360)window.H38_
 function ensureToday(){
   const main=document.getElementById('mainContent');if(!main)return;
   if(!mobile()||state().page!=='today'){main.classList.remove('h38-phone-simplified');main.removeAttribute('data-h38-phone-details');main.querySelectorAll('[data-h38-phone-secondary]').forEach(n=>n.removeAttribute('data-h38-phone-secondary'));document.getElementById('h38PhoneToday')?.remove();try{window.H38FirstScreen?.release?.('phoneToday');}catch(_){}return;}
-  main.classList.add('h38-phone-simplified');main.querySelectorAll(':scope > .grid, #h38CustomerReadyToday').forEach(n=>n.dataset.h38PhoneSecondary='1');
+  main.classList.add('h38-phone-simplified');main.querySelectorAll(':scope > .grid').forEach(n=>n.dataset.h38PhoneSecondary='1');
+  // Phone/desktop parity (2026-10-28): the canonical Today workspace
+  // (#h38CustomerReadyToday — Next Action / Up Next / Today's Work) is the
+  // SAME component the desktop shows first, from the same snapshot data.
+  // It must never be demoted to hidden "secondary" content on the phone:
+  // doing so left the phone headlining only the schedule hero's
+  // "No calls booked yet" while the desktop showed the day's booked work.
+  document.getElementById('h38CustomerReadyToday')?.removeAttribute('data-h38-phone-secondary');
   const next=scheduledNext(),items=attention(),sig=JSON.stringify([next?.time,next&&val(next.row,'Title'),items.map(x=>x.title+x.detail)]);let section=document.getElementById('h38PhoneToday');if(section?.dataset.signature===sig)return;
   section?.remove();section=document.createElement('section');section.id='h38PhoneToday';section.className='h38-phone-today';section.dataset.signature=sig;
   const r=next?.row,cid=text(val(r,'Customer ID','customerId')),when=next?new Date(next.time).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'}):'',title=text(val(r,'Title','Project Title'))||'Scheduled work',location=text(val(r,'Location','Address','Service Address'));

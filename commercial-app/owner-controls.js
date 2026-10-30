@@ -14,6 +14,7 @@ const FEATURE_TOGGLES=[
   {id:'job_photos',title:'Job photos required',desc:'Require photos to be attached to jobs.',icon:'📷',default:false,category:'Jobs'},
   {id:'customer_signatures',title:'Customer signatures',desc:'Require customer signature on completed work.',icon:'✍️',default:false,category:'Jobs'},
   {id:'quote_approval',title:'Quote approval workflow',desc:'Require owner approval before quotes can be sent.',icon:'✅',default:true,category:'Quotes'},
+  {id:'signed_deposit_acceptance',title:'Signed quote acceptance + deposit',desc:'Customers accept a quote in the portal by typing their name as a signature. The signature and time are stored on the exact quote version they signed, and the Office creates ONE deposit invoice automatically — the default percent below of the quote total (a quote can carry its own percent). Deposits are recorded by hand in Money (Venmo, Cash App, check or cash), like any other payment. Nothing charges itself. Off by default.',icon:'🖋️',default:false,category:'Quotes'},
   {id:'auto_reminders',title:'Auto payment reminders',desc:'Automatically send payment reminders for overdue invoices.',icon:'🔔',default:false,category:'Money'},
   {id:'auto_invoice_on_complete',title:'Invoice draft when a job is done',desc:'When a job is marked complete, the Office drafts its invoice for you — priced from the job\'s quote where it has one, or at $0 with a note if the job had no price — and all you do is review it and tap send in Money. Nothing is ever sent automatically. On by default; turn this off to prepare invoices by hand like before.',icon:'🧾',default:true,category:'Money'},
   {id:'payroll_check_printing',title:'Payroll check printing',desc:'Print paychecks on check stock from your own bank, straight from a finalized pay run. The Office prints the date, employee, amounts and pay stub only — the MICR line and account numbers stay on your bank stock. Off by default.',icon:'🖨️',default:false,category:'Money'},
@@ -317,6 +318,81 @@ function bindLeadResponder(){
     try{
       await setLeadResponderEnabled(isLeadResponderEnabled(),box.querySelector('[data-lead-template-text]').value);
       if(typeof toast==='function') toast('Lead responder wording saved.');
+    }catch(e){
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }
+  };
+}
+
+// Signed quote acceptance + deposit (server-side mirror — CANONICAL toggle
+// shape). Stored in business_module_settings (module_key
+// 'signed_deposit_acceptance', enabled boolean, config {depositPercent}).
+// The h38-customer-portal edge function reads ONLY this row before it lets
+// a customer sign a quote, so the owner's intent is enforced even when the
+// portal is opened on another device. Missing row or enabled!==true means
+// OFF — the default for every tenant — and the portal keeps the plain
+// approve flow. The business's default deposit percent lives in
+// config.depositPercent (50 when never set); a quote's own "Deposit
+// Percent" wins over it at signing time. The local feature toggle is kept
+// in sync only as a display fallback.
+const SIGNED_DEPOSIT_KEY='signed_deposit_acceptance';
+const SIGNED_DEPOSIT_DEFAULT_PERCENT=50;
+function signedDepositSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===SIGNED_DEPOSIT_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isSignedDepositEnabled(){
+  const row=signedDepositSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('signed_deposit_acceptance');
+}
+function signedDepositPercent(){
+  const row=signedDepositSettingRow();
+  const raw=row&&row.config?row.config.depositPercent:undefined;
+  const n=Number(raw);
+  return raw!==undefined&&raw!==null&&Number.isFinite(n)?Math.min(100,Math.max(0,n)):SIGNED_DEPOSIT_DEFAULT_PERCENT;
+}
+// Owner/admin only. Mirrors the toggle + default percent to
+// business_module_settings and keeps the local toggle in sync. Throws when
+// the server write fails.
+async function setSignedDepositEnabled(enabled,percent){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can change this setting.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const pctRaw=(typeof percent==='string'&&percent.trim()==='')?NaN:Number(percent);
+  const pct=Number.isFinite(pctRaw)?Math.min(100,Math.max(0,pctRaw)):signedDepositPercent();
+  const cfg={depositPercent:pct,updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:SIGNED_DEPOSIT_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===SIGNED_DEPOSIT_KEY);
+    const snap={moduleKey:SIGNED_DEPOSIT_KEY,module_key:SIGNED_DEPOSIT_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['signed_deposit_acceptance']=!!enabled;
+  saveToggles(toggles);
+}
+// Default-percent editor rendered under the signed-acceptance toggle card.
+function bindSignedDeposit(){
+  const checkbox=document.querySelector('[data-toggle="signed_deposit_acceptance"]');
+  if(!checkbox) return;
+  const card=checkbox.closest('article')||checkbox.closest('.row');
+  if(!card||card.querySelector('[data-deposit-percent]')) return;
+  const box=document.createElement('div');
+  box.dataset.depositPercent='1';
+  box.innerHTML=`<label style="display:block;margin-top:8px"><small>Default deposit — percent of the quote total collected on signing:</small><span style="display:flex;gap:6px;align-items:center;margin-top:4px"><input data-deposit-percent-input type="number" min="0" max="100" step="1" value="${signedDepositPercent()}" style="width:90px"> %</span></label><button type="button" class="secondary" data-deposit-percent-save>Save percent</button>`;
+  card.appendChild(box);
+  box.querySelector('[data-deposit-percent-save]').onclick=async()=>{
+    try{
+      await setSignedDepositEnabled(isSignedDepositEnabled(),box.querySelector('[data-deposit-percent-input]').value);
+      if(typeof toast==='function') toast('Default deposit percent saved.');
     }catch(e){
       if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
     }
@@ -838,7 +914,7 @@ function renderOwnerControls(){
    * data-module ids, storage keys, defaults and server writes below are
    * byte-identical in behavior to the previous list rendering — the same
    * inputs are emitted, now as cards in the .h38-addon-grid. */
-  const featureOn=f=>(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):isFeatureEnabled(f.id));
+  const featureOn=f=>(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='signed_deposit_acceptance'?isSignedDepositEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):isFeatureEnabled(f.id));
   const categories={};
   FEATURE_TOGGLES.forEach(f=>{
     if(!categories[f.category]) categories[f.category]=[];
@@ -963,6 +1039,7 @@ function renderOwnerControls(){
 function bindOwnerControls(){
   document.querySelectorAll('[data-h38-addon-open]').forEach(btn=>{if(btn.dataset.h38Bound)return;btn.dataset.h38Bound='1';btn.onclick=()=>{if(typeof window.openPage==='function')window.openPage(btn.dataset.h38AddonOpen);};});
   bindLeadResponder();
+  bindSignedDeposit();
   bindMachineShop();
   bindCustomerPortal();
   bindOnlinePayments();
@@ -1095,6 +1172,28 @@ function bindOwnerControls(){
         }
         return;
       }
+      // Signed quote acceptance is server-backed: the customer portal edge
+      // function reads ONLY the mirrored business_module_settings row
+      // before it lets a customer sign or creates the deposit invoice.
+      // Revert locally if the write fails.
+      if(id==='signed_deposit_acceptance'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON signed quote acceptance? Customers will accept quotes in the portal by typing their name as a signature, and the Office will create a deposit invoice automatically (your default percent of the quote total, or the quote\'s own percent when it has one). Deposits are still recorded by hand — nothing charges itself.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setSignedDepositEnabled(want,signedDepositPercent());
+          if(typeof toast==='function') toast('Signed quote acceptance '+(want?'turned ON.':'turned OFF.'));
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       // Online Payments is server-backed (portal + edge functions enforce
       // it). Turning ON requires a connected Stripe account with charges
       // enabled, so customers never see a pay option that cannot work.
@@ -1154,6 +1253,9 @@ window.H38OwnerControls={
   isLeadResponderEnabled:isLeadResponderEnabled,
   isAutoSendReviewEnabled:isAutoSendReviewEnabled,
   setAutoSendReviewEnabled:setAutoSendReviewEnabled,
+  isSignedDepositEnabled:isSignedDepositEnabled,
+  setSignedDepositEnabled:setSignedDepositEnabled,
+  signedDepositPercent:signedDepositPercent,
   isOwnerNotifyEnabled:isOwnerNotifyEnabled,
   setOwnerNotifyEnabled:setOwnerNotifyEnabled,
   ownerNotifyResolved:ownerNotifyResolved,

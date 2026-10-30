@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-26T09:15:10.177Z",
+  "generatedAt": "2026-10-28T07:05:32.588Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -16,7 +16,7 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 258,
+  "passed": 266,
   "failed": 0,
   "warnings": [],
   "passes": [
@@ -78,11 +78,11 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "13501 bytes"
+      "detail": "13486 bytes"
     },
     {
       "name": "canonical shell CSS budget",
-      "detail": "8587 bytes"
+      "detail": "8625 bytes"
     },
     {
       "name": "canonical stylesheet includes mobile behavior",
@@ -247,6 +247,46 @@
     {
       "name": "software.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "free-tools.html exists",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js, free-tools-gate.js"
+    },
+    {
+      "name": "free-tools.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js, free-tools-gate.js"
+    },
+    {
+      "name": "free-tools.html canonical URL",
+      "detail": "https://highway38solutions.com/free-tools.html"
+    },
+    {
+      "name": "free tools page uses shell and download gate scripts",
+      "detail": "assets/js/h38-site-v2.js, free-tools-gate.js"
     },
     {
       "name": "project-services.html exists",
@@ -966,14 +1006,6 @@
     },
     {
       "name": "tools.html redirects to sample-library-now.html",
-      "detail": "sample-library-now.html"
-    },
-    {
-      "name": "free-tools.html retired route exists",
-      "detail": ""
-    },
-    {
-      "name": "free-tools.html redirects to sample-library-now.html",
       "detail": "sample-library-now.html"
     },
     {

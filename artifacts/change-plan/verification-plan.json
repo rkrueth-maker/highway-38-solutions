@@ -1,31 +1,20 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-27T08:19:47.318Z",
-  "base": "origin/main",
+  "generatedAt": "2026-10-28T04:36:45.976Z",
+  "base": "217ab000",
   "head": "HEAD",
   "files": [
-    ".github/workflows/h38-office-android-release.yml",
-    "commercial-app/index.html",
-    "commercial-app/supabase-auth.js",
-    "commercial-app/version.json",
-    "native/h38-office/android-app/app/build.gradle",
-    "native/h38-office/android-app/app/src/main/AndroidManifest.xml",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/BootReceiver.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/GeoMath.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/MainActivity.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/OfficeBridge.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/PolicyStore.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/TrackingController.java",
-    "native/h38-office/android-app/app/src/main/java/com/highway38/office/TrackingService.java",
-    "native/h38-office/android-app/app/src/test/java/com/highway38/office/GeoMathTest.java"
+    "free-tools.html",
+    "free-tools/workbook-pack.html",
+    "sitemap.xml"
   ],
-  "fileCount": 14,
+  "fileCount": 3,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": true,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -34,27 +23,24 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-h38-office-access.js"
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",

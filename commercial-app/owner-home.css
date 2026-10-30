@@ -845,6 +845,17 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
     animation: none;
     background: none;
   }
+  /* Phone/desktop parity (2026-10-28): the customer-ready workspace
+   * (Next Action / Up Next / Today's Work) is the day's booked work —
+   * the phone must show it like the desktop does, not bury it behind
+   * the details toggle. Once its module fills the ready frame, the
+   * frame expands in place at its settled position under the header
+   * (the same one-time settle the desktop has when the card lands).
+   * The time and access frames stay toggle territory. */
+  .h38-home-frame--ready.is-filled {
+    height: auto;
+    overflow: visible;
+  }
   #mainContent[data-h38-phone-details='1'] .h38-home-frame {
     height: auto;
     overflow: visible;

@@ -215,15 +215,22 @@
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      // Same start-time fields and status exclusions as the other Today
+      // components (customer-readiness-polish, phone-first-office), so the
+      // hero count reads the same booked calls from the same data on every
+      // view. Reading only 'Start Time' missed events stored under the
+      // variant field names and counted cancelled/completed events.
+      const startOf = e => v(e, 'Start Time', 'startTime', 'Scheduled Time', 'scheduledAt');
       return events
         .filter(e => {
-          const d = new Date(v(e, 'Start Time') || 0);
+          if (/CANCEL|VOID|COMPLETE/.test(String(v(e, 'Status', 'status') || '').toUpperCase())) return false;
+          const d = new Date(startOf(e) || 0);
           return d >= today && d < tomorrow;
         })
-        .sort((a, b) => new Date(v(a, 'Start Time')) - new Date(v(b, 'Start Time')))
+        .sort((a, b) => new Date(startOf(a)) - new Date(startOf(b)))
         .slice(0, 5)
         .map(e => ({
-          time: new Date(v(e, 'Start Time')).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+          time: new Date(startOf(e)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
           title: v(e, 'Title') || v(e, 'Customer Name') || 'Event'
         }));
     } catch (e) { return []; }
