@@ -118,12 +118,14 @@
       './customer-comms.js?build=20261026-auto-invoice-3',
     ];
     const PAGE_SCHEDULE = [
+      './business-hours.js?build=20261030-r2-business-hours-1',
       './guided-schedule.js?build=20261020-ws4-schedule-1',
       './plow-flow.js?build=20261011-plow-flow-1',
       './route-planner.js?build=20261026-day-fix-3',
       './portal-requests.js?build=20261026-portal-requests-1',
     ];
     const PAGE_MESSAGES = [
+      './business-hours.js?build=20261030-r2-business-hours-1',
       './sms-provider.js?build=20261004-sms-seam-2',
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
@@ -226,6 +228,7 @@
       './employee-onboarding.js?build=20261011-phase3-1',
     ];
     const PAGE_SETTINGS = [
+      './business-hours.js?build=20261030-r2-business-hours-1',
       './health-dashboard.js?build=20261011-health-dashboard-1',
       './sms-provider-setup.js?build=20261004-sms-providers-1',
       './muse-permissions.js?build=20261006-muse-permissions-2',
