@@ -1,0 +1,57 @@
+/* H38 Today: AI command bar + setup checklist — build 20261030-r2-today-1 */
+.h38-today-command-setup { display: grid; gap: 12px; margin: 12px 0; }
+.h38-command-bar-card h2 { margin-top: 0; }
+.h38-command-form { display: flex; gap: 8px; }
+.h38-command-form input {
+  flex: 1 1 auto; min-width: 0;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  border: 1.5px solid var(--line, #d6e0e8);
+  border-radius: 12px;
+  background: var(--card, #fff);
+}
+.h38-command-form input:focus { border-color: var(--blue, #174a70); outline: none; box-shadow: 0 0 0 3px rgba(23,74,112,.16); }
+.h38-command-form button { flex: 0 0 auto; min-height: 48px; }
+.h38-command-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.h38-command-chips button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #d6e0e8);
+  background: rgba(23,74,112,.06);
+  color: var(--navy, #0b2438);
+  font-weight: 700;
+  cursor: pointer;
+}
+.h38-command-chips button:hover { background: rgba(23,74,112,.13); }
+
+.h38-setup-card h2 { margin-top: 0; }
+.h38-setup-list { display: grid; gap: 7px; margin-top: 8px; }
+.h38-setup-step {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #d6e0e8);
+  border-radius: 12px;
+  background: var(--card, #fff);
+  text-align: left;
+  cursor: pointer;
+}
+.h38-setup-step:hover { border-color: var(--blue, #174a70); }
+.h38-setup-mark {
+  flex: 0 0 26px; width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(163,106,0,.14);
+  color: #a36a00; font-weight: 900;
+}
+.h38-setup-step--done .h38-setup-mark { background: rgba(32,132,81,.15); color: #208451; }
+.h38-setup-step--done { opacity: .78; }
+.h38-setup-text { flex: 1 1 auto; min-width: 0; display: grid; }
+.h38-setup-text small { color: var(--muted, #667085); }
+.h38-setup-go { flex: 0 0 auto; color: var(--muted, #667085); font-weight: 900; }
+@media (max-width: 760px) {
+  .h38-command-form { flex-direction: column; }
+  .h38-command-form button { width: 100%; }
+}
