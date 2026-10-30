@@ -11,9 +11,12 @@ function h38QuoteIsDemo(row){
   return /\bDEMO\b/i.test([v(row,'Status','status'),v(row,'Quote Number','quoteNumber'),v(row,'Project Title','projectTitle'),state.quote&&state.quote.projectTitle,state.quote&&state.quote.scope].join(' '));
 }
 function h38QuotePreviewLine(line){
-  const quantity=num(v(line,'Quantity','quantity'));
-  const unitPrice=num(v(line,'Unit Price','unitPrice'));
-  return `<tr><td>${esc(v(line,'Description','description'))}</td><td>${esc(quantity)}</td><td>${esc(v(line,'Unit','unit')||'each')}</td><td>${money(unitPrice)}</td><td>${money(quantity*unitPrice)}</td></tr>`;
+  /* Customer surface: build ONLY from the sanitized projection
+     {description, quantity, unit, unitPrice, lineTotal} so owner-only
+     internal cost fields on the line can never reach the preview. */
+  const normalized={description:v(line,'Description','description'),quantity:num(v(line,'Quantity','quantity')),unit:v(line,'Unit','unit')||'each',unitPrice:num(v(line,'Unit Price','unitPrice'))};
+  const c=(window.H38_QUOTE_INTERNAL&&typeof window.H38_QUOTE_INTERNAL.customerLine==='function')?window.H38_QUOTE_INTERNAL.customerLine(normalized):{...normalized,lineTotal:normalized.quantity*normalized.unitPrice};
+  return `<tr><td>${esc(c.description)}</td><td>${esc(c.quantity)}</td><td>${esc(c.unit)}</td><td>${money(c.unitPrice)}</td><td>${money(c.lineTotal)}</td></tr>`;
 }
 function h38AiPriceSourceLabel(line){
   const source=String(line?.priceSource||'').toLowerCase();
@@ -49,7 +52,12 @@ function h38AddMissingCostToQuote(item){
   const rate=num(item.rate),quantity=Math.max(.01,num(item.quantity||1));
   if(rate<=0){toast('H38 will not add an unpriced cost suggestion. Re-run the quote audit so current pricing can be researched.',true);return;}
   if(!Array.isArray(state.quote.lines))state.quote.lines=[];
-  state.quote.lines.push({quoteLineId:newId('QUOTE-LINE'),description:String(item.description||'Possible missing expense'),quantity,unit:String(item.unit||'each'),unitPrice:rate,priceSource:h38AiPriceSourceLabel(item),priceStatus:'Owner review required'});
+  const missingCostLine={quoteLineId:newId('QUOTE-LINE'),description:String(item.description||'Possible missing expense'),quantity,unit:String(item.unit||'each'),unitPrice:rate,priceSource:h38AiPriceSourceLabel(item),priceStatus:'Owner review required'};
+  /* Two-layer: when the suggestion matched a price book item, carry that
+     item's genuine internal cost onto the new line (sell price untouched). */
+  const missingCostRow=item.catalogId?records('priceBook').find(row=>rowId(row,'Item ID','itemId')===String(item.catalogId)):null;
+  if(missingCostRow&&window.H38_QUOTE_INTERNAL&&typeof window.H38_QUOTE_INTERNAL.applyPriceBookPricing==='function'){window.H38_QUOTE_INTERNAL.applyPriceBookPricing(missingCostLine,missingCostRow,true);missingCostLine.catalogId=String(item.catalogId);}
+  state.quote.lines.push(missingCostLine);
   state.quote.ownerEdited=true;
   h38SetMissingCostDecision(item,'ADDED');
   toast(`${item.description||'Missing cost'} added to the editable draft. Review it, then save the quote when ready.`);
@@ -79,9 +87,12 @@ function h38TierPresentationSection(tier,index){
     (popular?'<span class="h38-tier-popular">Most Popular</span>':'')+
     (tier.description?'<p>'+esc(tier.description)+'</p>':'')+'</div>'+
     '<div class="h38-tier-present-price"><strong>'+money(total)+'</strong><small>fixed price</small></div>'+
-    '<div class="h38-tier-present-items"><ul>'+(tier.items||[]).map(l=>
-      '<li><span>'+esc(l.description)+'<br><small class="muted">'+esc(l.quantity)+' '+esc(l.unit||'each')+'</small></span><strong>'+money(num(l.quantity)*num(l.unitPrice))+'</strong></li>'
-    ).join('')+'</ul></div>'+
+    '<div class="h38-tier-present-items"><ul>'+(tier.items||[]).map(l=>{
+      /* Customer surface: sanitized projection only — internal cost fields
+         on tier items are stripped before anything is rendered. */
+      const c=(window.H38_QUOTE_INTERNAL&&typeof window.H38_QUOTE_INTERNAL.customerLine==='function')?window.H38_QUOTE_INTERNAL.customerLine(l):{description:l.description,quantity:num(l.quantity),unit:l.unit||'each',lineTotal:num(l.quantity)*num(l.unitPrice)};
+      return '<li><span>'+esc(c.description)+'<br><small class="muted">'+esc(c.quantity)+' '+esc(c.unit)+'</small></span><strong>'+money(c.lineTotal)+'</strong></li>';
+    }).join('')+'</ul></div>'+
     '<div class="h38-tier-present-cta"><small class="muted">Option '+(index+1)+' of 3</small></div>'+
   '</div>';
 }
@@ -169,7 +180,7 @@ async function h38BuildAiQuoteDraft(){
     state.quote.projectTitle=draft.projectTitle||projectTitle?.value||state.quote.projectTitle||'';
     state.quote.scope=draft.scope||scope?.value||state.quote.scope||'';
     state.quote.customerId=customer.value;
-    state.quote.lines=suggested.map(line=>({quoteLineId:newId('QUOTE-LINE'),description:String(line.description||'Suggested work item'),quantity:Math.max(0.01,num(line.quantity||1)),unit:String(line.unit||'each'),unitPrice:num(line.rate||line.unitPrice||0),priceSource:h38AiPriceSourceLabel(line),priceStatus:'Owner review required'}));
+    state.quote.lines=suggested.map(line=>{const mapped={quoteLineId:newId('QUOTE-LINE'),description:String(line.description||'Suggested work item'),quantity:Math.max(0.01,num(line.quantity||1)),unit:String(line.unit||'each'),unitPrice:num(line.rate||line.unitPrice||0),priceSource:h38AiPriceSourceLabel(line),priceStatus:'Owner review required'};/* Two-layer: a suggested line sourced from the price book carries the matched item's genuine internal cost (owner-only) onto the line. */const aiRow=line.catalogId?records('priceBook').find(row=>rowId(row,'Item ID','itemId')===String(line.catalogId)):null;if(aiRow&&window.H38_QUOTE_INTERNAL&&typeof window.H38_QUOTE_INTERNAL.applyPriceBookPricing==='function'&&String(line.priceSource||'').toLowerCase()==='price_book'){window.H38_QUOTE_INTERNAL.applyPriceBookPricing(mapped,aiRow,true);mapped.catalogId=String(line.catalogId);}return mapped;});
     state.quote.possibleMissingCosts=Array.isArray(draft.possibleMissingCosts)?draft.possibleMissingCosts:[];
     state.quote.measurementNotes=[measurements?.value||'',...(draft.photoObservations||[]).map(item=>`AI photo observation: ${item}`),...(draft.missingInformation||[]).map(item=>`Needs confirmation: ${item}`)].filter(Boolean).join('\n');
     const costCount=state.quote.possibleMissingCosts.filter(item=>!item?.decision||item.decision==='PENDING').length;
