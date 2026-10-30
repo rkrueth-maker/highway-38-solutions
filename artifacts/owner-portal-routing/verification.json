@@ -2,7 +2,7 @@
   "status": "PASS",
   "sourceCommit": "",
   "inspected": {
-    "rootHtmlFiles": 94,
+    "rootHtmlFiles": 99,
     "ownerLinks": 0,
     "rawFragments": [
       "Portal_Experience_Styles",
@@ -281,7 +281,7 @@
     },
     {
       "name": "public static pages contain no direct spreadsheet links",
-      "evidence": "94 HTML files inspected"
+      "evidence": "99 HTML files inspected"
     }
   ],
   "failures": []
