@@ -81,7 +81,7 @@
       './quote-print-safe.js?build=20261030-two-layer-1',
       './owner-flow-polish.js?build=20260929-1738',
       './quote-customer-options.js?build=20261030-two-layer-1',
-      './quote-final-phone-fix.js?build=20261030-two-layer-6',
+      './quote-final-phone-fix.js?build=20261030-two-layer-9',
       './quote-live-customer-options.js?build=20261030-two-layer-1',
       './quote-manual-image-controls.js?build=20260807-1450',
       './price-history.js?build=20261004-price-history-1',
