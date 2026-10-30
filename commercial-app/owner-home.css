@@ -284,6 +284,9 @@
   box-shadow: 4px 4px 0 rgba(26,26,26,.9);
 }
 .h38-route-hero { border-color: #16a34a; box-shadow: 4px 4px 0 #16a34a; }
+/* Laptop Phase 1 (2026-10-30): the Today's Schedule card carries the same
+   soft shadow as the rest of the card family, not the hard offset shadow. */
+.h38-schedule-hero { box-shadow: 0 4px 14px rgba(11, 36, 56, .055); }
 .h38-schedule-hero .h38-schedule-top,
 .h38-project-hero .h38-project-top,
 .h38-route-hero .h38-route-top {

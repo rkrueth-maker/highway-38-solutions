@@ -65,7 +65,7 @@ async function loadLinks(){
 
 function linksHtml(){
   if(!S.loaded) return '<p class="muted">Loading share links…</p>';
-  if(!S.links.length) return '<p class="muted">No accountant view links yet. Create one below — your accountant gets a read-only workbook link, no login needed.</p>';
+  if(!S.links||!S.links.length) return '<p class="muted">No accountant view links yet. Create one below — your accountant gets a read-only workbook link, no login needed.</p>';
   var h='<div class="list">';
   S.links.forEach(function(l){
     var revoked=!!l.revoked_at;

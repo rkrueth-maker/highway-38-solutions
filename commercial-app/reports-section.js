@@ -319,7 +319,7 @@
     const byType=type=>detail.filter(x=>x.account.type===type);
     const section=(title,rowsList)=>rowsList.length?`<h3>${esc(title)}</h3>${table(['Account','Amount'],rowsList.map(x=>`<tr><td>${esc(x.account.code)} — ${esc(x.account.name)}</td>${numCell(x.balance)}</tr>`).join(''))}`:'';
     const html=`
-    <p class="muted small">Source: general ledger (accountingTransactions), <strong>Transaction Date</strong> in range · ${tx.length} transactions. This is the same ledger the Accounting page reads — net income here must equal the Accounting page P&L card and the Balance Sheet current earnings for the same range.</p>
+    <p class="muted small">From your books — the same numbers your Accounting page uses. ${tx.length} transactions in this period.</p>
     <div class="stats">
       ${stat('Income',money(pnl.income))}${stat('Direct job costs (COGS)',money(pnl.cogs))}${stat('Gross profit',money(pnl.grossProfit))}
       ${stat('Operating expenses',money(pnl.operatingExpenses))}${stat('Net income',money(pnl.netIncome))}
