@@ -149,6 +149,7 @@
     // Today group. It stays dark unless the tenant pilot switch and the
     // Owner Controls feature toggle are both on (see mileage.js).
     const PAGE_TODAY = [
+      './today-command-setup.js?build=20261030-r2-today-1',
       './mileage.js?build=20261030-checkin-history-1',
     ];
     const PAGE_MONEY = [
