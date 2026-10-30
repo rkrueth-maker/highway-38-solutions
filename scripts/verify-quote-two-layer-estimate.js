@@ -172,6 +172,13 @@ for (const f of ['quote-live-customer-preview.js', 'quote-print-safe.js', 'quote
 { const src = read(path.join(ROOT, 'customer-portal-quote-delivery.js')); check('customer-portal-quote-delivery.js: no calculator state leaks', !src.includes('costCalculator') && !src.includes('calcMarkup') && !src.includes('Cost Calculator')); }
 
 
+// 13. Photo resolution repair (2026-10-30): quoteFromPhotos must resolve
+//     saved-quote photos from the documents collection (Source ID linkage) —
+//     q.attachments alone is never populated by any live code path.
+check('quoteFromPhotos resolves photos from documents by Source ID', app06Src.includes("v(r,'Source ID','sourceId')") && app06Src.includes('records(\'documents\')'));
+check('quoteFromPhotos falls back to the attachments store', app06Src.includes("v(r,'Related Record ID','relatedRecordId')"));
+check('unsaved quote gets save-first guidance', app06Src.includes('Save this draft first so its photos upload'));
+
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);
   failures.forEach((f) => console.error(' - ' + f));
