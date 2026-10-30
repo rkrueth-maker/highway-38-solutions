@@ -231,4 +231,33 @@ public class TripDetectorTest {
         assertEquals(trip.miles, pathMiles(trip.path), 0.03);
         assertTrue("miles=" + trip.miles, trip.miles > 1.35 && trip.miles < 1.65);
     }
+
+    @Test
+    public void midDriveStopAddsNoPathPoints() {
+        Collector c = new Collector();
+        TripDetector d = new TripDetector(c);
+        long t = park(d, HOME_LAT, HOME_LNG, T0, 60_000, 10_000);
+        double[] mid = drive(d, HOME_LAT, HOME_LNG, 90, 1609, 13.4, t, 5_000);   // 1.00 mi east
+        // A 60 s mid-drive stop (under the 150 s close): GPS wander at speed 0.
+        long tt = (long) mid[2];
+        for (int i = 0; i < 6; i++) {
+            double[] p = GeoMath.destination(mid[0], mid[1], (i * 71) % 360, 9 + (i % 3) * 2);
+            tt += 10_000;
+            d.onFix(fix(p[0], p[1], 10, 0.0, tt));
+        }
+        double[] end = drive(d, mid[0], mid[1], 90, 1609, 13.4, tt, 5_000);       // 1.00 mi more
+        park(d, end[0], end[1], (long) end[2], 240_000, 10_000);
+        assertEquals(1, c.trips.size());
+        TripDetector.CompletedTrip trip = c.trips.get(0);
+        // Rick's rule: path points only while moving. The stop's wander
+        // fixes (9-13 m from the stop point) are not in the path: at most
+        // the arrival and departure points sit near the stop point.
+        int nearStop = 0;
+        for (TripDetector.Fix p : trip.path) {
+            if (GeoMath.haversineM(p.lat, p.lng, mid[0], mid[1]) <= 20) nearStop++;
+        }
+        assertTrue("points near the mid-drive stop=" + nearStop + " of " + trip.path.size(),
+                nearStop <= 3);
+        assertTrue("miles=" + trip.miles, trip.miles > 1.8 && trip.miles < 2.3);
+    }
 }

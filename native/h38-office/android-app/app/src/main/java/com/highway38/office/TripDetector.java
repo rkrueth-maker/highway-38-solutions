@@ -33,11 +33,15 @@ import java.util.List;
  * by accumulateSegment), accuracy-gated by the same GOOD_ACCURACY_M rule
  * as detection itself. Miles are the sum over the path's segments by
  * construction — never an endpoint-to-endpoint straight line — so a
- * detour counts in full. Parked jitter never enters: the path only grows
- * while driving, on segments of at least SEGMENT_MIN_M, and a closing
+ * detour counts in full. Points accumulate ONLY while the phone is
+ * moving (Rick, same decision: "when driving it should record path or
+ * moving it should record path"): a fix the detector judges still —
+ * a mid-drive stop, a long light — adds no path point, and a closing
  * stillness truncates the path back to where movement (and mileage)
- * stopped. The list is capped (MAX_PATH_POINTS, decimated) so a payload
- * stays sane on very long drives.
+ * stopped, so parked jitter never enters. Parked, the phone sends only
+ * the heartbeat position (TrackingService), never path points. The list
+ * is capped (MAX_PATH_POINTS, decimated) so a payload stays sane on
+ * very long drives.
  *
  * Pure Java (no Android APIs) so the JVM tests can drive it with synthetic
  * GPS traces.
@@ -220,7 +224,7 @@ public final class TripDetector {
             stillCenter = null;
         }
 
-        accumulateSegment(f);
+        accumulateSegment(f, stillNow);
         lastFix = f;
     }
 
@@ -230,14 +234,17 @@ public final class TripDetector {
                 && GeoMath.haversineM(lastFix.lat, lastFix.lng, f.lat, f.lng) < STILL_RADIUS_M;
     }
 
-    private void accumulateSegment(Fix f) {
+    private void accumulateSegment(Fix f, boolean stillNow) {
         if (lastFix == null) return;
         double seg = GeoMath.haversineM(lastFix.lat, lastFix.lng, f.lat, f.lng);
         if (seg < SEGMENT_MIN_M) return;
         long dtMs = f.timeMs - lastFix.timeMs;
         if (dtMs > 0 && seg / (dtMs / 1000.0) > SEGMENT_MAX_SPEED_MPS) return;
         accumulatedM += seg;
-        appendPath(f);
+        // Path points accumulate only while MOVING (Rick, 2026-10-29): a
+        // fix judged still — mid-drive stop, long light — counts its
+        // segment like the web engine does, but leaves no path point.
+        if (!stillNow) appendPath(f);
     }
 
     private void appendPath(Fix f) {

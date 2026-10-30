@@ -888,8 +888,10 @@ function onFix(position){
       var dt=(fix.at-last.at)/1000;
       if(segM>=8&&dt>0&&(segM/dt)<=55){
         manual.trip.miles+=segM/MILE;
-        if(!manual.trip.points)manual.trip.points=[];
-        manual.trip.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});
+        if(!(fix.speed!=null&&fix.speed<0.6)){
+          if(!manual.trip.points)manual.trip.points=[];
+          manual.trip.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});
+        }
       }
     }
     manual.trip.lastFix=fix;
@@ -921,7 +923,7 @@ function onFix(position){
     var t=engine.trip;
     var seg=haversineM(t.lastLat,t.lastLng,fix.lat,fix.lng);
     var dtS=(now-t.lastAt)/1000;
-    if(seg>=8&&dtS>0&&(seg/dtS)<=55){t.miles+=seg/MILE;t.lastLat=fix.lat;t.lastLng=fix.lng;t.lastAt=now;if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:now});}
+    if(seg>=8&&dtS>0&&(seg/dtS)<=55){t.miles+=seg/MILE;t.lastLat=fix.lat;t.lastLng=fix.lng;t.lastAt=now;if(!(fix.speed!=null&&fix.speed<0.6)){if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:now});}}
     var stillRef={lat:t.lastLat,lng:t.lastLng};
     if(haversineM(stillRef.lat,stillRef.lng,fix.lat,fix.lng)<25&&(fix.speed==null||fix.speed<0.6)){
       if(!engine.stillSince)engine.stillSince=now;
@@ -1070,7 +1072,7 @@ async function manualEnd(){
   var t=manual.trip;manual.trip=null;manualSave();
   if(fix&&t.lastFix){
     var seg=haversineM(t.lastFix.lat,t.lastFix.lng,fix.lat,fix.lng);
-    if(seg>=8){t.miles+=seg/MILE;if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});}
+    if(seg>=8){t.miles+=seg/MILE;if(!(fix.speed!=null&&fix.speed<0.6)){if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});}}
   }
   var finished={
     startedAt:t.startedAt,endedAt:nowIso(),
