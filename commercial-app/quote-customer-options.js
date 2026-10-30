@@ -52,9 +52,14 @@ async function loadCatalog(){
     try{
       const client=supabaseClient();
       if(!client)return[];
-      const result=await client.from('price_book_items').select('id,item_code,description,unit,unit_cost,source_type,approval_status').eq('business_id',businessId).eq('active',true).ilike('description','OPTIONAL%').order('description');
+      const result=await client.from('price_book_items').select('id,item_code,description,unit,unit_cost,sell_price,source_type,approval_status').eq('business_id',businessId).eq('active',true).ilike('description','OPTIONAL%').order('description');
       if(result.error)throw result.error;
-      return (result.data||[]).map(row=>({catalogId:text(row.id),itemCode:text(row.item_code),description:text(row.description),unit:text(row.unit),rate:number(row.unit_cost),sourceType:text(row.source_type),approvalStatus:text(row.approval_status)})).filter(row=>row.rate>0);
+      /* Two-layer pricing: the customer rate is sell_price ?? unit_cost.
+         unit_cost is carried separately as internalCost (owner-side data
+         only, never rendered) and only when sell_price is present — when
+         sell_price is NULL the row is a legacy sell-in-cost row and
+         unit_cost IS the price, not an internal cost. */
+      return (result.data||[]).map(row=>({catalogId:text(row.id),itemCode:text(row.item_code),description:text(row.description),unit:text(row.unit),rate:number(row.sell_price!=null?row.sell_price:row.unit_cost),internalCost:row.sell_price!=null?number(row.unit_cost):null,sourceType:text(row.source_type),approvalStatus:text(row.approval_status)})).filter(row=>row.rate>0);
     }catch(error){console.warn('[H38 quote options] live option catalog unavailable',error);return[];}
   })();
   return catalogPromise;
@@ -69,15 +74,18 @@ function quoteTax(){
   return number(text(taxRow.querySelector('strong')?.textContent).replace(/[^0-9.-]/g,''));
 }
 function lineRow(line){
-  const quantity=lineQuantity(line),rate=lineRate(line);
-  return `<tr><td>${html(lineDescription(line))}</td><td>${html(quantity)}</td><td>${html(lineUnit(line))}</td><td>${money(rate)}</td><td>${money(quantity*rate)}</td></tr>`;
+  /* Customer surface: sanitized projection only ({description, quantity,
+     unit, unitPrice, lineTotal}) — internal cost fields cannot leak. */
+  const normalized={description:lineDescription(line),quantity:lineQuantity(line),unit:lineUnit(line),unitPrice:lineRate(line)};
+  const c=(window.H38_QUOTE_INTERNAL&&typeof window.H38_QUOTE_INTERNAL.customerLine==='function')?window.H38_QUOTE_INTERNAL.customerLine(normalized):{...normalized,lineTotal:normalized.quantity*normalized.unitPrice};
+  return `<tr><td>${html(c.description)}</td><td>${html(c.quantity)}</td><td>${html(c.unit)}</td><td>${money(c.unitPrice)}</td><td>${money(c.lineTotal)}</td></tr>`;
 }
 function optionFromLine(line){
   const quantity=lineQuantity(line),rate=lineRate(line);
   return {key:text(line.quoteLineId||line['Quote Line ID']||lineDescription(line)),catalogId:text(line.catalogId||''),description:cleanOptionLabel(lineDescription(line)),quantity,unit:lineUnit(line),rate,amount:quantity*rate,source:'quote'};
 }
 function optionFromCatalog(row,quantity){
-  return {key:row.catalogId||row.itemCode||row.description,catalogId:row.catalogId||'',description:cleanOptionLabel(row.description),quantity,unit:row.unit||'each',rate:number(row.rate),amount:quantity*number(row.rate),source:'catalog'};
+  return {key:row.catalogId||row.itemCode||row.description,catalogId:row.catalogId||'',description:cleanOptionLabel(row.description),quantity,unit:row.unit||'each',rate:number(row.rate),amount:quantity*number(row.rate),source:'catalog',internalCost:row.internalCost!=null?number(row.internalCost):null};
 }
 function fallbackPaintOption(quantity){return optionFromCatalog(PAINT_FALLBACK,quantity);}
 async function availableOptions(lines){
