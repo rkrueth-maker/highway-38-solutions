@@ -197,8 +197,8 @@
       // math, operations for R5 jobCost. R6 stays dependency-free.
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
-      './reports-section.js?build=20261022-perperson-1',
-      './accountant-share.js?build=20261022-acct-view-1',
+      './reports-section.js?build=20261030-laptop-phase1-1',
+      './accountant-share.js?build=20261030-laptop-phase1-1',
       './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_BOOKS = [

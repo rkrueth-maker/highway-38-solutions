@@ -22,7 +22,7 @@ function loadOfficeLaunchPolish(){
   loadRuntime('./office-document-packet.js?build=20260911-office-document-packet-1','h38-office-document-packet',()=>window.H38_OFFICE_DOCUMENT_PACKET);
   loadRuntime('./office-reference-samples.js?build=20261013-fix-sweep-1','h38-office-reference-samples',()=>window.H38_OFFICE_REFERENCE_SAMPLES);
   loadRuntime('./northern-document-polish.js?build=20260912-northern-document-polish-1','h38-northern-document-polish',()=>window.H38_NORTHERN_DOCUMENT_POLISH);
-  loadRuntime('./tenant-attribution.js?build=20261022-perperson-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
+  loadRuntime('./tenant-attribution.js?build=20261030-laptop-phase1-1','h38-tenant-attribution',()=>window.H38_TENANT_ATTRIBUTION);
   loadRuntime('./ai-document-factory.js?build=20260912-ai-document-factory-1','h38-ai-document-factory',()=>window.H38_AI_DOCUMENT_FACTORY);
   loadRuntime('./customer-import-intelligence.js?build=20260912-customer-service-operations-1','h38-customer-import-intelligence',()=>window.H38_CUSTOMER_IMPORT_INTELLIGENCE);
   loadRuntime('./customer-list-bottom-runtime.js?build=20260912-customer-list-bottom-2','h38-customer-list-bottom',()=>window.H38_CUSTOMER_LIST_BOTTOM);
