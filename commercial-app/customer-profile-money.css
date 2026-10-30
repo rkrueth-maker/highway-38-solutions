@@ -1,0 +1,63 @@
+/* H38 Customer Profile — Money consolidation (FIX ROUND 2, workstream B)
+ * Styles for the profile money section + call history injected into the
+ * canonical Customer 360 workspace, and for the list quick-view popup.
+ * Loaded on demand with customer-profile-money.js (Customers page only). */
+.h38-pm{grid-column:1/-1;min-width:0}
+.h38-pm h3{margin-bottom:4px}
+.h38-pm-subhead{margin:16px 0 8px;font-size:14px}
+.h38-pm-asof{font-weight:400;font-size:12px;opacity:.65}
+.h38-pm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.h38-pm-stats>div{padding:10px 12px;border:1px solid #d8e0e7;border-radius:var(--radius-sm,10px);background:#f7fafc;display:grid;gap:2px;min-width:0}
+.h38-pm-stats strong{font-size:20px;overflow-wrap:anywhere}
+.h38-pm-stats span{font-size:12px;opacity:.7}
+.h38-pm-stats .is-overdue strong,.h38-pm-stats>div.is-overdue strong{color:#a32a2a}
+.h38-pm-aging{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.h38-pm-aging-cell{padding:9px 11px;border:1px solid #d8e0e7;border-radius:var(--radius-sm,10px);background:#fff;display:grid;gap:2px;min-width:0}
+.h38-pm-aging-cell strong{font-size:16px;overflow-wrap:anywhere}
+.h38-pm-aging-cell span{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.62}
+.h38-pm-aging-cell.is-overdue{border-color:#e3b7b7;background:#fdf3f3}
+.h38-pm-aging-cell.is-overdue strong{color:#a32a2a}
+.h38-pm-ledger{display:grid;border:1px solid #e0e6eb;border-radius:var(--radius-sm,10px);overflow:hidden}
+.h38-pm-ledger-row{display:grid;grid-template-columns:92px minmax(0,1fr) 92px 92px 100px;gap:10px;padding:8px 12px;border-bottom:1px solid #e6ebef;align-items:start;font-size:13px}
+.h38-pm-ledger-row:last-child{border-bottom:0}
+.h38-pm-ledger-row strong{display:block;overflow-wrap:anywhere}
+.h38-pm-ledger-row small{display:block;opacity:.68;overflow-wrap:anywhere}
+.h38-pm-ledger-row .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.h38-pm-ledger-head{background:#f7fafc;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.85}
+.h38-pm-calls{display:grid}
+.h38-pm-call{padding:9px 0;border-bottom:1px solid #e6ebef;display:grid;gap:2px}
+.h38-pm-call:last-child{border-bottom:0}
+.h38-pm-call-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.h38-pm-call-top span{font-size:12px;opacity:.68;white-space:nowrap}
+.h38-pm-call small{opacity:.68}
+.h38-pm-call p{margin:2px 0 0;font-size:13px;overflow-wrap:anywhere}
+@media(max-width:760px){
+ .h38-pm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .h38-pm-aging{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .h38-pm-ledger-row{grid-template-columns:76px minmax(0,1fr) 74px 84px;gap:7px;padding:8px 9px;font-size:12px}
+ .h38-pm-ledger-row .num:nth-child(3){display:none}
+ .h38-pm-ledger-head .num:nth-child(3){display:none}
+}
+/* Quick-view popup */
+.h38-qv-backdrop{position:fixed;inset:0;z-index:120;background:rgba(3,18,29,.55);display:grid;place-items:center;padding:14px}
+.h38-qv-card{background:var(--card,#fff);color:var(--ink,#10212c);border-radius:16px;box-shadow:0 24px 70px rgba(3,18,29,.35);width:min(520px,100%);max-height:calc(100dvh - 28px);overflow:auto;padding:18px;display:grid;gap:12px}
+.h38-qv-head{display:flex;gap:10px;align-items:flex-start}
+.h38-qv-head h3{margin:2px 0 0;font-size:22px;overflow-wrap:anywhere}
+.h38-qv-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.6}
+.h38-qv-head .pill{margin-left:auto}
+.h38-qv-close{min-height:36px;min-width:36px;padding:4px 8px}
+.h38-qv-contact{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;overflow-wrap:anywhere}
+.h38-qv-money{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.h38-qv-money>div{padding:10px 12px;border:1px solid #d8e0e7;border-radius:var(--radius-sm,10px);background:#f7fafc;display:grid;gap:2px}
+.h38-qv-money strong{font-size:18px;overflow-wrap:anywhere}
+.h38-qv-money span{font-size:12px;opacity:.7}
+.h38-qv-money .is-overdue strong{color:#a32a2a}
+.h38-qv-latest-list{display:grid}
+.h38-qv-latest{display:grid;grid-template-columns:104px minmax(0,1fr);gap:4px 10px;padding:8px 0;border-bottom:1px solid #e6ebef;align-items:baseline}
+.h38-qv-latest:last-child{border-bottom:0}
+.h38-qv-latest>span{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.62}
+.h38-qv-latest strong{overflow-wrap:anywhere}
+.h38-qv-latest small{grid-column:2;opacity:.68}
+.h38-qv-actions{display:flex;gap:8px;flex-wrap:wrap}
+.h38-qv-actions button{min-height:44px;flex:1 1 160px}
+@media(max-width:480px){.h38-qv-money{grid-template-columns:1fr}.h38-qv-card{padding:14px}}
