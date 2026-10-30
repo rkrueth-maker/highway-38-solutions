@@ -179,6 +179,14 @@ check('quoteFromPhotos resolves photos from documents by Source ID', app06Src.in
 check('quoteFromPhotos falls back to the attachments store', app06Src.includes("v(r,'Related Record ID','relatedRecordId')"));
 check('unsaved quote gets save-first guidance', app06Src.includes('Save this draft first so its photos upload'));
 
+// 14. Save-upload repair (2026-10-30): picked quote photos must upload on
+//     plain Save (creating the Source-ID documents the photo chain reads) —
+//     previously they uploaded only via the separate Build Quote button.
+for (const f of ['quote-mobile-stabilization.js', 'bundle-features.js']) {
+  const src = read(path.join(APP, f));
+  check(f + ': save uploads picked photos', src.includes('await uploadAll(qid)') && src.includes('if(qid&&pending())'));
+}
+
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);
   failures.forEach((f) => console.error(' - ' + f));
