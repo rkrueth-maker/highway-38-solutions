@@ -112,6 +112,8 @@ check('options catalog rate is sell_price ?? unit_cost', options.includes('row.s
 check('options catalog carries internalCost only when sell_price present', options.includes('row.sell_price!=null?number(row.unit_cost):null'));
 const profit = read(path.join(APP, 'profitability-operating-layer.js'));
 check('profitability layer checks the line snapshot cost before any price-book match', profit.indexOf("'internalUnitCost'") >= 0 && profit.indexOf("'internalUnitCost'") < profit.indexOf('directCostPerUnit'));
+check('photo-quote application carries agent internal cost onto lines', app06.includes('newLine.internalUnitCost=agentCost'));
+check('photo-quote application resolves price book cost when agent sends none', app06.includes('h38ApplyPriceBookPricing(newLine,row,true)'));
 
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);

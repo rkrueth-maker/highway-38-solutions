@@ -30,7 +30,7 @@ async function quoteFromPhotos(){
     if(!lines.length)throw new Error('Hank could not identify quotable work from the photos.');
     q.lines=q.lines||[];
     lines.forEach(line=>{
-      q.lines.push({
+      const newLine={
         quoteLineId:typeof newId==='function'?newId('QUOTE-LINE'):'QL-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
         description:String(line.description||'Photo-identified work'),
         quantity:Number(line.quantity)||1,
@@ -41,7 +41,26 @@ async function quoteFromPhotos(){
         priceSource:'photo_analysis',
         priceStatus:'Check before sending - from photo analysis',
         rationale:String(line.rationale||'Identified from job site photos')
-      });
+      };
+      /* Two-layer estimate: a photo line priced from the price book must
+         carry the item's genuine internal cost into the owner layer. The
+         agent may send the cost directly; otherwise resolve the book row
+         by catalog id or exact description and pull it (keeping the
+         agent's price). Legacy sell-in-cost rows resolve to no cost. */
+      const agentCost=(typeof h38InternalNumber==='function')?h38InternalNumber(line.internalUnitCost):null;
+      if(agentCost!==null){
+        newLine.internalUnitCost=agentCost;
+        newLine.costSource=(typeof H38_COST_SOURCES!=='undefined'&&H38_COST_SOURCES.includes(String(line.costSource)))?String(line.costSource):'manual';
+        newLine.costUpdatedAt=String(line.costUpdatedAt||new Date().toISOString());
+        newLine.costOverride=false;
+      }else if(typeof h38ApplyPriceBookPricing==='function'){
+        const catalogId=String(line.catalogId||line.priceBookItemId||'').trim();
+        const book=(typeof records==='function')?(records('priceBook')||[]):[];
+        const wanted=String(line.description||'').trim().toLowerCase();
+        const row=(catalogId&&book.find(item=>rowId(item,'Item ID','itemId')===catalogId))||(wanted&&book.find(item=>String(v(item,'Description','description')).trim().toLowerCase()===wanted));
+        if(row)h38ApplyPriceBookPricing(newLine,row,true);
+      }
+      q.lines.push(newLine);
     });
     q.ownerEdited=true;
     toast(lines.length+' line item'+(lines.length===1?'':'s')+' drafted from photos. Review prices before saving.');
