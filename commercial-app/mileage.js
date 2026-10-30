@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261027-session-keep-1';
+var BUILD='20261029-position-heal-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -1744,6 +1744,15 @@ var nativePushAt=0;
 // immediately instead of waiting for the next decorate. (The remaining
 // window — web dead while native rotates — needs the native bridge to
 // expose its stored session back to the web layer; see report.)
+// 1.0.6 (2026-10-29, build 20261029-position-heal-1): the push is now
+// also driven from the auth layer itself (supabase-auth.js binds
+// queueNativeSessionHeal to the session lifecycle) and from the native
+// shell's heal trigger, and pushNativePolicy is exported on H38Mileage
+// for both. Root case: Oct 27–29, Rick's native pair was the revoked
+// chain's corpse — every background write failed silently for two days
+// because the only heal (this module's push) depends on this module
+// loading and staying alive, while Amanda's phone healed itself through
+// her Start/Stop Day use of these very screens.
 var nativeSessionSyncBound=false;
 function bindNativeSessionSync(){
   if(nativeSessionSyncBound)return;
@@ -1843,7 +1852,8 @@ function nativeStatusHtml(){
   var st=nativeStatus();
   if(!st)return '';
   var line='';
-  if(st.gate==='RECORDING')line='Background tracking is on (H38 Office app) — drives are recorded even with the app closed.';
+  if(st.sessionAuthDead)line='The H38 Office app is installed, but its background sign-in expired, so it can\u2019t send locations right now. It re-arms itself from your sign-in — leave the Office open a moment; if this note stays, sign out and back in once.';
+  else if(st.gate==='RECORDING')line='Background tracking is on (H38 Office app) — drives are recorded even with the app closed.';
   else if(st.gate==='WAITING_CLOCKIN')line='Background tracking is on (H38 Office app) — it records while you\u2019re clocked in.';
   else if(st.gate==='PAUSED_STALE')line='The H38 Office app is installed, but background tracking is paused — it checks in when you open the app.';
   else if(!st.backgroundLocation)line='The H38 Office app is installed, but location is not set to \u201cAllow all the time\u201d — background tracking can\u2019t run yet.';
@@ -2072,6 +2082,7 @@ w.H38Mileage=Object.freeze({
   myTrips:myTrips,
   myPlaces:myPlaces,
   decorate:decorate,
+  pushNativePolicy:pushNativePolicy,
   collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION,days:DAY_COLLECTION,points:POINT_COLLECTION},
   foregroundOnly:!nativeBridge(),
   nativeStatus:nativeStatus,

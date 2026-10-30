@@ -101,10 +101,26 @@ public final class SyncEngine {
                 long in = j.optLong("expires_in", 3600);
                 s.expiresAtMs = System.currentTimeMillis() + in * 1000L;
                 PolicyStore.saveSession(ctx, s);
+            } else if (SessionAuth.isDefinitiveRejection(r.code, r.body)) {
+                // 1.0.6: the stored pair is dead for good — the shared
+                // refresh chain was revoked server-side, and retrying it
+                // can never succeed. Keeping it (the 1.0.4 behavior) left
+                // the phone armed on the surface while every background
+                // write failed in silence. Clear just the tokens and
+                // stamp the moment: the corpse stops being offered for
+                // web adoption, the status surface can tell the truth,
+                // and the next web session push (auth-lifecycle binding
+                // or the native heal trigger) re-seeds a live pair.
+                PolicyStore.clearSessionTokens(ctx);
+                s.accessToken = "";
+                s.refreshToken = "";
+                s.expiresAtMs = 0;
             }
         } catch (Exception ignored) {
-            // Offline or rejected: callers see the old session and fail
-            // honestly; the queue keeps the trips until a sync works.
+            // Offline or transient trouble: the stored session is kept
+            // untouched; callers fail honestly and the queue keeps the
+            // trips until a sync works. Only the definitive-rejection
+            // branch above may clear tokens.
         }
         return s;
     }
