@@ -115,6 +115,17 @@ check('profitability layer checks the line snapshot cost before any price-book m
 check('photo-quote application carries agent internal cost onto lines', app06.includes('newLine.internalUnitCost=agentCost'));
 check('photo-quote application resolves price book cost when agent sends none', app06.includes('h38ApplyPriceBookPricing(newLine,row,true)'));
 
+// 9. Renderer-shadow regression (found live 2026-10-30): quote-mobile-stabilization
+//    must delegate line rendering to the canonical app-06 renderer and must carry
+//    the internal cost fields through its save map — in BOTH the standalone file
+//    and its bundle-features.js copy.
+for (const f of ['quote-mobile-stabilization.js', 'bundle-features.js']) {
+  const src = fs.readFileSync(path.join(APP, f), 'utf8');
+  check(f + ': no legacy renderQuoteLines override', !src.includes('window.renderQuoteLines=editLines'));
+  check(f + ': renderQuoteLines delegates to base renderer', src.includes('baseRenderQuoteLines'));
+  check(f + ': save map carries internalUnitCost', src.includes('internalUnitCost:num(l.internalUnitCost)'));
+}
+
 if (failures.length) {
   console.error(`\nFAIL (${failures.length}):`);
   failures.forEach((f) => console.error(' - ' + f));
