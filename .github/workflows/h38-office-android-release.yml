@@ -1,7 +1,7 @@
 name: H38 Office Android Release
 
 # Builds the H38 Office native Android app (native/h38-office/android-app)
-# and cuts the signed 1.0.4 release when the Office signing secrets exist.
+# and cuts the signed 1.0.5 release when the Office signing secrets exist.
 #
 # Mirrors the H38 Deals release workflow, in the only shape that works on
 # this repo: workflow_dispatch cannot be invoked by the stored PAT (it
@@ -87,7 +87,7 @@ jobs:
         run: |
           APK=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
           echo "APK=$APK"
-          aapt dump badging "$APK" | grep -E "package: name='com.highway38.office.dev' versionCode='5' versionName='1.0.4-dev'"
+          aapt dump badging "$APK" | grep -E "package: name='com.highway38.office.dev' versionCode='6' versionName='1.0.5-dev'"
           aapt dump badging "$APK" | grep -F "application-label:'H38 Office'"
           # Honest-permission manifest: background location + foreground
           # service (location type) + boot receiver must all ship.
@@ -195,7 +195,7 @@ jobs:
         run: |
           APK=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
           test -n "$APK"
-          aapt dump badging "$APK" | grep -E "package: name='com.highway38.office' versionCode='5' versionName='1.0.4'"
+          aapt dump badging "$APK" | grep -E "package: name='com.highway38.office' versionCode='6' versionName='1.0.5'"
           aapt dump badging "$APK" | grep -F "application-label:'H38 Office'"
           unzip -Z1 "$APK" | grep -E '^classes[0-9]*\.dex$' | while read -r dex; do
             unzip -p "$APK" "$dex"
@@ -205,17 +205,17 @@ jobs:
           CERT_SHA=$(grep -E 'certificate SHA-256 digest:' apksigner-verify.txt | head -n 1 | awk '{print $NF}' | tr -d ':')
           test "$CERT_SHA" = "$OFFICE_EXPECTED_CERT_SHA256"
           SHA=$(sha256sum "$APK" | awk '{print $1}')
-          echo "H38 Office 1.0.4 APK SHA-256: $SHA" | tee release-status.txt
-          cp "$APK" "H38-Office-1.0.4.apk"
+          echo "H38 Office 1.0.5 APK SHA-256: $SHA" | tee release-status.txt
+          cp "$APK" "H38-Office-1.0.5.apk"
 
-      - name: Upload signed H38 Office 1.0.4
+      - name: Upload signed H38 Office 1.0.5
         if: steps.signing.outputs.blocked == 'false'
         uses: actions/upload-artifact@v4
         with:
-          name: h38-office-1.0.4-signed
+          name: h38-office-1.0.5-signed
           if-no-files-found: error
           path: |
-            native/h38-office/android-app/H38-Office-1.0.4.apk
+            native/h38-office/android-app/H38-Office-1.0.5.apk
             native/h38-office/android-app/release-status.txt
             native/h38-office/android-app/apksigner-verify.txt
 
