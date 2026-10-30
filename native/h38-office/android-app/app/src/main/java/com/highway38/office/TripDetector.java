@@ -1,5 +1,9 @@
 package com.highway38.office;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Drive-detection state machine — a faithful native port of the shipped web
  * detector in commercial-app/mileage.js (same thresholds, same semantics), so
@@ -22,8 +26,18 @@ package com.highway38.office;
  *                   moment stillness began
  *   discard         trips under 0.2 miles
  *
- * Only endpoints + total miles are ever reported. No route trace is kept:
- * accumulated distance is a running total, never a list of points.
+ * Path recording (Rick, 2026-10-29: "we want to record the paths people
+ * drive in case they have detours") — SUPERSEDES the original endpoints-
+ * only rule. The trip now keeps the driven path: exactly the fixes whose
+ * segments make up the mileage (the start anchor plus every fix accepted
+ * by accumulateSegment), accuracy-gated by the same GOOD_ACCURACY_M rule
+ * as detection itself. Miles are the sum over the path's segments by
+ * construction — never an endpoint-to-endpoint straight line — so a
+ * detour counts in full. Parked jitter never enters: the path only grows
+ * while driving, on segments of at least SEGMENT_MIN_M, and a closing
+ * stillness truncates the path back to where movement (and mileage)
+ * stopped. The list is capped (MAX_PATH_POINTS, decimated) so a payload
+ * stays sane on very long drives.
  *
  * Pure Java (no Android APIs) so the JVM tests can drive it with synthetic
  * GPS traces.
@@ -40,6 +54,8 @@ public final class TripDetector {
     public static final long STILL_REQUIRED_MS = 150_000L;
     public static final double MIN_TRIP_MILES = 0.2;
     public static final long GAP_CLOSE_MS = 600_000L;
+    /** Path size cap; past it the stored path is decimated (see class doc). */
+    public static final int MAX_PATH_POINTS = 2000;
 
     public static final class Fix {
         public final double lat;
@@ -67,9 +83,12 @@ public final class TripDetector {
         public final double startLng;
         public final double endLat;
         public final double endLng;
+        /** The driven path: the accepted fixes whose segments sum to miles. */
+        public final List<Fix> path;
 
         CompletedTrip(long startedAtMs, long endedAtMs, double milesMeters,
-                      double startLat, double startLng, double endLat, double endLng) {
+                      double startLat, double startLng, double endLat, double endLng,
+                      List<Fix> path) {
             this.startedAtMs = startedAtMs;
             this.endedAtMs = endedAtMs;
             this.miles = milesMeters / GeoMath.METERS_PER_MILE;
@@ -77,6 +96,7 @@ public final class TripDetector {
             this.startLng = startLng;
             this.endLat = endLat;
             this.endLng = endLng;
+            this.path = Collections.unmodifiableList(new ArrayList<>(path));
         }
     }
 
@@ -92,7 +112,9 @@ public final class TripDetector {
     private boolean driving;
     private Fix tripStartFix;      // the anchor fix the drive started from
     private Fix lastFix;           // last accepted fix while driving
-    private double accumulatedM;   // running distance total (never a trace)
+    private double accumulatedM;   // running distance total over tripPath's segments
+    private final List<Fix> tripPath = new ArrayList<>(); // the driven path (Rick 2026-10-29)
+    private int pathCountAtStillStart; // tripPath size when the closing stillness began
     private Fix stillCenter;
     private long stillSinceMs;
     private double milesAtStillStartM;
@@ -125,8 +147,14 @@ public final class TripDetector {
                         : fromCandidate / (dtMs / 1000.0) <= SEGMENT_MAX_SPEED_MPS;
                 if (plausible && away > START_DISPLACEMENT_M && speedOk) {
                     // Confirmed: the drive really started at the anchor.
+                    // The path starts as anchor -> candidate -> this fix,
+                    // and the mileage is exactly those two segments.
                     driving = true;
                     tripStartFix = anchor;
+                    tripPath.clear();
+                    tripPath.add(anchor);
+                    tripPath.add(candidate);
+                    tripPath.add(f);
                     accumulatedM = GeoMath.haversineM(anchor.lat, anchor.lng, candidate.lat, candidate.lng)
                             + fromCandidate;
                     lastFix = f;
@@ -155,7 +183,7 @@ public final class TripDetector {
         if (lastFix != null && f.timeMs - lastFix.timeMs > GAP_CLOSE_MS) {
             // A long silence (phone off / no signal) ends the trip at the last
             // fix we actually saw, then this fix becomes the new anchor.
-            closeTrip(lastFix.timeMs, lastFix, accumulatedM);
+            closeTrip(lastFix.timeMs, lastFix, accumulatedM, tripPath);
             resetToParked(f);
             return;
         }
@@ -173,13 +201,17 @@ public final class TripDetector {
                 stillSinceMs = f.timeMs;
                 stillCenter = f;
                 milesAtStillStartM = accumulatedM;
+                pathCountAtStillStart = tripPath.size();
                 endCandidateFix = lastFix != null ? lastFix : f;
             } else if (GeoMath.haversineM(stillCenter.lat, stillCenter.lng, f.lat, f.lng) > STILL_RADIUS_M) {
                 stillSinceMs = 0;
                 stillCenter = null;
             }
             if (stillSinceMs > 0 && f.timeMs - stillSinceMs >= STILL_REQUIRED_MS) {
-                closeTrip(stillSinceMs, endCandidateFix, milesAtStillStartM);
+                // The trip ends where movement stopped: mileage AND path
+                // both roll back to the stillness snapshot.
+                closeTrip(stillSinceMs, endCandidateFix, milesAtStillStartM,
+                        tripPath.subList(0, Math.min(pathCountAtStillStart, tripPath.size())));
                 resetToParked(f);
                 return;
             }
@@ -205,14 +237,28 @@ public final class TripDetector {
         long dtMs = f.timeMs - lastFix.timeMs;
         if (dtMs > 0 && seg / (dtMs / 1000.0) > SEGMENT_MAX_SPEED_MPS) return;
         accumulatedM += seg;
+        appendPath(f);
     }
 
-    private void closeTrip(long endedAtMs, Fix endFix, double milesM) {
+    private void appendPath(Fix f) {
+        if (tripPath.size() >= MAX_PATH_POINTS) {
+            // Very long drive: thin the stored path to every second point
+            // (first point kept) so the payload stays sane. Mileage is
+            // unaffected — it was already accumulated segment by segment.
+            List<Fix> thinned = new ArrayList<>(tripPath.size() / 2 + 1);
+            for (int i = 0; i < tripPath.size(); i += 2) thinned.add(tripPath.get(i));
+            tripPath.clear();
+            tripPath.addAll(thinned);
+        }
+        tripPath.add(f);
+    }
+
+    private void closeTrip(long endedAtMs, Fix endFix, double milesM, List<Fix> path) {
         double miles = milesM / GeoMath.METERS_PER_MILE;
         if (listener != null && miles >= MIN_TRIP_MILES && tripStartFix != null && endFix != null) {
             listener.onTripCompleted(new CompletedTrip(
                     tripStartFix.timeMs, endedAtMs, milesM,
-                    tripStartFix.lat, tripStartFix.lng, endFix.lat, endFix.lng));
+                    tripStartFix.lat, tripStartFix.lng, endFix.lat, endFix.lng, path));
         }
     }
 
@@ -224,6 +270,7 @@ public final class TripDetector {
         lastFix = null;
         tripStartFix = null;
         accumulatedM = 0;
+        tripPath.clear();
         stillSinceMs = 0;
         stillCenter = null;
         if (wasDriving && listener != null) listener.onDrivingChanged(false);
@@ -238,6 +285,7 @@ public final class TripDetector {
         lastFix = null;
         tripStartFix = null;
         accumulatedM = 0;
+        tripPath.clear();
         stillSinceMs = 0;
         stillCenter = null;
         if (wasDriving && listener != null) listener.onDrivingChanged(false);

@@ -811,6 +811,30 @@ function goodFix(position){
 }
 function medianSpeedOk(fix){return fix.speed==null||fix.speed>=3.2;}
 
+// The driven path for the trip record (Rick, 2026-10-29: "we want to
+// record the paths people drive in case they have detours"). Points are
+// the detector's accepted fixes whose segments were summed into Miles —
+// the recorded miles ARE the path's miles, so detours count in full.
+// Very long paths are thinned (mileage already accumulated from every
+// point) so the record stays sane. Returns '' when no path was captured;
+// endpoints + total miles are the record then (hand-started days with
+// no fixes).
+function pathForRecord(points){
+  if(!points||points.length<2)return '';
+  var pts=points.filter(function(p){return p&&Number.isFinite(num(p.lat))&&Number.isFinite(num(p.lng));});
+  while(pts.length>2000){
+    var thinned=[];
+    for(var i=0;i<pts.length;i+=2)thinned.push(pts[i]);
+    if(thinned[thinned.length-1]!==pts[pts.length-1])thinned.push(pts[pts.length-1]);
+    pts=thinned;
+  }
+  if(pts.length<2)return '';
+  return pts.map(function(p){
+    var atMs=typeof p.at==='number'?p.at:Date.parse(p.at);
+    return {'Lat':num(p.lat),'Lng':num(p.lng),'Timestamp':Number.isFinite(atMs)?new Date(atMs).toISOString():''};
+  });
+}
+
 async function closeTrip(trip,note){
   // Run the suggestion engine, then auto-file the sure ones and queue
   // the rest with their suggestion attached (Rick's classification rule).
@@ -826,6 +850,7 @@ async function closeTrip(trip,note){
     'Purpose':'',
     'Started At':trip.startedAt,'Ended At':trip.endedAt,
     'Miles':Math.round(num(trip.miles)*10)/10,
+    'Path':pathForRecord(trip.path),
     'Start Lat':trip.startLat||'','Start Lng':trip.startLng||'',
     'End Lat':trip.endLat||'','End Lng':trip.endLng||'',
     'Start Label':trip.startLabel||'','End Label':trip.endLabel||'',
@@ -861,7 +886,11 @@ function onFix(position){
     if(last){
       var segM=haversineM(last.lat,last.lng,fix.lat,fix.lng);
       var dt=(fix.at-last.at)/1000;
-      if(segM>=8&&dt>0&&(segM/dt)<=55)manual.trip.miles+=segM/MILE;
+      if(segM>=8&&dt>0&&(segM/dt)<=55){
+        manual.trip.miles+=segM/MILE;
+        if(!manual.trip.points)manual.trip.points=[];
+        manual.trip.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});
+      }
     }
     manual.trip.lastFix=fix;
     manualSave();
@@ -879,6 +908,7 @@ function onFix(position){
           startedAt:new Date(engine.anchor.at).toISOString(),
           startLat:engine.anchor.lat,startLng:engine.anchor.lng,
           miles:away/MILE,lastLat:fix.lat,lastLng:fix.lng,lastAt:now,
+          points:[{lat:engine.anchor.lat,lng:engine.anchor.lng,at:engine.anchor.at},{lat:fix.lat,lng:fix.lng,at:now}],
           source:'auto'
         };
         engine.stillSince=0;
@@ -891,7 +921,7 @@ function onFix(position){
     var t=engine.trip;
     var seg=haversineM(t.lastLat,t.lastLng,fix.lat,fix.lng);
     var dtS=(now-t.lastAt)/1000;
-    if(seg>=8&&dtS>0&&(seg/dtS)<=55){t.miles+=seg/MILE;t.lastLat=fix.lat;t.lastLng=fix.lng;t.lastAt=now;}
+    if(seg>=8&&dtS>0&&(seg/dtS)<=55){t.miles+=seg/MILE;t.lastLat=fix.lat;t.lastLng=fix.lng;t.lastAt=now;if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:now});}
     var stillRef={lat:t.lastLat,lng:t.lastLng};
     if(haversineM(stillRef.lat,stillRef.lng,fix.lat,fix.lng)<25&&(fix.speed==null||fix.speed<0.6)){
       if(!engine.stillSince)engine.stillSince=now;
@@ -901,7 +931,7 @@ function onFix(position){
         var finished={
           startedAt:t.startedAt,endedAt:endedAt,
           startLat:t.startLat,startLng:t.startLng,endLat:t.lastLat,endLng:t.lastLng,
-          miles:t.miles,source:'auto',
+          miles:t.miles,source:'auto',path:t.points||null,
           startLabel:endpointLabel(t.startLat,t.startLng),endLabel:endpointLabel(t.lastLat,t.lastLng)
         };
         engine.phase='idle';
@@ -966,7 +996,7 @@ function settleOnOpen(){
       var finished={
         startedAt:t.startedAt,endedAt:new Date(lastAt).toISOString(),
         startLat:t.startLat,startLng:t.startLng,endLat:t.lastLat,endLng:t.lastLng,
-        miles:t.miles,source:'auto',
+        miles:t.miles,source:'auto',path:t.points||null,
         startLabel:endpointLabel(t.startLat,t.startLng),endLabel:endpointLabel(t.lastLat,t.lastLng)
       };
       engine.phase='idle';engine.anchor={lat:t.lastLat,lng:t.lastLng,at:now};engine.trip=null;engine.stillSince=0;engineSave();
@@ -1028,6 +1058,7 @@ async function manualStart(){
   manual.trip={
     startedAt:nowIso(),miles:0,
     startLat:fix?fix.lat:'',startLng:fix?fix.lng:'',
+    points:fix?[{lat:fix.lat,lng:fix.lng,at:fix.at}]:[],
     lastFix:fix?{lat:fix.lat,lng:fix.lng,at:fix.at}:null
   };
   manualSave();syncWatch();scheduleDecorateSettled();
@@ -1039,13 +1070,13 @@ async function manualEnd(){
   var t=manual.trip;manual.trip=null;manualSave();
   if(fix&&t.lastFix){
     var seg=haversineM(t.lastFix.lat,t.lastFix.lng,fix.lat,fix.lng);
-    if(seg>=8)t.miles+=seg/MILE;
+    if(seg>=8){t.miles+=seg/MILE;if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});}
   }
   var finished={
     startedAt:t.startedAt,endedAt:nowIso(),
     startLat:t.startLat,startLng:t.startLng,
     endLat:fix?fix.lat:t.startLat,endLng:fix?fix.lng:t.startLng,
-    miles:t.miles,source:'manual',
+    miles:t.miles,source:'manual',path:(t.points&&t.points.length>=2)?t.points:null,
     startLabel:t.startLat?endpointLabel(t.startLat,t.startLng):'',
     endLabel:fix?endpointLabel(fix.lat,fix.lng):(t.startLat?endpointLabel(t.startLat,t.startLng):'')
   };
@@ -1180,6 +1211,8 @@ function ensureStyle(){
     '.h38-mileage-tabs button{border:1px solid var(--line,#d6e0e8);background:#fff;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer}',
     '.h38-mileage-tabs button.active{background:var(--blue,#174a70);color:#fff;border-color:var(--blue,#174a70)}',
     '.h38-mileage-trip{border-top:1px solid var(--line,#d6e0e8);padding:12px 0}',
+    '.h38-mileage-path{display:flex;gap:10px;align-items:center;margin:8px 0}',
+    '.h38-mileage-path svg{background:var(--panel,#eef4f8);border:1px solid var(--line,#d6e0e8);border-radius:8px;flex:none}',
     '.h38-mileage-trip:first-of-type{border-top:0}',
     '.h38-mileage-trip-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}',
     '.h38-mileage-suggest{border:1px dashed #9db8cc;background:#f2f8fc;border-radius:10px;padding:10px 12px;margin-top:8px}',
@@ -1213,6 +1246,42 @@ function tripRouteLine(row){
   var start=text(val(row,'Start Label','startLabel'))||'Start';
   var end=text(val(row,'End Label','endLabel'))||'End';
   return start+' \u2192 '+end;
+}
+// The driven path, drawn on the trip record itself (Rick, 2026-10-29:
+// "we want to record the paths people drive in case they have
+// detours"). Inline SVG polyline over the stored Path points — no map
+// tiles, no external calls; green dot = start, red dot = end. Renders
+// nothing for pathless records (endpoints + total are their record).
+function tripPathHtml(row){
+  var path=val(row,'Path','path');
+  if(!path||typeof path==='string'||!path.length||path.length<2)return '';
+  var pts=[];
+  for(var i=0;i<path.length;i++){
+    var p=path[i]||{};
+    var la=num(p.Lat!=null?p.Lat:p.lat),ln=num(p.Lng!=null?p.Lng:p.lng);
+    if(Number.isFinite(la)&&Number.isFinite(ln))pts.push([la,ln]);
+  }
+  if(pts.length<2)return '';
+  var minLa=Infinity,maxLa=-Infinity,minLn=Infinity,maxLn=-Infinity;
+  pts.forEach(function(p){
+    if(p[0]<minLa)minLa=p[0]; if(p[0]>maxLa)maxLa=p[0];
+    if(p[1]<minLn)minLn=p[1]; if(p[1]>maxLn)maxLn=p[1];
+  });
+  var kx=Math.cos((minLa+maxLa)/2*Math.PI/180)||1;
+  var W=132,H=84,pad=9;
+  var spanX=(maxLn-minLn)*kx,spanY=maxLa-minLa;
+  var scale=Math.min(spanX>0?(W-2*pad)/spanX:Infinity,spanY>0?(H-2*pad)/spanY:Infinity);
+  if(!Number.isFinite(scale)||scale<=0)scale=1;
+  var proj=pts.map(function(p){
+    var x=pad+(p[1]-minLn)*kx*scale,y=H-pad-(p[0]-minLa)*scale;
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  var first=proj[0].split(','),last=proj[proj.length-1].split(',');
+  return '<div class="h38-mileage-path"><svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="Map of the driven path">'
+    +'<polyline points="'+proj.join(' ')+'" fill="none" stroke="#2f7cf6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+first[0]+'" cy="'+first[1]+'" r="3.5" fill="#1d9e75"/>'
+    +'<circle cx="'+last[0]+'" cy="'+last[1]+'" r="3.5" fill="#d64545"/>'
+    +'</svg><small>Driven path recorded \u2014 '+pts.length+' points. Miles are counted along the drive, so detours are included.</small></div>';
 }
 function jobOptions(selectedId){
   var jobs=records('jobs').slice(0,200);
@@ -1264,6 +1333,7 @@ function tripRowHtml(row,mode){
     '<div class="h38-mileage-trip-top"><div><strong>'+esc(fmtDay(val(row,'Started At','startedAt')))+' · '+esc(fmtTime(val(row,'Started At','startedAt')))+'–'+esc(fmtTime(val(row,'Ended At','endedAt')))+'</strong><br>'+
     '<small>'+esc(tripRouteLine(row))+' · '+esc(fmtMiles(val(row,'Miles','miles')))+' mi'+(text(val(row,'Source','source'))==='manual'?' · added by hand':'')+'</small></div>'+
     '<div>'+(mode==='review'?'':badge)+'</div></div>';
+  html+=tripPathHtml(row);
   if(mode==='auto'||mode==='log'){
     if(job)html+='<small>Job: '+esc(jobLabel(job))+'</small>';
     if(text(val(row,'Purpose','purpose')))html+='<br><small>'+esc(text(val(row,'Purpose','purpose')))+'</small>';
