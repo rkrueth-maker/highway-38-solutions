@@ -171,6 +171,45 @@
     return nativeSessionAdoption;
   }
 
+  // Native session heal (2026-10-29, build 20261029-position-heal-1).
+  // The native background half keeps its own copy of this session for
+  // unattended writes (the owner position heartbeat, trip sync). When
+  // that copy dies — its refresh chain revoked server-side — only a
+  // push from this layer re-seeds it. The mileage module owns the push
+  // (H38Mileage.pushNativePolicy); this binding drives it from the auth
+  // lifecycle itself — when a session is confirmed and on every later
+  // same-user refresh — instead of depending on the mileage module
+  // having loaded or its screens being visited (Rick's Oct 27–29
+  // outage: the module-bound push was the only heal, and his usage
+  // never kept it alive; two days of background writes failed
+  // silently). The module loads deferred, so retry briefly until it
+  // answers; each call is one forced push and later auth events
+  // schedule fresh ones. Bridge-less browsers skip silently.
+  let nativeHealTimer = 0;
+  let nativeHealAttempts = 0;
+  function queueNativeSessionHeal() {
+    try {
+      const bridge = window.AndroidH38Office;
+      if (!bridge || typeof bridge.setSessionAndPolicy !== 'function') return;
+    } catch (_) { return; }
+    if (nativeHealTimer) return;
+    nativeHealAttempts = 0;
+    const delays = [250, 900, 2500, 6000, 15000];
+    const attempt = () => {
+      nativeHealTimer = 0;
+      const m = window.H38Mileage;
+      if (m && typeof m.pushNativePolicy === 'function') {
+        try { m.pushNativePolicy(true); } catch (_) {}
+        return;
+      }
+      nativeHealAttempts += 1;
+      if (nativeHealAttempts < delays.length) {
+        nativeHealTimer = setTimeout(attempt, delays[nativeHealAttempts]);
+      }
+    };
+    nativeHealTimer = setTimeout(attempt, delays[0]);
+  }
+
   function rolePermissions(role) {
     if (role === 'owner') return { all: true };
     if (role === 'administrator') return {
@@ -561,6 +600,7 @@
                 // Same token subject (initial session or a token refresh):
                 // adopt the fresh session WITHOUT a second full connect.
                 runtime.session = session;
+                queueNativeSessionHeal();
                 return;
               }
               if (!runtime.session || runtime.session.access_token !== session.access_token) {
@@ -583,6 +623,7 @@
         }
         runtime.session = session;
         runtime.user = session.user;
+        queueNativeSessionHeal();
         // Sign-in -> home is a single clean swap (2026-10-27, build
         // 20261027-session-keep-1): the moment a session is confirmed,
         // tear the sign-in gate out of the DOM and reset scroll BEFORE
