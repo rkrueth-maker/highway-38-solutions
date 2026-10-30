@@ -127,6 +127,26 @@ function moduleOn(key) {
 function takesRequests() {
   return moduleOn('customer_portal') || moduleOn('online_booking') || records('booking_requests').length > 0;
 }
+/* Business hours: read ONLY from the single source (business-hours.js,
+ * module_key 'business_hours' in business_module_settings). The inbox never
+ * blocks a request because of hours — it notes the hours and flags requests
+ * that ARRIVED outside them for the owner. Without the shared module the
+ * inbox behaves exactly as before. */
+function bhEval() {
+  try {
+    if (w.H38_BUSINESS_HOURS && typeof w.H38_BUSINESS_HOURS.evaluateNow === 'function') {
+      return w.H38_BUSINESS_HOURS.evaluateNow((w.state && w.state.snapshot) || {});
+    }
+  } catch (e) {}
+  return null;
+}
+function bhIsOpenAt(iso) {
+  try {
+    if (!iso || !w.H38_BUSINESS_HOURS) return null;
+    var resolved = w.H38_BUSINESS_HOURS.resolveHours((w.state && w.state.snapshot) || {});
+    return w.H38_BUSINESS_HOURS.isOpenAt(resolved.hours, new Date(iso));
+  } catch (e) { return null; }
+}
 function customerLocation(customerId) {
   if (!customerId) return '';
   var customers = records('customers');
@@ -209,7 +229,10 @@ function requestRowHtml(req) {
   var source = text(v(req, 'Source', 'source'));
   var pillLabel = bucket === 'new' ? 'New' : bucket === 'scheduled' ? 'Scheduled' : 'Dismissed';
   var meta = [];
-  if (created) meta.push('Came in ' + esc(fmtWhen(created)));
+  if (created) {
+    meta.push('Came in ' + esc(fmtWhen(created)));
+    if (bucket === 'new' && bhIsOpenAt(created) === false) meta.push('<strong>Outside business hours</strong>');
+  }
   if (prefDate || prefTime) meta.push('Asked for ' + esc([prefDate, prefTime].filter(Boolean).join(' ')));
   if (phone) meta.push(esc(phone));
   if (email) meta.push(esc(email));
@@ -264,13 +287,16 @@ function cardHtml() {
   if (dismissed.length) {
     body += dismissed.map(requestRowHtml).join('');
   }
+  var bh = bhEval();
+  var bhNote = bh ? '<p class="h38-pr-note">Business hours (Settings \u2192 Business hours): ' + esc(bh.hoursText) + ' \u00b7 ' + (bh.isOpenNow ? 'Open now' : 'After hours now') + '. Requests are always accepted \u2014 ones that came in outside hours are flagged, never blocked.</p>' : '';
   return head +
-    '<p class="h38-pr-note">Requests customers sent from the portal or booking page. Scheduling one puts it on the calendar below; dismissing one just closes it here.</p>' +
+    '<p class="h38-pr-note">Requests customers sent from the portal or booking page. Scheduling one puts it on the calendar below; dismissing one just closes it here.</p>' + bhNote +
     '<ul class="h38-pr-list">' + body + '</ul>';
 }
 
 function signature() {
-  var parts = [businessId(), takesRequests() ? 'on' : 'off', ui.openFormFor, ui.saving ? 'saving' : ''];
+  var bhSig = bhEval();
+  var parts = [businessId(), takesRequests() ? 'on' : 'off', ui.openFormFor, ui.saving ? 'saving' : '', bhSig ? bhSig.hoursText + ':' + (bhSig.isOpenNow ? 'open' : 'closed') : ''];
   allRequests().slice(0, 60).forEach(function(r) {
     parts.push(bookingIdOf(r) + ':' + text(v(r, 'Status', 'status')) + ':' + text(v(r, 'Schedule Event ID', 'scheduleEventId')));
   });
