@@ -213,8 +213,36 @@ async function addOwnerMissingCostAudit(base,args,timeout){
     return {...base,draft:{...(base?.draft||{}),possibleMissingCosts:[]},ownerMissingCostAuditStatus:'UNAVAILABLE',ownerMissingCostSuggestionCount:0,ownerMissingCostAuditMessage:text(error?.message||error)};
   }
 }
+/* Two-layer estimate: a suggested line that matched a price book item
+   (priceSource price_book / local_research with a catalogId) carries the
+   item's genuine internal cost — owner-only fields on the line. The local
+   priceBook snapshot maps sell_price to 'Sell Price' ('' when NULL) and
+   unit_cost to 'Purchase Cost'; when sell_price is NULL the row is a legacy
+   sell-in-cost row, so unit_cost is the price and the internal cost stays
+   empty. Lines without a catalog match are left untouched. */
+function priceBookInternalFor(line){
+  const catalogId=text(line?.catalogId).trim();if(!catalogId)return null;
+  const row=snapshotRows('priceBook').find(item=>text(valueOf(item,'Item ID','itemId'))===catalogId);
+  if(!row)return null;
+  const sellPriceRaw=valueOf(row,'Sell Price','sellPrice');
+  if(sellPriceRaw===''||sellPriceRaw===null||sellPriceRaw===undefined)return null;
+  const unitCost=Number(valueOf(row,'Purchase Cost','purchaseCost'));
+  if(!Number.isFinite(unitCost))return null;
+  const category=text(valueOf(row,'Category','category')).toUpperCase(),source=text(valueOf(row,'Source Type','sourceType')).toUpperCase();
+  const costSource=category.indexOf('RAW MATERIAL')===0||source.indexOf('RAW MATERIAL')>=0?'material':category.indexOf('LABOR')>=0||source.indexOf('LABOR')>=0?'labor':category.indexOf('SUBCONTRACT')>=0||source.indexOf('SUBCONTRACT')>=0?'subcontractor':category.indexOf('ALLOWANCE')>=0||source.indexOf('ALLOWANCE')>=0?'allowance':'manual';
+  return{internalUnitCost:unitCost,costSource,costUpdatedAt:new Date().toISOString(),costOverride:false};
+}
+function attachInternalCosts(payload){
+  const lines=linesOf(payload);
+  if(!lines.length)return payload;
+  const attached=lines.map(line=>{
+    const internal=priceBookInternalFor(line);
+    return internal?{...line,...internal}:line;
+  });
+  return {...payload,draft:{...(payload?.draft||{}),suggestedLines:attached}};
+}
 async function buildPricedQuote(args,timeout){
-  const priced=await buildPricedQuoteCore(args||{},timeout);
+  const priced=attachInternalCosts(await buildPricedQuoteCore(args||{},timeout));
   return addOwnerMissingCostAudit(priced,args||{},timeout);
 }
 Bridge.prototype.request=async function(action,args,timeout){
