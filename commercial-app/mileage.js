@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261029-position-heal-1';
+var BUILD='20261030-checkin-history-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -1442,7 +1442,7 @@ function sectionHtml(){
       return '<button type="button" data-h38-mileage-tab="'+tab[0]+'" class="'+(ui.tab===tab[0]?'active':'')+'">'+esc(tab[1])+'</button>';
     }).join('')+
     (isOwnerAdmin()?'<button type="button" data-h38-mileage-team class="'+(ui.teamView?'active':'')+'">Team business trips</button>':'')+
-    '</div>'+body+findMyPhoneHtml();
+    '</div>'+body+findMyPhoneHtml()+checkInHistoryHtml();
 }
 function teamTripsHtml(){
   var rows=allTrips().filter(function(row){
@@ -1617,6 +1617,7 @@ async function saveRate(rate){
 // trip when no position report exists yet. Employee phones are never
 // reported by this path and never shown here.
 var POSITION_COLLECTION='crewPositions';
+var HISTORY_COLLECTION='crewPositionHistory';
 var ownerPosReport={at:0,lat:0,lng:0};
 function reportOwnerPosition(fix){
   if(!fix||!isOwnerAdmin()||!enabled()||!recordingOn()||offDuty())return;
@@ -1784,6 +1785,64 @@ function findMyPhoneHtml(){
   return '<div style="margin-top:18px"><h3 style="margin:0 0 4px">Find my phone</h3>'+
     '<p class="h38-mileage-note">Owner phones only. While an owner\u2019s tracking is on, their phone reports where it is — so a lost phone can be found from here.</p>'+
     (rowsHtml||'<p class="h38-mileage-note">No owner phones yet.</p>')+'</div>';
+}
+
+// ---------- check-in history (owners only) ----------
+// Find my phone above shows only the NEWEST stamp per phone: the
+// OWNERPOS row is overwritten by every check-in, so the unattended
+// heartbeats from the hours the app sat closed left no visible trail
+// (Rick, 2026-10-30: "how do we see all the other points"). The native
+// runner now appends every check-in to crewPositionHistory
+// (SyncEngine.appendPositionHistory); this list merges those appends
+// with the web app-open stamps into one trail per owner phone, newest
+// first. Render is capped at the latest 25 per phone so the list stays
+// a list; the store itself keeps everything the phones report.
+var CHECKIN_RENDER_CAP=25;
+function checkInEntries(ownerId){
+  var entries=[];
+  records(HISTORY_COLLECTION).forEach(function(row){
+    if(text(val(row,'User ID','userId'))!==ownerId)return;
+    var lat=num(val(row,'Lat','lat')),lng=num(val(row,'Lng','lng'));
+    var stamp=text(val(row,'Timestamp','timestamp'));
+    if(!lat||!lng||!stamp)return;
+    entries.push({lat:lat,lng:lng,stamp:stamp,source:'Phone check-in'});
+  });
+  records(POINT_COLLECTION).forEach(function(row){
+    if(text(val(row,'User ID','userId'))!==ownerId)return;
+    if(text(val(row,'Stamp Type','stampType'))!=='app-open')return;
+    if(text(val(row,'Location Status'))&&text(val(row,'Location Status'))!=='gps')return;
+    var lat=num(val(row,'Lat','lat')),lng=num(val(row,'Lng','lng'));
+    var stamp=text(val(row,'Timestamp','timestamp'));
+    if(!lat||!lng||!stamp)return;
+    entries.push({lat:lat,lng:lng,stamp:stamp,source:'App opened'});
+  });
+  entries.sort(function(a,b){return a.stamp<b.stamp?1:(a.stamp>b.stamp?-1:0);});
+  return entries.slice(0,CHECKIN_RENDER_CAP);
+}
+function checkInHistoryHtml(){
+  if(!isOwnerAdmin())return '';
+  var owners=ownerUsers();
+  var ids=Object.keys(owners);
+  if(!ids.length)return '';
+  ids.sort(function(a,b){return owners[a].name.localeCompare(owners[b].name);});
+  var blocks=ids.map(function(id){
+    var entries=checkInEntries(id);
+    var head='<h4 style="margin:10px 0 4px">'+esc(owners[id].name)+'</h4>';
+    if(!entries.length){
+      return head+'<p class="h38-mileage-note">No check-ins recorded yet — they appear here as this phone reports in.</p>';
+    }
+    var items=entries.map(function(e){
+      var whenText=fmtDay(e.stamp)+' · '+fmtTime(e.stamp);
+      var link='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.lat+','+e.lng);
+      return '<div class="h38-mileage-trip"><div class="h38-mileage-trip-top"><div><strong>'+esc(whenText)+'</strong><br>'+
+        '<small>'+esc(e.lat.toFixed(5)+', '+e.lng.toFixed(5))+' · '+esc(e.source)+'</small></div>'+
+        '<a href="'+link+'" target="_blank" rel="noopener">See on map</a></div></div>';
+    }).join('');
+    return head+items;
+  }).join('');
+  return '<div style="margin-top:18px"><h3 style="margin:0 0 4px">Check-in history</h3>'+
+    '<p class="h38-mileage-note">Every check-in an owner phone reports — newest first, latest '+CHECKIN_RENDER_CAP+' per phone. Find my phone above shows the newest one; this is the whole trail, including the hours the app sat closed.</p>'+
+    blocks+'</div>';
 }
 
 // ---------- native app bridge (H38 Office Android app) ----------
