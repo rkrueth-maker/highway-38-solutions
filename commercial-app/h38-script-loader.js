@@ -121,10 +121,10 @@
     ];
     const PAGE_SCHEDULE = [
       './business-hours.js?build=20261030-r2-business-hours-1',
-      './guided-schedule.js?build=20261020-ws4-schedule-1',
+      './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
       './route-planner.js?build=20261026-day-fix-3',
-      './portal-requests.js?build=20261026-portal-requests-1',
+      './portal-requests.js?build=20261030-swivl-round2-1',
     ];
     const PAGE_MESSAGES = [
       './business-hours.js?build=20261030-r2-business-hours-1',
