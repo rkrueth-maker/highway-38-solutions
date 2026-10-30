@@ -41,4 +41,39 @@ public class PositionPayloadTest {
         assertEquals(0L, r.get("Accuracy"));
         assertTrue(((String) r.get("Timestamp")).endsWith("Z"));
     }
+
+    @Test
+    public void historyRecordKeyIsPerReport() {
+        assertEquals("POSHIST-user-1-1700000060000",
+                PositionPayload.historyRecordKey("user-1", 1_700_000_060_000L));
+        assertEquals(PositionPayload.historyRecordKey("user-1", 1_700_000_060_000L),
+                PositionPayload.historyRecordKey("user-1", 1_700_000_060_000L));
+    }
+
+    @Test
+    public void historyPayloadCarriesThePositionShapePlusItsOwnId() {
+        Map<String, Object> pos = PositionPayload.build("biz-1", "user-1", "Rick Krueth",
+                47.2370, -93.5300, 12.4, 1_700_000_000_000L, 1_700_000_060_000L);
+        Map<String, Object> hist = PositionPayload.historyBuild("biz-1", "user-1", "Rick Krueth",
+                47.2370, -93.5300, 12.4, 1_700_000_000_000L, 1_700_000_060_000L);
+
+        // Every field the OWNERPOS payload carries, with the same values...
+        for (Map.Entry<String, Object> e : pos.entrySet()) {
+            assertEquals("field " + e.getKey(), e.getValue(), hist.get(e.getKey()));
+        }
+        // ...plus the history row's own identity, keyed by report time.
+        assertEquals("POSHIST-user-1-1700000060000", hist.get("Crew Position History ID"));
+        assertEquals(pos.size() + 1, hist.size());
+        assertEquals("crewPositionHistory", PositionPayload.HISTORY_COLLECTION);
+    }
+
+    @Test
+    public void sameFixReportedTwiceStaysTwoCheckIns() {
+        // A parked phone re-reports the same cached fix on consecutive
+        // heartbeats. Each report is a check-in and must stay its own
+        // history row — keys differ because they key on report time.
+        String first = PositionPayload.historyRecordKey("user-1", 1_700_000_060_000L);
+        String second = PositionPayload.historyRecordKey("user-1", 1_700_000_960_000L);
+        assertTrue(!first.equals(second));
+    }
 }
