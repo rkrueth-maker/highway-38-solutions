@@ -188,6 +188,19 @@ function renderStep3(){
     '<button type="button" data-sched-day="pick" aria-pressed="'+(sched.dateMode==='pick')+'">Pick…</button></div>';
   html+='<div id="schedPickRow" class="'+(sched.dateMode==='pick'?'':'hidden')+'"><label>Date</label><input type="date" id="schedCustomDate" value="'+esc(sched.customDate)+'"></div>';
   html+='<p class="muted"><strong>'+esc(prettyDate(dateStr)||'Choose a date')+'</strong></p>';
+  // Business hours note (Fix Round 2 F): read from the single source in
+  // business-hours.js when present. Advisory only — scheduling outside
+  // hours stays possible; the note just makes it visible before confirming.
+  try{
+    var bhApi=window.H38_BUSINESS_HOURS;
+    if(bhApi&&typeof bhApi.resolveHours==='function'){
+      var bhRes=bhApi.resolveHours((typeof state!=='undefined'&&state.snapshot)||{});
+      var bhStartMin=Number(String(sched.startTime||'09:00').slice(0,2))*60+Number(String(sched.startTime||'09:00').slice(3,5));
+      var bhDayIdx=dateStr?new Date(dateStr+'T12:00:00').getDay():new Date().getDay();
+      var bhOpen=bhApi.isOpenAtDayTime(bhRes.hours,bhDayIdx,bhStartMin);
+      html+='<p class="muted small">Business hours: '+esc(bhApi.formatHours(bhRes.hours))+' ('+esc(bhRes.hours.timeZone)+')'+(bhOpen?'':' \u2014 <strong>this start time is outside business hours</strong>; you can still schedule it')+'</p>';
+    }
+  }catch(e){}
   html+='<div class="two"><div><label>Start time</label><input type="time" id="schedStart" value="'+esc(sched.startTime)+'"></div>'+
     '<div><label>End time</label><input type="time" id="schedEnd" value="'+esc(sched.endTime)+'"></div></div>';
   html+='<div id="schedConflictBox"></div>';

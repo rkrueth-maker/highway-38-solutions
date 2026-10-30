@@ -9,7 +9,7 @@
 // window.H38OwnerControls.FEATURES (id 'gps_dispatch', default OFF).
 // Everything below is gated on isEnabled('gps_dispatch'). Live position
 // capture additionally requires the existing 'gps_tracking' toggle.
-var BUILD='20261004-dispatch-1';
+var BUILD='20261030-r2-map-1';
 var COLLECTION='dispatchAssignments';
 var POSITION_COLLECTION='crewPositions';
 
@@ -65,13 +65,25 @@ function ensureStyle(){
     '.h38-dispatch-modal textarea{width:100%;min-height:96px;font-size:1em}',
     '.h38-dispatch-modal .actions{display:flex;gap:8px;margin-top:12px}',
     '.h38-dispatch-modal .actions button{min-height:44px;flex:1}',
-    '.h38-dispatch-note{font-size:.9em;color:#666;margin-top:6px}'
+    '.h38-dispatch-note{font-size:.9em;color:#666;margin-top:6px}',
+    '.h38-map-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}',
+    '.h38-map-pill{min-height:40px;padding:8px 13px;border-radius:999px;border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;font-size:.92em}',
+    '.h38-map-pill[aria-pressed="true"]{background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700}',
+    '.h38-map-pill .cnt{opacity:.75;font-weight:400}',
+    '.h38-map-tray{margin-top:8px;border:1px dashed var(--border,#ccc);border-radius:10px;padding:8px 12px;background:#fafafa}',
+    '.h38-map-tray h3{margin:0 0 4px;font-size:.95em}',
+    '.h38-map-tray ul{margin:0;padding-left:18px}',
+    '.h38-map-tray li{font-size:.9em;color:#444;margin:2px 0}',
+    '.h38-map-pin{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);color:#fff;font-size:12px;font-weight:700;line-height:1}',
+    '.h38-map-pin-request{background:#e65100;animation:h38ReqPulse 1.6s ease-in-out infinite}',
+    '@keyframes h38ReqPulse{0%,100%{box-shadow:0 0 0 0 rgba(230,81,0,.45)}50%{box-shadow:0 0 0 7px rgba(230,81,0,0)}}',
+    '.h38-pr-focused{outline:3px solid #e65100 !important;outline-offset:2px}'
   ].join('\n');
   var el=document.createElement('style');el.setAttribute('data-h38-dispatch','1');el.textContent=css;document.head.appendChild(el);
 }
 
 // ---------- board state ----------
-var board={open:false,date:'',map:null,markers:[],leafletPromise:null,simTimer:null};
+var board={open:false,date:'',map:null,markers:[],leafletPromise:null,simTimer:null,filter:'all',clusterPromise:null,clusterGroup:null,pins:[],unlocated:[],layerCounts:{tech:0,job:0,customer:0,request:0}};
 var watch={id:null,lastLat:null,lastLng:null,lastAt:0};
 var sim={on:false,timer:null,crews:[],stops:[],tick:0};
 
@@ -316,17 +328,234 @@ function latestCrewPositions(){
   return byUser;
 }
 
+// ---------- R2 map layers: filters, clustering, request pins ----------
+// Layers: tech (crewPositions, native lat/lng), job (today's stops),
+// customer (customer records), request (booking_requests still "new").
+// "New" reuses portal-requests.js bucketOf semantics exactly: Status
+// starting with "scheduled" -> scheduled; containing "dismiss" ->
+// dismissed; anything else (incl. "New — needs owner review") -> new.
+// This module only READS those rows; it never changes request status.
+function requestBucket(req){
+  var s=text(v(req,'Status','status'));
+  if(/^scheduled/i.test(s))return 'scheduled';
+  if(/dismiss/i.test(s))return 'dismissed';
+  return 'new';
+}
+function customerFullAddress(c){
+  if(!c)return '';
+  var street=text(v(c,'Service Address','Address','Street Address'));
+  if(!street)return '';
+  var city=text(v(c,'Service City','City')),state=text(v(c,'Service State','State')),zip=text(v(c,'ZIP','Zip','Postal Code'));
+  var tail=[city,state].filter(Boolean).join(', ');
+  if(zip)tail=(tail?tail+' ':'')+zip;
+  return tail?street+', '+tail:street;
+}
+function customerCoords(c){
+  if(!c)return null;
+  var lat=num(v(c,'Lat','Latitude','latitude')),lng=num(v(c,'Lng','Longitude','longitude'));
+  return lat&&lng?{lat:lat,lng:lng}:null;
+}
+function customerById(id){
+  if(!id)return null;
+  return records('customers').find(function(c){return text(v(c,'Customer ID','customerId'))===text(id);})||null;
+}
+function requestAddress(req){
+  var own=text(v(req,'Service Address','Address','Street Address','Location'));
+  if(own)return own;
+  var cust=customerById(text(v(req,'Customer ID','customerId')));
+  return cust?customerFullAddress(cust):'';
+}
+function requestCoords(req){
+  var lat=num(v(req,'Lat','Latitude')),lng=num(v(req,'Lng','Longitude'));
+  if(lat&&lng)return{lat:lat,lng:lng};
+  return customerCoords(customerById(text(v(req,'Customer ID','customerId'))));
+}
+// Geocoding: same Nominatim pattern as route-planner.js (session cache
+// keyed by exact address, in-flight dedupe, lookups spaced out). Display
+// only — coordinates are never written back from the dispatch board.
+var geoCache={},geoInflight={},lastGeoAt=0;
+function geocodeAddress(address){
+  var key=text(address);
+  if(!key)return Promise.resolve(null);
+  if(Object.prototype.hasOwnProperty.call(geoCache,key))return Promise.resolve(geoCache[key]);
+  if(geoInflight[key])return geoInflight[key];
+  geoInflight[key]=(async function(){
+    try{
+      var wait=Math.max(0,260-(Date.now()-lastGeoAt));
+      if(wait)await new Promise(function(r){setTimeout(r,wait);});
+      lastGeoAt=Date.now();
+      var res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(key),{headers:{'Accept':'application/json'}});
+      var data=await res.json();
+      var hit=Array.isArray(data)&&data[0]?{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)}:null;
+      if(hit&&(!Number.isFinite(hit.lat)||!Number.isFinite(hit.lng)))hit=null;
+      geoCache[key]=hit;return hit;
+    }catch(e){geoCache[key]=null;return null;}
+    finally{delete geoInflight[key];}
+  })();
+  return geoInflight[key];
+}
+// Build every layer's pins from the snapshot. Entities with an address but
+// no stored coords are returned in `pending` for one bounded geocode pass;
+// entities with neither land in `unlocated` (tray — never dropped silently).
+function buildMapPins(stops){
+  var pins=[],unlocated=[],pending=[];
+  stops.forEach(function(stop,i){
+    var c=stopCoords(stop);
+    if(!c&&sim.on&&sim.stops[i])c={lat:sim.stops[i].lat,lng:sim.stops[i].lng,sim:true};
+    var entry={layer:'job',label:stopLabel(stop),address:stopAddress(stop),
+      html:'<strong>Stop '+(i+1)+': '+esc(stopLabel(stop))+'</strong><br>'+esc(stopAddress(stop)||'')+'<br>'+esc(fmtTime(v(stop.event,'Start Time')))};
+    if(c){entry.lat=c.lat;entry.lng=c.lng;entry.sim=!!c.sim;pins.push(entry);}
+    else if(entry.address)pending.push(entry);
+    else unlocated.push({layer:'job',label:entry.label,address:''});
+  });
+  crewMarkers().forEach(function(c){
+    pins.push({layer:'tech',label:c.label,lat:c.lat,lng:c.lng,sim:!!c.sim,
+      html:'<strong>'+esc(c.label)+'</strong><br>'+esc(c.sim?'Simulated position':'Crew position')+'<br><small>'+esc(c.at||'')+'</small>'});
+  });
+  var seenCust={};
+  records('customers').slice(0,50).forEach(function(c){
+    var id=text(v(c,'Customer ID','customerId'));
+    if(id&&seenCust[id])return;if(id)seenCust[id]=1;
+    if(/^(deleted|void|archived)$/i.test(text(v(c,'Status'))))return;
+    var name=text(v(c,'Customer Name','Name'))||'Customer';
+    var entry={layer:'customer',label:name,address:customerFullAddress(c),
+      html:'<strong>'+esc(name)+'</strong><br>'+esc(customerFullAddress(c)||'Customer')};
+    var cc=customerCoords(c);
+    if(cc){entry.lat=cc.lat;entry.lng=cc.lng;pins.push(entry);}
+    else if(entry.address)pending.push(entry);
+    else unlocated.push({layer:'customer',label:name,address:''});
+  });
+  records('booking_requests').filter(function(r){return requestBucket(r)==='new';}).slice(0,50).forEach(function(req){
+    var bid=text(v(req,'Booking ID','bookingId'));
+    var name=text(v(req,'Customer Name','customerName'))||'A customer';
+    var svc=text(v(req,'Service','service'))||'Service request';
+    var addr=requestAddress(req);
+    var created=text(v(req,'Created Time','createdTime'));
+    var entry={layer:'request',label:svc+' — '+name,address:addr,bookingId:bid,
+      html:'<strong>🟠 New request</strong><br><strong>'+esc(name)+'</strong> · '+esc(svc)+
+        (addr?'<br>'+esc(addr):'')+(created?'<br><small>Received '+esc(fmtTime(created))+' '+esc(dayKey(created))+'</small>':'')+
+        '<br><button type="button" data-h38-map-open-request="'+esc(bid)+'">Open in requests inbox</button>'};
+    var rc=requestCoords(req);
+    if(rc){entry.lat=rc.lat;entry.lng=rc.lng;pins.push(entry);}
+    else if(addr)pending.push(entry);
+    else unlocated.push({layer:'request',label:entry.label,address:''});
+  });
+  return{pins:pins,unlocated:unlocated,pending:pending};
+}
+var PIN_STYLE={
+  tech:{bg:'#2e7d32',glyph:'👤'},
+  job:{bg:'#1976d2',glyph:''},
+  customer:{bg:'#6a1b9a',glyph:'⌂'},
+  request:{bg:'#e65100',glyph:'!'}
+};
+function pinIcon(L,pin){
+  var st=PIN_STYLE[pin.layer]||PIN_STYLE.job;
+  var bg=pin.sim?'#7c4dff':st.bg;
+  var cls=pin.layer==='request'?'h38-map-pin h38-map-pin-request':'h38-map-pin';
+  return L.divIcon({className:'',html:'<span class="'+cls+'" style="background:'+bg+'">'+esc(st.glyph)+'</span>',iconSize:[24,24],iconAnchor:[12,12]});
+}
+// Leaflet.markercluster, lazy-loaded on demand alongside Leaflet (same
+// unpkg pattern). Any failure resolves false -> pins render unclustered.
+function loadMarkerCluster(L){
+  if(w.L&&typeof w.L.markerClusterGroup==='function')return Promise.resolve(true);
+  if(board.clusterPromise)return board.clusterPromise;
+  board.clusterPromise=new Promise(function(resolve){
+    if(typeof document==='undefined'){resolve(false);return;}
+    try{
+      ['MarkerCluster.css','MarkerCluster.Default.css'].forEach(function(f){
+        if(!document.querySelector('link[data-h38-dispatch-cluster]')){
+          var css=document.createElement('link');css.rel='stylesheet';
+          css.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/'+f;
+          css.setAttribute('data-h38-dispatch-cluster','1');document.head.appendChild(css);
+        }
+      });
+      var s=document.querySelector('script[data-h38-dispatch-cluster]');
+      if(s){s.addEventListener('load',function(){resolve(typeof w.L.markerClusterGroup==='function');},{once:true});s.addEventListener('error',function(){resolve(false);},{once:true});return;}
+      s=document.createElement('script');
+      s.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+      s.setAttribute('data-h38-dispatch-cluster','1');
+      s.onload=function(){resolve(typeof w.L.markerClusterGroup==='function');};
+      s.onerror=function(){resolve(false);};
+      document.head.appendChild(s);
+    }catch(_){resolve(false);}
+  });
+  return board.clusterPromise;
+}
+function visiblePins(){
+  return board.pins.filter(function(p){return board.filter==='all'||p.layer===board.filter;});
+}
+function renderPins(L){
+  var map=board.map;if(!map)return;
+  board.markers.forEach(function(m){try{map.removeLayer(m);}catch(_){}});
+  board.markers=[];
+  if(board.clusterGroup){try{map.removeLayer(board.clusterGroup);}catch(_){}board.clusterGroup=null;}
+  var vis=visiblePins();
+  var group=null;
+  if(typeof L.markerClusterGroup==='function'){
+    group=L.markerClusterGroup({maxClusterRadius:55,spiderfyOnMaxZoom:true,showCoverageOnHover:false});
+    board.clusterGroup=group;
+  }
+  vis.forEach(function(p){
+    var m=L.marker([p.lat,p.lng],{icon:pinIcon(L,p)}).bindPopup(p.html);
+    m.on('popupopen',function(e){wireRequestPopup(e.popup.getElement(),p);});
+    board.markers.push(m);
+    if(group)group.addLayer(m);else m.addTo(map);
+  });
+  if(group)group.addTo(map);
+  return vis.length;
+}
+function wireRequestPopup(root,pin){
+  if(!root||pin.layer!=='request')return;
+  var btn=root.querySelector?root.querySelector('[data-h38-map-open-request]'):null;
+  if(btn)btn.onclick=function(){openRequestInInbox(pin.bookingId);};
+}
+// Deep-link: the inbox (portal-requests.js) has no focus export, so we
+// navigate to Schedule, remember the booking id, and highlight/scroll to
+// its row (rows carry data-h38pr-row="<Booking ID>") once it renders.
+function openRequestInInbox(bookingId){
+  try{w.sessionStorage.setItem('h38FocusBookingRequest',text(bookingId));}catch(_){}
+  if(typeof w.openPage==='function')w.openPage('schedule');
+  var tries=0;
+  var iv=setInterval(function(){
+    tries++;
+    var row=document.querySelector('[data-h38pr-row="'+text(bookingId)+'"]');
+    if(row){
+      clearInterval(iv);
+      row.classList.add('h38-pr-focused');
+      try{row.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){}
+    }else if(tries>20)clearInterval(iv);
+  },250);
+}
+function renderTray(){
+  var tray=typeof document!=='undefined'?document.getElementById('h38DispatchTray'):null;
+  if(!tray)return;
+  var items=board.unlocated.filter(function(u){return board.filter==='all'||u.layer===board.filter;});
+  if(!items.length){tray.innerHTML='';tray.style.display='none';return;}
+  tray.style.display='';
+  tray.innerHTML='<h3>Not on map yet (no location) — '+items.length+'</h3><ul>'+
+    items.map(function(u){return '<li>'+esc(u.label)+(u.address?' · '+esc(u.address):' · no address on file')+'</li>';}).join('')+'</ul>';
+}
+function renderPills(){
+  var host=typeof document!=='undefined'?document.getElementById('h38DispatchPills'):null;
+  if(!host)return;
+  var defs=[['all','All'],['tech','Technicians'],['job','Jobs'],['customer','Customers'],['request','Requests']];
+  host.innerHTML=defs.map(function(d){
+    var n=d[0]==='all'?board.pins.length:(board.layerCounts[d[0]]||0);
+    return '<button type="button" class="h38-map-pill" data-h38-filter="'+d[0]+'" aria-pressed="'+(board.filter===d[0]?'true':'false')+'">'+d[1]+' <span class="cnt">('+n+')</span></button>';
+  }).join('');
+  host.querySelectorAll('[data-h38-filter]').forEach(function(b){
+    b.onclick=function(){board.filter=b.getAttribute('data-h38-filter');renderPills();if(board.map&&w.L)renderPins(w.L);renderTray();};
+  });
+}
 async function initMap(stops){
   var node=typeof document!=='undefined'?document.getElementById('h38DispatchMap'):null;
   if(!node)return 'no-node';
-  // Stop coordinates: real ones from records; simulated ones when sim is on.
-  var points=stops.map(function(stop,i){
-    var c=stopCoords(stop);
-    if(!c&&sim.on&&sim.stops[i])c={lat:sim.stops[i].lat,lng:sim.stops[i].lng,real:false,sim:true};
-    return c?{stop:stop,lat:c.lat,lng:c.lng,sim:!!c.sim}:null;
-  }).filter(Boolean);
-  var crews=crewMarkers();
-  if(!points.length&&!crews.length){
+  var built=buildMapPins(stops);
+  board.pins=built.pins;board.unlocated=built.unlocated;
+  board.layerCounts={tech:0,job:0,customer:0,request:0};
+  board.pins.forEach(function(p){board.layerCounts[p.layer]++;});
+  renderPills();renderTray();
+  if(!board.pins.length&&!built.pending.length){
     node.innerHTML='<div class="h38-dispatch-note" style="padding:16px">No map positions yet. Crew positions appear once location sharing starts (or turn on simulation below).</div>';
     return 'empty';
   }
@@ -338,28 +567,36 @@ async function initMap(stops){
   }
   if(!node.isConnected)return 'detached';
   try{
-    if(board.map){try{board.map.remove();}catch(_){}board.map=null;}
+    if(board.map){try{board.map.remove();}catch(_){}board.map=null;board.clusterGroup=null;}
     board.markers=[];
     node.innerHTML='';
     var map=L.map(node,{zoomControl:true});board.map=map;
     // Referrer fix (same as route-planner.js): the shell's no-referrer meta makes OSM's tile CDN answer with a ~7 KB placeholder block tile; per-tile referrerPolicy='origin' restores real tiles.
     var RefererTileLayer=L.TileLayer.extend({createTile:function(coords,done){var t=L.TileLayer.prototype.createTile.call(this,coords,done);try{t.referrerPolicy='origin';}catch(_){}return t;}});
     new RefererTileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-    var bounds=[];
-    points.forEach(function(p,idx){
-      var icon=L.divIcon({className:'',html:'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:'+(p.sim?'#7c4dff':'#1976d2')+';border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>',iconSize:[22,22],iconAnchor:[11,11]});
-      var m=L.marker([p.lat,p.lng],{icon:icon}).addTo(map)
-        .bindPopup('<strong>Stop '+(idx+1)+': '+esc(stopLabel(p.stop))+'</strong><br>'+esc(stopAddress(p.stop)||'')+'<br>'+esc(fmtTime(v(p.stop.event,'Start Time'))));
-      board.markers.push(m);bounds.push([p.lat,p.lng]);
-    });
-    crews.forEach(function(c){
-      var icon=L.divIcon({className:'',html:'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#2e7d32;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>',iconSize:[22,22],iconAnchor:[11,11]});
-      var m=L.marker([c.lat,c.lng],{icon:icon}).addTo(map)
-        .bindPopup('<strong>'+esc(c.label)+'</strong><br>'+esc(c.sim?'Simulated position':'Crew position')+'<br><small>'+esc(c.at||'')+'</small>');
-      board.markers.push(m);bounds.push([c.lat,c.lng]);
-    });
+    await loadMarkerCluster(L); // graceful: false just means unclustered
+    if(!node.isConnected||board.map!==map)return 'detached';
+    renderPins(L);
+    var vis=visiblePins();
+    var bounds=vis.map(function(p){return[p.lat,p.lng];});
     if(bounds.length===1)map.setView(bounds[0],14);
-    else map.fitBounds(bounds,{padding:[30,30],maxZoom:15});
+    else if(bounds.length)map.fitBounds(bounds,{padding:[30,30],maxZoom:15});
+    else map.setView([47.2372,-93.5302],11);
+    // One bounded geocode pass for address-only entities, then re-plot.
+    if(built.pending.length){
+      var dateAtStart=board.date;
+      (async function(){
+        var changed=false;
+        for(var i=0;i<Math.min(built.pending.length,20);i++){
+          var e=built.pending[i];
+          var hit=await geocodeAddress(e.address);
+          if(hit){e.lat=hit.lat;e.lng=hit.lng;board.pins.push(e);board.layerCounts[e.layer]++;changed=true;}
+          else board.unlocated.push({layer:e.layer,label:e.label,address:e.address});
+        }
+        if(changed&&board.open&&board.date===dateAtStart&&board.map&&w.L){renderPins(w.L);renderPills();}
+        renderTray();
+      })().catch(function(){});
+    }
     return 'ok';
   }catch(err){
     node.innerHTML='<div class="h38-dispatch-note" style="padding:16px">Map failed to render. The ordered stop list below still works.<br><small>'+esc(text(err&&err.message||err))+'</small></div>';
@@ -602,7 +839,7 @@ function renderDispatch(dateStr){
     '<button type="button" id="h38DispatchShare" class="secondary" style="min-height:44px">📍 Share my location (on shift)</button>'+
     '<button type="button" id="h38DispatchSim" class="secondary" style="min-height:44px">'+(sim.on?'⏹ Stop simulation':'▶ Simulate crews')+'</button>'+
     (gpsTrackingEnabled()?'':'<small class="h38-dispatch-note">Live location sharing needs Settings → Owner Controls → GPS location tracking.</small>')+
-    '</div><div id="h38DispatchMap" class="h38-dispatch-map" style="margin-top:10px"><div class="h38-dispatch-note" style="padding:16px">Loading map…</div></div></section>'+
+    '</div><div id="h38DispatchPills" class="h38-map-pills" role="group" aria-label="Map layers"></div><div id="h38DispatchMap" class="h38-dispatch-map" style="margin-top:10px"><div class="h38-dispatch-note" style="padding:16px">Loading map…</div></div><div id="h38DispatchTray" class="h38-map-tray" style="display:none"></div></section>'+
     '<section class="card span12"><h2>Stops</h2><div class="h38-dispatch-board">'+
     (cards||'<p class="h38-dispatch-note">No scheduled stops for this date.</p>')+
     '</div></section></div>';
@@ -646,7 +883,7 @@ function renderDispatch(dateStr){
 }
 function closeDispatch(){
   board.open=false;stopWatch();simulate(false);
-  if(board.map){try{board.map.remove();}catch(_){}board.map=null;board.markers=[];}
+  if(board.map){try{board.map.remove();}catch(_){}board.map=null;board.markers=[];board.clusterGroup=null;}
 }
 function openDispatch(dateStr){return renderDispatch(dateStr||todayStr());}
 
@@ -712,6 +949,11 @@ w.H38Dispatch=Object.freeze({
   stopWatch:stopWatch,
   latestCrewPositions:latestCrewPositions,
   initMap:initMap,
+  buildMapPins:buildMapPins,
+  requestBucket:requestBucket,
+  mapState:function(){return{filter:board.filter,counts:Object.assign({},board.layerCounts),pins:board.pins.map(function(p){return{layer:p.layer,label:p.label,lat:p.lat,lng:p.lng};}),unlocated:board.unlocated.slice(),markers:board.markers.length,clustered:!!board.clusterGroup};},
+  setMapFilter:function(f){board.filter=text(f)||'all';renderPills();if(board.map&&w.L)renderPins(w.L);renderTray();return board.filter;},
+  openRequestInInbox:openRequestInInbox,
   simulate:simulate,
   simTick:simTick,
   simState:function(){return{on:sim.on,crews:sim.crews.map(function(c){return{userId:c.userId,label:c.label,lat:c.lat,lng:c.lng};}),tick:sim.tick};},

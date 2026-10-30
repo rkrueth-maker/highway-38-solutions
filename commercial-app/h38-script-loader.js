@@ -67,6 +67,7 @@
       './supabase-client-quote-branding.js?build=20260806-0344',
       './supabase-quote-ai.js?build=20261030-two-layer-1',
       './supabase-quote-ai-auth-fix.js?build=20260814-quote-ai-auth-measurement-split-2',
+      './estimator-shell.js?build=20261030-r2-estimator-shell-1',
       './quote-mobile-stabilization.js?build=20261030-two-layer-8',
       './quote-ai-live-fix.js?build=20261030-two-layer-1',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
@@ -94,6 +95,8 @@
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
       './customer-360-authority.js?build=20261013-complete-scan-fixes-1',
       './customer-360-browser-integration-v3.js?build=20261013-search-nomatch-1',
+      './accounting-engine.js?build=20261020-payroll-engine-1',
+      './customer-profile-money.js?build=20261030-r2-customer-profile-money-1',
       // CI triage fix (2026-10-13, class-b): site-visit-top-action.js is the
       // Customers-page top action bar ("Start Site Visit" / "Add Customer");
       // grouping it only under field/measure lost that bar on a
@@ -117,12 +120,14 @@
       './customer-comms.js?build=20261026-auto-invoice-3',
     ];
     const PAGE_SCHEDULE = [
-      './guided-schedule.js?build=20261020-ws4-schedule-1',
+      './business-hours.js?build=20261030-r2-business-hours-1',
+      './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
       './route-planner.js?build=20261026-day-fix-3',
-      './portal-requests.js?build=20261026-portal-requests-1',
+      './portal-requests.js?build=20261030-swivl-round2-1',
     ];
     const PAGE_MESSAGES = [
+      './business-hours.js?build=20261030-r2-business-hours-1',
       './sms-provider.js?build=20261004-sms-seam-2',
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
@@ -134,7 +139,7 @@
       './route-planner.js?build=20261026-day-fix-3',
       './northern-bouncie-fleet.js?build=20261026-bouncie-plumb-1',
       './fleet-providers.js?build=20261026-fleet-providers-6',
-      './gps-dispatch.js?build=20261026-map-tiles-1',
+      './gps-dispatch.js?build=20261030-r2-map-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
       './mileage.js?build=20261030-checkin-history-1',
       './plow-flow.js?build=20261011-plow-flow-1',
@@ -144,6 +149,7 @@
     // Today group. It stays dark unless the tenant pilot switch and the
     // Owner Controls feature toggle are both on (see mileage.js).
     const PAGE_TODAY = [
+      './today-command-setup.js?build=20261030-r2-today-1',
       './mileage.js?build=20261030-checkin-history-1',
     ];
     const PAGE_MONEY = [
@@ -225,6 +231,7 @@
       './employee-onboarding.js?build=20261011-phase3-1',
     ];
     const PAGE_SETTINGS = [
+      './business-hours.js?build=20261030-r2-business-hours-1',
       './health-dashboard.js?build=20261011-health-dashboard-1',
       './sms-provider-setup.js?build=20261004-sms-providers-1',
       './muse-permissions.js?build=20261006-muse-permissions-2',
