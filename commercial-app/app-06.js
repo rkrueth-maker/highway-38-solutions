@@ -11,8 +11,19 @@ async function logQuoteFollowup(quoteId){
 }
 async function quoteFromPhotos(){
   const q=state.quote;
-  const photos=(q.attachments||[]).filter(a=>/\.(jpg|jpeg|png|webp|gif)$/i.test(a.filename||a.name||''));
-  if(!photos.length){toast('Add photos first using the Add photo button, then try again.',true);return;}
+  const imgOk=a=>/\.(jpg|jpeg|png|webp|gif)$/i.test(a.filename||a.name||'');
+  let photos=(q.attachments||[]).filter(imgOk);
+  if(!photos.length&&q.quoteId){
+    /* Saved-quote photos live as documents (the photo picker uploads them
+       on save); nothing copies them into q.attachments, so resolve them
+       here — without this, Quote from photos could never see a photo. */
+    photos=(records('documents')||[]).filter(r=>String(v(r,'Source ID','sourceId'))===String(q.quoteId)&&/quote/i.test(String(v(r,'Source Type','sourceType')))).map(r=>({id:v(r,'Document ID','documentId')||rowId(r,'Document ID','documentId'),filename:v(r,'File Name','fileName')})).filter(imgOk);
+  }
+  if(!photos.length){
+    const qid=q.quoteId||'LOCAL-QUOTE';
+    photos=(records('attachments')||[]).filter(r=>String(v(r,'Related Record ID','relatedRecordId'))===String(qid)).map(r=>({id:v(r,'Attachment ID','attachmentId')||rowId(r,'Attachment ID','attachmentId'),filename:v(r,'File Name','fileName')})).filter(imgOk);
+  }
+  if(!photos.length){toast(q.quoteId?'Add photos first using the Add photo button, then try again.':'Save this draft first so its photos upload, then use Quote from photos.',true);return;}
   if(!confirm('Analyze '+photos.length+' photo'+(photos.length===1?'':'s')+' and draft quote line items? You will review everything before it goes into the quote.'))return;
   const btn=$('quoteFromPhotosButton');
   btn.disabled=true;btn.textContent='Analyzing photos...';
