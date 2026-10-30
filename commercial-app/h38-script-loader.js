@@ -135,7 +135,7 @@
       './route-planner.js?build=20261026-day-fix-3',
       './northern-bouncie-fleet.js?build=20261026-bouncie-plumb-1',
       './fleet-providers.js?build=20261026-fleet-providers-6',
-      './gps-dispatch.js?build=20261026-map-tiles-1',
+      './gps-dispatch.js?build=20261030-r2-map-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
       './mileage.js?build=20261030-checkin-history-1',
       './plow-flow.js?build=20261011-plow-flow-1',
