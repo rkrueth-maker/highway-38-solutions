@@ -429,7 +429,7 @@ function openErpSurface(target='erp',selector='',activate=false){
   let script=document.querySelector('script[data-h38-erp-foundation]');
   if(!script&&document.body){
     script=document.createElement('script');
-    script.src='./erp-foundation.js?build=20260903-erp-time-uptake-learning-2';
+    script.src='./erp-foundation.js?build=20261030-laptop-phase1-1';
     script.async=false;
     script.dataset.h38ErpFoundation='assistant-management-commands';
     document.body.appendChild(script);

@@ -67,11 +67,13 @@ html,body{max-width:100%;overflow-x:hidden}body{background:var(--bg,#eef3f6)}
 @media(max-width:760px){
  html,body{height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
  body:not(.h38-field-scroll-lock){height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important;touch-action:auto!important}
- .topbar{position:relative!important;top:auto!important;z-index:1600;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) 8px 6px!important;gap:6px!important;flex-wrap:nowrap!important;transform:translateZ(0);backface-visibility:hidden}
- .topbar .brand{flex:1 1 auto;min-width:0;gap:7px!important;overflow:hidden}
- .topbar .brand-logo{width:34px!important;height:34px!important;flex:0 0 34px!important;object-fit:contain;border-radius:8px}
+ .topbar{position:relative!important;top:auto!important;z-index:1600;min-height:52px;padding:calc(6px + env(safe-area-inset-top,0px)) 5px 6px!important;gap:4px!important;flex-wrap:nowrap!important;transform:translateZ(0);backface-visibility:hidden}
+#syncBadge{padding:2px 6px}
+ .topbar .brand{flex:1 1 auto;min-width:0;gap:5px!important;overflow:hidden}
+ .topbar .brand-logo{width:32px!important;height:32px!important;flex:0 0 32px!important;object-fit:contain;border-radius:8px}
  .topbar .brand>div{min-width:0}
- .topbar .brand strong{display:block;max-width:118px;font-size:.82rem;line-height:1.12;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ /* Laptop Phase 1 (2026-10-30): the business name wraps in the brand column instead of truncating to a few letters ("Clearw…"). */
+ .topbar .brand strong{display:block;max-width:100%;font-size:.82rem;line-height:1.12;overflow:hidden;white-space:normal}
  .topbar .brand small{display:none}
  .topbar .h38-powered-by-credit{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
  .topbar .top-actions{flex:0 0 auto;flex-wrap:nowrap!important;gap:4px!important}

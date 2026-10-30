@@ -22,7 +22,8 @@ function installSharedMobileChrome(){let style=document.getElementById('h38Share
 .topbar{align-items:center!important}
 .topbar .brand{min-width:0!important;overflow:visible!important}
 .topbar .brand>div{min-width:0!important;max-width:min(250px,62vw)!important}
-.topbar .brand strong{display:block!important;max-width:min(220px,56vw)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:left!important;font-size:clamp(12px,3.35vw,15px)!important}
+/* Laptop Phase 1 (2026-10-30): the business name wraps instead of truncating. */
+.topbar .brand strong{display:block!important;max-width:min(220px,56vw)!important;overflow:hidden!important;text-overflow:clip!important;white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.25!important;text-align:left!important;font-size:clamp(12px,3.1vw,15px)!important}
 .business-bar{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;overflow:hidden!important;padding-left:10px!important;padding-right:10px!important}
 .business-bar span{display:block!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;text-align:center!important}
 }`;if(style.textContent!==css)style.textContent=css;}

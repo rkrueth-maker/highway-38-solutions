@@ -21,8 +21,8 @@ function navCollapseStorageKey(){
 }
 function readCollapsedNavGroups(){
   // Returns null when this user has never stored a preference; the
-  // renderer then applies the sleek default (every group beyond the
-  // first starts collapsed).
+  // renderer then applies the default (groups beyond the first start
+  // collapsed, except Money & accounting on wide screens).
   try{
     const raw=window.localStorage?.getItem(navCollapseStorageKey());
     if(raw==null)return null;
@@ -30,10 +30,17 @@ function readCollapsedNavGroups(){
     return new Set(Array.isArray(parsed)?parsed.map(value=>String(value)) : []);
   }catch(_){return null;}
 }
+function wideScreen(){try{return window.innerWidth>=1024;}catch(_){return false;}}
 function effectiveCollapsedNavGroups(){
   const stored=readCollapsedNavGroups();
   if(stored)return stored;
-  return new Set(NAV_GROUPS.slice(1).map(([group])=>group));
+  const collapsed=new Set(NAV_GROUPS.slice(1).map(([group])=>group));
+  // Laptop Phase 1 (2026-10-30): with no stored preference, wide screens
+  // start with Money & accounting open so Money is one click away. Any
+  // group the user toggles is written to localStorage and wins from then
+  // on, per user and business, across reloads and app updates.
+  if(wideScreen())collapsed.delete('Money & accounting');
+  return collapsed;
 }
 function writeCollapsedNavGroups(collapsed){
   try{window.localStorage?.setItem(navCollapseStorageKey(),JSON.stringify(Array.from(collapsed)));}catch(_){}
