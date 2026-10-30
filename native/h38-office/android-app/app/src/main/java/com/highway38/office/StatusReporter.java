@@ -51,6 +51,8 @@ public final class StatusReporter {
             j.put("version", BuildConfig.VERSION_NAME);
             j.put("setupComplete", PolicyStore.setupComplete(ctx));
             j.put("signedIn", p != null && p.signedIn);
+            j.put("sessionPresent", PolicyStore.loadSession(ctx).present());
+            j.put("sessionAuthDead", PolicyStore.sessionAuthDeadAt(ctx) > 0);
             j.put("gate", gate.name());
             j.put("recording", gate == GateEvaluator.Gate.RECORDING);
             j.put("waitingClockIn", gate == GateEvaluator.Gate.WAITING_CLOCKIN);

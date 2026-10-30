@@ -28,7 +28,10 @@ import java.util.Map;
  *      the open timeEntries record (employee clock-in) and the tenant
  *      mileage pilot row (business_module_settings);
  *   4. report the owner phone's latest position ("Find my phone") into
- *      the crewPositions store — owners only, one row per phone.
+ *      the crewPositions store — owners only, one row per phone;
+ *   5. append every successful position report to the check-in history
+ *      (crewPositionHistory) — one row per check-in, best-effort, so the
+ *      owner can see the whole trail and not only the latest stamp.
  *
  * All calls are bounded, member-scoped (the member's own JWT + RLS), and
  * read-only except the trip upsert.
@@ -101,10 +104,26 @@ public final class SyncEngine {
                 long in = j.optLong("expires_in", 3600);
                 s.expiresAtMs = System.currentTimeMillis() + in * 1000L;
                 PolicyStore.saveSession(ctx, s);
+            } else if (SessionAuth.isDefinitiveRejection(r.code, r.body)) {
+                // 1.0.6: the stored pair is dead for good — the shared
+                // refresh chain was revoked server-side, and retrying it
+                // can never succeed. Keeping it (the 1.0.4 behavior) left
+                // the phone armed on the surface while every background
+                // write failed in silence. Clear just the tokens and
+                // stamp the moment: the corpse stops being offered for
+                // web adoption, the status surface can tell the truth,
+                // and the next web session push (auth-lifecycle binding
+                // or the native heal trigger) re-seeds a live pair.
+                PolicyStore.clearSessionTokens(ctx);
+                s.accessToken = "";
+                s.refreshToken = "";
+                s.expiresAtMs = 0;
             }
         } catch (Exception ignored) {
-            // Offline or rejected: callers see the old session and fail
-            // honestly; the queue keeps the trips until a sync works.
+            // Offline or transient trouble: the stored session is kept
+            // untouched; callers fail honestly and the queue keeps the
+            // trips until a sync works. Only the definitive-rejection
+            // branch above may clear tokens.
         }
         return s;
     }
@@ -162,9 +181,10 @@ public final class SyncEngine {
         PolicyStore.Session s = ensureFreshSession(ctx);
         if (!s.present() || s.accessToken.isEmpty() || s.userId.isEmpty()) return false;
         try {
+            long nowMs = System.currentTimeMillis();
             Map<String, Object> payload = PositionPayload.build(
                     s.businessId, s.userId, s.userName, lat, lng, accuracyM,
-                    fixMs, System.currentTimeMillis());
+                    fixMs, nowMs);
             JSONObject row = new JSONObject();
             row.put("business_id", s.businessId);
             row.put("collection", "crewPositions");
@@ -179,9 +199,52 @@ public final class SyncEngine {
                     s.publishableKey, s.accessToken,
                     "resolution=merge-duplicates,return=minimal",
                     row.toString());
-            return r.ok();
+            if (!r.ok()) return false;
+            appendPositionHistory(s, lat, lng, accuracyM, fixMs, nowMs);
+            return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Check-in history (1.0.6 addendum, Rick 2026-10-30): every successful
+     * owner-position report ALSO appends one row to crewPositionHistory.
+     * The OWNERPOS row alone keeps only the newest stamp, so the
+     * unattended heartbeat check-ins from the hours the app sat closed
+     * were invisible the moment the next one landed — Rick asked how to
+     * see those points, and the answer is: keep them all. Nothing is
+     * thinned or decimated here; if the phone reported it, the history
+     * holds it (overnight Doze already thins the cadence on its own).
+     * Best-effort by construction: any failure is swallowed, because the
+     * latest-position write above has already decided this report's
+     * result and neither the heartbeat nor Find my phone may depend on
+     * the history landing.
+     */
+    private static void appendPositionHistory(PolicyStore.Session s, double lat, double lng,
+                                              double accuracyM, long fixMs, long nowMs) {
+        try {
+            Map<String, Object> payload = PositionPayload.historyBuild(
+                    s.businessId, s.userId, s.userName, lat, lng, accuracyM,
+                    fixMs, nowMs);
+            JSONObject row = new JSONObject();
+            row.put("business_id", s.businessId);
+            row.put("collection", PositionPayload.HISTORY_COLLECTION);
+            row.put("record_key", PositionPayload.historyRecordKey(s.userId, nowMs));
+            row.put("payload", toJson(payload));
+            row.put("record_status", "active");
+            String actor = !s.authUserId.isEmpty() ? s.authUserId : s.userId;
+            row.put("created_by", actor);
+            row.put("updated_by", actor);
+            http("POST",
+                    s.supabaseUrl + "/rest/v1/business_records?on_conflict=business_id,collection,record_key",
+                    s.publishableKey, s.accessToken,
+                    "resolution=merge-duplicates,return=minimal",
+                    row.toString());
+        } catch (Exception ignored) {
+            // The history is a window onto the check-ins, never the write
+            // path itself: a missed append loses one line of the trail,
+            // never the position, the heartbeat, or the trip queue.
         }
     }
 

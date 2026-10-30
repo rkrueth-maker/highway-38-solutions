@@ -64,6 +64,22 @@ public final class TripPayload {
         r.put("Start Lng", trip.startLng);
         r.put("End Lat", trip.endLat);
         r.put("End Lng", trip.endLng);
+        // The driven path (Rick, 2026-10-29: "we want to record the paths
+        // people drive in case they have detours"). Points are the
+        // detector's accepted fixes whose segments sum to 'Miles', so the
+        // recorded miles are the path's miles — detours included. Absent
+        // when no path was captured; endpoints + total are the fallback.
+        if (trip.path != null && trip.path.size() >= 2) {
+            java.util.List<Object> path = new java.util.ArrayList<>();
+            for (TripDetector.Fix p : trip.path) {
+                Map<String, Object> pt = new LinkedHashMap<>();
+                pt.put("Lat", p.lat);
+                pt.put("Lng", p.lng);
+                pt.put("Timestamp", iso(p.timeMs));
+                path.add(pt);
+            }
+            r.put("Path", path);
+        }
         r.put("Start Label", "");
         r.put("End Label", "");
         r.put("Suggested Classification", "");

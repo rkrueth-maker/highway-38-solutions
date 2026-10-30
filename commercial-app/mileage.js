@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261027-session-keep-1';
+var BUILD='20261030-checkin-history-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -811,6 +811,30 @@ function goodFix(position){
 }
 function medianSpeedOk(fix){return fix.speed==null||fix.speed>=3.2;}
 
+// The driven path for the trip record (Rick, 2026-10-29: "we want to
+// record the paths people drive in case they have detours"). Points are
+// the detector's accepted fixes whose segments were summed into Miles —
+// the recorded miles ARE the path's miles, so detours count in full.
+// Very long paths are thinned (mileage already accumulated from every
+// point) so the record stays sane. Returns '' when no path was captured;
+// endpoints + total miles are the record then (hand-started days with
+// no fixes).
+function pathForRecord(points){
+  if(!points||points.length<2)return '';
+  var pts=points.filter(function(p){return p&&Number.isFinite(num(p.lat))&&Number.isFinite(num(p.lng));});
+  while(pts.length>2000){
+    var thinned=[];
+    for(var i=0;i<pts.length;i+=2)thinned.push(pts[i]);
+    if(thinned[thinned.length-1]!==pts[pts.length-1])thinned.push(pts[pts.length-1]);
+    pts=thinned;
+  }
+  if(pts.length<2)return '';
+  return pts.map(function(p){
+    var atMs=typeof p.at==='number'?p.at:Date.parse(p.at);
+    return {'Lat':num(p.lat),'Lng':num(p.lng),'Timestamp':Number.isFinite(atMs)?new Date(atMs).toISOString():''};
+  });
+}
+
 async function closeTrip(trip,note){
   // Run the suggestion engine, then auto-file the sure ones and queue
   // the rest with their suggestion attached (Rick's classification rule).
@@ -826,6 +850,7 @@ async function closeTrip(trip,note){
     'Purpose':'',
     'Started At':trip.startedAt,'Ended At':trip.endedAt,
     'Miles':Math.round(num(trip.miles)*10)/10,
+    'Path':pathForRecord(trip.path),
     'Start Lat':trip.startLat||'','Start Lng':trip.startLng||'',
     'End Lat':trip.endLat||'','End Lng':trip.endLng||'',
     'Start Label':trip.startLabel||'','End Label':trip.endLabel||'',
@@ -861,7 +886,13 @@ function onFix(position){
     if(last){
       var segM=haversineM(last.lat,last.lng,fix.lat,fix.lng);
       var dt=(fix.at-last.at)/1000;
-      if(segM>=8&&dt>0&&(segM/dt)<=55)manual.trip.miles+=segM/MILE;
+      if(segM>=8&&dt>0&&(segM/dt)<=55){
+        manual.trip.miles+=segM/MILE;
+        if(!(fix.speed!=null&&fix.speed<0.6)){
+          if(!manual.trip.points)manual.trip.points=[];
+          manual.trip.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});
+        }
+      }
     }
     manual.trip.lastFix=fix;
     manualSave();
@@ -879,6 +910,7 @@ function onFix(position){
           startedAt:new Date(engine.anchor.at).toISOString(),
           startLat:engine.anchor.lat,startLng:engine.anchor.lng,
           miles:away/MILE,lastLat:fix.lat,lastLng:fix.lng,lastAt:now,
+          points:[{lat:engine.anchor.lat,lng:engine.anchor.lng,at:engine.anchor.at},{lat:fix.lat,lng:fix.lng,at:now}],
           source:'auto'
         };
         engine.stillSince=0;
@@ -891,7 +923,7 @@ function onFix(position){
     var t=engine.trip;
     var seg=haversineM(t.lastLat,t.lastLng,fix.lat,fix.lng);
     var dtS=(now-t.lastAt)/1000;
-    if(seg>=8&&dtS>0&&(seg/dtS)<=55){t.miles+=seg/MILE;t.lastLat=fix.lat;t.lastLng=fix.lng;t.lastAt=now;}
+    if(seg>=8&&dtS>0&&(seg/dtS)<=55){t.miles+=seg/MILE;t.lastLat=fix.lat;t.lastLng=fix.lng;t.lastAt=now;if(!(fix.speed!=null&&fix.speed<0.6)){if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:now});}}
     var stillRef={lat:t.lastLat,lng:t.lastLng};
     if(haversineM(stillRef.lat,stillRef.lng,fix.lat,fix.lng)<25&&(fix.speed==null||fix.speed<0.6)){
       if(!engine.stillSince)engine.stillSince=now;
@@ -901,7 +933,7 @@ function onFix(position){
         var finished={
           startedAt:t.startedAt,endedAt:endedAt,
           startLat:t.startLat,startLng:t.startLng,endLat:t.lastLat,endLng:t.lastLng,
-          miles:t.miles,source:'auto',
+          miles:t.miles,source:'auto',path:t.points||null,
           startLabel:endpointLabel(t.startLat,t.startLng),endLabel:endpointLabel(t.lastLat,t.lastLng)
         };
         engine.phase='idle';
@@ -966,7 +998,7 @@ function settleOnOpen(){
       var finished={
         startedAt:t.startedAt,endedAt:new Date(lastAt).toISOString(),
         startLat:t.startLat,startLng:t.startLng,endLat:t.lastLat,endLng:t.lastLng,
-        miles:t.miles,source:'auto',
+        miles:t.miles,source:'auto',path:t.points||null,
         startLabel:endpointLabel(t.startLat,t.startLng),endLabel:endpointLabel(t.lastLat,t.lastLng)
       };
       engine.phase='idle';engine.anchor={lat:t.lastLat,lng:t.lastLng,at:now};engine.trip=null;engine.stillSince=0;engineSave();
@@ -1028,6 +1060,7 @@ async function manualStart(){
   manual.trip={
     startedAt:nowIso(),miles:0,
     startLat:fix?fix.lat:'',startLng:fix?fix.lng:'',
+    points:fix?[{lat:fix.lat,lng:fix.lng,at:fix.at}]:[],
     lastFix:fix?{lat:fix.lat,lng:fix.lng,at:fix.at}:null
   };
   manualSave();syncWatch();scheduleDecorateSettled();
@@ -1039,13 +1072,13 @@ async function manualEnd(){
   var t=manual.trip;manual.trip=null;manualSave();
   if(fix&&t.lastFix){
     var seg=haversineM(t.lastFix.lat,t.lastFix.lng,fix.lat,fix.lng);
-    if(seg>=8)t.miles+=seg/MILE;
+    if(seg>=8){t.miles+=seg/MILE;if(!(fix.speed!=null&&fix.speed<0.6)){if(!t.points)t.points=[];t.points.push({lat:fix.lat,lng:fix.lng,at:fix.at});}}
   }
   var finished={
     startedAt:t.startedAt,endedAt:nowIso(),
     startLat:t.startLat,startLng:t.startLng,
     endLat:fix?fix.lat:t.startLat,endLng:fix?fix.lng:t.startLng,
-    miles:t.miles,source:'manual',
+    miles:t.miles,source:'manual',path:(t.points&&t.points.length>=2)?t.points:null,
     startLabel:t.startLat?endpointLabel(t.startLat,t.startLng):'',
     endLabel:fix?endpointLabel(fix.lat,fix.lng):(t.startLat?endpointLabel(t.startLat,t.startLng):'')
   };
@@ -1180,6 +1213,8 @@ function ensureStyle(){
     '.h38-mileage-tabs button{border:1px solid var(--line,#d6e0e8);background:#fff;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer}',
     '.h38-mileage-tabs button.active{background:var(--blue,#174a70);color:#fff;border-color:var(--blue,#174a70)}',
     '.h38-mileage-trip{border-top:1px solid var(--line,#d6e0e8);padding:12px 0}',
+    '.h38-mileage-path{display:flex;gap:10px;align-items:center;margin:8px 0}',
+    '.h38-mileage-path svg{background:var(--panel,#eef4f8);border:1px solid var(--line,#d6e0e8);border-radius:8px;flex:none}',
     '.h38-mileage-trip:first-of-type{border-top:0}',
     '.h38-mileage-trip-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}',
     '.h38-mileage-suggest{border:1px dashed #9db8cc;background:#f2f8fc;border-radius:10px;padding:10px 12px;margin-top:8px}',
@@ -1213,6 +1248,42 @@ function tripRouteLine(row){
   var start=text(val(row,'Start Label','startLabel'))||'Start';
   var end=text(val(row,'End Label','endLabel'))||'End';
   return start+' \u2192 '+end;
+}
+// The driven path, drawn on the trip record itself (Rick, 2026-10-29:
+// "we want to record the paths people drive in case they have
+// detours"). Inline SVG polyline over the stored Path points — no map
+// tiles, no external calls; green dot = start, red dot = end. Renders
+// nothing for pathless records (endpoints + total are their record).
+function tripPathHtml(row){
+  var path=val(row,'Path','path');
+  if(!path||typeof path==='string'||!path.length||path.length<2)return '';
+  var pts=[];
+  for(var i=0;i<path.length;i++){
+    var p=path[i]||{};
+    var la=num(p.Lat!=null?p.Lat:p.lat),ln=num(p.Lng!=null?p.Lng:p.lng);
+    if(Number.isFinite(la)&&Number.isFinite(ln))pts.push([la,ln]);
+  }
+  if(pts.length<2)return '';
+  var minLa=Infinity,maxLa=-Infinity,minLn=Infinity,maxLn=-Infinity;
+  pts.forEach(function(p){
+    if(p[0]<minLa)minLa=p[0]; if(p[0]>maxLa)maxLa=p[0];
+    if(p[1]<minLn)minLn=p[1]; if(p[1]>maxLn)maxLn=p[1];
+  });
+  var kx=Math.cos((minLa+maxLa)/2*Math.PI/180)||1;
+  var W=132,H=84,pad=9;
+  var spanX=(maxLn-minLn)*kx,spanY=maxLa-minLa;
+  var scale=Math.min(spanX>0?(W-2*pad)/spanX:Infinity,spanY>0?(H-2*pad)/spanY:Infinity);
+  if(!Number.isFinite(scale)||scale<=0)scale=1;
+  var proj=pts.map(function(p){
+    var x=pad+(p[1]-minLn)*kx*scale,y=H-pad-(p[0]-minLa)*scale;
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  var first=proj[0].split(','),last=proj[proj.length-1].split(',');
+  return '<div class="h38-mileage-path"><svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="Map of the driven path">'
+    +'<polyline points="'+proj.join(' ')+'" fill="none" stroke="#2f7cf6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+first[0]+'" cy="'+first[1]+'" r="3.5" fill="#1d9e75"/>'
+    +'<circle cx="'+last[0]+'" cy="'+last[1]+'" r="3.5" fill="#d64545"/>'
+    +'</svg><small>Driven path recorded \u2014 '+pts.length+' points. Miles are counted along the drive, so detours are included.</small></div>';
 }
 function jobOptions(selectedId){
   var jobs=records('jobs').slice(0,200);
@@ -1264,6 +1335,7 @@ function tripRowHtml(row,mode){
     '<div class="h38-mileage-trip-top"><div><strong>'+esc(fmtDay(val(row,'Started At','startedAt')))+' · '+esc(fmtTime(val(row,'Started At','startedAt')))+'–'+esc(fmtTime(val(row,'Ended At','endedAt')))+'</strong><br>'+
     '<small>'+esc(tripRouteLine(row))+' · '+esc(fmtMiles(val(row,'Miles','miles')))+' mi'+(text(val(row,'Source','source'))==='manual'?' · added by hand':'')+'</small></div>'+
     '<div>'+(mode==='review'?'':badge)+'</div></div>';
+  html+=tripPathHtml(row);
   if(mode==='auto'||mode==='log'){
     if(job)html+='<small>Job: '+esc(jobLabel(job))+'</small>';
     if(text(val(row,'Purpose','purpose')))html+='<br><small>'+esc(text(val(row,'Purpose','purpose')))+'</small>';
@@ -1370,7 +1442,7 @@ function sectionHtml(){
       return '<button type="button" data-h38-mileage-tab="'+tab[0]+'" class="'+(ui.tab===tab[0]?'active':'')+'">'+esc(tab[1])+'</button>';
     }).join('')+
     (isOwnerAdmin()?'<button type="button" data-h38-mileage-team class="'+(ui.teamView?'active':'')+'">Team business trips</button>':'')+
-    '</div>'+body+findMyPhoneHtml();
+    '</div>'+body+findMyPhoneHtml()+checkInHistoryHtml();
 }
 function teamTripsHtml(){
   var rows=allTrips().filter(function(row){
@@ -1545,6 +1617,7 @@ async function saveRate(rate){
 // trip when no position report exists yet. Employee phones are never
 // reported by this path and never shown here.
 var POSITION_COLLECTION='crewPositions';
+var HISTORY_COLLECTION='crewPositionHistory';
 var ownerPosReport={at:0,lat:0,lng:0};
 function reportOwnerPosition(fix){
   if(!fix||!isOwnerAdmin()||!enabled()||!recordingOn()||offDuty())return;
@@ -1714,6 +1787,64 @@ function findMyPhoneHtml(){
     (rowsHtml||'<p class="h38-mileage-note">No owner phones yet.</p>')+'</div>';
 }
 
+// ---------- check-in history (owners only) ----------
+// Find my phone above shows only the NEWEST stamp per phone: the
+// OWNERPOS row is overwritten by every check-in, so the unattended
+// heartbeats from the hours the app sat closed left no visible trail
+// (Rick, 2026-10-30: "how do we see all the other points"). The native
+// runner now appends every check-in to crewPositionHistory
+// (SyncEngine.appendPositionHistory); this list merges those appends
+// with the web app-open stamps into one trail per owner phone, newest
+// first. Render is capped at the latest 25 per phone so the list stays
+// a list; the store itself keeps everything the phones report.
+var CHECKIN_RENDER_CAP=25;
+function checkInEntries(ownerId){
+  var entries=[];
+  records(HISTORY_COLLECTION).forEach(function(row){
+    if(text(val(row,'User ID','userId'))!==ownerId)return;
+    var lat=num(val(row,'Lat','lat')),lng=num(val(row,'Lng','lng'));
+    var stamp=text(val(row,'Timestamp','timestamp'));
+    if(!lat||!lng||!stamp)return;
+    entries.push({lat:lat,lng:lng,stamp:stamp,source:'Phone check-in'});
+  });
+  records(POINT_COLLECTION).forEach(function(row){
+    if(text(val(row,'User ID','userId'))!==ownerId)return;
+    if(text(val(row,'Stamp Type','stampType'))!=='app-open')return;
+    if(text(val(row,'Location Status'))&&text(val(row,'Location Status'))!=='gps')return;
+    var lat=num(val(row,'Lat','lat')),lng=num(val(row,'Lng','lng'));
+    var stamp=text(val(row,'Timestamp','timestamp'));
+    if(!lat||!lng||!stamp)return;
+    entries.push({lat:lat,lng:lng,stamp:stamp,source:'App opened'});
+  });
+  entries.sort(function(a,b){return a.stamp<b.stamp?1:(a.stamp>b.stamp?-1:0);});
+  return entries.slice(0,CHECKIN_RENDER_CAP);
+}
+function checkInHistoryHtml(){
+  if(!isOwnerAdmin())return '';
+  var owners=ownerUsers();
+  var ids=Object.keys(owners);
+  if(!ids.length)return '';
+  ids.sort(function(a,b){return owners[a].name.localeCompare(owners[b].name);});
+  var blocks=ids.map(function(id){
+    var entries=checkInEntries(id);
+    var head='<h4 style="margin:10px 0 4px">'+esc(owners[id].name)+'</h4>';
+    if(!entries.length){
+      return head+'<p class="h38-mileage-note">No check-ins recorded yet — they appear here as this phone reports in.</p>';
+    }
+    var items=entries.map(function(e){
+      var whenText=fmtDay(e.stamp)+' · '+fmtTime(e.stamp);
+      var link='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.lat+','+e.lng);
+      return '<div class="h38-mileage-trip"><div class="h38-mileage-trip-top"><div><strong>'+esc(whenText)+'</strong><br>'+
+        '<small>'+esc(e.lat.toFixed(5)+', '+e.lng.toFixed(5))+' · '+esc(e.source)+'</small></div>'+
+        '<a href="'+link+'" target="_blank" rel="noopener">See on map</a></div></div>';
+    }).join('');
+    return head+items;
+  }).join('');
+  return '<div style="margin-top:18px"><h3 style="margin:0 0 4px">Check-in history</h3>'+
+    '<p class="h38-mileage-note">Every check-in an owner phone reports — newest first, latest '+CHECKIN_RENDER_CAP+' per phone. Find my phone above shows the newest one; this is the whole trail, including the hours the app sat closed.</p>'+
+    blocks+'</div>';
+}
+
 // ---------- native app bridge (H38 Office Android app) ----------
 // When the Office runs inside the native app, window.AndroidH38Office is
 // present. The native layer detects drives in the background and delivers
@@ -1744,6 +1875,15 @@ var nativePushAt=0;
 // immediately instead of waiting for the next decorate. (The remaining
 // window — web dead while native rotates — needs the native bridge to
 // expose its stored session back to the web layer; see report.)
+// 1.0.6 (2026-10-29, build 20261029-position-heal-1): the push is now
+// also driven from the auth layer itself (supabase-auth.js binds
+// queueNativeSessionHeal to the session lifecycle) and from the native
+// shell's heal trigger, and pushNativePolicy is exported on H38Mileage
+// for both. Root case: Oct 27–29, Rick's native pair was the revoked
+// chain's corpse — every background write failed silently for two days
+// because the only heal (this module's push) depends on this module
+// loading and staying alive, while Amanda's phone healed itself through
+// her Start/Stop Day use of these very screens.
 var nativeSessionSyncBound=false;
 function bindNativeSessionSync(){
   if(nativeSessionSyncBound)return;
@@ -1843,7 +1983,8 @@ function nativeStatusHtml(){
   var st=nativeStatus();
   if(!st)return '';
   var line='';
-  if(st.gate==='RECORDING')line='Background tracking is on (H38 Office app) — drives are recorded even with the app closed.';
+  if(st.sessionAuthDead)line='The H38 Office app is installed, but its background sign-in expired, so it can\u2019t send locations right now. It re-arms itself from your sign-in — leave the Office open a moment; if this note stays, sign out and back in once.';
+  else if(st.gate==='RECORDING')line='Background tracking is on (H38 Office app) — drives are recorded even with the app closed.';
   else if(st.gate==='WAITING_CLOCKIN')line='Background tracking is on (H38 Office app) — it records while you\u2019re clocked in.';
   else if(st.gate==='PAUSED_STALE')line='The H38 Office app is installed, but background tracking is paused — it checks in when you open the app.';
   else if(!st.backgroundLocation)line='The H38 Office app is installed, but location is not set to \u201cAllow all the time\u201d — background tracking can\u2019t run yet.';
@@ -2072,6 +2213,7 @@ w.H38Mileage=Object.freeze({
   myTrips:myTrips,
   myPlaces:myPlaces,
   decorate:decorate,
+  pushNativePolicy:pushNativePolicy,
   collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION,days:DAY_COLLECTION,points:POINT_COLLECTION},
   foregroundOnly:!nativeBridge(),
   nativeStatus:nativeStatus,

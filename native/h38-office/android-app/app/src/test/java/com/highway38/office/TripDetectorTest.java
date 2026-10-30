@@ -171,4 +171,93 @@ public class TripDetectorTest {
         }
         assertEquals(0, c.trips.size());
     }
+
+    /** Sum of consecutive haversine segments over a stored path, in miles. */
+    private static double pathMiles(List<TripDetector.Fix> path) {
+        double m = 0;
+        for (int i = 1; i < path.size(); i++) {
+            TripDetector.Fix a = path.get(i - 1), b = path.get(i);
+            m += GeoMath.haversineM(a.lat, a.lng, b.lat, b.lng);
+        }
+        return m / GeoMath.METERS_PER_MILE;
+    }
+
+    @Test
+    public void detourPathIsRecordedAndMilesComeFromThePath() {
+        Collector c = new Collector();
+        TripDetector d = new TripDetector(c);
+        long t = park(d, HOME_LAT, HOME_LNG, T0, 60_000, 10_000);
+        double[] mid = drive(d, HOME_LAT, HOME_LNG, 90, 1609, 13.4, t, 5_000);      // 1.00 mi east
+        double[] end = drive(d, mid[0], mid[1], 0, 1609, 13.4, (long) mid[2], 5_000); // 1.00 mi north (the detour)
+        park(d, end[0], end[1], (long) end[2], 240_000, 10_000);
+        assertEquals(1, c.trips.size());
+        TripDetector.CompletedTrip trip = c.trips.get(0);
+        // The driven path is stored: starts at home, ends at the destination,
+        // and carries the drive's fixes, not just the endpoints.
+        assertTrue("path size=" + trip.path.size(), trip.path.size() > 30);
+        TripDetector.Fix first = trip.path.get(0);
+        TripDetector.Fix last = trip.path.get(trip.path.size() - 1);
+        assertTrue(GeoMath.haversineM(first.lat, first.lng, HOME_LAT, HOME_LNG) < 60);
+        assertTrue(GeoMath.haversineM(last.lat, last.lng, end[0], end[1]) < 120);
+        // Miles are the path's miles: the L-shaped drive is ~2.0 mi while the
+        // straight line home->end is only ~1.41 mi. The detour counts.
+        double straight = GeoMath.haversineM(HOME_LAT, HOME_LNG, end[0], end[1]) / GeoMath.METERS_PER_MILE;
+        assertTrue("miles=" + trip.miles + " straight=" + straight,
+                trip.miles > straight * 1.25);
+        assertEquals(trip.miles, pathMiles(trip.path), 0.03);
+    }
+
+    @Test
+    public void pathStopsWhereMovementStops() {
+        Collector c = new Collector();
+        TripDetector d = new TripDetector(c);
+        long t = park(d, HOME_LAT, HOME_LNG, T0, 60_000, 10_000);
+        double[] end = drive(d, HOME_LAT, HOME_LNG, 90, 2414, 13.4, t, 5_000); // 1.50 mi east
+        // Arrive, then 4 minutes of parked GPS jitter (8-12 m wander,
+        // inside the detector's 25 m still radius).
+        long tt = (long) end[2];
+        for (int i = 0; i < 24; i++) {
+            double[] p = GeoMath.destination(end[0], end[1], (i * 53) % 360, 8 + (i % 3) * 2);
+            tt += 10_000;
+            d.onFix(fix(p[0], p[1], 10, 0.0, tt));
+        }
+        assertEquals(1, c.trips.size());
+        TripDetector.CompletedTrip trip = c.trips.get(0);
+        // The parked jitter is not in the path: it ends at the arrival point,
+        // and the path still sums to the recorded miles.
+        TripDetector.Fix last = trip.path.get(trip.path.size() - 1);
+        assertTrue("last path point drifted " + GeoMath.haversineM(last.lat, last.lng, end[0], end[1]) + " m",
+                GeoMath.haversineM(last.lat, last.lng, end[0], end[1]) < 40);
+        assertEquals(trip.miles, pathMiles(trip.path), 0.03);
+        assertTrue("miles=" + trip.miles, trip.miles > 1.35 && trip.miles < 1.65);
+    }
+
+    @Test
+    public void midDriveStopAddsNoPathPoints() {
+        Collector c = new Collector();
+        TripDetector d = new TripDetector(c);
+        long t = park(d, HOME_LAT, HOME_LNG, T0, 60_000, 10_000);
+        double[] mid = drive(d, HOME_LAT, HOME_LNG, 90, 1609, 13.4, t, 5_000);   // 1.00 mi east
+        // A 60 s mid-drive stop (under the 150 s close): GPS wander at speed 0.
+        long tt = (long) mid[2];
+        for (int i = 0; i < 6; i++) {
+            double[] p = GeoMath.destination(mid[0], mid[1], (i * 71) % 360, 9 + (i % 3) * 2);
+            tt += 10_000;
+            d.onFix(fix(p[0], p[1], 10, 0.0, tt));
+        }
+        double[] end = drive(d, mid[0], mid[1], 90, 1609, 13.4, tt, 5_000);       // 1.00 mi more
+        park(d, end[0], end[1], (long) end[2], 240_000, 10_000);
+        assertEquals(1, c.trips.size());
+        TripDetector.CompletedTrip trip = c.trips.get(0);
+        // Rick's rule: path points only while moving. The stop's wander
+        // fixes (9-13 m from the stop point) are not in the path: at most
+        // the arrival and departure points sit near the stop point.
+        int nearStop = 0;
+        for (TripDetector.Fix p : trip.path) {
+            if (GeoMath.haversineM(p.lat, p.lng, mid[0], mid[1]) <= 20) nearStop++;
+        }
+        assertTrue("points near the mid-drive stop=" + nearStop + " of " + trip.path.size(),
+                nearStop <= 3);
+        assertTrue("miles=" + trip.miles, trip.miles > 1.8 && trip.miles < 2.3);
+    }
 }

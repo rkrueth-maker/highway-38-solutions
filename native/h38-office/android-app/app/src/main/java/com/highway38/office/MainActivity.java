@@ -70,6 +70,7 @@ public final class MainActivity extends Activity {
     private LinearLayout wizardBox;
     private LinearLayout signInBar;
     private int wizardStep = -1; // -1 = wizard hidden
+    private int sessionHealAttempts = 0; // 1.0.6 native session heal retries
     private ValueCallback<Uri[]> fileChooser;
 
     // -------------------------------------------------------------- lifecycle
@@ -192,6 +193,42 @@ public final class MainActivity extends Activity {
         if (webView != null) webView.onResume();
         refreshWizardIfVisible();
         if (PolicyStore.setupComplete(this)) TrackingController.reevaluate(this);
+        requestNativeSessionHeal();
+    }
+
+    /**
+     * 1.0.6 session self-heal. When the native background session is
+     * missing or was marked auth-dead (its refresh chain was revoked
+     * server-side — the Oct 27–29 silent outage), ask the web layer to
+     * re-push its live session into the native store. The push lives in
+     * the mileage module (H38Mileage.pushNativePolicy), which can load
+     * after this page, so retry a few times and then stop; the auth
+     * layer's own lifecycle binding also pushes on every sign-in and
+     * token refresh. No-op when the native session is present and
+     * healthy, and the retries stop the moment a push lands.
+     */
+    private void requestNativeSessionHeal() {
+        if (webView == null) return;
+        PolicyStore.Session s = PolicyStore.loadSession(this);
+        if (s.present() && PolicyStore.sessionAuthDeadAt(this) == 0) return;
+        sessionHealAttempts = 0;
+        postSessionHealAttempt();
+    }
+
+    private void postSessionHealAttempt() {
+        if (webView == null) return;
+        long delay = sessionHealAttempts == 0 ? 1500L
+                : sessionHealAttempts == 1 ? 4000L : 10000L;
+        webView.postDelayed(() -> {
+            if (webView == null) return;
+            PolicyStore.Session s = PolicyStore.loadSession(MainActivity.this);
+            if (s.present() && PolicyStore.sessionAuthDeadAt(MainActivity.this) == 0) return;
+            webView.evaluateJavascript(
+                    "try{var m=window.H38Mileage;if(m&&m.pushNativePolicy)m.pushNativePolicy(true);}catch(e){}",
+                    null);
+            sessionHealAttempts++;
+            if (sessionHealAttempts < 3) postSessionHealAttempt();
+        }, delay);
     }
 
     @Override protected void onPause() {
@@ -236,6 +273,10 @@ public final class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 return routeUrl(url);
+            }
+
+            @Override public void onPageFinished(WebView view, String url) {
+                requestNativeSessionHeal();
             }
         });
 

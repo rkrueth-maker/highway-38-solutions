@@ -69,6 +69,8 @@ public final class PolicyStore {
                     .putString("business_id", s.businessId)
                     .putString("business_key", s.businessKey)
                     .apply();
+            // A saved pair is a live pair: heal the 1.0.6 auth-dead mark.
+            state(ctx).edit().remove("session_auth_dead_at").apply();
         } catch (Exception ignored) {
             // If the encrypted store is unavailable the session simply is not
             // persisted; the web app will push it again on next open.
@@ -91,6 +93,34 @@ public final class PolicyStore {
             s.businessKey = p.getString("business_key", "");
         } catch (Exception ignored) {}
         return s;
+    }
+
+    /**
+     * 1.0.6: the auth server has definitively rejected the stored refresh
+     * token (see SessionAuth). Drop ONLY the tokens and stamp when it
+     * happened (a timestamp in plain state — not a secret). URL, publishable
+     * key and identity stay, so the policy snapshot, queued trips and the
+     * wizard state keep their owner and the next web session push re-seeds
+     * a live pair into the same store. Until then loadSession().present()
+     * is false: the bridge stops offering the dead pair for web adoption
+     * and BootReceiver stops re-arming a writer that cannot write.
+     */
+    public static void clearSessionTokens(Context ctx) {
+        try {
+            sessionPrefs(ctx).edit()
+                    .putString("access", "")
+                    .putString("refresh", "")
+                    .putLong("expires", 0)
+                    .apply();
+        } catch (Exception ignored) {}
+        state(ctx).edit()
+                .putLong("session_auth_dead_at", System.currentTimeMillis())
+                .apply();
+    }
+
+    /** When the stored session was found auth-dead (0 = never / healed). */
+    public static long sessionAuthDeadAt(Context ctx) {
+        return state(ctx).getLong("session_auth_dead_at", 0);
     }
 
     public static void clearSession(Context ctx) {
