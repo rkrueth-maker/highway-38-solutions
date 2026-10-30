@@ -80,7 +80,7 @@ function safeReceptionistProfile(value: unknown): JsonObject {
   const source = raw && typeof raw === "object" ? raw as JsonObject : {};
   const output: JsonObject = {};
   const limits: Record<string, number> = {
-    businessName: 180, greeting: 500, businessHours: 300, serviceArea: 1000, services: 1600,
+    businessName: 180, greeting: 500, businessHours: 300, businessHoursStructured: 1200, serviceArea: 1000, services: 1600,
     faqs: 2400, routing: 1000, afterHours: 1000, allowedActions: 1000, voice: 300,
     customerName: 180, authorizedBillingContext: 1200, h38ServicePolicy: 700, speechVoice: 16,
   };
@@ -88,6 +88,11 @@ function safeReceptionistProfile(value: unknown): JsonObject {
     if (source[key] !== undefined && source[key] !== null) output[key] = clean(source[key], max).replace(/[\u0000-\u001f]/g, " ").trim();
   }
   if (typeof source.existingAccountSelected === "boolean") output.existingAccountSelected = source.existingAccountSelected;
+  // Deterministic open/closed flags computed client-side from the single
+  // structured business-hours source (Fix Round 2 F) — booleans only, so a
+  // caller can never smuggle prompt text through them.
+  if (typeof source.isOpenNow === "boolean") output.isOpenNow = source.isOpenNow;
+  if (typeof source.isAfterHours === "boolean") output.isAfterHours = source.isAfterHours;
   return output;
 }
 function safeContext(value: unknown): JsonObject {
@@ -195,6 +200,7 @@ async function askMuseSpark(svc:any,businessId:string,question: string, context:
       "Collect caller name, callback number, service address, work requested and preferred next step when relevant. Ask one clear follow-up question at a time.",
       "Do not invent pricing, availability, policy, service coverage or billing facts. For billing, state only the provided authorized Office context and direct the caller to staff for disputes, adjustments or payment.",
       "Never promise a refund, cancellation, discount or price change. Mark urgent or emergency language for staff follow-up; do not represent emergency services. You may offer that staff can save an internal follow-up, but never claim one was created.",
+      "receptionistProfile.isOpenNow and receptionistProfile.isAfterHours are computed deterministically from the business's structured hours in its own timezone — trust them over guessing the time. When isAfterHours is true, follow receptionistProfile.afterHours guidance: take a message, set expectations for a response during business hours, and do not imply the office is open. When isOpenNow is true, speak as during business hours. If both flags are absent, use receptionistProfile.businessHours text only.",
       "If the supplied profile is blank or unclear, say so and offer to take a message for office review.",
     ] : []),
   ].join("\n");
