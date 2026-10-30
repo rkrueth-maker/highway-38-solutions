@@ -67,6 +67,7 @@
       './supabase-client-quote-branding.js?build=20260806-0344',
       './supabase-quote-ai.js?build=20261030-two-layer-1',
       './supabase-quote-ai-auth-fix.js?build=20260814-quote-ai-auth-measurement-split-2',
+      './estimator-shell.js?build=20261030-r2-estimator-shell-1',
       './quote-mobile-stabilization.js?build=20261030-two-layer-6',
       './quote-ai-live-fix.js?build=20261030-two-layer-1',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
