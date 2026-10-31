@@ -64,12 +64,12 @@
     ];
     const PAGE_QUOTES = [
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
-      './supabase-client-quote-branding.js?build=20260806-0344',
+      './supabase-client-quote-branding.js?build=20261031-wave1a-1',
       './quote-ai-draft-persistence.js?build=20261031-kitquote-4',
       './supabase-quote-ai.js?build=20261030-two-layer-1',
       './supabase-quote-ai-auth-fix.js?build=20261031-kitquote-4',
-      './estimator-shell.js?build=20261031-kitquote-4',
-      './quote-mobile-stabilization.js?build=20261030-two-layer-8',
+      './estimator-shell.js?build=20261031-wave1a-1',
+      './quote-mobile-stabilization.js?build=20261031-wave1a-1',
       './quote-ai-live-fix.js?build=20261030-two-layer-1',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
       './quote-total-lock.js?build=20261020-gbb-ws1-1',
@@ -77,7 +77,7 @@
       './quote-render-approval.js?build=20260821-render-saved-action-picture-2-phone',
       './quote-final-acceptance-fix.js?build=20260807-1230',
       './quote-photo-restore.js?build=20260816-explicit-quote-photo-selection-2',
-      './supabase-quote-delivery.js?build=20261020-gbb-ws1-1',
+      './supabase-quote-delivery.js?build=20261031-wave1a-1',
       './quote-pdf-send-live-fix.js?build=20261030-two-layer-1',
       './quote-delivery-final-fix.js?build=20261020-gbb-ws1-1',
       './quote-print-safe.js?build=20261030-two-layer-1',
@@ -97,7 +97,7 @@
       './customer-360-authority.js?build=20261013-complete-scan-fixes-1',
       './customer-360-browser-integration-v3.js?build=20261013-search-nomatch-1',
       './accounting-engine.js?build=20261020-payroll-engine-1',
-      './customer-profile-money.js?build=20261030-r2-customer-profile-money-1',
+      './customer-profile-money.js?build=20261031-wave1a-1',
       // CI triage fix (2026-10-13, class-b): site-visit-top-action.js is the
       // Customers-page top action bar ("Start Site Visit" / "Add Customer");
       // grouping it only under field/measure lost that bar on a
@@ -109,7 +109,7 @@
       './conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1',
     ];
     const PAGE_TASKS = [
-      './tasks-page.js?build=20261031-kitquote-4',
+      './tasks-page.js?build=20261031-wave1a-1',
     ];
     // Work (2026-10-26): the Work page's Mark Complete buttons and status
     // select route through H38CustomerComms.markJobComplete (review prompt
@@ -179,7 +179,7 @@
       // that module otherwise loads only with the Customers group, so
       // a Money-first session had no canonical money math available.
       // Same ?build= URL as PAGE_CUSTOMERS so the loader dedupes it.
-      './customer-profile-money.js?build=20261030-r2-customer-profile-money-1',
+      './customer-profile-money.js?build=20261031-wave1a-1',
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',

@@ -557,7 +557,7 @@
     var quoteId = typeof window.newId === 'function' ? window.newId('QUOTE') : 'QUOTE-' + Date.now();
     var title = shell.projectTitle || 'Untitled project';
     var nowIso = new Date().toISOString();
-    var record = { 'Quote ID': quoteId, 'Business ID': state.businessId, 'Customer ID': shell.customerId, 'Quote Number': 'LOCAL-' + Date.now(), 'Project Title': title, 'Scope': scopeText, 'Measurement Notes': '', 'Status': 'Draft', 'Revision': 1, 'Previous Revision': '', 'Tier Mode': 'Single', 'Subtotal': 0, 'Tax': 0, 'Total': 0, 'Created Time': nowIso, 'Updated Time': nowIso, 'Record Version': 1, lines: [], tiers: null, 'Cost Calculator': null };
+    var record = { 'Quote ID': quoteId, 'Business ID': state.businessId, 'Customer ID': shell.customerId, 'Quote Number': (window.H38_HUMAN_NUMBERS ? window.H38_HUMAN_NUMBERS.nextQuoteNumber() : 'Q-' + new Date().getFullYear() + '-' + Date.now()), 'Project Title': title, 'Scope': scopeText, 'Measurement Notes': '', 'Status': 'Draft', 'Revision': 1, 'Previous Revision': '', 'Tier Mode': 'Single', 'Subtotal': 0, 'Tax': 0, 'Total': 0, 'Created Time': nowIso, 'Updated Time': nowIso, 'Record Version': 1, lines: [], tiers: null, 'Cost Calculator': null };
     await window.queueOperation('SAVE_QUOTE', 'Quote', quoteId, { quoteId: quoteId, customerId: shell.customerId, projectTitle: title, scope: scopeText, measurementNotes: '', lines: [], tiers: null, costCalculator: null, tierMode: false, tax: 0 }, { collection: 'quotes', record: record, idKeys: ['Quote ID'] });
     if (typeof window.sync === 'function') await window.sync(false);
     state.quote = state.quote || { lines: [], tierMode: false, tiers: null, hydrationComplete: true };
