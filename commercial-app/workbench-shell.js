@@ -1,4 +1,4 @@
-/* H38 Workbench shell — build 20261031-workbench-1
+/* H38 Workbench shell — build 20261031-workbench-3
  *
  * Direction B ("The Workbench") laptop layer, slice 1: shell + palette.
  *
@@ -41,7 +41,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261031-workbench-1';
+  var BUILD = '20261031-workbench-3';
   var RAIL_ID = 'h38WorkbenchRail';
   var PALETTE_ID = 'h38WorkbenchPalette';
   var TOPBTN_ID = 'h38WorkbenchPaletteButton';
@@ -222,16 +222,33 @@
     }
     return out;
   }
+  /* The Customer 360 module lazy-loads with the Customers page; retry
+   * briefly until it exists, then apply the selection through its own
+   * API (selectedCustomerId + renderNow — the same path its own search
+   * UI uses). Bounded: gives up quietly after ~2.5s. */
+  function selectCustomerWhenReady(cid, attempt) {
+    var api = null;
+    try { api = window.H38_CUSTOMER_360; } catch (e) {}
+    if (api && typeof api.renderNow === 'function') {
+      try { api.selectedCustomerId = cid; api.selectedTab = 'overview'; api.renderNow(window); } catch (e) {}
+      return true;
+    }
+    if (attempt < 6) setTimeout(function () { selectCustomerWhenReady(cid, attempt + 1); }, 400);
+    return false;
+  }
   function stageQuoteFor(cid) {
     goPage('customers');
-    setTimeout(function () {
-      try {
-        var api = window.H38_CUSTOMER_360;
-        if (api) { api.selectedCustomerId = cid; api.selectedTab = 'overview'; if (typeof api.renderNow === 'function') api.renderNow(window); }
-        var b = document.querySelector('[data-c360-action="quote"]');
-        if (b) b.click();
-      } catch (e) {}
-    }, 400);
+    var tries = 0;
+    (function attempt() {
+      if (selectCustomerWhenReady(cid, 99)) {
+        setTimeout(function () {
+          var b = document.querySelector('[data-c360-action="quote"]');
+          if (b) b.click();
+        }, 250);
+        return;
+      }
+      if (++tries < 6) setTimeout(attempt, 400);
+    })();
   }
   function stageInvoiceFor(cid) {
     goPage('money');
@@ -270,15 +287,33 @@
       }
     });
     if (q) {
+      /* Customer search: the canonical H38_CUSTOMER_360.searchCustomers
+       * when that (lazy-loaded) module has loaded; otherwise a local
+       * name/city/address match over the same snapshot rows, so a
+       * customer is findable before the Customers page was ever opened.
+       * Selection likewise retries briefly for the lazy module. */
+      var custHits = [], custSeen = {};
       try {
         var api = window.H38_CUSTOMER_360, snap = st() && st().snapshot;
         if (api && snap && typeof api.searchCustomers === 'function') {
           api.searchCustomers(snap, q).slice(0, 5).forEach(function (hit) {
-            var c = hit.bundle && hit.bundle.customer, name = text(value(c, 'Customer Name', 'name')) || 'Customer';
-            out.push({ kind: 'customer', icon: '👤', title: name, hint: 'Customer' + (hit.reason ? ' · ' + hit.reason : ''), run: function () { goPage('customers'); setTimeout(function () { try { var a = window.H38_CUSTOMER_360; if (a) { a.selectedCustomerId = hit.customerId; a.selectedTab = 'overview'; if (typeof a.renderNow === 'function') a.renderNow(window); } } catch (e) {} }, 350); } });
+            var c = hit.bundle && hit.bundle.customer;
+            custSeen[hit.customerId] = 1;
+            custHits.push({ id: hit.customerId, name: text(value(c, 'Customer Name', 'name')) || 'Customer', reason: hit.reason || '' });
           });
         }
       } catch (e) {}
+      rows('customers').forEach(function (c) {
+        if (custHits.length >= 5) return;
+        var cid = text(value(c, 'Customer ID', 'customerId', 'id'));
+        if (!cid || custSeen[cid]) return;
+        var name = text(value(c, 'Customer Name', 'name'));
+        var hay = (name + ' ' + text(value(c, 'City', 'city')) + ' ' + text(value(c, 'Service Address', 'Address'))).toLowerCase();
+        if (name && hay.indexOf(lower) >= 0) { custSeen[cid] = 1; custHits.push({ id: cid, name: name, reason: text(value(c, 'City', 'city')) }); }
+      });
+      custHits.forEach(function (hit) {
+        out.push({ kind: 'customer', icon: '👤', title: hit.name, hint: 'Customer' + (hit.reason ? ' · ' + hit.reason : ''), run: function () { goPage('customers'); selectCustomerWhenReady(hit.id, 0); } });
+      });
       rows('jobs').forEach(function (j) {
         var title = text(value(j, 'Project Title', 'Title')), num = text(value(j, 'Job Number')), cust = customerName(value(j, 'Customer ID', 'customerId'));
         if ((title + ' ' + num + ' ' + cust).toLowerCase().indexOf(lower) < 0) return;
