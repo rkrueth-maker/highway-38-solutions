@@ -124,8 +124,8 @@
       './business-hours.js?build=20261030-r2-business-hours-1',
       './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
-      './route-planner.js?build=20261026-day-fix-3',
-      './portal-requests.js?build=20261030-swivl-round2-1',
+      './route-planner.js?build=20261031-wave1b-1',
+      './portal-requests.js?build=20261031-wave1b-1',
     ];
     const PAGE_MESSAGES = [
       './business-hours.js?build=20261030-r2-business-hours-1',
@@ -137,7 +137,7 @@
     ];
     const PAGE_FLEET = [
       './route-manager.js?build=20261026-map-tiles-1',
-      './route-planner.js?build=20261026-day-fix-3',
+      './route-planner.js?build=20261031-wave1b-1',
       './northern-bouncie-fleet.js?build=20261026-bouncie-plumb-1',
       './fleet-providers.js?build=20261026-fleet-providers-6',
       './gps-dispatch.js?build=20261030-r2-map-1',

@@ -639,9 +639,20 @@
     var strip = main.querySelector('.h38-today-stats');
     var statsHtml = '';
     if (strip) {
+      /* A5 (honest scan 2026-10-31): the strip's own markup is
+       * <strong>value</strong><span>label</span> with no whitespace
+       * between them, so a flat textContent read runs value and label
+       * together ("$22,400.25Open invoices"). Read value and label
+       * structurally and re-render them as separate elements. */
       var kids = Array.prototype.slice.call(strip.children || []);
-      var parts = kids.length >= 2 ? kids.map(function (k) { return k.textContent.replace(/\s+/g, ' ').trim(); }).filter(Boolean) : [strip.textContent.replace(/\s+/g, ' ').trim()];
-      statsHtml = '<div class="h38-wb-today-stats">' + parts.map(function (part) { return '<div>' + esc(part) + '</div>'; }).join('') + '</div>';
+      var parts = kids.length ? kids.map(function (k) {
+        var val = k.querySelector('strong'), lab = k.querySelector('span');
+        if (val && lab) return { value: text(val.textContent), label: text(lab.textContent) };
+        return { value: '', label: k.textContent.replace(/\s+/g, ' ').trim() };
+      }).filter(function (p) { return p.value || p.label; }) : [{ value: '', label: strip.textContent.replace(/\s+/g, ' ').trim() }];
+      statsHtml = '<div class="h38-wb-today-stats">' + parts.map(function (p) {
+        return '<div>' + (p.value ? '<strong>' + esc(p.value) + '</strong>' : '') + '<span>' + esc(p.label) + '</span></div>';
+      }).join('') + '</div>';
     }
     rail.innerHTML = '<h3>Today\'s schedule</h3>' +
       (todays.length ? '<div class="h38-wb-tl">' + todays.map(function (e) {

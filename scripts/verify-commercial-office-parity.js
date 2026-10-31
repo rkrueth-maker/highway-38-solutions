@@ -22,14 +22,14 @@ const sync=read('apps-script/commercial-office-beta/CommercialBeta_CompletionSyn
 const jsSyntax=cp.spawnSync(process.execPath,['--check',path.join(root,'commercial-app/app-19.js')],{encoding:'utf8'});
 check(jsSyntax.status===0,`app-19 syntax failed: ${(jsSyntax.stderr||jsSyntax.stdout||'').trim()}`);
 try{new Function(parity);check(true,'');}catch(error){check(false,`Parity Apps Script syntax failed: ${error.message}`);}
-check(index.includes('id="networkBadge"')&&index.includes('id="gatewayBadge"')&&index.includes('id="syncBadge"'),'Internet, secure sync and unsynced-work indicators must be separate.');
+check(index.includes('id="syncBadge"')&&!index.includes('id="networkBadge"')&&!index.includes('id="gatewayBadge"'),'Status must be ONE consolidated indicator (#syncBadge); the separate Internet / Secure sync pills were removed (honest scan A12, 2026-10-31).');
 const assetBuild=(index.match(/window\.H38_ASSET_BUILD='([^']+)'/)||[])[1]||'';
 const parityBuild=(index.match(/app-19\.js\?build=(\d{8}-\d{4})/)||[])[1]||'';
 check(/^\d{8}-\d{4}$/.test(assetBuild)&&/^\d{8}-\d{4}$/.test(parityBuild)&&index.indexOf('app-19.js?build=')<index.indexOf('flow-tightening.js?build='),'Parity runtime must use its own pinned browser build before the current shell release layer.');
 for(const page of ['people','accounting','payroll','tax','controls','reports'])check(app.includes(`${page}:`)||app.includes(`'${page}'`),`Missing parity page ${page}.`);
 for(const fn of ['renderPeople','renderAccounting','renderPayrollPrep','renderTaxPrep','renderControls','renderReports'])check(app.includes(`function ${fn}(`),`Missing renderer ${fn}.`);
 check(app.includes("String(operation&&operation.action||'').toUpperCase()==='RECORD_USAGE_EVENT'")&&app.includes("real=operations.filter(op=>!isUsageOperation(op))"),'Usage telemetry must not count as unsynced business work.');
-check(app.includes("node.textContent=connected?'Secure sync':'Sync offline'")&&app.includes("node.textContent=online?'Internet':'No internet'"),'Connection status must distinguish internet from secure sync.');
+check(!app.includes("node.textContent=connected?'Secure sync':'Sync offline'")&&!app.includes("node.textContent=online?'Internet':'No internet'"),'Connection status must stay consolidated in the single #syncBadge indicator (honest scan A12, 2026-10-31).');
 check(app.includes("state.bridge.request('completionSync'")&&app.includes('recordUsage=async function'),'Usage telemetry must use quiet direct sync instead of the durable business queue.');
 for(const collection of ['employees','vendors','purchaseOrders','accountingPeriods','payrollPeriods','payrollLines','taxPeriods','missingDocuments','approvals','proofLog','errorLog','backups','reports'])check(parity.includes(`${collection}:`)||parity.includes(`'${collection}'`),`Backend parity collection missing: ${collection}.`);
 check(parity.includes("vendors:{book:'inventory'")&&parity.includes("purchaseOrders:{book:'inventory'"),'Vendors and purchase orders must reuse the established inventory workbook.');

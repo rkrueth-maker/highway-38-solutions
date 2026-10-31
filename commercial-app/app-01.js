@@ -50,7 +50,7 @@ function updateNavActiveState(page=state.page){const nav=$('mainNav');if(!nav)re
 function renderNav(){const nav=$('mainNav');if(!nav)return;const pages=allowedPages();if(!pages.length){nav.replaceChildren();delete nav.dataset.h38AccessSignature;return;}const signature=`${state.shell}|${pages.join('|')}`;if(nav.dataset.h38AccessSignature===signature){updateNavActiveState();return;}nav.innerHTML=pages.map(key=>{const d=PAGE_DEFS[key]||[''];const label=d.length>1?d[1]:d[0];return `<button type="button" data-page="${key}" class="${key===state.page?'active':''}"><span>${label}</span></button>`;}).join('');nav.dataset.h38AccessSignature=signature;nav.querySelectorAll(':scope > [data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));updateNavActiveState();window.dispatchEvent(new CustomEvent('h38:office-navigation-access-updated',{detail:{shell:state.shell,pages:pages.slice()}}));}
 allowedPages.__h38Meetings=true;
 renderNav.__h38Meetings=true;
-function network(){const online=navigator.onLine;$('networkBadge').textContent=online?'Online':'Offline';$('networkBadge').className=`badge ${online?'online':'offline'}`;}
+function network(){/* A12: the single #syncBadge is the only status pill; updatePending renders the offline/saved state there. */try{updatePending();}catch(_){}}
 function toast(message,bad=false){const node=$('toast');node.textContent=message;node.className=`toast${bad?' bad':''}`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.add('hidden'),4800);}
 function h38BrandSplashNorthernRequested(){try{return String(new URLSearchParams(location.search).get('businessKey')||'').toLowerCase()==='northern-lakes';}catch(_){return false;}}
 function renderWelcome(mode='connecting'){
