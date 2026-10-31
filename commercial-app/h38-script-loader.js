@@ -172,6 +172,7 @@
       // too; same ?build= URL as PAGE_ACCOUNTING so the loader dedupes it.
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
       './money-agent.js?build=20261022-perperson-1',
+      './invoice-live-customer-preview.js?build=20261031-invoice-split-1',
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
