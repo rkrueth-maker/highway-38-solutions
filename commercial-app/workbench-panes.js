@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-8
+/* H38 Workbench panes — build 20261031-workbench-10
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -556,17 +556,128 @@
     invKey = key;
   }
 
+  /* ---------- slice 5: today — priority queue + day rail ----------
+   * Today keeps its own frames in the middle (time clock, Phase 1
+   * stat strip, Needs-you-now, Kit command bar — the one renderer).
+   * The workbench adds the inbox shape around them:
+   *  - LEFT: a priority queue assembled from the same records the
+   *    Today stat strip counts: overdue invoices (balance > 0, due
+   *    date passed), quotes awaiting an answer (SENT / PRESENTED —
+   *    the stat strip's own rule), and open requests. Clicking a
+   *    queue row goes to the page that owns the work (Money /
+   *    Quotes / Schedule), where the workbench panes take over.
+   *  - RIGHT: today's schedule mini-list (scheduleEvents starting
+   *    today) + the stat strip's numbers read from its own DOM, so
+   *    the rail can never disagree with the strip.
+   *  - Kit's command bar gains a palette entry button: the command
+   *    palette (slice 1) becomes the command entry point on Today;
+   *    asking Kit stays one of the palette's commands. */
+  var todayKey = '';
+  function renderTodayPanes() {
+    var main = document.getElementById('mainContent');
+    if (!main || !st() || st().page !== 'today' || !wide()) {
+      var q0 = document.getElementById('h38WbTodayQueue'), r0 = document.getElementById('h38WbTodayRail');
+      if (q0) q0.remove(); if (r0) r0.remove();
+      if (main) main.classList.remove('h38-wb-grid-today');
+      todayKey = '';
+      return;
+    }
+    var key = text(snap().cachedAt) + '|' + rows('invoices').length + '|' + rows('quotes').length + '|' + rows('scheduleEvents').length;
+    if (todayKey === key && document.getElementById('h38WbTodayQueue')) { wireTodayPaletteEntry(); return; }
+    main.classList.add('h38-wb-grid-today');
+    var queue = document.getElementById('h38WbTodayQueue');
+    if (!queue) {
+      queue = document.createElement('aside');
+      queue.id = 'h38WbTodayQueue';
+      queue.className = 'h38-wb-listpane';
+      queue.setAttribute('aria-label', 'Priority queue');
+      main.appendChild(queue);
+    }
+    var overdue = rows('invoices').filter(function (r) { return invOverdue(r); })
+      .sort(function (a, b) { return String(value(a, 'Due Date', 'dueDate')).localeCompare(String(value(b, 'Due Date', 'dueDate'))); });
+    var waiting = rows('quotes').filter(function (r) {
+      var s = text(value(r, 'Status', 'status')).toUpperCase();
+      return s === 'SENT' || s === 'PRESENTED';
+    });
+    var requests = rows('requests').filter(function (r) {
+      var s = text(value(r, 'Status', 'status')).toUpperCase();
+      return s !== 'DONE' && s !== 'CLOSED' && s !== 'COMPLETED';
+    });
+    var qHtml = '<div class="h38-wb-listpane-hd">Priority queue <span>· work top-down</span></div>';
+    if (!overdue.length && !waiting.length && !requests.length) {
+      qHtml += '<div class="h38-wb-queue-empty">All clear — nothing overdue, waiting or requested.</div>';
+    }
+    overdue.forEach(function (r) {
+      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="money"><span class="t">💵 Chase invoice ' + esc(text(value(r, 'Invoice Number'))) + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), moneyFmt(invBalance(r)) + ' open', 'due ' + text(value(r, 'Due Date', 'dueDate'))].filter(Boolean).join(' · ')) + '</span></button>';
+    });
+    waiting.forEach(function (r) {
+      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="quotes"><span class="t">🧾 Quote waiting: ' + esc(text(value(r, 'Quote Number')) || text(value(r, 'Project Title')) || 'Quote') + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), moneyFmt(Number(value(r, 'Total', 'total')) || 0), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
+    });
+    requests.forEach(function (r) {
+      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="schedule"><span class="t">📥 Request: ' + esc(text(value(r, 'Subject', 'Title', 'Request Type')) || 'Request') + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
+    });
+    queue.innerHTML = qHtml;
+    queue.querySelectorAll('[data-wb-q]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var p = b.getAttribute('data-wb-q');
+        try { if (typeof window.openPage === 'function') window.openPage(p); } catch (e) {}
+      });
+    });
+    var rail = document.getElementById('h38WbTodayRail');
+    if (!rail) {
+      rail = document.createElement('aside');
+      rail.id = 'h38WbTodayRail';
+      rail.className = 'h38-wb-rail-right';
+      rail.setAttribute('aria-label', 'Today schedule and numbers');
+      main.appendChild(rail);
+    }
+    var now = new Date();
+    var todays = rows('scheduleEvents').filter(function (e) {
+      var s = new Date(value(e, 'Start Time', 'startTime'));
+      return Number.isFinite(s.getTime()) && s.toDateString() === now.toDateString();
+    }).sort(function (a, b) { return new Date(value(a, 'Start Time', 'startTime')) - new Date(value(b, 'Start Time', 'startTime')); });
+    var strip = main.querySelector('.h38-today-stats');
+    var statsHtml = '';
+    if (strip) {
+      var kids = Array.prototype.slice.call(strip.children || []);
+      var parts = kids.length >= 2 ? kids.map(function (k) { return k.textContent.replace(/\s+/g, ' ').trim(); }).filter(Boolean) : [strip.textContent.replace(/\s+/g, ' ').trim()];
+      statsHtml = '<div class="h38-wb-today-stats">' + parts.map(function (part) { return '<div>' + esc(part) + '</div>'; }).join('') + '</div>';
+    }
+    rail.innerHTML = '<h3>Today\'s schedule</h3>' +
+      (todays.length ? '<div class="h38-wb-tl">' + todays.map(function (e) {
+        var s = new Date(value(e, 'Start Time', 'startTime'));
+        return '<div class="h38-wb-tl-ev"><div class="h38-wb-tl-when">' + esc(s.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</div><strong>' + esc(text(value(e, 'Title')) || 'Scheduled') + '</strong><div class="h38-wb-tl-meta">' + esc([text(value(e, 'Location')), text(value(e, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</div></div>';
+      }).join('') + '</div>' : '<div class="h38-wb-empty">Nothing scheduled today.</div>') +
+      (statsHtml ? '<h3>The numbers</h3>' + statsHtml : '');
+    wireTodayPaletteEntry();
+    todayKey = key;
+  }
+  function wireTodayPaletteEntry() {
+    var host = document.getElementById('h38TodayCommandSetup');
+    if (!host || document.getElementById('h38WbTodayPaletteBtn')) return;
+    var b = document.createElement('button');
+    b.id = 'h38WbTodayPaletteBtn';
+    b.type = 'button';
+    b.className = 'h38-wb-today-palbtn';
+    b.textContent = '⌘ Search everything / run a command — Ctrl K';
+    b.addEventListener('click', function () {
+      if (window.H38_WORKBENCH && typeof window.H38_WORKBENCH.openPalette === 'function') window.H38_WORKBENCH.openPalette();
+    });
+    host.appendChild(b);
+  }
+
   /* ---------- dispatcher ---------- */
   function reconcile() {
     try { renderCustomerRail(); } catch (e) {}
     try { renderJobsPane(false); } catch (e) {}
     try { renderMoneyPane(false); } catch (e) {}
+    try { renderTodayPanes(); } catch (e) {}
   }
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
   window.addEventListener('pageshow', reconcile);
   try { window.matchMedia('(min-width: 761px)').addEventListener('change', reconcile); } catch (e) {}
-  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money')) reconcile(); }, 1500);
+  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money' || st().page === 'today')) reconcile(); }, 1500);
 
   window.H38_WORKBENCH = window.H38_WORKBENCH || {};
   window.H38_WORKBENCH.panesBuild = BUILD;
