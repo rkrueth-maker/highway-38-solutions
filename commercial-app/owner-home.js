@@ -201,10 +201,20 @@
       });
       return {
         count: open.length,
-        items: open.slice(0, 3).map(t => ({
-          title: v(t, 'Task Title') || v(t, 'Title') || 'Task',
-          assignee: v(t, 'Assigned To') || v(t, 'Assignee') || ''
-        }))
+        items: open.slice(0, 3).map(t => {
+          const title = v(t, 'Task Title') || v(t, 'Title') || 'Task';
+          /* P0 (2026-10-31): a Quote Review task row opens the actual
+             persisted quote — the home summary is where the owner sees
+             these tasks daily, so the deep link lives here, not only on
+             the standalone Tasks page. */
+          const qid = String(v(t, 'Quote ID') || v(t, 'Linked Record ID') || '');
+          const isQuoteTask = !!qid && /quote/i.test(String(v(t, 'Task Type') || '') + ' ' + String(v(t, 'Task Domain') || '') + ' ' + title);
+          return {
+            title: title,
+            assignee: v(t, 'Assigned To') || v(t, 'Assignee') || '',
+            quoteId: isQuoteTask ? qid : ''
+          };
+        })
       };
     } catch (e) { return { count: 0, items: [] }; }
   }
@@ -966,7 +976,11 @@
           <h2>📋 My Tasks <span class="h38-tasks-count" aria-label="${tasks.count} tasks">${tasks.count}</span></h2>
           <button type="button" class="secondary small" id="h38ViewAllTasks" style="min-height:44px">View all →</button>
         </div>
-        ${tasks.items.length ? tasks.items.map(t => `
+        ${tasks.items.length ? tasks.items.map(t => t.quoteId ? `
+          <button type="button" class="h38-task-row" data-home-open-quote="${esc(t.quoteId)}" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:0;font:inherit">
+            <span class="h38-task-check" aria-hidden="true"></span>
+            <div><strong>${esc(t.title)}</strong>${t.assignee ? `<small>→ ${esc(t.assignee)}</small>` : ''}<small> · Open quote →</small></div>
+          </button>` : `
           <div class="h38-task-row">
             <span class="h38-task-check" aria-hidden="true"></span>
             <div><strong>${esc(t.title)}</strong>${t.assignee ? `<small>→ ${esc(t.assignee)}</small>` : ''}</div>
@@ -1219,6 +1233,15 @@
         else openPage('work');
       };
     }
+    document.querySelectorAll('[data-home-open-quote]').forEach(btn => {
+      btn.onclick = () => {
+        const quoteId = btn.getAttribute('data-home-open-quote');
+        Promise.resolve(openPage('quotes')).then(() => {
+          if (typeof window.openQuote === 'function') window.openQuote(quoteId);
+          else if (typeof window.toast === 'function') window.toast('That quote could not be opened from here.', true);
+        });
+      };
+    });
     const routeOpt = document.querySelector('[data-route-opt]');
     if (routeOpt) {
       routeOpt.onclick = () => {
