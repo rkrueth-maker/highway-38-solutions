@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-6
+/* H38 Workbench panes — build 20261031-workbench-7
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -80,7 +80,8 @@
     changeOrders: { label: 'Change order', icon: 'Δ', titles: ['Title', 'Description', 'Change Order Number'] },
     inspections: { label: 'Inspection', icon: '✓', titles: ['Title', 'Inspection Type', 'Description'] },
     recurringPlans: { label: 'Recurring work', icon: '↻', titles: ['Title', 'Service Type', 'Description'] },
-    scheduleEvents: { label: 'Scheduled', icon: '🗓', titles: ['Title', 'Event Type'] }
+    scheduleEvents: { label: 'Scheduled', icon: '🗓', titles: ['Title', 'Event Type'] },
+    jobNotes: { label: 'Note', icon: '📝', titles: ['Title', 'Note', 'Text', 'Description'] }
   };
   var TL_TIME_KEYS = ['Updated Time', 'updatedAt', 'Created Time', 'createdAt', 'Start Time', 'startTime', 'Capture Time', 'captureTime', 'Meeting Time', 'meetingTime', 'Sent Time', 'sentAt', 'Paid Time', 'paidAt', 'Due Time', 'dueTime', 'Date', 'date'];
   function eventTime(row) {
@@ -215,9 +216,10 @@
    * click = select) and the record rail on the right: pinned header
    * (title, status, the page's own primary "next step" action,
    * proxied — never reimplemented) + the job's chronological
-   * timeline assembled from the job customer's canonical bundle,
-   * filtered to rows that reference the job (quotes carry Job ID;
-   * documents/schedule events carry Related Record ID).
+   * timeline assembled from snapshot rows that reference the job
+   * (typed Job ID / Related Record ID links; schedule events also
+   * by exact title match — see jobEvents). The Customer 360 bundle
+   * is not used here: it lazy-loads with the Customers page.
    * DATA LIMIT (honest): invoices carry Customer ID only — there is
    * no invoice<->job link in the record model, so invoice events
    * appear on the customer rail, not invented onto the job rail.
@@ -240,12 +242,16 @@
   function selectJob(id) {
     if (!id) return;
     jobSel = id;
-    /* Drive the page's own job selects (checklist, change request):
-     * match the option whose text carries the job number or whose
-     * value is the job id, then fire the events the page listens to. */
+    /* Drive ONLY the Job checklist card's job picker — the page's
+     * current-job view state (its options carry Job ID values).
+     * Other selects on this page (e.g. the change-request form's job
+     * field) are form inputs, not view state: setting them fires
+     * handlers that re-render sections and reset the checklist —
+     * learned live 2026-10-31. */
     var job = rows('jobs').filter(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === id; })[0];
     var num = job ? text(value(job, 'Job Number')) : '';
-    document.querySelectorAll('#mainContent select').forEach(function (sel) {
+    var sel = document.querySelector('#supabaseChecklist select');
+    if (sel) {
       var match = -1;
       for (var i = 0; i < sel.options.length; i++) {
         var o = sel.options[i];
@@ -256,8 +262,36 @@
         sel.dispatchEvent(new Event('change', { bubbles: true }));
         sel.dispatchEvent(new Event('input', { bubbles: true }));
       }
-    });
+    }
     renderJobsPane(true);
+  }
+  /* Job timeline from raw snapshot rows (the Customer 360 bundle is
+   * lazy-loaded with the Customers page and is not present here).
+   * Links used, strongest first: typed references (Job ID /
+   * Related Record ID); then — for schedule events only — an exact
+   * title match with no typed reference, which is how the business's
+   * own calendar names job visits. Quotes in real data often carry
+   * an empty Job ID; unlinked quotes stay off the job rail (they are
+   * on the customer rail) rather than being guessed onto a job. */
+  function jobEvents(job) {
+    var id = text(value(job, 'Job ID', 'jobId', 'id'));
+    var title = text(value(job, 'Project Title', 'Title'));
+    function references(r) {
+      return text(value(r, 'Job ID', 'jobId', 'Related Record ID', 'Source ID', 'sourceId')) === id;
+    }
+    var groups = {
+      quotes: rows('quotes').filter(references),
+      scheduleEvents: rows('scheduleEvents').filter(function (r) {
+        if (references(r)) return true;
+        return !text(value(r, 'Related Record ID')) && title && text(value(r, 'Title')) === title;
+      }),
+      documents: rows('documents').filter(references),
+      jobNotes: rows('jobNotes').filter(references),
+      changeOrders: rows('changeOrders').filter(references),
+      inspections: rows('inspections').filter(references),
+      followUps: rows('followUps').filter(references)
+    };
+    return bundleEvents(groups, {});
   }
   function renderJobsPane(force) {
     var main = document.getElementById('mainContent');
@@ -311,8 +345,7 @@
       var status = text(value(job, 'Status', 'status'));
       var primary = document.querySelector('#mainContent [data-job-command].primary, #mainContent .h38-job-next');
       var primaryLabel = primary ? text(primary.textContent) || 'Do next step' : '';
-      var bundle = bundleFor(text(value(job, 'Customer ID', 'customerId')));
-      var events = bundle ? bundleEvents(bundle.groups || {}, { onlyJobId: jobSel }) : [];
+      var events = jobEvents(job);
       /* The job's own created/updated stamps always anchor the story. */
       var created = eventTime({ 'Created Time': value(job, 'Created Time', 'createdAt') });
       if (created) events.push({ icon: '🧰', label: 'Job', title: title + ' — created', status: status, extra: text(value(job, 'Job Number')), time: created });
