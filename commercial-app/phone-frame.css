@@ -1,4 +1,4 @@
-/* H38 Phone Frame — Direction B ("The Create Button"). Build 20261031-phoneb-1.
+/* H38 Phone Frame — Direction B ("The Create Button"). Build 20261031-phoneb-2.
  *
  * The phone layer Rick picked from the 2026-10-31 phone-style study:
  * a plain white 52px header (logo, business name, bell — nothing else),
@@ -47,6 +47,10 @@
    * Sign-out stays reachable on phone via More -> Settings (the phone
    * layer adds a Settings sign-out row that clicks this same button). */
   body .topbar .top-actions > * { display: none !important; }
+  /* styles.css deliberately re-shows #syncBadge on mobile with an ID
+   * rule (#syncBadge{display:inline-flex!important}) that outranks the
+   * catch-all above — outrank it back: the B header is name + bell. */
+  body .topbar .top-actions > #syncBadge { display: none !important; }
   body .topbar .top-actions > #ownerNotifyBell {
     display: inline-flex !important; align-items: center; justify-content: center;
     position: relative; width: 40px; height: 40px; min-width: 40px; min-height: 40px;
@@ -96,6 +100,7 @@
   .h38-phone-money-band {
     display: flex; align-items: stretch; gap: 0; background: #0c2438; color: #fff;
     border-radius: 12px; padding: 4px 6px 4px 14px; margin-bottom: 10px; overflow: hidden;
+    width: 100%; box-sizing: border-box; align-self: stretch;
   }
   .h38-phone-money-band button {
     border: 0; background: transparent; color: #fff; cursor: pointer; box-shadow: none;
