@@ -375,7 +375,7 @@ async function preparePortalUpdate(context){
   await saveEntity('portalMessages','Portal Message',id,record,['Portal Message ID','portalMessageId']);
 }
 function jobOptions(selected){
-  return rec('jobs').filter(row=>!/CANCEL|ARCHIV/.test(upper(val(row,'Status')))).map(row=>`<option value="${esc(jobId(row))}" ${jobId(row)===selected?'selected':''}>${esc(val(row,'Job Number')||'Job')} — ${esc(val(row,'Project Title')||'Untitled')}</option>`).join('');
+  return rec('jobs').filter(row=>!/CANCEL|ARCHIV/.test(upper(val(row,'Status')))).map(row=>`<option value="${esc(jobId(row))}" ${jobId(row)===selected?'selected':''}>${esc((window.H38_HUMAN_NUMBERS?window.H38_HUMAN_NUMBERS.jobNumber(row):'')||'Job')} — ${esc(val(row,'Project Title')||'Untitled')}</option>`).join('');
 }
 let selectedJob='';
 function workPanel(){
