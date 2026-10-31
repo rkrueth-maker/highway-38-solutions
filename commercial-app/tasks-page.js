@@ -113,12 +113,20 @@ function taskCard(row){
   var methodLabel=method==='sms'?' · text':(method==='email'?' · email':(method==='app'?' · app':''));
   var nudgeBtn=(phone&&method!=='app')
     ?'<button type="button" class="secondary" data-task-nudge="'+id+'">Nudge</button>':'';
+  /* Quote lifecycle tasks (Quote Review etc.) deep-link to their quote:
+     without this the task was a dead end — it named a quote the owner
+     could not open from here. */
+  var quoteId=text(Hv(row,'Quote ID')||Hv(row,'Linked Record ID'));
+  var isQuoteTask=/quote/i.test(text(Hv(row,'Linked Record Type')))||/quote/i.test(text(Hv(row,'Task Type')))||/quote/i.test(text(Hv(row,'Task Domain')));
+  var quoteBtn=(quoteId&&isQuoteTask)
+    ?'<button type="button" data-task-quote="'+id+'">Open quote</button>':'';
   return '<div class="row" data-task-row="'+id+'">'
     +'<div class="row-top"><strong>'+title+'</strong>'
     +(urgent?'<span class="pill" style="background:#ffe9e9;color:#a83232">Urgent</span>':Hpill('Open'))
     +'</div>'
     +'<small>→ '+who+(sent?' · sent '+sent:'')+due+methodLabel+'</small>'
     +'<div class="row-actions">'
+    +quoteBtn
     +'<button type="button" data-task-done="'+id+'">✓ Done</button>'
     +nudgeBtn
     +'</div></div>';
@@ -169,6 +177,29 @@ function bindRowActions(root){
   root.querySelectorAll('[data-task-nudge]').forEach(function(b){
     if(b.dataset.h38Bound) return; b.dataset.h38Bound='1';
     b.addEventListener('click',function(){ nudge(b.getAttribute('data-task-nudge')); });
+  });
+  root.querySelectorAll('[data-task-quote]').forEach(function(b){
+    if(b.dataset.h38Bound) return; b.dataset.h38Bound='1';
+    b.addEventListener('click',function(){ openLinkedQuote(b.getAttribute('data-task-quote')); });
+  });
+}
+
+/* Open the quote a quote-lifecycle task points at, in the quote builder.
+   A missing quote is a visible error (openQuote toasts that the saved
+   quote was not found), never a silent dead end. */
+function openLinkedQuote(taskId){
+  var row=findTask(taskId);
+  if(!row){ Htoast('That task is no longer in the list.',true); return; }
+  var quoteId=text(Hv(row,'Quote ID')||Hv(row,'Linked Record ID'));
+  if(!quoteId){ Htoast('This task does not name a quote to open.',true); return; }
+  var openQuote=g('openQuote');
+  if(!openQuote){ Htoast('The quote builder is still loading. Try again in a moment.',true); return; }
+  var openPage=g('openPage');
+  var nav=openPage?openPage('quotes'):null;
+  Promise.resolve(nav).then(function(){
+    if(!openQuote(quoteId)) Htoast('Quote '+quoteId+' could not be opened. It may have been deleted — this task is left open for the owner to close.',true);
+  }).catch(function(){
+    if(!openQuote(quoteId)) Htoast('Quote '+quoteId+' could not be opened. It may have been deleted — this task is left open for the owner to close.',true);
   });
 }
 
@@ -239,6 +270,7 @@ async function nudge(id){
 }
 
 window.H38TasksPage={
+  openLinkedQuote:openLinkedQuote,
   render:render,
   openCount:openCount,
   markDone:markDone,

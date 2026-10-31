@@ -243,12 +243,27 @@ function attachInternalCosts(payload){
 }
 async function buildPricedQuote(args,timeout){
   const priced=attachInternalCosts(await buildPricedQuoteCore(args||{},timeout));
-  return addOwnerMissingCostAudit(priced,args||{},timeout);
+  const audited=await addOwnerMissingCostAudit(priced,args||{},timeout);
+  /* P0 (2026-10-31): persist the built draft like every other transport.
+     In the normal load order supabase-quote-ai-auth-fix wraps this
+     request first and the canonical runtime persists; this hook covers
+     the load order where this module is the outermost build path. The
+     persistence module is idempotent per build, and a result that
+     already carries aiDraftPersistence is left alone. */
+  try{
+    if(!audited.aiDraftPersistence&&window.H38_AI_QUOTE_PERSIST&&typeof window.H38_AI_QUOTE_PERSIST.persistDraft==='function'){
+      const aiDraftPersistence=await window.H38_AI_QUOTE_PERSIST.persistDraft(args||{},audited);
+      return {...audited,aiDraftPersistence};
+    }
+  }catch(error){
+    return {...audited,aiDraftPersistence:{status:'FAILED',quoteId:text(args?.quoteId),message:text(error?.message||error)}};
+  }
+  return audited;
 }
 Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiBuildQuoteDraft')return buildPricedQuote(args||{},timeout);
   if(action==='aiRenderQuoteConcept')return quoteAi(args||{},timeout,'renderConcept');
   return previousRequest.call(this,action,args,timeout);
 };
-window.H38_SUPABASE_QUOTE_AI={enabled:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,nonPositiveQuantityBlocked:true,pricingMatchRequiresDescriptionAndUnit:true,preservesFirstPassQuantities:true,structuredMeasurementEvidence:true,linkedSiteVisitMeasurementHydration:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
+window.H38_SUPABASE_QUOTE_AI={enabled:true,aiDraftPersistenceOnBuild:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,nonPositiveQuantityBlocked:true,pricingMatchRequiresDescriptionAndUnit:true,preservesFirstPassQuantities:true,structuredMeasurementEvidence:true,linkedSiteVisitMeasurementHydration:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
 })();

@@ -543,9 +543,12 @@
      required"; edge returns "saved quote could not be found"). On Send,
      the shell now persists the empty DRAFT quote first — the exact
      SAVE_QUOTE operation contract app-06 saveQuote uses — so the AI has
-     a real record to draft against. AI lines still live only in this
-     module's staging array until the owner clicks Convert; the draft is
-     never sent to the customer. */
+     a real record to draft against. Since the P0 persistence fix
+     (2026-10-31), a completed build ALSO writes its lines onto that
+     record as a saved Draft (see quote-ai-draft-persistence.js), so the
+     quote survives even if the owner never clicks Convert; Convert and
+     Save remain the owner's editing path, and the draft is never sent
+     to the customer. */
   async function ensureDraftQuote(scopeText) {
     var state = window.state;
     var existing = state && state.quote && state.quote.quoteId;
@@ -610,7 +613,13 @@
       if (!shell.open || requestId !== shell.requestSeq) return;
       if (!added) throw new Error('Hank did not return any priced lines for that description. Add a little more detail and try again.');
       var missingCount = shell.missingCosts.filter(function (item) { return !item.decision || item.decision === 'PENDING'; }).length;
-      shell.messages.push({ who: 'hank', text: 'Drafted ' + added + ' priced line' + (added === 1 ? '' : 's') + ' — review them on the right, edit qty/rate, then Convert to Estimate.' + (missingCount ? ' ' + missingCount + ' possible missing cost' + (missingCount === 1 ? '' : 's') + ' will be flagged for review in the builder.' : '') + ' The draft quote is saved — nothing is sent to the customer.' });
+      var persistence = (result && result.aiDraftPersistence) || {};
+      var savedText = persistence.status === 'PERSISTED'
+        ? ' The draft is saved as ' + (persistence.quoteNumber || 'a draft quote') + ' in Quotes for your review — nothing is sent to the customer.'
+        : persistence.status === 'FAILED'
+          ? ' WARNING: this draft could NOT be saved to Quotes (' + (persistence.message || 'save failed') + '). Keep this screen open and use Convert to Estimate, then Save draft.'
+          : ' Nothing is sent to the customer.';
+      shell.messages.push({ who: 'hank', text: 'Drafted ' + added + ' priced line' + (added === 1 ? '' : 's') + ' — review them on the right, edit qty/rate, then Convert to Estimate.' + (missingCount ? ' ' + missingCount + ' possible missing cost' + (missingCount === 1 ? '' : 's') + ' will be flagged for review in the builder.' : '') + savedText });
     } catch (error) {
       if (!shell.open || requestId !== shell.requestSeq) return;
       shell.error = 'Hank could not finish that breakdown (' + ((error && error.message) || 'no result') + '). Try again, or start blank instead.';

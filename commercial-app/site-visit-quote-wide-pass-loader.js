@@ -19,7 +19,7 @@ if(window.H38_SITE_VISIT_QUOTE_WIDE_PASS_LOADER)return;
 window.H38_ASSET_BUILD=ASSET_BUILD;
 document.documentElement.dataset.h38AssetBuild=ASSET_BUILD;
 const scripts=[
-  ['./quote-runtime-authority.js','20261031-quote-runtime-authority-4-budgets','H38_QUOTE_RUNTIME_AUTHORITY'],
+  ['./quote-runtime-authority.js','20261031-kitquote-1','H38_QUOTE_RUNTIME_AUTHORITY'],
   ['./site-visit-quote-handoff-final.js','20260822-site-visit-quote-handoff-final-5-machine','H38_FIELD_VISIT_QUOTE_HANDOFF'],
   ['./site-visit-current-handoff-authority.js','20260922-site-visit-current-handoff-authority-2-write-fence','H38_SITE_VISIT_CURRENT_HANDOFF_AUTHORITY'],
   ['./measurement-verification-final.js','20260821-measurement-verification-final-1','H38_MEASUREMENT_VERIFICATION_FINAL'],
