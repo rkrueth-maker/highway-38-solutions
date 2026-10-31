@@ -1,4 +1,4 @@
-/* H38 Phone Frame — Direction B ("The Create Button"). Build 20261031-phoneb-2.
+/* H38 Phone Frame — Direction B ("The Create Button"). Build 20261031-phoneb-3.
  *
  * The phone layer Rick picked from the 2026-10-31 phone-style study:
  * a plain white 52px header (logo, business name, bell — nothing else),
@@ -101,6 +101,9 @@
     display: flex; align-items: stretch; gap: 0; background: #0c2438; color: #fff;
     border-radius: 12px; padding: 4px 6px 4px 14px; margin-bottom: 10px; overflow: hidden;
     width: 100%; box-sizing: border-box; align-self: stretch;
+    /* The Today workspace is a grid whose first track is 260px — the
+     * band must span every track, not sit inside the first one. */
+    grid-column: 1 / -1;
   }
   .h38-phone-money-band button {
     border: 0; background: transparent; color: #fff; cursor: pointer; box-shadow: none;
