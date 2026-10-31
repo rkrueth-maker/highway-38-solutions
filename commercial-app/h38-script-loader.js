@@ -142,7 +142,7 @@
       './fleet-providers.js?build=20261026-fleet-providers-6',
       './gps-dispatch.js?build=20261030-r2-map-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
-      './mileage.js?build=20261030-checkin-history-1',
+      './mileage.js?build=20261031-trippath-1',
       './plow-flow.js?build=20261011-plow-flow-1',
     ];
     // Mileage (2026-10-22): detection has to start when the app opens, and
@@ -151,7 +151,7 @@
     // Owner Controls feature toggle are both on (see mileage.js).
     const PAGE_TODAY = [
       './today-command-setup.js?build=20261030-r2-today-1',
-      './mileage.js?build=20261030-checkin-history-1',
+      './mileage.js?build=20261031-trippath-1',
     ];
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
