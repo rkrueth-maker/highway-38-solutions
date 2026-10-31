@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-14
+/* H38 Workbench panes — build 20261031-workbench-15
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here

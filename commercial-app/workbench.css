@@ -1,4 +1,4 @@
-/* H38 Workbench — Direction B laptop layer. Build 20261031-workbench-3.
+/* H38 Workbench — Direction B laptop layer. Build 20261031-workbench-15.
  *
  * EVERY rule in this file lives inside @media (min-width: 761px) or is
  * scoped to workbench-owned elements that only exist when the
@@ -11,35 +11,35 @@
   /* ---------- shell: icon rail replaces the text sidebar ---------- */
   body.h38-wb-on #mainNav { display: none; }
   .h38-wb-rail {
-    flex: 0 0 60px; width: 60px; background: #14202e; color: #9fb4cc;
+    flex: 0 0 72px; width: 72px; background: #14202e; color: #9fb4cc;
     display: flex; flex-direction: column; align-items: stretch;
     padding: 8px 0 10px; gap: 2px; overflow-y: auto; overflow-x: hidden;
     position: sticky; top: 0; max-height: 100vh; z-index: 30;
   }
-  .h38-wb-rail-head { text-align: center; color: #ffd34d; font-size: 13px; padding: 2px 0 4px; }
+  .h38-wb-rail-head { text-align: center; color: #ffd34d; font-size: 15px; padding: 2px 0 4px; }
   .h38-wb-rail-div { height: 1px; background: #2c4258; margin: 5px 10px; }
   .h38-wb-rail-item { position: relative; }
   .h38-wb-rail-go {
     display: flex; flex-direction: column; align-items: center; gap: 1px;
-    width: 100%; padding: 6px 0 5px; border: 0; border-radius: 0;
+    width: 100%; padding: 8px 0 7px; border: 0; border-radius: 0;
     background: transparent; color: #9fb4cc; cursor: pointer; box-shadow: none;
   }
   .h38-wb-rail-go:hover { background: #1d3049; color: #dbe4ee; }
   .h38-wb-rail-item.active .h38-wb-rail-go { background: #22344a; color: #fff; box-shadow: inset 3px 0 0 #4d9fff; }
-  .h38-wb-rail-icon { font-size: 17px; line-height: 1.15; }
-  .h38-wb-rail-label { font-size: 8.5px; font-weight: 700; letter-spacing: .02em; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .h38-wb-rail-icon { font-size: 22px; line-height: 1.15; }
+  .h38-wb-rail-label { font-size: 10px; font-weight: 700; letter-spacing: .02em; max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .h38-wb-rail-star {
-    position: absolute; top: 0; right: 1px; width: 18px; height: 18px;
+    position: absolute; top: 0; right: 1px; width: 20px; height: 20px;
     padding: 0; border: 0; background: transparent; color: #ffd34d;
-    font-size: 11px; line-height: 1; cursor: pointer; opacity: 0; box-shadow: none;
+    font-size: 12px; line-height: 1; cursor: pointer; opacity: 0; box-shadow: none;
   }
   .h38-wb-rail-item:hover .h38-wb-rail-star, .h38-wb-rail-star.on { opacity: 1; }
   .h38-wb-rail-palette {
     margin: auto 8px 0; padding: 7px 0 6px; border: 1px solid #33506f; border-radius: 8px;
-    background: #22344a; color: #dbe4ee; cursor: pointer; font-size: 13px;
+    background: #22344a; color: #dbe4ee; cursor: pointer; font-size: 15px;
     display: flex; flex-direction: column; align-items: center; gap: 1px; box-shadow: none;
   }
-  .h38-wb-rail-palette span { font-size: 8.5px; font-weight: 700; color: #9fb4cc; }
+  .h38-wb-rail-palette span { font-size: 10px; font-weight: 700; color: #9fb4cc; }
   .h38-wb-topbtn {
     display: inline-flex; align-items: center; gap: 7px; margin-right: 8px;
     padding: 6px 11px; border-radius: 8px; border: 1px solid #33506f;
