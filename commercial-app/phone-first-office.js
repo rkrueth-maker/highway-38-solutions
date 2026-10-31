@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-phoneb-4';
+const BUILD='20261031-phoneb-5';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -148,12 +148,14 @@ function ensureMoneyBand(){
   const waiting=text(quotesBtn.querySelector('strong')?.textContent);
   const sig=owed+'|'+waiting;
   if(!band){band=document.createElement('div');band.id='h38PhoneMoneyBand';band.className='h38-phone-money-band';stats.insertAdjacentElement('beforebegin',band);}
-  /* The band must live as the section's previous sibling, NOT inside
-   * it: the Today workspace section is a grid whose tracks sum to
-   * ~260px at phone width, so any in-section placement inherits that
-   * width (measured live). As a sibling in the block frame it takes
-   * the full content width. */
-  const bandSection=stats.closest('section');
+  /* The band must live OUTSIDE the Today workspace section entirely:
+   * #h38CustomerReadyToday is a grid whose tracks sum to ~260px at
+   * phone width (260px + eleven 0px tracks, measured live), so any
+   * placement inside it — even spanning all tracks, even as a sibling
+   * of the inner stats section — inherits that width. As the outer
+   * section's previous sibling in the block frame it takes the full
+   * content width. */
+  const bandSection=stats.closest('#h38CustomerReadyToday')||stats.closest('section');
   if(bandSection&&bandSection.parentElement&&band.nextElementSibling!==bandSection)bandSection.parentElement.insertBefore(band,bandSection);
   if(band.dataset.sig!==sig){
     band.dataset.sig=sig;
