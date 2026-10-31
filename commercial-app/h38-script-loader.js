@@ -65,9 +65,10 @@
     const PAGE_QUOTES = [
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
       './supabase-client-quote-branding.js?build=20260806-0344',
+      './quote-ai-draft-persistence.js?build=20261031-kitquote-1',
       './supabase-quote-ai.js?build=20261030-two-layer-1',
-      './supabase-quote-ai-auth-fix.js?build=20261031-quote-ai-retry-1',
-      './estimator-shell.js?build=20261031-quote-ai-fix-1',
+      './supabase-quote-ai-auth-fix.js?build=20261031-kitquote-1',
+      './estimator-shell.js?build=20261031-kitquote-1',
       './quote-mobile-stabilization.js?build=20261030-two-layer-8',
       './quote-ai-live-fix.js?build=20261030-two-layer-1',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
@@ -108,7 +109,7 @@
       './conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1',
     ];
     const PAGE_TASKS = [
-      './tasks-page.js?build=20261011-phase4-1',
+      './tasks-page.js?build=20261031-kitquote-1',
     ];
     // Work (2026-10-26): the Work page's Mark Complete buttons and status
     // select route through H38CustomerComms.markJobComplete (review prompt
