@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-10
+/* H38 Workbench panes — build 20261031-workbench-11
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -666,12 +666,120 @@
     host.appendChild(b);
   }
 
+  /* ---------- slice 6: schedule — job panel over the board ----------
+   * The 7-day board (and the events list under it) stays exactly as
+   * shipped; the dispatch map screen is untouched. On laptop, a
+   * click that resolves to a scheduled item opens the record panel
+   * OVER the board instead of navigating away. Resolution is
+   * conservative: the click target's ancestors are walked (max 6
+   * levels, small elements only) looking for a typed reference
+   * (data-job-id / data-related-record-id) or text carrying a known
+   * schedule-event / job title. Clicks on buttons, links and form
+   * controls always pass through untouched, and an unresolvable
+   * click is never intercepted. The panel shows the event, the
+   * linked job's pinned header + timeline (jobEvents), and an
+   * "Open full job" action that uses the Jobs page's own selection. */
+  function jobById(id) { return rows('jobs').filter(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === text(id); })[0] || null; }
+  function resolveScheduleClick(target) {
+    var titles = {};
+    rows('scheduleEvents').forEach(function (e) { var t = text(value(e, 'Title')); if (t) titles[t] = { event: e }; });
+    rows('jobs').forEach(function (j) {
+      var t = text(value(j, 'Project Title', 'Title'));
+      if (t && !titles[t]) titles[t] = { job: j };
+      var n = text(value(j, 'Job Number'));
+      if (n) titles[n] = { job: j };
+    });
+    var el = target, depth = 0;
+    while (el && el !== document.body && depth < 7) {
+      var ref = el.getAttribute && (el.getAttribute('data-job-id') || el.getAttribute('data-related-record-id') || el.getAttribute('data-jobid'));
+      if (ref) { var jb = jobById(ref); if (jb) return { job: jb }; }
+      var tx = text(el.textContent);
+      if (tx && tx.length <= 300) {
+        var keys = Object.keys(titles);
+        for (var i = 0; i < keys.length; i++) {
+          if (tx.indexOf(keys[i]) >= 0) {
+            var hit = titles[keys[i]];
+            if (hit.event && !hit.job) {
+              var rel = text(value(hit.event, 'Related Record ID'));
+              var linked = rel ? jobById(rel) : rows('jobs').filter(function (j) { return text(value(j, 'Project Title', 'Title')) === text(value(hit.event, 'Title')); })[0];
+              if (linked) hit.job = linked;
+            }
+            return hit;
+          }
+        }
+      }
+      el = el.parentElement;
+      depth++;
+    }
+    return null;
+  }
+  function closeSchedPanel() {
+    var p = document.getElementById('h38WbSchedPanel');
+    if (p) p.remove();
+  }
+  function openSchedPanel(hit) {
+    closeSchedPanel();
+    var panel = document.createElement('div');
+    panel.id = 'h38WbSchedPanel';
+    panel.className = 'h38-wb-sched-panel';
+    var ev = hit.event, job = hit.job;
+    var when = '';
+    if (ev) {
+      var s = new Date(value(ev, 'Start Time', 'startTime')), en = new Date(value(ev, 'End Time', 'endTime'));
+      if (Number.isFinite(s.getTime())) when = s.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + (Number.isFinite(en.getTime()) ? ' – ' + en.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '');
+    }
+    var title = ev ? (text(value(ev, 'Title')) || 'Scheduled item') : (job ? (text(value(job, 'Project Title', 'Title')) || 'Job') : 'Scheduled item');
+    var meta = [];
+    if (when) meta.push(when);
+    if (ev && text(value(ev, 'Location'))) meta.push(text(value(ev, 'Location')));
+    if (ev && text(value(ev, 'Status', 'status'))) meta.push(text(value(ev, 'Status', 'status')));
+    if (job) meta.push(jobCustomerName(job));
+    var events = job ? jobEvents(job) : [];
+    var created = job ? eventTime({ 'Created Time': value(job, 'Created Time', 'createdAt') }) : 0;
+    if (job && created) events.push({ icon: '🧰', label: 'Job', title: (text(value(job, 'Project Title', 'Title')) || 'Job') + ' — created', status: text(value(job, 'Status', 'status')), extra: text(value(job, 'Job Number')), time: created });
+    events.sort(function (a, b) { return b.time - a.time; });
+    panel.innerHTML = '<div class="h38-wb-sched-head"><h3 class="h38-wb-rec-title">' + esc(title) + '</h3>' +
+      '<button type="button" class="h38-wb-sched-close" id="h38WbSchedClose" aria-label="Close panel">✕</button></div>' +
+      '<div class="h38-wb-rec-meta">' + esc(meta.join(' · ')) + '</div>' +
+      (ev && text(value(ev, 'Notes', 'notes')) ? '<p class="h38-wb-sched-notes">' + esc(text(value(ev, 'Notes', 'notes'))) + '</p>' : '') +
+      (job ? '<button type="button" class="h38-wb-rec-primary" id="h38WbSchedOpenJob">Open full job →</button>' +
+        '<h3>Everything that happened</h3>' + timelineHtml(events, 14)
+        : '<div class="h38-wb-empty">This scheduled item is not linked to a job record.</div>');
+    document.body.appendChild(panel);
+    panel.querySelector('#h38WbSchedClose').addEventListener('click', closeSchedPanel);
+    var openBtn = panel.querySelector('#h38WbSchedOpenJob');
+    if (openBtn && job) openBtn.addEventListener('click', function () {
+      var id = text(value(job, 'Job ID', 'jobId', 'id'));
+      closeSchedPanel();
+      try { if (typeof window.openPage === 'function') window.openPage('work'); } catch (e) {}
+      setTimeout(function () { selectJob(id); }, 400);
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (!wide() || !st() || st().page !== 'schedule') return;
+    if (document.getElementById('h38WbSchedPanel')) return;
+    var t = e.target;
+    if (!t || !document.getElementById('mainContent') || !document.getElementById('mainContent').contains(t)) return;
+    if (t.closest && t.closest('button, a, select, input, textarea, [data-wb-q]')) return;
+    var hit = null;
+    try { hit = resolveScheduleClick(t); } catch (err) {}
+    if (hit) {
+      e.preventDefault();
+      e.stopPropagation();
+      openSchedPanel(hit);
+    }
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSchedPanel();
+  });
+
   /* ---------- dispatcher ---------- */
   function reconcile() {
     try { renderCustomerRail(); } catch (e) {}
     try { renderJobsPane(false); } catch (e) {}
     try { renderMoneyPane(false); } catch (e) {}
     try { renderTodayPanes(); } catch (e) {}
+    if (!st() || st().page !== 'schedule') closeSchedPanel();
   }
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
