@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260910-office-onboarding-release-gate-2';
+const BUILD='20261031-kitquote-2';
 const QUOTE_GATE='h38-quote-release-gate';
 const BUCKET='business-office-files';
 const TUS_CHUNK=6*1024*1024;
@@ -38,13 +38,18 @@ async function session(force=false){
   return{api,session:current,user:current.user};
 }
 async function responsePayload(response){const raw=await response.text();try{return raw?JSON.parse(raw):{};}catch{return{status:'FAIL',message:`Quote release gate returned unreadable data (${response.status}).`};}}
+/* P0 (2026-10-31): every aiBuildQuoteDraft authority must persist the
+   built draft through the one canonical module — a build that only
+   stages lines in the session is the defect being fixed. A missing
+   persistence module is a visible FAILED status, never a silent skip. */
+async function persistAiDraftP0(args,result){try{if(result&&result.aiDraftPersistence)return result;if(window.H38_AI_QUOTE_PERSIST&&typeof window.H38_AI_QUOTE_PERSIST.persistDraft==='function'){var aiDraftPersistence=await window.H38_AI_QUOTE_PERSIST.persistDraft(args||{},result);return Object.assign({},result,{aiDraftPersistence:aiDraftPersistence});}var message='The quote-draft saving module did not load, so this build was not saved to Quotes.';console.error('[H38 AI quote persist]',message);try{if(typeof window.toast==='function')window.toast(message+' The lines are still on screen — do not close this quote until it saves.',true);}catch(_){}return Object.assign({},result,{aiDraftPersistence:{status:'FAILED',quoteId:'',message:message}});}catch(error){return Object.assign({},result,{aiDraftPersistence:{status:'FAILED',quoteId:'',message:String(error&&error.message||error)}});}}
 async function buildQuoteThroughGate(args={},timeout=180000,force=false){
   const auth=await session(force),cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{},prepared={...args,businessId:text(args.businessId||businessId()),quoteId:text(args.quoteId||quoteId()),clientRuntimeBuild:BUILD,entryPath:text(args.entryPath||'canonical-business-office')},controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.max(30000,Number(timeout)||180000));
   try{
     const response=await fetch(`${cfg.url}/functions/v1/${QUOTE_GATE}`,{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',headers:{authorization:`Bearer ${auth.session.access_token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':BUILD,'x-h38-request-id':text(prepared.requestId)||`quote-gate-${Date.now()}`},body:JSON.stringify({action:'buildQuote',...prepared}),signal:controller.signal}),data=await responsePayload(response);
     if((response.status===401||/auth|session|token/i.test(text(data?.message)))&&!force)return buildQuoteThroughGate(args,timeout,true);
     if(!response.ok||data?.status!=='PASS')throw new Error(data?.message||`Quote release gate failed (${response.status}).`);
-    return data;
+    return await persistAiDraftP0(prepared,data);
   }finally{clearTimeout(timer);}
 }
 function installBridgeGate(){

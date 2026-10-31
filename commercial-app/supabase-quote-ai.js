@@ -251,9 +251,15 @@ async function buildPricedQuote(args,timeout){
      persistence module is idempotent per build, and a result that
      already carries aiDraftPersistence is left alone. */
   try{
-    if(!audited.aiDraftPersistence&&window.H38_AI_QUOTE_PERSIST&&typeof window.H38_AI_QUOTE_PERSIST.persistDraft==='function'){
-      const aiDraftPersistence=await window.H38_AI_QUOTE_PERSIST.persistDraft(args||{},audited);
-      return {...audited,aiDraftPersistence};
+    if(!audited.aiDraftPersistence){
+      if(window.H38_AI_QUOTE_PERSIST&&typeof window.H38_AI_QUOTE_PERSIST.persistDraft==='function'){
+        const aiDraftPersistence=await window.H38_AI_QUOTE_PERSIST.persistDraft(args||{},audited);
+        return {...audited,aiDraftPersistence};
+      }
+      const missingMsg='The quote-draft saving module did not load, so this build was not saved to Quotes.';
+      console.error('[H38 AI quote persist]',missingMsg);
+      try{if(typeof window.toast==='function')window.toast(missingMsg+' The lines are still on screen — do not close this quote until it saves.',true);}catch(_){}
+      return {...audited,aiDraftPersistence:{status:'FAILED',quoteId:text(args?.quoteId),message:missingMsg}};
     }
   }catch(error){
     return {...audited,aiDraftPersistence:{status:'FAILED',quoteId:text(args?.quoteId),message:text(error?.message||error)}};
