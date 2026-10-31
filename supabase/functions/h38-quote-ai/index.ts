@@ -29,7 +29,7 @@ const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
 const QUOTE_MODEL_TIMEOUT_MS = 120000;
 const QUOTE_MODEL_MAX_ATTEMPTS = 2;
-const QUOTE_AI_BUILD = "20261002-timeout-retry-23";
+const QUOTE_AI_BUILD = "20261031-sell-price-rate-24";
 const PREVIOUS_QUOTE_AI_BUILD = "20260822-owner-bounded-draft-21";
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
 const PRIMARY_COMPONENT_IDS = {
@@ -351,7 +351,7 @@ async function quoteRenderSource(service: ReturnType<typeof serviceClient>, busi
 }
 async function priceBook(service: ReturnType<typeof serviceClient>, businessId: string) {
   const { data: tableRows, error: tableError } = await service.from("price_book_items")
-    .select("id,item_code,category,description,unit,unit_cost,source_type,source_note,approval_status,updated_at")
+    .select("id,item_code,category,description,unit,sell_price,unit_cost,source_type,source_note,approval_status,updated_at")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("updated_at", { ascending: false })
@@ -367,7 +367,11 @@ async function priceBook(service: ReturnType<typeof serviceClient>, businessId: 
       category: row.category,
       description: row.description,
       unit: row.unit,
-      rate: row.unit_cost,
+      // Two-layer price book (2026-10-30): sell_price is the customer rate;
+      // unit_cost is the internal cost and must never be quoted. Legacy rows
+      // with sell_price NULL predate the split and store the sell rate in
+      // unit_cost, so fall back to it only then.
+      rate: row.sell_price !== null && row.sell_price !== undefined ? Number(row.sell_price) : row.unit_cost,
       sourceType,
       sourceNote: row.source_note,
       approvalStatus,

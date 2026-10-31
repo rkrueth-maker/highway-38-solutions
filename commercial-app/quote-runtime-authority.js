@@ -1,8 +1,12 @@
 (function(){
 'use strict';
-const BUILD='20261004-quote-runtime-authority-3-kit-build';
-const QUOTE_RESPONSE_BUDGET_MS=60000;
-const QUOTE_PROVIDER_BUDGET_MS=55000;
+const BUILD='20261031-quote-runtime-authority-4-budgets';
+/* Budgets raised 2026-10-31 (Build Everything A): the edge function's own
+   model budget is 120s per attempt, so a 55s provider budget guaranteed the
+   $0 owner-review fallback whenever the edge was the fallback path. The
+   provider budget now covers one full model attempt. */
+const QUOTE_RESPONSE_BUDGET_MS=130000;
+const QUOTE_PROVIDER_BUDGET_MS=120000;
 const OPTIONS_RESPONSE_BUDGET_MS=80000;
 const Bridge=window.H38Bridge;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};

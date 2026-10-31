@@ -174,7 +174,7 @@ async function h38BuildAiQuoteDraft(){
   if(!String(scope?.value||'').trim()&&!String(measurements?.value||'').trim()){toast('Add scope, site notes, measurements or a saved quote photo first.',true);return;}
   const button=$('h38AiQuoteDraftButton');if(button){button.disabled=true;button.textContent='Working…';}
   try{
-    const result=await state.bridge.request('aiBuildQuoteDraft',{businessId:state.businessId,customerId:customer.value,quoteId:state.quote?.quoteId||'',projectTitle:projectTitle?.value||'',scope:scope?.value||'',measurementNotes:measurements?.value||'',notes:'Use linked quote photos and CAD documents when available. Price Catalog must be searched first.'},180000);
+    const result=await state.bridge.request('aiBuildQuoteDraft',{businessId:state.businessId,customerId:customer.value,quoteId:state.quote?.quoteId||'',projectTitle:projectTitle?.value||'',scope:scope?.value||'',measurementNotes:measurements?.value||'',notes:'Use linked quote photos and CAD documents when available. Price Catalog must be searched first.'},290000);
     if(result.status!=='PASS')throw new Error(result.message||'AI quote draft did not complete.');
     const draft=result.draft||{},suggested=Array.isArray(draft.suggestedLines)?draft.suggestedLines:[];
     state.quote.projectTitle=draft.projectTitle||projectTitle?.value||state.quote.projectTitle||'';
