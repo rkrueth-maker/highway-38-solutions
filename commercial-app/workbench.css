@@ -214,6 +214,22 @@
     color: #22344a; font-weight: 700; cursor: pointer; box-shadow: none; text-align: left;
   }
 
+  /* ---------- schedule: record panel over the board ---------- */
+  .h38-wb-sched-panel {
+    position: fixed; top: 0; right: 0; width: 380px; max-width: 92vw; height: 100vh;
+    background: #fff; z-index: 1500; box-shadow: -18px 0 44px rgba(5, 15, 28, .28);
+    padding: 18px; overflow-y: auto; box-sizing: border-box;
+  }
+  .h38-wb-sched-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .h38-wb-sched-close {
+    border: 0; background: #eef2f6; border-radius: 8px; width: 32px; height: 32px;
+    cursor: pointer; box-shadow: none; flex: 0 0 32px;
+  }
+  .h38-wb-sched-notes { color: #42536a; font-size: 13.5px; }
+  .h38-wb-sched-panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #7a8794; margin: 16px 0 10px; }
+  .h38-wb-sched-panel .h38-wb-rec-title { font-size: 17px !important; }
+  .h38-wb-sched-panel .h38-wb-rec-primary { margin-top: 10px; }
+
   .h38-wb-listpane-ft { padding: 10px 11px; background: #fff; }
   .h38-wb-chasebtn {
     width: 100%; background: #1450b4; color: #fff; border: 0; border-radius: 8px;
