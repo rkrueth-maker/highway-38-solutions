@@ -423,6 +423,15 @@ function hook(force) {
   }
   var main = document.getElementById('mainContent');
   if (!main) return;
+  /* A10 (honest scan 2026-10-31): with no requests, this card is a pure
+   * explainer — do not put it above the Schedule heading/board. Real
+   * requests still surface, placed under the screen header so the
+   * Schedule heading leads the page. */
+  if (!allRequests().length) {
+    if (card) card.remove();
+    ui.sig = '';
+    return;
+  }
   ensureStyle();
   bindClicks();
   var sig = signature();
@@ -430,7 +439,9 @@ function hook(force) {
     card = document.createElement('section');
     card.className = 'card h38-pr-card';
     card.id = 'h38PortalRequests';
-    main.prepend(card);
+    var head = main.querySelector(':scope > .h38-screen-head, :scope > .page-head, :scope > header');
+    if (head && head.parentNode === main) head.insertAdjacentElement('afterend', card);
+    else main.prepend(card);
     card.innerHTML = cardHtml();
     ui.sig = sig;
     return;

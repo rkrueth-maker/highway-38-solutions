@@ -27,7 +27,9 @@
   .h38-wb-rail-go:hover { background: #1d3049; color: #dbe4ee; }
   .h38-wb-rail-item.active .h38-wb-rail-go { background: #22344a; color: #fff; box-shadow: inset 3px 0 0 #4d9fff; }
   .h38-wb-rail-icon { font-size: 32px; line-height: 1.15; }
-  .h38-wb-rail-label { font-size: 13.5px; font-weight: 700; letter-spacing: .02em; max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* A6 (honest scan 2026-10-31): labels must read fully at the approved
+   * 92px rail width — wrap to a second line instead of ellipsising. */
+  .h38-wb-rail-label { font-size: 12.5px; font-weight: 700; letter-spacing: .02em; max-width: 88px; text-align: center; line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }
   .h38-wb-rail-star {
     position: absolute; top: 0; right: 1px; width: 22px; height: 22px;
     padding: 0; border: 0; background: transparent; color: #ffd34d;
@@ -207,7 +209,9 @@
   .h38-wb-qrow .s { display: block; color: #68778a; font-size: 12px; margin-top: 1px; }
   .h38-wb-queue-empty { padding: 14px 13px; color: #68778a; font-size: 13px; }
   .h38-wb-today-stats { display: grid; gap: 6px; font-size: 13.5px; }
-  .h38-wb-today-stats > div { background: #f4f6f8; border: 1px solid #e0e5ea; border-radius: 9px; padding: 8px 11px; font-weight: 600; }
+  .h38-wb-today-stats > div { background: #f4f6f8; border: 1px solid #e0e5ea; border-radius: 9px; padding: 8px 11px; font-weight: 600; display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  .h38-wb-today-stats > div strong { font-size: 15px; font-weight: 800; }
+  .h38-wb-today-stats > div span { color: #68778a; }
   .h38-wb-today-palbtn {
     display: block; width: 100%; margin-top: 10px; padding: 9px 12px;
     border: 1px dashed #33506f; border-radius: 9px; background: #f7f9fb;

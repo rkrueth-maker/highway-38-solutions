@@ -22,7 +22,7 @@ const sync=read('apps-script/commercial-office-beta/CommercialBeta_CompletionSyn
 const jsSyntax=cp.spawnSync(process.execPath,['--check',path.join(root,'commercial-app/app-19.js')],{encoding:'utf8'});
 check(jsSyntax.status===0,`app-19 syntax failed: ${(jsSyntax.stderr||jsSyntax.stdout||'').trim()}`);
 try{new Function(parity);check(true,'');}catch(error){check(false,`Parity Apps Script syntax failed: ${error.message}`);}
-check(index.includes('id="networkBadge"')&&index.includes('id="gatewayBadge"')&&index.includes('id="syncBadge"'),'Internet, secure sync and unsynced-work indicators must be separate.');
+check(index.includes('id="syncBadge"')&&!index.includes('id="networkBadge"')&&!index.includes('id="gatewayBadge"'),'Status must be ONE consolidated indicator (#syncBadge); the separate Internet / Secure sync pills were removed (honest scan A12, 2026-10-31).');
 const assetBuild=(index.match(/window\.H38_ASSET_BUILD='([^']+)'/)||[])[1]||'';
 const parityBuild=(index.match(/app-19\.js\?build=(\d{8}-\d{4})/)||[])[1]||'';
 check(/^\d{8}-\d{4}$/.test(assetBuild)&&/^\d{8}-\d{4}$/.test(parityBuild)&&index.indexOf('app-19.js?build=')<index.indexOf('flow-tightening.js?build='),'Parity runtime must use its own pinned browser build before the current shell release layer.');

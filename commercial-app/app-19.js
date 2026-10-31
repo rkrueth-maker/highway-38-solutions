@@ -40,11 +40,11 @@ renderNav=function(){const pages=allowedPages();$('mainNav').innerHTML=pages.map
 const h38ParityBaseRenderPage=renderPage;
 renderPage=function(){if(!state.snapshot){renderWelcome();return;}const parity={people:renderPeople,accounting:renderAccounting,payroll:renderPayrollPrep,tax:renderTaxPrep,controls:renderControls,reports:renderReports,onboarding:()=>window.renderOnboardingPage&&window.renderOnboardingPage(),setupChecklist:()=>window.renderSetupChecklistPage&&window.renderSetupChecklistPage()};if(typeof window.renderMemberships==='function')parity.memberships=window.renderMemberships;if(parity[state.page])parity[state.page]();else h38ParityBaseRenderPage();};
 
-network=function(){const online=navigator.onLine,node=$('networkBadge');node.textContent=online?'Internet':'No internet';node.className=`badge ${online?'online':'offline'}`;updateGatewayBadge();};
+network=function(){/* A12: one status pill (#syncBadge) — updatePending renders online/offline/saved there. */updatePending().catch(()=>{});};
 function updateGatewayBadge(status=''){
-  const node=$('gatewayBadge');if(!node)return;
-  const connected=state.bridgeReady===true||['connected','bootstrapped'].includes(status);
-  node.textContent=connected?'Secure sync':'Sync offline';node.className=`badge ${connected?'online':'offline'}`;
+  /* A12: the separate "Secure sync" pill is gone (consolidated into
+   * #syncBadge). Kept as a no-op so existing callers stay valid. */
+  return;
 }
 const h38ParityBaseBindGlobal=bindGlobal;
 bindGlobal=function(){h38ParityBaseBindGlobal();if($('globalAiButton'))$('globalAiButton').onclick=openGlobalAi;};
