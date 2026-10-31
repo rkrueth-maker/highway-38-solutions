@@ -173,6 +173,12 @@
       './accounting-posting-bridge.js?build=20260929-bank-csv-records-2',
       './money-agent.js?build=20261022-perperson-1',
       './invoice-live-customer-preview.js?build=20261031-invoice-split-1',
+      // Workbench Money rail (2026-10-31): the rail's customer money
+      // summary must come from the canonical computeProfileMoney —
+      // that module otherwise loads only with the Customers group, so
+      // a Money-first session had no canonical money math available.
+      // Same ?build= URL as PAGE_CUSTOMERS so the loader dedupes it.
+      './customer-profile-money.js?build=20261030-r2-customer-profile-money-1',
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
