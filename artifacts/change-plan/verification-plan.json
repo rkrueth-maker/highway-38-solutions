@@ -1,17 +1,19 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-28T04:36:45.976Z",
-  "base": "217ab000",
+  "generatedAt": "2026-10-31T17:38:13.155Z",
+  "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "free-tools.html",
-    "free-tools/workbook-pack.html",
-    "sitemap.xml"
+    "commercial-app/auth-autofill.css",
+    "commercial-app/index.html",
+    "commercial-app/service-worker.js",
+    "commercial-app/version.json",
+    "commercial-app/workbench.css"
   ],
-  "fileCount": 3,
+  "fileCount": 5,
   "scopes": {
     "publicWebsite": true,
-    "authenticatedApp": false,
+    "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -23,24 +25,27 @@
     "schemaOrDataOwner": false,
     "approvedAssets": false,
     "publicRendering": true,
-    "authenticatedRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes"
+    "desktop and mobile public browser verification for affected routes",
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
-  ],
+  "reusableEvidence": [],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
