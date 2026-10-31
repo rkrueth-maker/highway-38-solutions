@@ -81,6 +81,8 @@
   /* ---------- shared bits ---------- */
   .h38-wb-flash { outline: 3px solid #4d9fff !important; outline-offset: 2px; border-radius: 8px; }
 
+  /* ---------- customers: master-detail gains the rail column ---------- */
+  body.h38-wb-on .h38-c360-master-detail > .h38-wb-rail-right { grid-column: 1 / -1; }
   /* ---------- record rail (customers slice + record anatomy) ---------- */
   .h38-wb-rail-right {
     background: #fbfcfd; border: 1px solid #dde4ec; border-radius: 12px;
@@ -105,4 +107,11 @@
   .h38-wb-tl-ev strong { display: block; font-size: 13px; }
   .h38-wb-tl-meta { color: #68778a; font-size: 12px; }
   .h38-wb-empty { color: #7a8794; font-size: 13px; border: 1px dashed #ccd3db; border-radius: 10px; padding: 12px; }
+}
+
+@media (min-width: 1200px) {
+  body.h38-wb-on .h38-c360-master-detail { grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) 300px; }
+  body.h38-wb-on .h38-c360-master-detail > .h38-wb-rail-right {
+    grid-column: 3; position: sticky; top: 10px; max-height: calc(100vh - 24px);
+  }
 }
