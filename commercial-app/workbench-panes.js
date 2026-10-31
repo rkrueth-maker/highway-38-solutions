@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-11
+/* H38 Workbench panes — build 20261031-workbench-12
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -773,19 +773,75 @@
     if (e.key === 'Escape') closeSchedPanel();
   });
 
+  /* ---------- slice 7: quotes — saved-quotes list pane ----------
+   * The builder keeps its shipped split form/preview (Round 1) and
+   * its own Saved quotes card; the workbench adds the same list as
+   * a persistent left pane on laptop so switching quotes never
+   * needs a scroll hunt. Row clicks go through the ONE open path
+   * the app already exposes, window.openQuote(id) — the pane never
+   * renders or edits a quote itself. Totals shown are the quote's
+   * customer-facing Total (the canonical customer projection), never
+   * internal cost fields. */
+  var selectedQuoteId = '';
+  var quotesKey = '';
+  function renderQuotesPane() {
+    var main = document.getElementById('mainContent');
+    if (!main || !st() || st().page !== 'quotes' || !wide()) {
+      var old = document.getElementById('h38WbQuotesList');
+      if (old) old.remove();
+      if (main) main.classList.remove('h38-wb-grid-quotes');
+      quotesKey = '';
+      return;
+    }
+    var key = rows('quotes').length + '|' + text(snap().cachedAt) + '|' + selectedQuoteId;
+    if (quotesKey === key && document.getElementById('h38WbQuotesList')) return;
+    main.classList.add('h38-wb-grid-quotes');
+    var pane = document.getElementById('h38WbQuotesList');
+    if (!pane) {
+      pane = document.createElement('aside');
+      pane.id = 'h38WbQuotesList';
+      pane.className = 'h38-wb-listpane';
+      pane.setAttribute('aria-label', 'Saved quotes');
+      main.appendChild(pane);
+    }
+    var list = rows('quotes').slice().sort(function (a, b) {
+      return eventTime({ 'Created Time': value(b, 'Updated Time', 'updatedAt', 'Created Time', 'createdAt') }) - eventTime({ 'Created Time': value(a, 'Updated Time', 'updatedAt', 'Created Time', 'createdAt') });
+    });
+    pane.innerHTML = '<div class="h38-wb-listpane-hd">Saved quotes <span>· ' + list.length + ' · click opens it in the builder</span></div>' +
+      (list.length ? list.map(function (q) {
+        var id = text(value(q, 'Quote ID', 'quoteId', 'id'));
+        var sel = id && id === selectedQuoteId ? ' sel' : '';
+        return '<button type="button" class="h38-wb-qitem' + sel + '" data-wb-quote="' + esc(id) + '"><span class="t">' + esc(text(value(q, 'Quote Number')) || 'Quote') + ' · ' + esc(text(value(q, 'Project Title')) || '') + '</span><span class="s">' + esc([customerNameOf(text(value(q, 'Customer ID', 'customerId'))), moneyFmt(Number(value(q, 'Total', 'total')) || 0), text(value(q, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
+      }).join('') : '<div class="h38-wb-queue-empty">No saved quotes yet.</div>');
+    pane.querySelectorAll('[data-wb-quote]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-wb-quote');
+        if (!id) return;
+        selectedQuoteId = id;
+        if (typeof window.openQuote === 'function') {
+          try { window.openQuote(id); } catch (e) {}
+        }
+        quotesKey = '';
+        renderQuotesPane();
+      });
+    });
+    quotesKey = key;
+  }
+
   /* ---------- dispatcher ---------- */
   function reconcile() {
     try { renderCustomerRail(); } catch (e) {}
     try { renderJobsPane(false); } catch (e) {}
     try { renderMoneyPane(false); } catch (e) {}
     try { renderTodayPanes(); } catch (e) {}
+    try { renderQuotesPane(); } catch (e) {}
     if (!st() || st().page !== 'schedule') closeSchedPanel();
   }
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
   window.addEventListener('pageshow', reconcile);
   try { window.matchMedia('(min-width: 761px)').addEventListener('change', reconcile); } catch (e) {}
-  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money' || st().page === 'today')) reconcile(); }, 1500);
+  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money' || st().page === 'today' || st().page === 'quotes')) reconcile(); }, 1500);
 
   window.H38_WORKBENCH = window.H38_WORKBENCH || {};
   window.H38_WORKBENCH.panesBuild = BUILD;
