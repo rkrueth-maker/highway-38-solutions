@@ -225,6 +225,30 @@ Consult these before application, image-heavy, website, or deployment work:
 
 Treat older docs as process references only. The current contracts, manifests, repository binaries, current `main`, and verified live deployment are the technical source of truth.
 
+## Tenant Data and Verification Fixtures (standing rule, 2026-10-31)
+
+The demo tenant (Clearwater Property Services, `businessKey=demo`) is the public
+storefront — its login is printed on the public website. It carries **realistic
+seed data only**: one coherent, believable business story with real-sounding
+customers, jobs, quotes, and invoices.
+
+1. **Verification and test fixtures are created ONLY on the Build Sandbox
+   tenant** (`businessKey=build-sandbox`, "H38 Build Sandbox" — everything-on
+   testing ground). Never create test, probe, rescan, sign-test, or
+   verification records on the demo tenant.
+2. A proof or verification run that must be *shown* on the demo uses realistic
+   records only — a believable customer, a real service, a real price, and a
+   human quote/invoice number. Records titled or named "test", "verification",
+   "trust verification", "fixture", "probe", "rescan", or similar crew
+   vocabulary must never exist on the demo tenant.
+3. If a crew discovers its own earlier fixtures on the demo, it moves them to
+   the Build Sandbox tenant (copy, verify the copy, then remove the demo row,
+   with a manifest) — it does not delete them outright and does not leave them
+   in place.
+4. This rule was set after the 2026-10-31 honest scan (item C1) found the demo
+   filled with crew verification artifacts (e.g. quotes titled "Quote trust
+   verification"); 225 such records were moved to Build Sandbox that day.
+
 ## Visual Change Release Gate
 
 - Follow `docs/public-website/VISUAL_RELEASE_STANDARD.md` for every visual, image, layout, or UI change.
