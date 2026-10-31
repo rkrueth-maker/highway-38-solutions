@@ -161,12 +161,12 @@ check('calculator hydrates on open (app-07)', read(path.join(APP, 'app-07.js')).
 //     customer preview module (same sanitized projection, no second renderer),
 //     laid out two-pane on laptop with a Form/Preview toggle on small screens.
 const previewSrc = read(path.join(APP, 'quote-live-customer-preview.js'));
-check('preview module is the two-layer-6 build', previewSrc.includes("BUILD='20261030-two-layer-11'"));
+check('preview module is the two-layer-6 build', previewSrc.includes("BUILD='20261031-gbb-preview-1'"));
 check('preview still renders through the shared sanitized projection', previewSrc.includes('H38_QUOTE_INTERNAL') && previewSrc.includes('customerLine('));
 check('preview host self-heals into the builder grid', previewSrc.includes('host.parentElement!==draft.parentElement'));
 check('preview mount cannot starve under continuous mutations (bounded debounce)', previewSrc.includes('observerPendingSince'));
 check('split layout + phone toggle present', previewSrc.includes('h38-builder-split') && previewSrc.includes('h38BuilderViewToggle') && previewSrc.includes('data-h38-phone-view') && previewSrc.includes('ensureSplit'));
-check('preview injector points at the new build', read(path.join(APP, 'quote-final-phone-fix.js')).includes('quote-live-customer-preview.js?build=20261030-two-layer-11'));
+check('preview injector points at the new build', read(path.join(APP, 'quote-final-phone-fix.js')).includes('quote-live-customer-preview.js?build=20261031-gbb-preview-1'));
 for (const f of ['quote-live-customer-preview.js', 'quote-print-safe.js', 'quote-pdf-send-live-fix.js', 'quote-customer-options.js']) {
   const src = read(path.join(APP, f));
   check(f + ': no calculator state leaks', !src.includes('costCalculator') && !src.includes('calcMarkup') && !src.includes('Cost Calculator'));
