@@ -201,7 +201,11 @@
      * timed event, and dateless active jobs are surfaced, not hidden
      * behind a "nothing scheduled" claim. */
     const twDigest=window.H38ScheduleTruth?window.H38ScheduleTruth.todayWork(records('scheduleEvents'),records('jobs')):null;
-    return {name,bizName,today,tomorrow,overdue,dueWeek,outstanding,risks,actions,inProgress:twDigest?twDigest.inProgress:[],needsDate:twDigest?twDigest.needsDateJobs:[]};
+    /* The needs-a-date count reads the board's base set (example-marked
+     * rows excluded, same as the Schedule board) so the digest, Today
+     * and Schedule all quote the same number. */
+    const ndDigest=window.H38ScheduleTruth?window.H38ScheduleTruth.coverage(records('jobs').filter(r=>!/\bDEMO\b|\bEX-/i.test([v(r,'Job Number'),v(r,'Project Title'),v(r,'Status')].join(' '))&&r['Example Data']!==true),records('scheduleEvents')).needsDate:[];
+    return {name,bizName,today,tomorrow,overdue,dueWeek,outstanding,risks,actions,inProgress:twDigest?twDigest.inProgress:[],needsDate:ndDigest};
   }
 
   /* ---------- rendering ---------- */
