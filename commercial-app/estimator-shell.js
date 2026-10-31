@@ -29,9 +29,13 @@
  *   Previous-workspace loading behavior: the quotes workspace stays
  *     intact underneath; the shell replaces #mainContent only after
  *     the owner picks Hank/Photos, and Back returns via renderQuotes().
- *   External-action impact: none. The AI never creates a quote
- *     document, never saves, never sends. Lines live only in this
- *     module's staging array until the owner clicks Convert.
+ *   External-action impact: none. The AI never sends anything.
+ *     Since 2026-10-31 (Build Everything A): both AI routes require a
+ *     saved quote record, so the owner's Send (or first photo attach)
+ *     persists the empty DRAFT quote through the canonical SAVE_QUOTE
+ *     operation before the AI runs — see ensureDraftQuote(). AI lines
+ *     still live only in this module's staging array until the owner
+ *     clicks Convert; the builder's Save remains the revision gate.
  *   Migration/rollback plan: delete this file + its CSS and remove the
  *     two loader registrations; the chooser falls back to the exact
  *     pre-shell h38StartQuote behaviour because interception is
@@ -521,13 +525,49 @@
       renderShell();
       return;
     }
-    var quoteId = (window.state && window.state.quote && window.state.quote.quoteId) || 'LOCAL-QUOTE';
+    var quoteId;
+    try { quoteId = await ensureDraftQuote(String((($('h38EstInput') || {}).value) || '').trim()); }
+    catch (e) { quoteId = (window.state && window.state.quote && window.state.quote.quoteId) || 'LOCAL-QUOTE'; }
     try { await upload(files, 'Quote', quoteId); } catch (e) { /* the uploader toasts per-file */ }
     shell.messages.push({ who: 'hank', text: files.length + ' photo' + (files.length === 1 ? '' : 's') + ' attached. Describe the job (or add detail) and tap Build breakdown — Hank will use the linked photos.' });
     renderShell();
   }
 
   /* ------------------------------ AI send ------------------------------- */
+  /* Both AI routes require a SAVED quote record: the Kit quote_build
+     worker rejects a task whose quoteId is empty, and the h38-quote-ai
+     edge function looks the quote up in business_records. This shell
+     historically passed quoteId:'' for a fresh build, so every first-run
+     build fell back to the $0 "Owner review —" placeholder (Build
+     Everything A diagnosis, 2026-10-31: worker task failed "quoteId is
+     required"; edge returns "saved quote could not be found"). On Send,
+     the shell now persists the empty DRAFT quote first — the exact
+     SAVE_QUOTE operation contract app-06 saveQuote uses — so the AI has
+     a real record to draft against. AI lines still live only in this
+     module's staging array until the owner clicks Convert; the draft is
+     never sent to the customer. */
+  async function ensureDraftQuote(scopeText) {
+    var state = window.state;
+    var existing = state && state.quote && state.quote.quoteId;
+    if (existing) return existing;
+    if (typeof window.queueOperation !== 'function') throw new Error('Quote saving is not available in this session.');
+    var quoteId = typeof window.newId === 'function' ? window.newId('QUOTE') : 'QUOTE-' + Date.now();
+    var title = shell.projectTitle || 'Untitled project';
+    var nowIso = new Date().toISOString();
+    var record = { 'Quote ID': quoteId, 'Business ID': state.businessId, 'Customer ID': shell.customerId, 'Quote Number': 'LOCAL-' + Date.now(), 'Project Title': title, 'Scope': scopeText, 'Measurement Notes': '', 'Status': 'Draft', 'Revision': 1, 'Previous Revision': '', 'Tier Mode': 'Single', 'Subtotal': 0, 'Tax': 0, 'Total': 0, 'Created Time': nowIso, 'Updated Time': nowIso, 'Record Version': 1, lines: [], tiers: null, 'Cost Calculator': null };
+    await window.queueOperation('SAVE_QUOTE', 'Quote', quoteId, { quoteId: quoteId, customerId: shell.customerId, projectTitle: title, scope: scopeText, measurementNotes: '', lines: [], tiers: null, costCalculator: null, tierMode: false, tax: 0 }, { collection: 'quotes', record: record, idKeys: ['Quote ID'] });
+    if (typeof window.sync === 'function') await window.sync(false);
+    state.quote = state.quote || { lines: [], tierMode: false, tiers: null, hydrationComplete: true };
+    state.quote.quoteId = quoteId;
+    state.quote.quoteNumber = record['Quote Number'];
+    state.quote.customerId = shell.customerId;
+    state.quote.projectTitle = title;
+    state.quote.scope = scopeText;
+    state.quote.revision = 1;
+    state.quote.hydrationComplete = true;
+    return quoteId;
+  }
+
   async function sendPrompt() {
     if (shell.busy) return;
     var input = $('h38EstInput');
@@ -554,25 +594,26 @@
          intercepts this action, prices price-book first, and returns
          {status:'PASS', draft:{suggestedLines, ...}}. */
       var scope = (shell.trade ? 'Trade: ' + shell.trade + '\n' : '') + prompt;
+      var quoteId = await ensureDraftQuote(scope);
       var result = await window.state.bridge.request('aiBuildQuoteDraft', {
         businessId: window.state.businessId,
         customerId: shell.customerId,
-        quoteId: (window.state.quote && window.state.quote.quoteId) || '',
+        quoteId: quoteId,
         projectTitle: shell.projectTitle || '',
         scope: scope,
         measurementNotes: '',
         notes: 'Use linked quote photos and CAD documents when available. Price Catalog must be searched first.'
-      }, 180000);
+      }, 290000);
       if (!shell.open || requestId !== shell.requestSeq) return;
       if (!shell.scope) shell.scope = scope;
       var added = await ingestAiResult(result, requestId);
       if (!shell.open || requestId !== shell.requestSeq) return;
       if (!added) throw new Error('Hank did not return any priced lines for that description. Add a little more detail and try again.');
       var missingCount = shell.missingCosts.filter(function (item) { return !item.decision || item.decision === 'PENDING'; }).length;
-      shell.messages.push({ who: 'hank', text: 'Drafted ' + added + ' priced line' + (added === 1 ? '' : 's') + ' — review them on the right, edit qty/rate, then Convert to Estimate.' + (missingCount ? ' ' + missingCount + ' possible missing cost' + (missingCount === 1 ? '' : 's') + ' will be flagged for review in the builder.' : '') + ' Nothing is saved or sent.' });
+      shell.messages.push({ who: 'hank', text: 'Drafted ' + added + ' priced line' + (added === 1 ? '' : 's') + ' — review them on the right, edit qty/rate, then Convert to Estimate.' + (missingCount ? ' ' + missingCount + ' possible missing cost' + (missingCount === 1 ? '' : 's') + ' will be flagged for review in the builder.' : '') + ' The draft quote is saved — nothing is sent to the customer.' });
     } catch (error) {
       if (!shell.open || requestId !== shell.requestSeq) return;
-      shell.error = 'Hank could not finish that breakdown (' + ((error && error.message) || 'no result') + '). Nothing was created. Try again, or start blank instead.';
+      shell.error = 'Hank could not finish that breakdown (' + ((error && error.message) || 'no result') + '). Try again, or start blank instead.';
     } finally {
       if (shell.open && requestId === shell.requestSeq) {
         shell.busy = false;
@@ -603,7 +644,7 @@
       state.quoteView = 'builder';
       closeShell();
       if (typeof window.renderQuotes === 'function') window.renderQuotes();
-      toast(lines.length + ' line' + (lines.length === 1 ? '' : 's') + ' staged in the photo review list. Review them there and tap Convert to Estimate to add them to the quote. Nothing is saved or sent.');
+      toast(lines.length + ' line' + (lines.length === 1 ? '' : 's') + ' staged in the photo review list. Review them there and tap Convert to Estimate to add them to the quote. Nothing is sent to the customer.');
       return 'photo-review';
     }
     q.lines = (q.lines || []).concat(lines);
