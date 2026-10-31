@@ -183,6 +183,37 @@
   .h38-wb-invgo .t { display: block; font-weight: 700; font-size: 13.5px; }
   .h38-wb-invgo .s { display: block; color: #68778a; font-size: 12px; margin-top: 1px; }
   .h38-wb-od { color: #b3261e; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; }
+  /* ---------- today: queue | frames | day rail ---------- */
+  #mainContent.h38-wb-grid-today {
+    display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px;
+    column-gap: 14px; align-items: start;
+  }
+  #mainContent.h38-wb-grid-today > * { grid-column: 2; min-width: 0; }
+  #mainContent.h38-wb-grid-today > #h38WbTodayQueue {
+    grid-column: 1; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+  }
+  #mainContent.h38-wb-grid-today > #h38WbTodayRail {
+    grid-column: 3; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); width: 300px; box-sizing: border-box; justify-self: end;
+  }
+  .h38-wb-qrow {
+    display: block; width: 100%; text-align: left; padding: 10px 13px;
+    border: 0; border-bottom: 1px solid #e6eaee; background: transparent;
+    cursor: pointer; box-shadow: none; color: #1c2733;
+  }
+  .h38-wb-qrow:hover { background: #eef3fa; }
+  .h38-wb-qrow .t { display: block; font-weight: 700; font-size: 13.5px; }
+  .h38-wb-qrow .s { display: block; color: #68778a; font-size: 12px; margin-top: 1px; }
+  .h38-wb-queue-empty { padding: 14px 13px; color: #68778a; font-size: 13px; }
+  .h38-wb-today-stats { display: grid; gap: 6px; font-size: 13.5px; }
+  .h38-wb-today-stats > div { background: #f4f6f8; border: 1px solid #e0e5ea; border-radius: 9px; padding: 8px 11px; font-weight: 600; }
+  .h38-wb-today-palbtn {
+    display: block; width: 100%; margin-top: 10px; padding: 9px 12px;
+    border: 1px dashed #33506f; border-radius: 9px; background: #f7f9fb;
+    color: #22344a; font-weight: 700; cursor: pointer; box-shadow: none; text-align: left;
+  }
+
   .h38-wb-listpane-ft { padding: 10px 11px; background: #fff; }
   .h38-wb-chasebtn {
     width: 100%; background: #1450b4; color: #fff; border: 0; border-radius: 8px;
