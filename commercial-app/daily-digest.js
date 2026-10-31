@@ -196,7 +196,12 @@
       `Collect ${money(overdue.reduce((s,r)=>s+num(v(r,'Balance')),0))} overdue`,
       `${overdue.length} invoice${overdue.length>1?'s':''} past due`,'money');
 
-    return {name,bizName,today,tomorrow,overdue,dueWeek,outstanding,risks,actions};
+    /* Schedule truth (C3): the digest's "today" line must agree with
+     * Today's Work — in-progress jobs are today's work even with no
+     * timed event, and dateless active jobs are surfaced, not hidden
+     * behind a "nothing scheduled" claim. */
+    const twDigest=window.H38ScheduleTruth?window.H38ScheduleTruth.todayWork(records('scheduleEvents'),records('jobs')):null;
+    return {name,bizName,today,tomorrow,overdue,dueWeek,outstanding,risks,actions,inProgress:twDigest?twDigest.inProgress:[],needsDate:twDigest?twDigest.needsDateJobs:[]};
   }
 
   /* ---------- rendering ---------- */
@@ -232,7 +237,11 @@
       `</div>`+
       (firstJob
         ?`<p><strong>First up:</strong> ${esc(v(firstJob,'Title'))} at ${esc(dateTime(v(firstJob,'Start Time')))}${v(firstJob,'Location')?` — ${esc(v(firstJob,'Location'))}`:''}</p>`
-        :`<p class="muted">Nothing scheduled today.</p>`)+
+        :(d.inProgress&&d.inProgress.length
+          ?`<p><strong>In progress now:</strong> ${d.inProgress.slice(0,3).map(r=>esc(v(r,'Project Title')||'Job')).join(' · ')}${d.inProgress.length>3?` · +${d.inProgress.length-3} more`:''}</p>`
+          :(d.needsDate&&d.needsDate.length
+            ?`<p class="muted">Nothing timed today. ${d.needsDate.length} active job${d.needsDate.length>1?'s':''} ha${d.needsDate.length>1?'ve':'s'} no date yet — see Schedule to give ${d.needsDate.length>1?'them':'it'} one.</p>`
+            :`<p class="muted">Nothing scheduled today.</p>`)))+
       `</section>`;
 
     const risksHtml=
