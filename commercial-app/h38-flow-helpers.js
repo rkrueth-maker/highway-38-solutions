@@ -513,8 +513,109 @@ function focusPaymentForInvoice(invoiceId){
   ready();
 }
 
+/* ---- Schedule truth (2026-10-31, honest-scan C3) ----
+ * ONE rule for every schedule counter/board pair, so two surfaces can
+ * never disagree about what is scheduled:
+ * - An event's start is the first valid date among its start fields; a
+ *   missing end defaults to the start (the event is never dropped for
+ *   lacking an end time). An event with no valid start is NEEDS A DATE —
+ *   it is listed explicitly wherever its surface counts or lists work,
+ *   never silently excluded from a board while included in a counter.
+ * - Cancelled / void / deleted / archived events are excluded everywhere.
+ * - A job is active unless complete/closed/cancelled/void/deleted/
+ *   archived/paid. A job has upcoming coverage only from a dated event
+ *   that has not ended before today, or from its own date today or later.
+ *   An active job without coverage is unscheduled; one that also has no
+ *   date of its own NEEDS A DATE.
+ * - "Today's work" = events overlapping today + jobs dated today + every
+ *   in-progress job (in-progress work is today's work regardless of
+ *   dates). "Nothing scheduled today" is only truthful when all three
+ *   are empty and no active job is waiting for a date.
+ * Consumers: platform-deepen (Schedule board/strip), customer-readiness
+ * (Today Up Next / Today's Work / unscheduled strip), owner-home,
+ * workbench-panes (Today rail), daily-digest, owner-customer bar. */
+const H38ScheduleTruth=(()=>{
+  const DAY_MS=86400000;
+  const EVENT_COLLECTIONS=['scheduleEvents','schedule','scheduleItems','appointments'];
+  const startOfDay=(d)=>{const x=d?new Date(d):new Date();x.setHours(0,0,0,0);return x;};
+  const asDate=(x)=>{if(x===undefined||x===null||x==='')return null;const d=new Date(x);return Number.isFinite(d.getTime())?d:null;};
+  const eventStart=(row)=>asDate(h38Val(row,'Start Time','startTime','Scheduled Time','scheduledAt','Start','start'));
+  const eventEnd=(row)=>asDate(h38Val(row,'End Time','endTime','End','end'))||eventStart(row);
+  const eventLive=(row)=>!/CANCEL|VOID|DELET|ARCHIV/i.test(text(h38Val(row,'Status','status')));
+  const jobActive=(row)=>!/COMPLETE|COMPLETED|CLOSED|CANCEL|VOID|DELET|ARCHIV|PAID/i.test(text(h38Val(row,'Status','status')));
+  const jobInProgress=(row)=>/IN[ _-]?PROGRESS|STARTED|ON[ _-]?SITE|WORKING/i.test(text(h38Val(row,'Status','status')));
+  const jobDate=(row)=>asDate(h38Val(row,'Start Date','startDate','Scheduled Date','scheduledDate','Service Date','serviceDate','Due Date','dueDate'));
+  const jobId=(row)=>text(h38Val(row,'Job ID','jobId','id'));
+  const eventJobId=(row)=>text(h38Val(row,'Related Record ID','relatedRecordId','Job ID','jobId'));
+  function classifyEvents(list){
+    const dated=[],needsDate=[];
+    (list||[]).forEach(row=>{
+      if(!eventLive(row))return;
+      const s=eventStart(row);
+      if(s)dated.push({row,start:s,end:eventEnd(row)||s});
+      else needsDate.push(row);
+    });
+    return{dated,needsDate};
+  }
+  function boardWeek(list,now){
+    const start=startOfDay(now);
+    const{dated,needsDate}=classifyEvents(list);
+    const days=[];
+    for(let i=0;i<7;i++){
+      const s=new Date(start.getTime()+i*DAY_MS),e=new Date(s.getTime()+DAY_MS);
+      days.push({start:s,end:e,events:dated.filter(x=>x.start<e&&s<x.end)});
+    }
+    const inWindow=dated.filter(x=>x.start<days[6].end&&days[0].start<x.end);
+    const pastCount=dated.filter(x=>x.end<=start).length;
+    return{days,inWindow,needsDate,pastCount,dated};
+  }
+  function coverage(jobs,list,now){
+    const t0=startOfDay(now).getTime();
+    const{dated}=classifyEvents(list);
+    const upcomingByJob=new Set();
+    dated.forEach(x=>{const jid=eventJobId(x.row);if(jid&&x.end.getTime()>=t0)upcomingByJob.add(jid);});
+    const unscheduled=[],needsDate=[];
+    (jobs||[]).forEach(j=>{
+      if(!jobActive(j))return;
+      const jid=jobId(j),jd=jobDate(j);
+      const covered=(!!jid&&upcomingByJob.has(jid))||(!!jd&&jd.getTime()>=t0);
+      if(!covered)unscheduled.push(j);
+      if(!jd&&!(jid&&upcomingByJob.has(jid)))needsDate.push(j);
+    });
+    return{unscheduled,needsDate};
+  }
+  function todayWork(list,jobs,now){
+    const t0=startOfDay(now),t1=new Date(t0.getTime()+DAY_MS);
+    const{dated}=classifyEvents(list);
+    const eventsToday=dated.filter(x=>x.start<t1&&t0<x.end).map(x=>x.row);
+    const active=(jobs||[]).filter(jobActive);
+    const inProgress=active.filter(jobInProgress);
+    const datedToday=active.filter(j=>{const d=jobDate(j);return d&&d>=t0&&d<t1;});
+    const todaysJobs=[...new Set([...inProgress,...datedToday])];
+    const needsDateJobs=coverage(active,list,now).needsDate.filter(j=>!todaysJobs.includes(j));
+    return{eventsToday,inProgress,todaysJobs,needsDateJobs,hasWork:eventsToday.length>0||todaysJobs.length>0};
+  }
+  function upcomingEvents(list,now){
+    const{dated,needsDate}=classifyEvents(list);
+    const t=(now?new Date(now):new Date()).getTime();
+    const list2=dated.filter(x=>x.end.getTime()>=t).sort((a,b)=>a.start-b.start);
+    return{next:list2[0]||null,list:list2,needsDate};
+  }
+  function openCountsForCustomer(jobs,quotes,customerId){
+    const cid=text(customerId);
+    const quoteOpen=(row)=>!/COMPLETE|CLOSED|CANCEL|VOID|DELET|ARCHIV|DECLIN|REJECT|EXPIRED|CONVERTED/i.test(text(h38Val(row,'Status','status')));
+    return{
+      jobs:(jobs||[]).filter(r=>jobActive(r)&&text(h38Val(r,'Customer ID','customerId'))===cid).length,
+      quotes:(quotes||[]).filter(r=>quoteOpen(r)&&text(h38Val(r,'Customer ID','customerId'))===cid).length
+    };
+  }
+  return{EVENT_COLLECTIONS,startOfDay,eventStart,eventEnd,eventLive,jobActive,jobInProgress,jobDate,jobId,eventJobId,classifyEvents,boardWeek,coverage,todayWork,upcomingEvents,openCountsForCustomer};
+})();
+window.H38ScheduleTruth=H38ScheduleTruth;
+
 window.H38Flow=Object.freeze({
   build:BUILD,
+  scheduleTruth:H38ScheduleTruth,
   screenHeader,
   bindScreenHeader,
   renderScreenHeader,

@@ -252,10 +252,17 @@
   function getTodaysJobs() {
     try {
       const jobs = records('jobs') || [];
-      const active = jobs.filter(j => {
-        const s = String(v(j, 'Status') || '').toUpperCase();
-        return ['IN PROGRESS', 'SCHEDULED', 'APPROVED'].includes(s);
-      });
+      /* Schedule truth (C3): "today's jobs" are jobs dated today plus
+       * in-progress jobs (H38ScheduleTruth.todayWork) — dateless
+       * Scheduled/Approved jobs are needs-a-date work, not today's. */
+      const ST = window.H38ScheduleTruth;
+      const active = ST
+        ? ST.todayWork(records('scheduleEvents') || [], jobs).todaysJobs.filter(j =>
+            /IN[ _-]?PROGRESS|SCHEDULED|APPROVED/.test(String(v(j, 'Status') || '').toUpperCase()))
+        : jobs.filter(j => {
+            const s = String(v(j, 'Status') || '').toUpperCase();
+            return ['IN PROGRESS', 'SCHEDULED', 'APPROVED'].includes(s);
+          });
       if (!active.length) return null;
       const first = active[0];
       return {
@@ -993,6 +1000,21 @@
     let scheduleHtml = '';
     if (type === 'project' || type === 'shop' || type === 'default' || type === 'contractor') {
       const schedule = getTodaySchedule();
+      /* Schedule truth (C3): the bare "Nothing scheduled today" claim is
+       * only truthful when nothing is timed today, nothing is in
+       * progress, and no active job is waiting for a date. */
+      const twHome = window.H38ScheduleTruth
+        ? window.H38ScheduleTruth.todayWork(records('scheduleEvents') || [], records('jobs') || [])
+        : null;
+      const schedEmpty = schedule.length ? '' : (twHome && twHome.inProgress.length
+        ? `<p class="muted" style="margin:0">Nothing timed on the calendar today — in progress now:</p>` + twHome.inProgress.slice(0, 5).map(j => `
+            <div class="h38-sched-row">
+              <span class="h38-sched-time">In progress</span>
+              <span class="h38-sched-title">${esc(v(j, 'Project Title') || 'Job')}</span>
+            </div>`).join('')
+        : (twHome && twHome.needsDateJobs.length
+          ? `<p class="muted" style="margin:0">No timed work today — ${twHome.needsDateJobs.length} active job${twHome.needsDateJobs.length === 1 ? '' : 's'} still need${twHome.needsDateJobs.length === 1 ? 's' : ''} a date. See Schedule to give ${twHome.needsDateJobs.length === 1 ? 'it' : 'them'} one.</p>`
+          : '<p class="muted" style="margin:0">Nothing scheduled today.</p>'));
       scheduleHtml = `
         <section class="h38-schedule-card">
           <h2>📅 Today</h2>
@@ -1000,7 +1022,7 @@
             <div class="h38-sched-row">
               <span class="h38-sched-time">${esc(s.time)}</span>
               <span class="h38-sched-title">${esc(s.title)}</span>
-            </div>`).join('') : '<p class="muted" style="margin:0">Nothing scheduled today.</p>'}
+            </div>`).join('') : schedEmpty}
         </section>`;
     }
 
