@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-phoneb-3';
+const BUILD='20261031-phoneb-4';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -148,6 +148,13 @@ function ensureMoneyBand(){
   const waiting=text(quotesBtn.querySelector('strong')?.textContent);
   const sig=owed+'|'+waiting;
   if(!band){band=document.createElement('div');band.id='h38PhoneMoneyBand';band.className='h38-phone-money-band';stats.insertAdjacentElement('beforebegin',band);}
+  /* The band must live as the section's previous sibling, NOT inside
+   * it: the Today workspace section is a grid whose tracks sum to
+   * ~260px at phone width, so any in-section placement inherits that
+   * width (measured live). As a sibling in the block frame it takes
+   * the full content width. */
+  const bandSection=stats.closest('section');
+  if(bandSection&&bandSection.parentElement&&band.nextElementSibling!==bandSection)bandSection.parentElement.insertBefore(band,bandSection);
   if(band.dataset.sig!==sig){
     band.dataset.sig=sig;
     band.innerHTML=`${moneyBtn?`<button type="button" data-band-go="money"><strong>${esc(owed)}</strong><span>owed to you</span></button>`:''}<button type="button" class="h38-band-quotes" data-band-go="quotes"><strong>${esc(waiting)}</strong><span>quotes waiting</span></button><span class="h38-band-go" aria-hidden="true">›</span>`;
