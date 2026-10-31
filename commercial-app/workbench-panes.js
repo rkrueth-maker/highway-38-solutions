@@ -62,6 +62,15 @@
     var n = Number(v || 0);
     return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   }
+  /* Human document numbers (Wave 1A): never render a raw LOCAL- id as
+   * a quote/invoice/job number — the canonical H38_HUMAN_NUMBERS
+   * derivation supplies the human number every surface agrees on. */
+  function hn(collection, row) {
+    try { if (window.H38_HUMAN_NUMBERS) return window.H38_HUMAN_NUMBERS.numberFor(collection, row); } catch (e) {}
+    var key = collection === 'quotes' ? 'Quote Number' : collection === 'invoices' ? 'Invoice Number' : 'Job Number';
+    var s = text(value(row, key));
+    return /^LOCAL-/i.test(s) ? '' : s;
+  }
   function snap() { var s = st(); return (s && s.snapshot) || {}; }
 
   /* ---------- shared timeline assembly (bundle groups -> events) ----------
@@ -117,10 +126,12 @@
           if (!selfInv && iid !== opts.onlyInvoiceId) return;
         }
         var title = text(value.apply(null, [row].concat(spec.titles))) || spec.label;
+        var rawNum = collection === 'quotes' ? text(value(row, 'Quote Number')) : collection === 'jobs' ? text(value(row, 'Job Number')) : collection === 'invoices' ? text(value(row, 'Invoice Number')) : '';
+        if (rawNum && title === rawNum) title = hn(collection, row) || spec.label;
         var status = text(value(row, 'Status', 'status', 'Outcome', 'Payment Status', 'Approval Status'));
         var extra = '';
-        if (collection === 'quotes') extra = text(value(row, 'Quote Number'));
-        if (collection === 'jobs') extra = text(value(row, 'Job Number'));
+        if (collection === 'quotes') extra = hn('quotes', row);
+        if (collection === 'jobs') extra = hn('jobs', row);
         if (collection === 'invoices') extra = moneyFmt(Number(value(row, 'Total', 'Amount', 'Balance Due')) || 0);
         if (collection === 'payments') extra = moneyFmt(Number(value(row, 'Amount', 'Payment Amount')) || 0);
         out.push({ icon: spec.icon, label: spec.label, title: title, status: status, extra: extra, time: eventTime(row) });
@@ -249,13 +260,14 @@
      * handlers that re-render sections and reset the checklist —
      * learned live 2026-10-31. */
     var job = rows('jobs').filter(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === id; })[0];
-    var num = job ? text(value(job, 'Job Number')) : '';
+    var num = job ? hn('jobs', job) : '';
+    var rawNum = job ? text(value(job, 'Job Number')) : '';
     var sel = document.querySelector('#supabaseChecklist select');
     if (sel) {
       var match = -1;
       for (var i = 0; i < sel.options.length; i++) {
         var o = sel.options[i];
-        if (o.value === id || (num && o.text.indexOf(num) >= 0)) { match = i; break; }
+        if (o.value === id || (num && o.text.indexOf(num) >= 0) || (rawNum && o.text.indexOf(rawNum) >= 0)) { match = i; break; }
       }
       if (match >= 0 && sel.selectedIndex !== match) {
         sel.selectedIndex = match;
@@ -321,8 +333,8 @@
     list.innerHTML = '<div class="h38-wb-listpane-hd">Jobs <span>· ' + jobs.length + ' · click one, it opens here</span></div>' +
       jobs.map(function (j) {
         var id = text(value(j, 'Job ID', 'jobId', 'id'));
-        var title = text(value(j, 'Project Title', 'Title')) || text(value(j, 'Job Number')) || 'Job';
-        var meta = [text(value(j, 'Job Number')), jobCustomerName(j), text(value(j, 'Status', 'status'))].filter(Boolean).join(' · ');
+        var title = text(value(j, 'Project Title', 'Title')) || hn('jobs', j) || 'Job';
+        var meta = [hn('jobs', j), jobCustomerName(j), text(value(j, 'Status', 'status'))].filter(Boolean).join(' · ');
         var next = text(value(j, 'Next Action'));
         return '<button type="button" class="h38-wb-jobrow' + (id === jobSel ? ' sel' : '') + '" data-wb-job="' + esc(id) + '">' +
           '<span class="t">' + esc(title) + '</span><span class="s">' + esc(meta) + '</span>' +
@@ -348,10 +360,10 @@
       var events = jobEvents(job);
       /* The job's own created/updated stamps always anchor the story. */
       var created = eventTime({ 'Created Time': value(job, 'Created Time', 'createdAt') });
-      if (created) events.push({ icon: '🧰', label: 'Job', title: title + ' — created', status: status, extra: text(value(job, 'Job Number')), time: created });
+      if (created) events.push({ icon: '🧰', label: 'Job', title: title + ' — created', status: status, extra: hn('jobs', job), time: created });
       events.sort(function (a, b) { return b.time - a.time; });
       rail.innerHTML = '<div class="h38-wb-rec-head"><h3 class="h38-wb-rec-title">' + esc(title) + '</h3>' +
-        '<div class="h38-wb-rec-meta">' + esc([text(value(job, 'Job Number')), jobCustomerName(job), status, text(value(job, 'Due Date')) ? 'Due ' + text(value(job, 'Due Date')) : ''].filter(Boolean).join(' · ')) + '</div>' +
+        '<div class="h38-wb-rec-meta">' + esc([hn('jobs', job), jobCustomerName(job), status, text(value(job, 'Due Date')) ? 'Due ' + text(value(job, 'Due Date')) : ''].filter(Boolean).join(' · ')) + '</div>' +
         (primaryLabel ? '<button type="button" class="h38-wb-rec-primary" id="h38WbJobPrimary">' + esc(primaryLabel) + ' →</button>' : '') +
         '</div><h3>Everything that happened</h3>' + timelineHtml(events, 18);
       var pb = rail.querySelector('#h38WbJobPrimary');
@@ -415,8 +427,8 @@
     invSel = id;
     var inv = rows('invoices').filter(function (r) { return text(value(r, 'Invoice ID', 'invoiceId', 'id')) === id; })[0];
     if (inv && !fromPage) {
-      var num = text(value(inv, 'Invoice Number'));
-      var rowEl = num ? pageInvoiceRow(num) : null;
+      var num = hn('invoices', inv);
+      var rowEl = (num ? pageInvoiceRow(num) : null) || pageInvoiceRow(text(value(inv, 'Invoice Number')));
       if (rowEl) {
         rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         rowEl.classList.add('h38-wb-flash');
@@ -440,7 +452,7 @@
     var picked = rows('invoices').filter(function (r) { return chaseSet[text(value(r, 'Invoice ID', 'invoiceId', 'id'))]; });
     if (!picked.length) return;
     var lines = picked.map(function (r) {
-      return 'Invoice ' + text(value(r, 'Invoice Number')) + ' — ' + customerNameOf(text(value(r, 'Customer ID', 'customerId'))) +
+      return 'Invoice ' + hn('invoices', r) + ' — ' + customerNameOf(text(value(r, 'Customer ID', 'customerId'))) +
         ', balance ' + moneyFmt(invBalance(r)) + ', due ' + (text(value(r, 'Due Date', 'dueDate')) || 'n/a');
     });
     stageKitMessage('Prepare payment reminders for these open invoices. Show me each draft for my approval before anything is sent:\n' + lines.join('\n'));
@@ -479,7 +491,7 @@
     list.innerHTML = '<div class="h38-wb-listpane-hd">Invoices <span>· ' + invs.length + ' · tick open ones to chase</span></div>' +
       shown.map(function (r) {
         var id = text(value(r, 'Invoice ID', 'invoiceId', 'id'));
-        var num = text(value(r, 'Invoice Number')) || id;
+        var num = hn('invoices', r) || 'Invoice';
         var bal = invBalance(r), od = invOverdue(r);
         var meta = [customerNameOf(text(value(r, 'Customer ID', 'customerId'))), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ');
         var due = text(value(r, 'Due Date', 'dueDate'));
@@ -511,7 +523,7 @@
     }
     var inv = invs.filter(function (r) { return text(value(r, 'Invoice ID', 'invoiceId', 'id')) === invSel; })[0];
     if (inv) {
-      var num = text(value(inv, 'Invoice Number')) || invSel;
+      var num = hn('invoices', inv) || 'Invoice';
       var cid = text(value(inv, 'Customer ID', 'customerId'));
       var groups = customerGroups(cid);
       var m = computeMoney(groups);
@@ -582,7 +594,7 @@
       todayKey = '';
       return;
     }
-    var key = text(snap().cachedAt) + '|' + rows('invoices').length + '|' + rows('quotes').length + '|' + rows('scheduleEvents').length;
+    var key = text(snap().cachedAt) + '|' + rows('invoices').length + '|' + rows('quotes').length + '|' + rows('scheduleEvents').length + '|' + rows('jobs').length + '|' + rows('jobs').filter(function (j) { return /progress/i.test(text(value(j, 'Status', 'status'))); }).length;
     if (todayKey === key && document.getElementById('h38WbTodayQueue')) { wireTodayPaletteEntry(); return; }
     main.classList.add('h38-wb-grid-today');
     var queue = document.getElementById('h38WbTodayQueue');
@@ -608,10 +620,10 @@
       qHtml += '<div class="h38-wb-queue-empty">All clear — nothing overdue, waiting or requested.</div>';
     }
     overdue.forEach(function (r) {
-      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="money"><span class="t">💵 Chase invoice ' + esc(text(value(r, 'Invoice Number'))) + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), moneyFmt(invBalance(r)) + ' open', 'due ' + text(value(r, 'Due Date', 'dueDate'))].filter(Boolean).join(' · ')) + '</span></button>';
+      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="money"><span class="t">💵 Chase invoice ' + esc(hn('invoices', r)) + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), moneyFmt(invBalance(r)) + ' open', 'due ' + text(value(r, 'Due Date', 'dueDate'))].filter(Boolean).join(' · ')) + '</span></button>';
     });
     waiting.forEach(function (r) {
-      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="quotes"><span class="t">🧾 Quote waiting: ' + esc(text(value(r, 'Quote Number')) || text(value(r, 'Project Title')) || 'Quote') + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), moneyFmt(Number(value(r, 'Total', 'total')) || 0), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
+      qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="quotes"><span class="t">🧾 Quote waiting: ' + esc(hn('quotes', r) || text(value(r, 'Project Title')) || 'Quote') + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), moneyFmt(Number(value(r, 'Total', 'total')) || 0), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
     });
     requests.forEach(function (r) {
       qHtml += '<button type="button" class="h38-wb-qrow" data-wb-q="schedule"><span class="t">📥 Request: ' + esc(text(value(r, 'Subject', 'Title', 'Request Type')) || 'Request') + '</span><span class="s">' + esc([customerNameOf(text(value(r, 'Customer ID', 'customerId'))), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
@@ -636,18 +648,42 @@
       var s = new Date(value(e, 'Start Time', 'startTime'));
       return Number.isFinite(s.getTime()) && s.toDateString() === now.toDateString();
     }).sort(function (a, b) { return new Date(value(a, 'Start Time', 'startTime')) - new Date(value(b, 'Start Time', 'startTime')); });
+    /* Schedule truth (C3): the rail and the centre Today's Work card
+     * read the same classification — in-progress jobs are today's work
+     * here too, and the bare empty claim only renders when there is
+     * genuinely nothing timed, nothing in progress, and no active job
+     * waiting for a date. */
+    var twWb = null;
+    if (window.H38ScheduleTruth) {
+      var allEvWb = [];
+      window.H38ScheduleTruth.EVENT_COLLECTIONS.forEach(function (n) { allEvWb = allEvWb.concat(rows(n)); });
+      twWb = window.H38ScheduleTruth.todayWork(allEvWb, rows('jobs'));
+    }
     var strip = main.querySelector('.h38-today-stats');
     var statsHtml = '';
     if (strip) {
+      /* A5 (honest scan 2026-10-31): the strip's own markup is
+       * <strong>value</strong><span>label</span> with no whitespace
+       * between them, so a flat textContent read runs value and label
+       * together ("$22,400.25Open invoices"). Read value and label
+       * structurally and re-render them as separate elements. */
       var kids = Array.prototype.slice.call(strip.children || []);
-      var parts = kids.length >= 2 ? kids.map(function (k) { return k.textContent.replace(/\s+/g, ' ').trim(); }).filter(Boolean) : [strip.textContent.replace(/\s+/g, ' ').trim()];
-      statsHtml = '<div class="h38-wb-today-stats">' + parts.map(function (part) { return '<div>' + esc(part) + '</div>'; }).join('') + '</div>';
+      var parts = kids.length ? kids.map(function (k) {
+        var val = k.querySelector('strong'), lab = k.querySelector('span');
+        if (val && lab) return { value: text(val.textContent), label: text(lab.textContent) };
+        return { value: '', label: k.textContent.replace(/\s+/g, ' ').trim() };
+      }).filter(function (p) { return p.value || p.label; }) : [{ value: '', label: strip.textContent.replace(/\s+/g, ' ').trim() }];
+      statsHtml = '<div class="h38-wb-today-stats">' + parts.map(function (p) {
+        return '<div>' + (p.value ? '<strong>' + esc(p.value) + '</strong>' : '') + '<span>' + esc(p.label) + '</span></div>';
+      }).join('') + '</div>';
     }
     rail.innerHTML = '<h3>Today\'s schedule</h3>' +
-      (todays.length ? '<div class="h38-wb-tl">' + todays.map(function (e) {
+      (todays.length || (twWb && twWb.inProgress.length) ? '<div class="h38-wb-tl">' + todays.map(function (e) {
         var s = new Date(value(e, 'Start Time', 'startTime'));
         return '<div class="h38-wb-tl-ev"><div class="h38-wb-tl-when">' + esc(s.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</div><strong>' + esc(text(value(e, 'Title')) || 'Scheduled') + '</strong><div class="h38-wb-tl-meta">' + esc([text(value(e, 'Location')), text(value(e, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</div></div>';
-      }).join('') + '</div>' : '<div class="h38-wb-empty">Nothing scheduled today.</div>') +
+      }).join('') + (twWb ? twWb.inProgress.map(function (j) {
+        return '<div class="h38-wb-tl-ev"><div class="h38-wb-tl-when">In progress</div><strong>' + esc(text(value(j, 'Project Title')) || 'Job') + '</strong><div class="h38-wb-tl-meta">' + esc(text(value(j, 'Status', 'status'))) + '</div></div>';
+      }).join('') : '') + '</div>' : '<div class="h38-wb-empty">' + (twWb && twWb.needsDateJobs.length ? 'No timed work today — ' + twWb.needsDateJobs.length + ' job' + (twWb.needsDateJobs.length === 1 ? '' : 's') + ' need a date.' : 'Nothing scheduled today.') + '</div>') +
       (statsHtml ? '<h3>The numbers</h3>' + statsHtml : '');
     wireTodayPaletteEntry();
     todayKey = key;
@@ -688,6 +724,8 @@
       if (t && !titles[t]) titles[t] = { job: j };
       var n = text(value(j, 'Job Number'));
       if (n) titles[n] = { job: j };
+      var hnN = hn('jobs', j);
+      if (hnN && hnN !== n) titles[hnN] = { job: j };
     });
     var el = target, depth = 0;
     while (el && el !== document.body && depth < 7) {
@@ -736,7 +774,7 @@
     if (job) meta.push(jobCustomerName(job));
     var events = job ? jobEvents(job) : [];
     var created = job ? eventTime({ 'Created Time': value(job, 'Created Time', 'createdAt') }) : 0;
-    if (job && created) events.push({ icon: '🧰', label: 'Job', title: (text(value(job, 'Project Title', 'Title')) || 'Job') + ' — created', status: text(value(job, 'Status', 'status')), extra: text(value(job, 'Job Number')), time: created });
+    if (job && created) events.push({ icon: '🧰', label: 'Job', title: (text(value(job, 'Project Title', 'Title')) || 'Job') + ' — created', status: text(value(job, 'Status', 'status')), extra: hn('jobs', job), time: created });
     events.sort(function (a, b) { return b.time - a.time; });
     panel.innerHTML = '<div class="h38-wb-sched-head"><h3 class="h38-wb-rec-title">' + esc(title) + '</h3>' +
       '<button type="button" class="h38-wb-sched-close" id="h38WbSchedClose" aria-label="Close panel">✕</button></div>' +
@@ -822,7 +860,7 @@
       (list.length ? list.map(function (q) {
         var id = text(value(q, 'Quote ID', 'quoteId', 'id'));
         var sel = id && id === selectedQuoteId ? ' sel' : '';
-        return '<button type="button" class="h38-wb-qitem' + sel + '" data-wb-quote="' + esc(id) + '"><span class="t">' + esc(text(value(q, 'Quote Number')) || 'Quote') + ' · ' + esc(text(value(q, 'Project Title')) || '') + '</span><span class="s">' + esc([customerNameOf(text(value(q, 'Customer ID', 'customerId'))), moneyFmt(Number(value(q, 'Total', 'total')) || 0), text(value(q, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
+        return '<button type="button" class="h38-wb-qitem' + sel + '" data-wb-quote="' + esc(id) + '"><span class="t">' + esc(hn('quotes', q) || 'Quote') + ' · ' + esc(text(value(q, 'Project Title')) || '') + '</span><span class="s">' + esc([customerNameOf(text(value(q, 'Customer ID', 'customerId'))), moneyFmt(Number(value(q, 'Total', 'total')) || 0), text(value(q, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</span></button>';
       }).join('') : '<div class="h38-wb-queue-empty">No saved quotes yet.</div>');
     pane.querySelectorAll('[data-wb-quote]').forEach(function (b) {
       b.addEventListener('click', function () {

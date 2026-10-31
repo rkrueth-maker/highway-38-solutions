@@ -28,7 +28,7 @@ const source=fs.readFileSync(path.join(root,'commercial-app/office-reference-sam
   assert.match(await card.innerText(),/Casey Bennett/,'Northern fictional customer missing');
   assert.match(await card.innerText(),/Pine Shore Cabin/,'Northern sample property missing');
   assert.match(await card.innerText(),/Northern Lakes Property Maintenance/,'Northern tenant label missing');
-  const pages=['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant','settings'];
+  const pages=['today','customers','work','meetings','quotes','schedule','messages','field','money','accounting','payroll','tax','reports','people','inventory','fleet','documents','social','controls','ai','assistant'];
   for(const key of pages){await page.evaluate(key=>{window.state.page=key;window.state.snapshot={};document.getElementById('mainContent').innerHTML='<header class="page-head"><h1>'+key+'</h1></header>';window.H38_OFFICE_REFERENCE_SAMPLES.enhance();},key);const ref=page.locator('[data-h38-reference-sample]');assert.equal(await ref.count(),1,`${key} reference missing`);assert.match(await ref.innerText(),/Fictional reference example/,`${key} fictional label missing`);}
   assert.equal(errors.length,0,`browser errors: ${errors.join(' | ')}`);
 

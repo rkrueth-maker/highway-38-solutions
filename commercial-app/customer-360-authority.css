@@ -73,3 +73,22 @@
 }
 .h38-c360-search #h38Customer360Matches button small{flex:0 0 auto;white-space:nowrap}
 .h38-c360-nomatch{padding:11px 13px;color:#5d7688;font-size:.86rem;background:#fff}
+
+/* A11 (honest scan 2026-10-31): Customers on the phone — search first,
+ * primary action compact, first customer visible near the top. Phone
+ * only (<=760px); the desktop Workbench panes are untouched. The
+ * screen-header rules below override styles.css's full-width stacking
+ * for the Customers header only. */
+@media(max-width:760px){
+ .h38-screen-head[data-h38-page="customers"] .h38-screen-head__actions .primary{width:auto;flex:1 1 42%;min-height:44px}
+ .h38-screen-head[data-h38-page="customers"] .h38-screen-head__actions .secondary{flex:1 1 42%;min-height:44px}
+ .h38-screen-head[data-h38-page="customers"] .h38-screen-head__more{width:auto;flex:1 1 42%}
+ .h38-screen-head[data-h38-page="customers"] .h38-screen-head__more summary{width:auto;min-height:44px}
+ .h38-screen-head[data-h38-page="customers"] .h38-screen-head__more-menu button{width:auto}
+ .h38-screen-head[data-h38-page="customers"] .h38-screen-head__actions [data-h38-page-pdf]{flex:1 1 42%;min-height:44px}
+ .h38-c360-directory-rail{display:flex;flex-direction:column;gap:8px}
+ .h38-c360-directory-rail .h38-c360-search{order:-1}
+ .h38-c360-directory-rail .h38-customer-directory-head{display:none}
+ .h38-c360-directory-rail .h38-c360-search label{font-size:.8rem}
+ .h38-c360-directory-rail [data-h38-customer-directory-list]{max-height:300px!important}
+}
