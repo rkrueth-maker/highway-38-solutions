@@ -796,21 +796,9 @@ function fleetHook() {
     return;
   }
   ensureStyle();
-  if (page === 'schedule') {
-    var mainS = document.getElementById('mainContent');
-    if (mainS && !banner) {
-      banner = document.createElement('section');
-      banner.className = 'card h38-rp-card';
-      banner.id = 'h38RoutePlannerBanner';
-      banner.innerHTML = '<h3 style="margin:0 0 6px">\uD83D\uDDFA\uFE0F Routes &amp; dispatch</h3>' +
-        '<p class="h38-rp-note">Build a route from a few addresses, see recorded stops and mileage, and check today\u2019s dispatch map.</p>' +
-        '<div class="h38-rp-actions"><button type="button" data-h38rp-open>Open routes &amp; dispatch</button></div>';
-      mainS.prepend(banner);
-      banner.querySelector('[data-h38rp-open]').onclick = function() {
-        if (typeof w.openPage === 'function') w.openPage('fleet');
-      };
-    }
-  }
+  /* A10 (honest scan 2026-10-31): no "Routes & dispatch" explainer card
+   * on the Schedule page — the board leads there. The full routes &
+   * dispatch card lives on the Fleet page below. */
   if (page !== 'fleet') return;
   var main = document.getElementById('mainContent');
   if (!main) return;
