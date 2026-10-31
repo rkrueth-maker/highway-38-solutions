@@ -43,7 +43,7 @@
       './site-visit-ai-evidence-bridge.js?build=20260817-private-site-visit-ai-evidence-1',
       './measurement-verification-authority.js?build=20260825-measurement-verification-authority-2',
       './quote-measurement-action-photo-guard.js?build=20260814-quote-measurement-action-photo-guard-4',
-      './site-visit-photo-quote-runtime-repair.js?build=20261031-kitquote-3',
+      './site-visit-photo-quote-runtime-repair.js?build=20261031-kitquote-4',
       './android-camera-direct-fix.js?build=20260918-one-shell-field-experience-1',
       './field-visit-voice-capture.js?build=20260810-2008',
       './field-visit-transcription.js?build=20260810-2010',
@@ -65,10 +65,10 @@
     const PAGE_QUOTES = [
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
       './supabase-client-quote-branding.js?build=20260806-0344',
-      './quote-ai-draft-persistence.js?build=20261031-kitquote-3',
+      './quote-ai-draft-persistence.js?build=20261031-kitquote-4',
       './supabase-quote-ai.js?build=20261030-two-layer-1',
-      './supabase-quote-ai-auth-fix.js?build=20261031-kitquote-3',
-      './estimator-shell.js?build=20261031-kitquote-3',
+      './supabase-quote-ai-auth-fix.js?build=20261031-kitquote-4',
+      './estimator-shell.js?build=20261031-kitquote-4',
       './quote-mobile-stabilization.js?build=20261030-two-layer-8',
       './quote-ai-live-fix.js?build=20261030-two-layer-1',
       './quote-working-hammer.js?build=20260825-quote-working-ui-only-20-phone-authority',
@@ -109,7 +109,7 @@
       './conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1',
     ];
     const PAGE_TASKS = [
-      './tasks-page.js?build=20261031-kitquote-3',
+      './tasks-page.js?build=20261031-kitquote-4',
     ];
     // Work (2026-10-26): the Work page's Mark Complete buttons and status
     // select route through H38CustomerComms.markJobComplete (review prompt

@@ -31,7 +31,7 @@
 (function () {
   'use strict';
   if (window.H38_AI_QUOTE_PERSIST) return;
-  var BUILD = '20261031-kitquote-3';
+  var BUILD = '20261031-kitquote-4';
 
   function text(value) { return String(value == null ? '' : value).trim(); }
   function num(value) { var n = Number(value == null ? 0 : value); return Number.isFinite(n) ? n : 0; }
@@ -280,6 +280,26 @@
         q.savedLineSnapshot = JSON.parse(JSON.stringify(lines));
       }
     } catch (_) {}
+    /* The Quote Review task is created by a database trigger when the
+       empty shell quote is first saved — at that moment the shell still
+       carries a LOCAL- number, so the task title can be stale. If the
+       task is already in the local snapshot, retitle it to the human
+       quote number. Best effort only: the quote itself is the record
+       that matters and it is already proven saved above. */
+    try {
+      var taskRow = rows('tasks').find(function (row) {
+        return text(val(row, 'Quote ID', 'Linked Record ID')) === quoteId && /quote/i.test(text(val(row, 'Task Type')) + ' ' + text(val(row, 'Task Title', 'Title')));
+      });
+      if (taskRow) {
+        var taskId = text(val(taskRow, 'Task ID', 'taskId'));
+        var wantTitle = 'Review new quote: ' + quoteNumber;
+        if (taskId && text(val(taskRow, 'Task Title', 'Title')) !== wantTitle && typeof window.queueOperation === 'function') {
+          var base = taskRow.payload && typeof taskRow.payload === 'object' ? taskRow.payload : taskRow;
+          var taskRecord = Object.assign({}, base, { 'Task Title': wantTitle, 'Updated Time': new Date().toISOString() });
+          await window.queueOperation('SAVE_ENTITY', 'Task', taskId, { entity: 'tasks', record: taskRecord }, { collection: 'tasks', record: taskRecord, idKeys: ['Task ID'] });
+        }
+      }
+    } catch (renameError) { try { console.warn('[H38 AI quote persist] review-task retitle skipped:', renameError && renameError.message || renameError); } catch (_) {} }
     var out = { status: 'PERSISTED', quoteId: quoteId, quoteNumber: quoteNumber, total: total, lineCount: lines.length, revision: revision, verifiedBy: verifiedBy, message: 'Draft quote ' + quoteNumber + ' saved to Quotes for owner review.', build: BUILD };
     completed[key] = out;
     return out;

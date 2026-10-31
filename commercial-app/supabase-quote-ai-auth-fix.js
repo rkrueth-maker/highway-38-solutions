@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-kitquote-3';
+const BUILD='20261031-kitquote-4';
 const config=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 const Bridge=window.H38Bridge;
 const shared=window.H38_SUPABASE_SHARED_CLIENT;

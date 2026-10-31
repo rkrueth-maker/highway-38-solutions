@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-kitquote-3';
+const BUILD='20261031-kitquote-4';
 /* Budgets raised 2026-10-31 (Build Everything A): the edge function's own
    model budget is 120s per attempt, so a 55s provider budget guaranteed the
    $0 owner-review fallback whenever the edge was the fallback path. The

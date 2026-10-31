@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-kitquote-3';
+const BUILD='20261031-kitquote-4';
 const C=window.H38_FIELD_VISIT_CORE;
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 const shared=window.H38_SUPABASE_SHARED_CLIENT;
