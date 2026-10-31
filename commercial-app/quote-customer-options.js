@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260815-2045';
+const BUILD='20261031-tier-aware-1';
 const H38_BUSINESS_ID='10b85a89-5834-436d-95b0-c6ee2eb335ad';
 const PAINT_OPTION_ID='5ee6e994-d2dd-4695-bb14-8a878841af83';
 const PAINT_FALLBACK={
@@ -135,6 +135,12 @@ async function decoratePreview(){
   decorating=true;
   try{
     installStyles();
+    /* Tier mode (Good/Better/Best): the preview document's table and
+       totals come from the tier rendering; quoteLines() is empty in
+       tier mode, so decorating from it zeroed the preview (live proof
+       2026-10-31, Build Everything B follow-up). Hands off. */
+    const quoteState=window.state?.quote||{};
+    if(quoteState.tierMode&&Array.isArray(quoteState.tiers)&&quoteState.tiers.length){document.getElementById('h38CustomerOptionalAddOns')?.remove();return;}
     const lines=quoteLines(),baseLines=lines.filter(line=>!isOptional(line));
     const options=await availableOptions(lines);
     const tbody=documentNode.querySelector('.quote-table tbody');
