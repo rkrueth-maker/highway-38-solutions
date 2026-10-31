@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-phoneb-2';
+const BUILD='20261031-phoneb-3';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -48,11 +48,17 @@ function triggerWhenReady(find,fallback){
   const tick=()=>{const el=find();if(el){el.click();return;}if(++tries>=25){fallback?.();return;}setTimeout(tick,100);};
   tick();
 }
+/* After a create trigger fires, land the thumb on the opened form:
+ * several create forms live inside a collapsed <details> disclosure
+ * deep in a long page (the Jobs form sits ~13,000px down inside one,
+ * measured live) and the pages' own New buttons leave it there too —
+ * open the disclosure and scroll the form into view. */
+function landOnForm(id){setTimeout(()=>{const f=document.getElementById(id);if(!f)return;const det=f.closest('details');if(det)det.open=true;f.scrollIntoView?.({behavior:'smooth',block:'start'});},900);}
 function routeCreate(action){
-  if(action==='job'){openPage('work');triggerWhenReady(()=>document.querySelector('[data-h38-create="jobForm"]'),()=>{if(window.H38ChooseCreation)window.H38ChooseCreation('work','jobForm');});/* The Jobs page is long and its own New-job action leaves the opened form far below the fold (measured identical for the page's own primary button) — land the thumb on the form. */setTimeout(()=>document.getElementById('jobForm')?.scrollIntoView?.({behavior:'smooth',block:'start'}),900);return;}
+  if(action==='job'){openPage('work');triggerWhenReady(()=>document.querySelector('[data-h38-create="jobForm"]'),()=>{if(window.H38ChooseCreation)window.H38ChooseCreation('work','jobForm');});landOnForm('jobForm');return;}
   if(action==='quote'){openPage('quotes');triggerWhenReady(()=>document.getElementById('newQuoteButton'),null);return;}
-  if(action==='invoice'){openPage('money');triggerWhenReady(()=>document.querySelector('[data-h38-create="invoiceForm"]'),()=>document.getElementById('invoiceForm')?.scrollIntoView?.({block:'center'}));return;}
-  if(action==='customer'){openPage('customers');triggerWhenReady(()=>document.getElementById('h38AddCustomerTop'),()=>document.getElementById('customerForm')?.scrollIntoView?.({block:'center'}));return;}
+  if(action==='invoice'){openPage('money');triggerWhenReady(()=>document.querySelector('[data-h38-create="invoiceForm"]'),()=>document.getElementById('invoiceForm')?.scrollIntoView?.({block:'center'}));landOnForm('invoiceForm');return;}
+  if(action==='customer'){openPage('customers');triggerWhenReady(()=>document.getElementById('h38AddCustomerTop'),()=>document.getElementById('customerForm')?.scrollIntoView?.({block:'center'}));landOnForm('customerForm');return;}
 }
 function createDialog(){
   let d=document.getElementById('h38PhoneCreateDialog');if(d)return d;
