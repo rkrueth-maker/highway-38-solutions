@@ -272,4 +272,18 @@
     padding: 8px 10px; font-weight: 700; font-size: 12.5px; cursor: pointer; box-shadow: none;
   }
   .h38-wb-chasebtn[disabled] { background: #c8d2dd; cursor: default; }
+
+  /* ---------- auth lock + brand size (Rick 2026-10-31) ---------- */
+  /* While the sign-in screen is up, workbench pieces never paint over it
+   * and #mainContent falls back to its normal block flow. */
+  body.h38-auth-locked .h38-wb-rail, body.h38-auth-locked .h38-wb-listpane,
+  body.h38-auth-locked .h38-wb-rail-right, body.h38-auth-locked .h38-wb-sched-panel,
+  body.h38-auth-locked .h38-wb-topbtn { display: none !important; }
+  body.h38-auth-locked #mainContent.h38-wb-grid-today,
+  body.h38-auth-locked #mainContent.h38-wb-grid-work,
+  body.h38-auth-locked #mainContent.h38-wb-grid-money,
+  body.h38-auth-locked #mainContent.h38-wb-grid-quotes,
+  body.h38-auth-locked #mainContent.h38-wb-grid-settings { display: block; }
+  /* Desktop brand logo, half again bigger; matches the sign-in size. */
+  .topbar .brand-logo { width: 69px; height: 69px; flex: 0 0 69px; }
 }
