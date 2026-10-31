@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-31T20:45:55.623Z",
+  "generatedAt": "2026-10-31T20:48:33.250Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/app-01.js",
     "commercial-app/app-13.js",
     "commercial-app/app-19.js",
@@ -22,7 +25,7 @@
     "scripts/verify-commercial-office-parity.js",
     "scripts/verify-office-reference-samples-browser.js"
   ],
-  "fileCount": 17,
+  "fileCount": 20,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
