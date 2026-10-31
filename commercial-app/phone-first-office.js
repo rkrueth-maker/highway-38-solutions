@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261028-phone-fixes-1';
+const BUILD='20261031-phoneb-1';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -35,28 +35,43 @@ function ensureStyle(){
  @media(max-width:340px){.h38-phone-create{right:10px;width:54px;height:54px}.h38-phone-create-grid{grid-template-columns:1fr}.h38-phone-create-dialog{width:calc(100vw - 10px)}#mainNav.h38-five-primary-nav{padding-left:2px!important;padding-right:2px!important}#mainNav.h38-five-primary-nav button{padding-left:0!important;padding-right:0!important}#mainNav.h38-five-primary-nav button span:last-child{display:block!important;max-width:100%;overflow:visible!important;font-size:11px!important;line-height:1.15!important;letter-spacing:-.02em;white-space:nowrap}}
 }`;(document.head||document.documentElement).appendChild(s);
 }
+/* Direction B create sheet (2026-10-31): Job · Quote · Invoice ·
+   Customer. Every item navigates to the page and then triggers that
+   page's EXISTING new-item action — the same controls the desktop
+   Workbench palette clicks (#newQuoteButton, [data-h38-create=...],
+   #h38AddCustomerTop). The sheet itself creates nothing, sends
+   nothing, and charges nothing; creation happens inside the existing
+   flows with their existing gates. Pages render async (lazy modules),
+   so the trigger polls briefly for its control before falling back. */
+function triggerWhenReady(find,fallback){
+  let tries=0;
+  const tick=()=>{const el=find();if(el){el.click();return;}if(++tries>=25){fallback?.();return;}setTimeout(tick,100);};
+  tick();
+}
 function routeCreate(action){
-  const cid=selectedCustomerId();
-  if(action==='customer'){openPage('customers');setTimeout(()=>document.getElementById('h38AddCustomerTop')?.click()||document.getElementById('customerForm')?.scrollIntoView?.({block:'center'}),80);return;}
-  if(action==='meeting'){window.H38_CONVERSATION_MEETING_ASSISTANT?.startMeeting?window.H38_CONVERSATION_MEETING_ASSISTANT.startMeeting({meetingType:'Customer Meeting',customerId:cid}):openPage('meetings');return;}
-  if(action==='site'){window.H38_FIELD_VISIT?.open?window.H38_FIELD_VISIT.open({customerId:cid,quoteId:''}):openPage('field');return;}
-  if(action==='quote'){state().quote={quoteId:'',lines:[],customerId:cid,hydrationComplete:true};openPage('quotes');return;}
-  if(action==='job'){openPage('work');return;}
-  if(action==='expense')openPage('money');
+  if(action==='job'){openPage('work');triggerWhenReady(()=>document.querySelector('[data-h38-create="jobForm"]'),()=>{if(window.H38ChooseCreation)window.H38ChooseCreation('work','jobForm');else document.getElementById('jobForm')?.scrollIntoView?.({block:'center'});});return;}
+  if(action==='quote'){openPage('quotes');triggerWhenReady(()=>document.getElementById('newQuoteButton'),null);return;}
+  if(action==='invoice'){openPage('money');triggerWhenReady(()=>document.querySelector('[data-h38-create="invoiceForm"]'),()=>document.getElementById('invoiceForm')?.scrollIntoView?.({block:'center'}));return;}
+  if(action==='customer'){openPage('customers');triggerWhenReady(()=>document.getElementById('h38AddCustomerTop'),()=>document.getElementById('customerForm')?.scrollIntoView?.({block:'center'}));return;}
 }
 function createDialog(){
   let d=document.getElementById('h38PhoneCreateDialog');if(d)return d;
   d=document.createElement('dialog');d.id='h38PhoneCreateDialog';d.className='h38-phone-create-dialog';
-  d.innerHTML=`<div class="h38-phone-create-shell"><div class="h38-phone-sheet-head"><div><h2>Create</h2><p>Start the thing you are doing now. Nothing is automatically sent or approved.</p></div><button type="button" class="icon-button" data-h38-close aria-label="Close">×</button></div><div class="h38-phone-create-grid">${[['customer','👤','Customer','Add or find a customer'],['meeting','🗣️','Meeting','Capture the conversation'],['site','📍','Site Visit','Walkthrough, photos and measurements'],['quote','🧾','Quote','Start an editable draft'],['job','🧰','Job','Open work and jobs'],['expense','🧮','Receipt / expense','Open money and job costs']].map(([k,i,l,s])=>`<button type="button" data-h38-create="${k}"><span>${i}</span><strong>${l}</strong><small>${s}</small></button>`).join('')}</div></div>`;
+  d.innerHTML=`<div class="h38-phone-create-shell"><div class="h38-phone-sheet-head"><div><h2>Create</h2><p>Start the thing you are doing now. Each one opens its usual form — nothing is sent or charged from here.</p></div><button type="button" class="icon-button" data-h38-close aria-label="Close">×</button></div><div class="h38-phone-create-grid">${[['job','🧰','Job','Opens the new-job form'],['quote','🧾','Quote','Opens the quote builder'],['invoice','💵','Invoice','Opens the invoice form'],['customer','👤','Customer','Opens the add-customer form']].map(([k,i,l,s])=>`<button type="button" data-h38-create="${k}"><span>${i}</span><strong>${l}</strong><small>${s}</small></button>`).join('')}</div></div>`;
   d.querySelector('[data-h38-close]').onclick=()=>d.close();d.querySelectorAll('[data-h38-create]').forEach(b=>b.onclick=()=>{d.close();routeCreate(b.dataset.h38Create);});document.body.appendChild(d);return d;
 }
 function ensureCreate(){
   let b=document.getElementById('h38PhoneCreateButton');
-  const capturePage=['money','documents','field','quotes','customers'].includes(text(state().page));
+  /* Direction B: the + rides on every main phone screen (Today, Jobs,
+     Quotes, Customers, Schedule...). Capture surfaces keep their
+     exemption (field visits, files) and Money keeps its own — its
+     forms + receipt file inputs own that screen; the sheet's Invoice
+     item still routes there from anywhere else. */
+  const capturePage=['money','documents','field'].includes(text(state().page));
   const visibleFileControl=Array.from(document.querySelectorAll('#mainContent input[type="file"]')).some(input=>{try{return input.getClientRects().length>0&&getComputedStyle(input).display!=='none';}catch(_){return false;}});
   if(!mobile()||!signedIn()||fieldOpen()||capturePage||visibleFileControl){b?.remove();return;}if(b)return;
   b=document.createElement('button');b.type='button';b.id='h38PhoneCreateButton';b.className='h38-phone-create';b.setAttribute('aria-label','Create new work');b.textContent='＋';
-  b.onclick=()=>{const canonical=document.getElementById('h38QuickCreateDialog');if(canonical?.showModal){if(!canonical.open)canonical.showModal();return;}const top=document.getElementById('h38NewActionButton');if(top){top.click();return;}const d=createDialog();if(!d.open)d.showModal?.();};document.body.appendChild(b);
+  b.onclick=()=>{const d=createDialog();if(!d.open)d.showModal?.();};document.body.appendChild(b);
 }
 function scheduledNext(){const now=Date.now();return rows('scheduleEvents').filter(r=>!/CANCEL|VOID|COMPLETE/.test(upper(val(r,'Status','status')))).map(row=>({row,time:new Date(val(row,'Start Time','startTime','Scheduled Time','scheduledAt')||0).getTime()})).filter(x=>Number.isFinite(x.time)&&x.time>=now-15*60000).sort((a,b)=>a.time-b.time)[0]||null;}
 function attention(){
@@ -106,13 +121,88 @@ function ensureCustomers(){
   tools.querySelector('[data-phone-customer-action="site"]').onclick=()=>window.H38_FIELD_VISIT?.open?window.H38_FIELD_VISIT.open({customerId:cid,quoteId:''}):openPage('field');tools.querySelector('[data-phone-customer-action="quote"]').onclick=()=>{state().quote={quoteId:'',lines:[],customerId:cid,hydrationComplete:true};openPage('quotes');};tools.querySelector('[data-phone-customer-action="message"]').onclick=()=>openPage('messages');
   tools.querySelectorAll('[data-phone-customer-tab]').forEach(b=>b.onclick=()=>{const key=b.dataset.phoneCustomerTab,target=key==='overview'?(document.getElementById('h38CustomerReadyHero')||document.querySelector('.h38-c360')):key==='work'?(document.querySelector('[data-h38-c360-timeline]')||Array.from(document.querySelectorAll('.h38-c360-grid section.card')).find(s=>/Jobs|Quotes|Site visits/i.test(s.querySelector('h3')?.textContent||''))):document.querySelector('[data-h38-c360-photo-stream]');target?.scrollIntoView?.({behavior:'smooth',block:'start'});tools.querySelectorAll('[data-phone-customer-tab]').forEach(x=>x.classList.toggle('active',x===b));});
 }
+/* ---------- Direction B pieces (2026-10-31) ---------- */
+const moneyFmt=v=>{const n=Number(v)||0;try{if(typeof window.money==='function')return window.money(n);}catch(_){}return n.toLocaleString('en-US',{style:'currency',currency:'USD'});};
+function clearPhoneB(){
+  for(const id of ['h38PhoneMoneyBand','h38PhonePhotosPill','h38PhoneSignOut'])document.getElementById(id)?.remove();
+  document.body.classList.remove('h38-pb-ask-on','h38-pb-band-on');
+}
+function ensureMoneyBand(){
+  const main=document.getElementById('mainContent');
+  const stats=(mobile()&&state().page==='today'&&main)?main.querySelector('.h38-today-stats'):null;
+  let band=document.getElementById('h38PhoneMoneyBand');
+  if(!stats){band?.remove();document.body.classList.remove('h38-pb-band-on');return;}
+  const moneyBtn=stats.querySelector('[data-h38-ready-page="money"]');
+  const quotesBtn=stats.querySelector('[data-h38-ready-page="quotes"]');
+  if(!quotesBtn){band?.remove();document.body.classList.remove('h38-pb-band-on');return;}
+  /* Same canonical numbers the stat strip itself renders — read them
+     off the strip's own buttons, and the band's segments click those
+     very buttons, so values and destinations can never drift. */
+  const owed=moneyBtn?text(moneyBtn.querySelector('strong')?.textContent):'';
+  const waiting=text(quotesBtn.querySelector('strong')?.textContent);
+  const sig=owed+'|'+waiting;
+  if(!band){band=document.createElement('div');band.id='h38PhoneMoneyBand';band.className='h38-phone-money-band';stats.insertAdjacentElement('beforebegin',band);}
+  if(band.dataset.sig!==sig){
+    band.dataset.sig=sig;
+    band.innerHTML=`${moneyBtn?`<button type="button" data-band-go="money"><strong>${esc(owed)}</strong><span>owed to you</span></button>`:''}<button type="button" class="h38-band-quotes" data-band-go="quotes"><strong>${esc(waiting)}</strong><span>quotes waiting</span></button><span class="h38-band-go" aria-hidden="true">›</span>`;
+    band.querySelectorAll('[data-band-go]').forEach(b=>b.onclick=()=>{stats.querySelector(`[data-h38-ready-page="${b.dataset.bandGo}"]`)?.click();});
+  }
+  document.body.classList.add('h38-pb-band-on');
+}
+function ensureAskPill(){
+  /* The pill is the EXISTING #askKitButton, repositioned by
+     phone-frame.css while body carries h38-pb-ask-on — same element,
+     same click handler (kit-link.js), no second assistant entry. */
+  const on=mobile()&&signedIn()&&state().page==='today'&&!fieldOpen();
+  document.body.classList.toggle('h38-pb-ask-on',!!on);
+}
+function ensurePhotosPill(){
+  let pill=document.getElementById('h38PhonePhotosPill');
+  const on=mobile()&&signedIn()&&state().page==='quotes'&&text(state().quoteView||'list')!=='builder'&&!fieldOpen();
+  if(!on){pill?.remove();return;}
+  if(pill)return;
+  pill=document.createElement('button');pill.type='button';pill.id='h38PhonePhotosPill';pill.className='h38-phone-photos-pill';pill.innerHTML='<span aria-hidden="true">📷</span> Quote from photos';
+  pill.onclick=()=>{if(typeof window.h38StartQuote==='function')window.h38StartQuote('photos');};
+  document.body.appendChild(pill);
+}
+function ensureQuotesTools(){
+  if(!mobile()||state().page!=='quotes')return;
+  const card=document.querySelector('[data-h38-canonical-quotes="1"]');
+  if(!card)return;
+  card.classList.add('h38-pb-quotes-card');
+  let totals=card.querySelector('#h38PhoneQuoteTotals');
+  if(!totals){totals=document.createElement('div');totals.id='h38PhoneQuoteTotals';totals.className='h38-phone-quote-totals';card.insertBefore(totals,card.firstChild);}
+  /* Same set the list itself shows (demo tenant drops DEMO-Q- rows)
+     and the same awaiting-answer rule as Today's strip (PRESENT|SENT);
+     "out" sums those quotes' totals — the list rows' own Total field. */
+  const demoFilter=(()=>{try{return typeof window.businessKey==='function'&&window.businessKey()==='demo';}catch(_){return false;}})();
+  const list=rows('quotes').filter(r=>!demoFilter||!/^DEMO-Q-/i.test(text(val(r,'Quote ID','quoteId'))));
+  const awaiting=list.filter(r=>/PRESENT|SENT/.test(upper(val(r,'Status','status'))));
+  const out=awaiting.reduce((s,r)=>s+(Number(String(val(r,'Total','total')).replace(/[$,]/g,''))||0),0);
+  const html=`<strong>${awaiting.length}</strong> awaiting answer · <strong>${esc(moneyFmt(out))}</strong> out`;
+  if(totals.innerHTML!==html)totals.innerHTML=html;
+}
+function ensureSignOut(){
+  /* The phone header no longer carries sign-out (Direction B), and the
+     header button was the app's ONLY sign-out control — so Settings
+     gains a phone sign-out row that clicks that same button. Reachable
+     as More -> Settings -> Sign out. */
+  let btn=document.getElementById('h38PhoneSignOut');
+  if(!mobile()||!signedIn()||state().page!=='settings'){btn?.remove();return;}
+  if(btn)return;
+  const main=document.getElementById('mainContent');if(!main)return;
+  btn=document.createElement('button');btn.type='button';btn.id='h38PhoneSignOut';btn.className='h38-phone-signout';btn.textContent='⇥ Sign out';
+  btn.onclick=()=>document.getElementById('authSignOutButton')?.click();
+  const head=main.querySelector('.page-head,.h38-screen-head');
+  head?.insertAdjacentElement('afterend',btn)||main.prepend(btn);
+}
 function ensureSiteStepper(){
   const app=document.getElementById('h38FieldVisitApp');if(!mobile()||!fieldOpen()||!app){document.getElementById('h38SiteStepper')?.remove();return;}
   const stageSource=app.cloneNode(true);stageSource.querySelector('#h38SiteStepper')?.remove();const u=upper(stageSource.textContent);let step=1;if(/BUILD QUOTE|QUOTE READY|QUOTE BUILDER|QUOTE HANDOFF/.test(u))step=4;else if(/MEASUREMENT|TARGETED PHOTO|DETAILS|CAPTURE REMAINING/.test(u))step=3;else if(/WALKTHROUGH|RECORDING|STOP & USE VIDEO|TAKE PHOTO/.test(u))step=2;
   let bar=document.getElementById('h38SiteStepper');if(bar?.dataset.step===String(step))return;bar?.remove();bar=document.createElement('div');bar.id='h38SiteStepper';bar.className='h38-site-stepper';bar.dataset.step=String(step);['Conversation','Walkthrough','Details','Quote'].forEach((label,i)=>{const n=i+1,s=document.createElement('span');s.textContent=`${n} ${label}`;if(n<step)s.className='done';if(n===step)s.className='current';bar.appendChild(s);});(app.querySelector('.field-visit-main')||app).prepend(bar);
 }
 function cleanupDesktop(){
-  if(mobile())return;document.body.classList.remove('h38-phone-first-office');for(const id of ['h38PhoneCreateButton','h38PhoneToday','h38PhoneCustomerFinder','h38PhoneCustomerTools','h38SiteStepper','h38PhoneCreateDialog'])document.getElementById(id)?.remove();try{window.H38FirstScreen?.release?.('phoneToday');}catch(_){}const main=document.getElementById('mainContent');main?.classList.remove('h38-phone-simplified');main?.removeAttribute('data-h38-phone-details');main?.querySelectorAll('[data-h38-phone-secondary]').forEach(n=>n.removeAttribute('data-h38-phone-secondary'));
+  if(mobile())return;document.body.classList.remove('h38-phone-first-office');for(const id of ['h38PhoneCreateButton','h38PhoneToday','h38PhoneCustomerFinder','h38PhoneCustomerTools','h38SiteStepper','h38PhoneCreateDialog'])document.getElementById(id)?.remove();clearPhoneB();try{window.H38FirstScreen?.release?.('phoneToday');}catch(_){}const main=document.getElementById('mainContent');main?.classList.remove('h38-phone-simplified');main?.removeAttribute('data-h38-phone-details');main?.querySelectorAll('[data-h38-phone-secondary]').forEach(n=>n.removeAttribute('data-h38-phone-secondary'));
 }
 /* Ready-signal + reconcile loop fix (2026-10-27, build
    20261027-session-keep-1). Measured on the live build at phone width:
@@ -147,8 +237,8 @@ function runReconcile(){
   reconciling=true;
   try{
     if(!mobile()){cleanupDesktop();lastReadySignature='';delete document.documentElement.dataset.h38PhoneFirstReady;return;}
-    if(!signedIn()){lastReadySignature='';delete document.documentElement.dataset.h38PhoneFirstReady;return;}
-    ensureStyle();document.body.classList.add('h38-phone-first-office');ensureCreate();ensureToday();ensureCustomers();ensureSiteStepper();signalStartupReady();
+    if(!signedIn()){clearPhoneB();lastReadySignature='';delete document.documentElement.dataset.h38PhoneFirstReady;return;}
+    ensureStyle();document.body.classList.add('h38-phone-first-office');ensureCreate();ensureToday();ensureCustomers();ensureSiteStepper();ensureMoneyBand();ensureAskPill();ensurePhotosPill();ensureQuotesTools();ensureSignOut();signalStartupReady();
   }finally{reconciling=false;}
 }
 function reconcile(){if(scheduled)return;scheduled=true;queueMicrotask(()=>requestAnimationFrame(runReconcile));}

@@ -1,0 +1,143 @@
+/* H38 Phone Frame — Direction B ("The Create Button"). Build 20261031-phoneb-1.
+ *
+ * The phone layer Rick picked from the 2026-10-31 phone-style study:
+ * a plain white 52px header (logo, business name, bell — nothing else),
+ * the green floating "+" create button, the Ask Hank pill by the thumb
+ * on Today, the Quote-from-photos pill on Quotes, the one-line money
+ * band replacing Today's stat strip, and Quotes leading with its own
+ * search field + totals line.
+ *
+ * EVERY layout rule in this file lives inside @media (max-width: 760px):
+ * the desktop build (>=761px, the Workbench layer) cannot match any of
+ * them. The only ungated rules are the auth-lock belt at the bottom:
+ * while the sign-in screen is up (body.h38-auth-locked), no phone-frame
+ * element may paint — the same structural gate PR #1422 used for the
+ * Workbench panes.
+ *
+ * Element owners: the "+" button, create sheet, money band, photos pill
+ * and quote totals are created by phone-first-office.js (the canonical
+ * phone layer); the Ask Hank pill is the EXISTING #askKitButton header
+ * launcher repositioned by CSS — there is no second assistant entry
+ * point. This file only styles; it creates nothing. */
+
+@media (max-width: 760px) {
+  /* ---------- header: plain white 52px strip ---------- */
+  body .topbar {
+    background: #fff; color: #16262f; min-height: 52px; height: 52px;
+    padding: 0 12px; gap: 10px; border-bottom: 1px solid #dde4e9;
+    box-shadow: 0 1px 4px rgba(11, 36, 56, .05);
+  }
+  /* Root-cause fix for the 421px top bar: the brand block collapsed to a
+   * 0px-wide column (the 485px-wide action row squeezed it out) and the
+   * business name wrapped down the screen. The brand now owns the row's
+   * flexible space and the name is one truncated line. */
+  body .topbar .brand { flex: 1 1 auto; min-width: 0; gap: 9px; overflow: hidden; }
+  body .topbar .brand-logo {
+    width: 30px; height: 30px; flex: 0 0 30px; border-radius: 8px; padding: 1px;
+  }
+  body .topbar .brand > div { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  body .topbar .brand strong {
+    display: block; max-width: none; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; font-size: 15px; line-height: 1.2; color: #16262f;
+  }
+  body .topbar .brand small { display: none; }
+  body .topbar .top-actions { flex: 0 0 auto; gap: 0; min-width: 0; }
+  /* That's all in the header: badges, voice, sync, sign-out, install,
+   * the Workbench Ctrl K pill and the New button leave the phone header.
+   * Sign-out stays reachable on phone via More -> Settings (the phone
+   * layer adds a Settings sign-out row that clicks this same button). */
+  body .topbar .top-actions > * { display: none !important; }
+  body .topbar .top-actions > #ownerNotifyBell {
+    display: inline-flex !important; align-items: center; justify-content: center;
+    position: relative; width: 40px; height: 40px; min-width: 40px; min-height: 40px;
+    padding: 0; border: 0; border-radius: 50%; background: #eef2f5; color: #16262f;
+    font-size: 17px;
+  }
+  body .topbar .top-actions > #ownerNotifyBell .owner-notify-badge {
+    top: 2px; right: 2px;
+  }
+  body .business-bar { top: 52px; }
+
+  /* ---------- floating create "+" — green, 56px, thumb zone ---------- */
+  body .h38-phone-create {
+    background: #2e9e4f; width: 56px; height: 56px; font-size: 30px;
+    box-shadow: 0 6px 18px rgba(20, 90, 40, .4);
+  }
+
+  /* ---------- Ask Hank pill (Today): the existing #askKitButton,
+   * repositioned next to the + and given its label back ---------- */
+  body.h38-pb-ask-on .topbar .top-actions > #askKitButton {
+    display: inline-flex !important; align-items: center; justify-content: center; gap: 7px;
+    position: fixed; right: 84px; bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    z-index: 2490; width: auto !important; min-width: 0 !important;
+    height: 44px !important; min-height: 44px !important; padding: 0 14px !important;
+    border-radius: 24px; border: 1.5px solid #b9c6cf !important;
+    background: #fff !important; color: #17303f !important;
+    box-shadow: 0 4px 14px rgba(15, 35, 50, .18); font-weight: 700; font-size: 13.5px;
+  }
+  body.h38-pb-ask-on .topbar .top-actions > #askKitButton .ai-launcher-label {
+    display: inline !important;
+  }
+
+  /* ---------- Quote from photos pill (Quotes) ---------- */
+  .h38-phone-photos-pill {
+    position: fixed; right: 84px; bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    z-index: 2490; height: 44px; padding: 0 14px; border-radius: 24px;
+    background: #fff; border: 1.5px solid #b9c6cf; color: #17303f;
+    font-weight: 700; font-size: 13.5px; box-shadow: 0 4px 14px rgba(15, 35, 50, .18);
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  }
+  body:has(dialog[open]) .h38-phone-photos-pill { display: none; }
+
+  /* ---------- Today money band: one tappable strip, canonical numbers.
+   * The band mirrors the .h38-today-stats buttons (same values, same
+   * destinations — its segments click those very buttons), so the strip
+   * hides only while the band is live. ---------- */
+  .h38-phone-money-band {
+    display: flex; align-items: stretch; gap: 0; background: #0c2438; color: #fff;
+    border-radius: 12px; padding: 4px 6px 4px 14px; margin-bottom: 10px; overflow: hidden;
+  }
+  .h38-phone-money-band button {
+    border: 0; background: transparent; color: #fff; cursor: pointer; box-shadow: none;
+    text-align: left; padding: 7px 8px 7px 0; display: flex; align-items: baseline; gap: 6px;
+    min-width: 0;
+  }
+  .h38-phone-money-band button strong { font-size: 17px; white-space: nowrap; }
+  .h38-phone-money-band button span { font-size: 12px; color: #b9cfdf; white-space: nowrap; }
+  .h38-phone-money-band .h38-band-quotes { margin-left: auto; padding-left: 10px; }
+  .h38-phone-money-band .h38-band-go {
+    align-self: center; font-size: 20px; color: #8fc3f2; padding: 0 6px 0 2px;
+  }
+  body.h38-pb-band-on .h38-today-stats { display: none; }
+
+  /* ---------- Quotes: search leads, totals ride the title line ---------- */
+  [data-h38-canonical-quotes="1"].h38-pb-quotes-card { display: flex; flex-direction: column; }
+  .h38-pb-quotes-card > h2, .h38-pb-quotes-card > label { display: none; }
+  .h38-pb-quotes-card > #quoteListSearch {
+    order: -2; width: 100%; box-sizing: border-box; height: 46px; margin: 0 0 9px;
+    border: 1.5px solid #c3d0da; border-radius: 11px; padding: 0 12px; font-size: 14.5px;
+    background: #fff; color: #16262f;
+  }
+  .h38-phone-quote-totals {
+    order: -1; margin: 0 0 10px; font-size: 13.5px; color: #61727f; font-weight: 600;
+  }
+  .h38-phone-quote-totals strong { color: #12222f; font-size: 15px; }
+
+  /* ---------- Settings sign-out row (phone) ---------- */
+  .h38-phone-signout {
+    width: 100%; min-height: 48px; margin: 0 0 12px; border-radius: 11px;
+    border: 1.5px solid #b9c6cf; background: #fff; color: #17303f;
+    font-size: 14.5px; font-weight: 700; cursor: pointer;
+  }
+}
+
+/* ---------- auth-lock belt (all widths): while the sign-in screen is
+ * up, no phone-frame element paints over it. ---------- */
+body.h38-auth-locked .h38-phone-create,
+body.h38-auth-locked .h38-phone-photos-pill,
+body.h38-auth-locked .h38-phone-money-band,
+body.h38-auth-locked .h38-phone-quote-totals,
+body.h38-auth-locked .h38-phone-signout { display: none !important; }
+body.h38-auth-locked .topbar .top-actions > #askKitButton {
+  position: static !important;
+}
