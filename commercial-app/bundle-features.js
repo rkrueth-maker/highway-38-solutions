@@ -9964,7 +9964,7 @@ handleBridgeError=function(stage,message){
 
 function h38BrandSplashNorthernRequested(){try{return String(new URLSearchParams(location.search).get('businessKey')||'').toLowerCase()==='northern-lakes';}catch(_){return false;}}
 function h38BrandSplashHtml(status,notice){
-  return '<section class="welcome welcome--brand"><img class="welcome-brand-logo" src="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6" alt="Highway 38 Solutions" width="118" height="118"><h1>Business Office</h1><p class="welcome-brand-tagline">Replace your software. <strong>Get an office worker.</strong></p><p class="welcome-brand-status">'+status+'</p>'+(notice?'<div class="notice">'+notice+'</div>':'')+'</section>';
+  return '<section class="welcome welcome--brand"><img class="welcome-brand-logo" src="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6" alt="Highway 38 Solutions" width="118" height="118"><h1>Business Office</h1><p class="welcome-brand-status">'+status+'</p>'+(notice?'<div class="notice">'+notice+'</div>':'')+'</section>';
 }
 
 renderWelcome=function(mode='connecting',detailOverride=''){
