@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-phoneb-1';
+const BUILD='20261031-phoneb-2';
 const MOBILE='(max-width: 760px)';
 let scheduled=false,observer=null;
 const text=v=>String(v==null?'':v).trim();
@@ -49,7 +49,7 @@ function triggerWhenReady(find,fallback){
   tick();
 }
 function routeCreate(action){
-  if(action==='job'){openPage('work');triggerWhenReady(()=>document.querySelector('[data-h38-create="jobForm"]'),()=>{if(window.H38ChooseCreation)window.H38ChooseCreation('work','jobForm');else document.getElementById('jobForm')?.scrollIntoView?.({block:'center'});});return;}
+  if(action==='job'){openPage('work');triggerWhenReady(()=>document.querySelector('[data-h38-create="jobForm"]'),()=>{if(window.H38ChooseCreation)window.H38ChooseCreation('work','jobForm');});/* The Jobs page is long and its own New-job action leaves the opened form far below the fold (measured identical for the page's own primary button) — land the thumb on the form. */setTimeout(()=>document.getElementById('jobForm')?.scrollIntoView?.({behavior:'smooth',block:'start'}),900);return;}
   if(action==='quote'){openPage('quotes');triggerWhenReady(()=>document.getElementById('newQuoteButton'),null);return;}
   if(action==='invoice'){openPage('money');triggerWhenReady(()=>document.querySelector('[data-h38-create="invoiceForm"]'),()=>document.getElementById('invoiceForm')?.scrollIntoView?.({block:'center'}));return;}
   if(action==='customer'){openPage('customers');triggerWhenReady(()=>document.getElementById('h38AddCustomerTop'),()=>document.getElementById('customerForm')?.scrollIntoView?.({block:'center'}));return;}
