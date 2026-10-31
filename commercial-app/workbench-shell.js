@@ -41,7 +41,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261031-workbench-3';
+  var BUILD = '20261031-authfix-1';
   var RAIL_ID = 'h38WorkbenchRail';
   var PALETTE_ID = 'h38WorkbenchPalette';
   var TOPBTN_ID = 'h38WorkbenchPaletteButton';
@@ -431,7 +431,14 @@
   });
 
   /* ---------- lifecycle ---------- */
-  function reconcile() { renderRail(); renderTopButton(); }
+  function reconcile() {
+    /* Auth lock (Rick 2026-10-31): no workbench chrome over the sign-in screen. */
+    if (document.body && document.body.classList.contains('h38-auth-locked')) {
+      ['.h38-wb-rail', '.h38-wb-topbtn'].forEach(function (sel) { var n = document.querySelector(sel); if (n) n.remove(); });
+      return;
+    }
+    renderRail(); renderTopButton();
+  }
   window.addEventListener('h38:office-navigation-access-updated', reconcile);
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
