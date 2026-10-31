@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-kitquote-2';
+const BUILD='20261031-kitquote-3';
 const ENDPOINT='h38-quote-agent';
 const text=value=>String(value==null?'':value).trim();
 const number=value=>{const n=Number(value==null?0:value);return Number.isFinite(n)?n:0;};

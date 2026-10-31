@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261031-kitquote-2';
+const BUILD='20261031-kitquote-3';
 const QUOTE_GATE='h38-quote-release-gate';
 const BUCKET='business-office-files';
 const TUS_CHUNK=6*1024*1024;
