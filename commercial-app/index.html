@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="./styles.css?build=20261020-ws4-header-1">
   <link rel="stylesheet" href="./ai-drawer.css?build=20260806-0344">
   <link rel="stylesheet" href="./h38-first-quote-guide.css?build=20261010-first-quote-guide-1">
-  <link rel="stylesheet" href="./quote-delivery.css?build=20261031-wave1a-1">
+  <link rel="stylesheet" href="./quote-delivery.css?build=20261031-wave1ab-1">
   <link rel="stylesheet" href="./good-better-best.css?build=20261020-gbb-ws1-1">
   <link rel="stylesheet" href="./print-safe.css?build=20260815-0025">
   <link rel="stylesheet" href="./site-scanner.css?build=20260806-0605">
@@ -197,11 +197,11 @@
   <link rel="stylesheet" href="./smart-upload.css?build=20260920-final-real-office-1">
   <link rel="stylesheet" href="./owner-home.css?build=20261030-laptop-phase1-1">
   <link rel="stylesheet" href="./favourites-rail.css?build=20261030-r2-favourites-1">
-  <link rel="stylesheet" href="./workbench.css?build=20261031-wave1a-1">
+  <link rel="stylesheet" href="./workbench.css?build=20261031-wave1ab-1">
   <link rel="stylesheet" href="./phone-frame.css?build=20261031-phoneb-5">
   <link rel="stylesheet" href="./today-command-setup.css?build=20261030-r2-today-1">
   <link rel="stylesheet" href="./h38-visual-refresh.css?build=20261020-ws4-phasec-1">
-  <link rel="stylesheet" href="./customer-360-authority.css?build=20261013-complete-scan-fixes-1" data-h38-customer-360="1">
+  <link rel="stylesheet" href="./customer-360-authority.css?build=20261031-wave1ab-1" data-h38-customer-360="1">
   <link rel="stylesheet" href="./customer-workspace-documents.css?build=20261012-mobile-polish-1" data-h38-customer-workspace="1">
   <title>Highway 38 Business Office</title>
 </head>
@@ -209,8 +209,9 @@
   <header class="topbar">
     <div class="brand"><img id="approvedOfficeLogo" class="brand-logo" src="../assets/highway38-logo-256.webp?v=20261013-exact-ac2498e6" alt="Highway 38 Solutions"><div><strong>Highway 38 Solutions</strong><small id="shellLabel">Business Office</small></div></div>
     <div class="top-actions">
-      <span id="networkBadge" class="badge offline">Internet</span>
-      <span id="gatewayBadge" class="badge offline">Sync offline</span>
+      <!-- A12 (honest scan 2026-10-31): ONE status indicator. #syncBadge
+           carries every state (saved / syncing / offline-saved-locally /
+           sync failed — retry) via updatePending in app-02/app-19. -->
       <span id="syncBadge" class="badge neutral">All saved</span>
       <button id="ownerNotifyBell" class="icon-button" type="button" aria-label="Notifications" hidden>🔔<span id="ownerNotifyBadge" class="owner-notify-badge" hidden></span></button>
       <button id="voiceButton" class="icon-button" type="button" aria-label="Talk to AI assistant">🎙️</button>
@@ -260,15 +261,15 @@
   <script defer src="./supabase-invite-activation.js?build=20260910-0100"></script>
   <script defer src="./auth-session-guard.js?build=20260806-0344"></script>
   <script defer src="./supabase-session-recovery.js?build=20261013-icon-session-bands-1"></script>
-  <script defer src="./app-01.js?build=20261022-native-bridge-1"></script>
+  <script defer src="./app-01.js?build=20261031-wave1ab-1"></script>
   <script defer src="./runtime-rowid-fix.js?build=20261031-phoneb-5"></script>
-  <script defer src="./human-doc-numbers.js?build=20261031-wave1a-1"></script>
+  <script defer src="./human-doc-numbers.js?build=20261031-wave1ab-1"></script>
   <script defer src="./app-02.js?build=20261022-native-bridge-1"></script>
   <script defer src="./app-03.js?build=20261020-ws4-today-1"></script>
   <script defer src="./h38-flow-helpers.js?build=20261022-perperson-1"></script>
   <script defer src="./kit-activity-feed.js?build=20261011-kit-feed-bold-numbers-1"></script>
   <link rel="stylesheet" href="./kits-workspace.css?build=20261011-kits-workspace-1">
-  <script defer src="./owner-home.js?build=20261031-wave1a-1"></script>
+  <script defer src="./owner-home.js?build=20261031-wave1ab-1"></script>
   <script defer src="./today-command-setup.js?build=20261030-r2-today-1"></script>
   <script defer src="./quick-start.js?build=20261013-rescan-fixes-1"></script>
   <script defer src="./guided-payroll.js?build=20261020-payroll-run-1"></script>
@@ -277,15 +278,15 @@
   <script defer src="./overdue-nudge.js?build=20261011-phase3-1"></script>
   <script defer src="./send-task.js?build=20261011-phase4-1"></script>
   <script defer src="./app-04.js?build=20261020-ws4-customers-1"></script>
-  <script defer src="./app-05.js?build=20261031-wave1a-1"></script>
-  <script defer src="./app-06.js?build=20261031-wave1a-1"></script>
-  <script defer src="./app-07.js?build=20261031-wave1a-1"></script>
-  <script defer src="./app-08.js?build=20261031-wave1a-1"></script>
+  <script defer src="./app-05.js?build=20261031-wave1a-2"></script>
+  <script defer src="./app-06.js?build=20261031-wave1a-2"></script>
+  <script defer src="./app-07.js?build=20261031-wave1a-2"></script>
+  <script defer src="./app-08.js?build=20261031-wave1a-2"></script>
   <script defer src="./app-09.js?build=20261013-messages-entry-3"></script>
-  <script defer src="./app-10.js?build=20261031-wave1a-1"></script>
+  <script defer src="./app-10.js?build=20261031-wave1a-2"></script>
   <script defer src="./app-11.js?build=20261020-ws4-pricebook-1"></script>
-  <script defer src="./app-12.js?build=20261031-wave1a-1"></script>
-  <script defer src="./app-13.js?build=20261031-wave1a-1"></script>
+  <script defer src="./app-12.js?build=20261031-wave1a-2"></script>
+  <script defer src="./app-13.js?build=20261031-wave1a-2"></script>
   <script defer src="./app-14.js?build=20260806-0344"></script>
   <script defer src="./app-15.js?build=20261020-ws4-remaining-1"></script>
   <script defer src="./app-16.js?build=20261026-owner-chat-5"></script>
@@ -305,7 +306,7 @@
   <script defer src="./auth-cache-guard.js?build=20261020-myhank-settings-1"></script>
   <script defer src="./startup-fix.js?build=20261013-startup-dedupe-1"></script>
   <script defer src="./supabase-startup.js?build=20261027-session-keep-1"></script>
-  <script defer src="./app-19.js?build=20261022-phone-layout-1"></script>
+  <script defer src="./app-19.js?build=20261031-wave1ab-1"></script>
   <script defer src="./supabase-final-startup.js?build=20261013-fix-sweep-1"></script>
   <script defer src="./app-18.js?build=20260806-0344"></script>
   <script defer src="./app-20.js?build=20261031-kitquote-4"></script>
@@ -329,9 +330,9 @@
   <script defer src="./context-continuity.js?build=20260919-context-continuity-iphone-1"></script>
   <script defer src="./desktop-navigation-authority.js?build=20261030-laptop-phase1-1"></script>
   <script defer src="./favourites-rail.js?build=20261030-r2-favourites-1"></script>
-  <script defer src="./workbench-shell.js?build=20261031-wave1a-1"></script>
-  <script defer src="./workbench-panes.js?build=20261031-wave1a-1"></script>
-  <script defer src="./live-customer-navigation-guard-20260910.js?build=20261030-laptop-phase1-1"></script>
+  <script defer src="./workbench-shell.js?build=20261031-wave1ab-1"></script>
+  <script defer src="./workbench-panes.js?build=20261031-wave1ab-1"></script>
+  <script defer src="./live-customer-navigation-guard-20260910.js?build=20261031-wave1ab-1"></script>
   <script defer src="./kit-link.js?build=20261002-kit-link-1"></script>
   <script defer src="./ai-handoff.js?build=20261002-ai-handoff-1"></script>
   <script defer src="./owner-chat.js?build=20261026-owner-chat-5"></script>

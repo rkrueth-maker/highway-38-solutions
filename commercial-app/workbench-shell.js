@@ -128,15 +128,20 @@
   }
 
   /* ---------- icon rail ---------- */
+  /* A6: short rail labels for the names that cannot fit the approved
+   * 92px rail even wrapped ("Books spreadsheet", "Memberships"). The
+   * full canonical label stays in title/aria-label. */
+  var RAIL_SHORT_LABELS = { books: 'Books', memberships: 'Members' };
   function railItem(page, favs, isFavSection) {
     var defs = pageDefs(), def = defs[page] || ['•', page];
     var icon = def.length > 1 ? def[0] : '•', label = def.length > 1 ? def[1] : def[0];
+    var railLabel = RAIL_SHORT_LABELS[page] || label;
     var starred = favs.indexOf(page) >= 0;
     var current = st() && st().page === page;
     return '<div class="h38-wb-rail-item' + (current ? ' active' : '') + '" data-wb-page="' + esc(page) + '">' +
       '<button type="button" class="h38-wb-rail-go" data-wb-go="' + esc(page) + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' +
       '<span class="h38-wb-rail-icon" aria-hidden="true">' + esc(icon) + '</span>' +
-      '<span class="h38-wb-rail-label">' + esc(label) + '</span></button>' +
+      '<span class="h38-wb-rail-label">' + esc(railLabel) + '</span></button>' +
       (isFavSection ? '' : '<button type="button" class="h38-wb-rail-star' + (starred ? ' on' : '') + '" data-wb-star="' + esc(page) + '" title="' + (starred ? 'Remove from favourites' : 'Add to favourites') + '" aria-label="' + (starred ? 'Remove ' : 'Add ') + esc(label) + (starred ? ' from favourites' : ' to favourites') + '">' + (starred ? '★' : '☆') + '</button>') +
       '</div>';
   }
@@ -163,7 +168,8 @@
         '<div class="h38-wb-rail-div" role="separator"></div>';
     }
     html += pages.map(function (p) { return railItem(p, favs, false); }).join('');
-    html += '<button type="button" class="h38-wb-rail-palette" id="h38WbRailPalette" title="Search or command">⌘<span>Ctrl K</span></button>';
+    /* A12 (honest scan 2026-10-31): no second Ctrl-K button at the rail
+     * bottom — the palette opens from the topbar button or Ctrl/Cmd+K. */
     if (rail._wbHtml !== html) {
       rail._wbHtml = html;
       rail.innerHTML = html;
@@ -173,8 +179,6 @@
       rail.querySelectorAll('[data-wb-star]').forEach(function (b) {
         b.addEventListener('click', function (ev) { ev.stopPropagation(); toggleFav(b.getAttribute('data-wb-star')); });
       });
-      var pal = rail.querySelector('#h38WbRailPalette');
-      if (pal) pal.addEventListener('click', openPalette);
     }
   }
   function goPage(page) {
