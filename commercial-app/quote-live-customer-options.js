@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260815-2110';
+const BUILD='20261031-tier-aware-1';
 const H38_BUSINESS_ID='10b85a89-5834-436d-95b0-c6ee2eb335ad';
 const PAINT_OPTION={description:'Prime and paint new drywall',unit:'SF',rate:1.75};
 let scheduled=false;
@@ -48,6 +48,13 @@ function decorate(){
   if(!doc||decorating)return;decorating=true;
   try{
     installStyle();
+    /* Tier mode (Good/Better/Best): the pane's table and total belong to
+       the active tier, rendered by quote-live-customer-preview.js. This
+       decorator's line source (state.quote.lines) is empty in tier mode,
+       so rewriting from it blanked the pane and zeroed the total (live
+       proof 2026-10-31, Build Everything B follow-up). Hands off. */
+    const quoteState=window.state?.quote||{};
+    if(quoteState.tierMode&&Array.isArray(quoteState.tiers)&&quoteState.tiers.length){doc.querySelector('.h38-live-options')?.remove();return;}
     const all=lines(),base=all.filter(line=>!optional(line)),options=optionList(all,base);
     const tbody=doc.querySelector('tbody');if(tbody)tbody.innerHTML=base.length?base.map(liveRow).join(''):'<tr><td colspan="4">Add project work above to build the proposal.</td></tr>';
     const subtotal=base.reduce((sum,line)=>sum+quantity(line)*rate(line),0),quoteTax=tax(),baseTotal=subtotal+quoteTax;
