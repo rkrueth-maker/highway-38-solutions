@@ -31,12 +31,13 @@
 (function () {
   'use strict';
   if (window.H38_AI_QUOTE_PERSIST) return;
-  var BUILD = '20261031-kitquote-2';
+  var BUILD = '20261031-kitquote-3';
 
   function text(value) { return String(value == null ? '' : value).trim(); }
   function num(value) { var n = Number(value == null ? 0 : value); return Number.isFinite(n) ? n : 0; }
   function round2(value) { return Math.round(num(value) * 100) / 100; }
   function rows(name) { return Array.isArray(window.state && window.state.snapshot && window.state.snapshot[name]) ? window.state.snapshot[name] : []; }
+  function norm(value) { return text(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
   function val(row) {
     var source = row && row.payload && typeof row.payload === 'object' ? row.payload : row;
     for (var i = 1; i < arguments.length; i++) {
@@ -106,6 +107,45 @@
         } else {
           var sellRaw = val(bookRow, 'Sell Price', 'sellPrice');
           if (sellRaw !== '') { out.unitPrice = num(sellRaw); out.rate = num(sellRaw); }
+        }
+      }
+    }
+    /* No catalog id on the line (the edge route splits lines into
+       material/labor and renames them, and its server validation zeroes
+       rates whose description does not match the catalog): recover the
+       catalog row ONLY on an unambiguous identity — the exact catalog
+       CODE appearing in the line's own text, or an exact name match —
+       then price from sell_price. Anything fuzzier stays $0
+       manual_required for the owner. */
+    if (!catalogId || out.unitPrice <= 0) {
+      var bookRows = rows('priceBook');
+      var hay = [out.description, out.rationale, text(line && line.itemCode), text(line && line.code), text(line && line.catalogCode)].join(' ');
+      var matched = null;
+      for (var bi = 0; bi < bookRows.length && !matched; bi++) {
+        var code = text(val(bookRows[bi], 'SKU', 'Item Code', 'itemCode', 'code'));
+        if (code && new RegExp('(^|[^A-Za-z0-9-])' + code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^A-Za-z0-9-]|$)').test(hay)) matched = bookRows[bi];
+      }
+      if (!matched) {
+        var dn = norm(out.description);
+        for (var bj = 0; bj < bookRows.length && !matched; bj++) {
+          var iname = norm(val(bookRows[bj], 'Description', 'Item Name', 'itemName', 'name'));
+          if (iname && dn && (dn === iname || dn.indexOf(iname) === 0)) matched = bookRows[bj];
+        }
+      }
+      if (matched) {
+        var sell = val(matched, 'Selling Price', 'Sell Price', 'sellPrice', 'unitPrice');
+        if (sell !== '' && num(sell) > 0) {
+          out.unitPrice = num(sell); out.rate = num(sell);
+          out.priceSource = 'price_book';
+          var cost = val(matched, 'Purchase Cost', 'Unit Cost', 'unitCost');
+          if (cost !== '' && out.internalUnitCost === undefined) {
+            out.internalUnitCost = num(cost);
+            out.costSource = 'price_book';
+            out.costUpdatedAt = text(val(matched, 'Updated At', 'updatedAt')) || new Date().toISOString();
+            out.costOverride = false;
+          }
+          var mid = text(val(matched, 'Item ID', 'itemId'));
+          if (mid) out.catalogId = mid;
         }
       }
     }
