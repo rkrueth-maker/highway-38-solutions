@@ -9,7 +9,7 @@ async function manualPosted(id){const proof=prompt('Enter the public post URL or
 
 // Live-first PWA compatibility bootstrap: existing installed Offices can load the new Customer 360 timeline even if an older customer workspace hook is still cached.
 (function(){
-  const BUILD='20260920-canonical-workspace-2';
+  const BUILD='20261031-wave1a-1';
   let loading=false;
   function ensureCustomer360Timeline(){
     if(String(window.state?.page||'')!=='customers')return;

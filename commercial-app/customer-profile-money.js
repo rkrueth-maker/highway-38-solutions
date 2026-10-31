@@ -39,6 +39,7 @@ const DUE_KEYS=['Due Date','dueDate'];
 const TOTAL_KEYS=['Total','Invoice Total','Amount','total','amount'];
 const PAID_KEYS=['Amount','Payment Amount','amount','paymentAmount'];
 function text(v){return String(v==null?'':v).trim();}
+function hn(collection,row){try{if(window.H38_HUMAN_NUMBERS)return window.H38_HUMAN_NUMBERS.numberFor(collection,row);}catch(_){ }const key=collection==='quotes'?'Quote Number':collection==='jobs'?'Job Number':'Invoice Number';const s=text(value(row,key));return /^LOCAL-/i.test(s)?'':s;}
 function value(row,...keys){for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';}
 function num(v){const n=Number(String(v==null?'':v).replace(/[$,%]/g,''));return Number.isFinite(n)?n:0;}
 function cents(v){return Math.round(num(v)*100);}
@@ -86,11 +87,11 @@ function computeProfileMoney(groups,opts){
   /* Ledger: invoices debit their Total, payments credit their Amount,
    * chronological with a running balance computed over the full history. */
   const invoiceNumbers=new Map();
-  activeInvoices.forEach(r=>{const id=text(value(r,'Invoice ID','invoiceId','id'));if(id)invoiceNumbers.set(id,text(value(r,'Invoice Number','invoiceNumber'))||id);});
+  activeInvoices.forEach(r=>{const id=text(value(r,'Invoice ID','invoiceId','id'));if(id)invoiceNumbers.set(id,hn('invoices',r)||'Invoice');});
   const entries=[];
   activeInvoices.forEach(r=>{
     const raw=invoiceDate(r),time=dateMs(raw);
-    entries.push({kind:'invoice',id:text(value(r,'Invoice ID','invoiceId','id')),time,date:text(raw).slice(0,10),label:`Invoice ${text(value(r,'Invoice Number','invoiceNumber'))||text(value(r,'Invoice ID','invoiceId','id'))||''}`.trim(),detail:text(value(r,'Status','status')),debitCents:cents(value(r,...TOTAL_KEYS)),creditCents:0});
+    entries.push({kind:'invoice',id:text(value(r,'Invoice ID','invoiceId','id')),time,date:text(raw).slice(0,10),label:`Invoice ${hn('invoices',r)||''}`.trim(),detail:text(value(r,'Status','status')),debitCents:cents(value(r,...TOTAL_KEYS)),creditCents:0});
   });
   payments.forEach(r=>{
     const raw=paymentDate(r),time=dateMs(raw),invId=text(value(r,'Invoice ID','invoiceId'));
@@ -111,7 +112,7 @@ function computeProfileMoney(groups,opts){
     overdue:overdueBalance>0.005,
     openInvoiceCount:openInvoices,
     maxDaysOverdue,
-    aging:{buckets:aging.buckets,total:aging.total,items:aging.items.map(i=>({balance:i.balance,dueDate:i.dueDate,daysOverdue:i.daysOverdue,bucket:i.bucket,number:text(value(i.row,'Invoice Number','invoiceNumber'))||text(value(i.row,'Invoice ID','invoiceId','id'))}))},
+    aging:{buckets:aging.buckets,total:aging.total,items:aging.items.map(i=>({balance:i.balance,dueDate:i.dueDate,daysOverdue:i.daysOverdue,bucket:i.bucket,number:hn('invoices',i.row)}))},
     ledger,ledgerTotal:ledger.length,
     counts:{invoices:activeInvoices.length,payments:payments.length}
   };
@@ -162,8 +163,8 @@ function quickViewFor(customer,groups,compute){
     overdueBalance:compute?compute.overdueBalance:0,
     overdue:!!(compute&&compute.overdue),
     latestJob:job?{label:label(job.row,['Project Title','Title','Job Number'],'Job'),status:text(value(job.row,'Status','status')),time:job.time}:null,
-    latestQuote:quote?{label:label(quote.row,['Quote Number','Project Title','Title'],'Quote'),status:text(value(quote.row,'Status','status')),time:quote.time}:null,
-    latestInvoice:invoice?{label:label(invoice.row,['Invoice Number'],'Invoice'),status:text(value(invoice.row,'Status','status')),total:num(value(invoice.row,...TOTAL_KEYS)),time:invoice.time}:null
+    latestQuote:quote?{label:hn('quotes',quote.row)||label(quote.row,['Project Title','Title'],'Quote'),status:text(value(quote.row,'Status','status')),time:quote.time}:null,
+    latestInvoice:invoice?{label:hn('invoices',invoice.row)||'Invoice',status:text(value(invoice.row,'Status','status')),total:num(value(invoice.row,...TOTAL_KEYS)),time:invoice.time}:null
   };
 }
 

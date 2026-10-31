@@ -41,7 +41,7 @@
     const tax = num(v(row, 'Tax', 'tax'));
     const total = subtotal + tax;
     const customer = customerName(v(row, 'Customer ID', 'customerId') || state.quote.customerId);
-    const quoteNumber = v(row, 'Quote Number', 'quoteNumber') || state.quote.quoteNumber || quoteId;
+    const quoteNumber = (window.H38_HUMAN_NUMBERS ? window.H38_HUMAN_NUMBERS.quoteNumber(row) : '') || (window.H38_HUMAN_NUMBERS && window.H38_HUMAN_NUMBERS.isHuman(state.quote.quoteNumber) ? state.quote.quoteNumber : '') || 'Draft';
     const title = v(row, 'Project Title', 'projectTitle') || state.quote.projectTitle || 'Quote';
     const scope = v(row, 'Scope', 'scope') || state.quote.scope || '';
     const measurements = v(row, 'Measurement Notes', 'measurementNotes') || state.quote.measurementNotes || '';
