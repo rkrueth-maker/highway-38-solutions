@@ -51,5 +51,20 @@ check('favourites use the shared store prefix', shell.includes("'h38-favourites-
 check('palette opens on Ctrl/Cmd+K', shell.includes("toLowerCase() === 'k'"));
 check('shortcut printed on the topbar button', shell.includes('<kbd>Ctrl K</kbd>'));
 
+/* Panes module (slice 2+): same fences — read-only decoration over
+ * the canonical bundle; no send/money primitives; no record writes. */
+const panesPath = path.join(APP, 'workbench-panes.js');
+if (fs.existsSync(panesPath)) {
+  const panes = fs.readFileSync(panesPath, 'utf8');
+  check('panes module registered in index.html', /workbench-panes\.js\?build=/.test(index));
+  check('panes precached by service worker', sw.includes("'./workbench-panes.js'"));
+  for (const f of ['sendEmail', 'sendSms', 'sendMessage(', 'startCall', 'startText', 'stripe', 'charge(', 'recordPayment(', 'queueOperation', 'saveRecord', 'upsert']) {
+    check('panes fence: no ' + f, !panes.includes(f));
+  }
+  check('panes money comes from the canonical computeProfileMoney', panes.includes('computeProfileMoney'));
+  check('panes timeline comes from the canonical customerBundle', panes.includes('customerBundle'));
+  check('panes wide-gated', panes.includes("matchMedia('(min-width: 761px)')"));
+}
+
 console.log(failures.length ? `\n${failures.length} FAILURES` : '\nPASS — workbench static gate');
 process.exit(failures.length ? 1 : 0);
