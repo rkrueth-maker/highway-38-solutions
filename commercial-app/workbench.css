@@ -154,4 +154,39 @@
     background: #1450b4; color: #fff; border: 0; border-radius: 8px;
     padding: 8px 13px; font-weight: 700; cursor: pointer; box-shadow: none; width: 100%;
   }
+  .h38-wb-rec-actions { display: flex; gap: 8px; }
+  .h38-wb-rec-actions .h38-wb-rec-primary { width: auto; flex: 1; }
+  .h38-wb-rec-alt {
+    background: #eef2f6; color: #1c2733; border: 0; border-radius: 8px;
+    padding: 8px 13px; font-weight: 700; cursor: pointer; box-shadow: none; flex: 1;
+  }
+
+  /* ---------- money: list | record | rail ---------- */
+  #mainContent.h38-wb-grid-money {
+    display: grid; grid-template-columns: 292px minmax(0, 1fr) 300px;
+    column-gap: 14px; align-items: start;
+  }
+  #mainContent.h38-wb-grid-money > * { grid-column: 2; min-width: 0; }
+  #mainContent.h38-wb-grid-money > #h38WbInvoiceList {
+    grid-column: 1; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+  }
+  #mainContent.h38-wb-grid-money > #h38WbInvoiceRail {
+    grid-column: 3; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); width: 300px; box-sizing: border-box; justify-self: end;
+  }
+  .h38-wb-invrow { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-bottom: 1px solid #e6eaee; }
+  .h38-wb-invrow.sel { background: #fff; box-shadow: inset 4px 0 0 #1450b4; }
+  .h38-wb-invrow .h38-wb-chase { margin-top: 3px; width: 16px; height: 16px; flex: 0 0 16px; }
+  .h38-wb-chasepad { flex: 0 0 16px; }
+  .h38-wb-invgo { flex: 1; min-width: 0; text-align: left; border: 0; background: transparent; cursor: pointer; box-shadow: none; color: #1c2733; padding: 0; }
+  .h38-wb-invgo .t { display: block; font-weight: 700; font-size: 13.5px; }
+  .h38-wb-invgo .s { display: block; color: #68778a; font-size: 12px; margin-top: 1px; }
+  .h38-wb-od { color: #b3261e; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; }
+  .h38-wb-listpane-ft { padding: 10px 11px; background: #fff; }
+  .h38-wb-chasebtn {
+    width: 100%; background: #1450b4; color: #fff; border: 0; border-radius: 8px;
+    padding: 8px 10px; font-weight: 700; font-size: 12.5px; cursor: pointer; box-shadow: none;
+  }
+  .h38-wb-chasebtn[disabled] { background: #c8d2dd; cursor: default; }
 }
