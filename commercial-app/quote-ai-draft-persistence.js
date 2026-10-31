@@ -31,7 +31,7 @@
 (function () {
   'use strict';
   if (window.H38_AI_QUOTE_PERSIST) return;
-  var BUILD = '20261031-kitquote-1';
+  var BUILD = '20261031-kitquote-2';
 
   function text(value) { return String(value == null ? '' : value).trim(); }
   function num(value) { var n = Number(value == null ? 0 : value); return Number.isFinite(n) ? n : 0; }
