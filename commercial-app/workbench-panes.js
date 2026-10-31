@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-4
+/* H38 Workbench panes — build 20261031-workbench-6
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -208,18 +208,140 @@
     custRailKey = key;
   }
 
+  /* ---------- slice 3: jobs list pane + record rail ----------
+   * The Jobs page keeps its own record rendering in the middle
+   * (job command home + lifecycle — the one renderer). The
+   * workbench adds: a compact list pane on the left (records('jobs'),
+   * click = select) and the record rail on the right: pinned header
+   * (title, status, the page's own primary "next step" action,
+   * proxied — never reimplemented) + the job's chronological
+   * timeline assembled from the job customer's canonical bundle,
+   * filtered to rows that reference the job (quotes carry Job ID;
+   * documents/schedule events carry Related Record ID).
+   * DATA LIMIT (honest): invoices carry Customer ID only — there is
+   * no invoice<->job link in the record model, so invoice events
+   * appear on the customer rail, not invented onto the job rail.
+   * Selection drives the page's own current-job <select>s (job
+   * checklist / change request) so the middle column follows the
+   * same selection the phone would make — one state, two shells. */
+  var jobSel = '';
+  var jobKey = '';
+  function rows(name) {
+    try { if (typeof window.records === 'function') { var r = window.records(name); if (Array.isArray(r)) return r; } } catch (e) {}
+    var s = snap();
+    return Array.isArray(s[name]) ? s[name] : [];
+  }
+  function jobCustomerName(j) { return customerNameOf(text(value(j, 'Customer ID', 'customerId'))); }
+  function customerNameOf(id) {
+    if (!id) return '';
+    var c = rows('customers').filter(function (r) { return text(value(r, 'Customer ID', 'customerId', 'id')) === text(id); })[0];
+    return c ? text(value(c, 'Customer Name', 'name')) : '';
+  }
+  function selectJob(id) {
+    if (!id) return;
+    jobSel = id;
+    /* Drive the page's own job selects (checklist, change request):
+     * match the option whose text carries the job number or whose
+     * value is the job id, then fire the events the page listens to. */
+    var job = rows('jobs').filter(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === id; })[0];
+    var num = job ? text(value(job, 'Job Number')) : '';
+    document.querySelectorAll('#mainContent select').forEach(function (sel) {
+      var match = -1;
+      for (var i = 0; i < sel.options.length; i++) {
+        var o = sel.options[i];
+        if (o.value === id || (num && o.text.indexOf(num) >= 0)) { match = i; break; }
+      }
+      if (match >= 0 && sel.selectedIndex !== match) {
+        sel.selectedIndex = match;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    renderJobsPane(true);
+  }
+  function renderJobsPane(force) {
+    var main = document.getElementById('mainContent');
+    if (!main || !st() || st().page !== 'work' || !wide()) {
+      var l0 = document.getElementById('h38WbJobList'), r0 = document.getElementById('h38WbJobRail');
+      if (l0) l0.remove(); if (r0) r0.remove();
+      if (main) main.classList.remove('h38-wb-grid-work');
+      jobKey = '';
+      return;
+    }
+    var jobs = rows('jobs').slice().sort(function (a, b) { return eventTime(b) - eventTime(a); });
+    if (!jobs.length) return;
+    if (!jobSel || !jobs.some(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === jobSel; })) {
+      jobSel = text(value(jobs[0], 'Job ID', 'jobId', 'id'));
+    }
+    var key = jobSel + '|' + jobs.length + '|' + text(snap().cachedAt);
+    if (!force && jobKey === key && document.getElementById('h38WbJobList')) return;
+    main.classList.add('h38-wb-grid-work');
+    var list = document.getElementById('h38WbJobList');
+    if (!list) {
+      list = document.createElement('aside');
+      list.id = 'h38WbJobList';
+      list.className = 'h38-wb-listpane';
+      list.setAttribute('aria-label', 'Jobs list');
+      main.appendChild(list);
+    }
+    list.innerHTML = '<div class="h38-wb-listpane-hd">Jobs <span>· ' + jobs.length + ' · click one, it opens here</span></div>' +
+      jobs.map(function (j) {
+        var id = text(value(j, 'Job ID', 'jobId', 'id'));
+        var title = text(value(j, 'Project Title', 'Title')) || text(value(j, 'Job Number')) || 'Job';
+        var meta = [text(value(j, 'Job Number')), jobCustomerName(j), text(value(j, 'Status', 'status'))].filter(Boolean).join(' · ');
+        var next = text(value(j, 'Next Action'));
+        return '<button type="button" class="h38-wb-jobrow' + (id === jobSel ? ' sel' : '') + '" data-wb-job="' + esc(id) + '">' +
+          '<span class="t">' + esc(title) + '</span><span class="s">' + esc(meta) + '</span>' +
+          (next ? '<span class="s">Next: ' + esc(next) + '</span>' : '') + '</button>';
+      }).join('');
+    list.querySelectorAll('[data-wb-job]').forEach(function (b) {
+      b.addEventListener('click', function () { selectJob(b.getAttribute('data-wb-job')); });
+    });
+    var rail = document.getElementById('h38WbJobRail');
+    if (!rail) {
+      rail = document.createElement('aside');
+      rail.id = 'h38WbJobRail';
+      rail.className = 'h38-wb-rail-right h38-wb-jobrail';
+      rail.setAttribute('aria-label', 'Job record and timeline');
+      main.appendChild(rail);
+    }
+    var job = jobs.filter(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === jobSel; })[0];
+    if (job) {
+      var title = text(value(job, 'Project Title', 'Title')) || 'Job';
+      var status = text(value(job, 'Status', 'status'));
+      var primary = document.querySelector('#mainContent [data-job-command].primary, #mainContent .h38-job-next');
+      var primaryLabel = primary ? text(primary.textContent) || 'Do next step' : '';
+      var bundle = bundleFor(text(value(job, 'Customer ID', 'customerId')));
+      var events = bundle ? bundleEvents(bundle.groups || {}, { onlyJobId: jobSel }) : [];
+      /* The job's own created/updated stamps always anchor the story. */
+      var created = eventTime({ 'Created Time': value(job, 'Created Time', 'createdAt') });
+      if (created) events.push({ icon: '🧰', label: 'Job', title: title + ' — created', status: status, extra: text(value(job, 'Job Number')), time: created });
+      events.sort(function (a, b) { return b.time - a.time; });
+      rail.innerHTML = '<div class="h38-wb-rec-head"><h3 class="h38-wb-rec-title">' + esc(title) + '</h3>' +
+        '<div class="h38-wb-rec-meta">' + esc([text(value(job, 'Job Number')), jobCustomerName(job), status, text(value(job, 'Due Date')) ? 'Due ' + text(value(job, 'Due Date')) : ''].filter(Boolean).join(' · ')) + '</div>' +
+        (primaryLabel ? '<button type="button" class="h38-wb-rec-primary" id="h38WbJobPrimary">' + esc(primaryLabel) + ' →</button>' : '') +
+        '</div><h3>Everything that happened</h3>' + timelineHtml(events, 18);
+      var pb = rail.querySelector('#h38WbJobPrimary');
+      if (pb && primary) pb.addEventListener('click', function () { primary.click(); });
+    }
+    jobKey = key;
+  }
+
   /* ---------- dispatcher ---------- */
   function reconcile() {
     try { renderCustomerRail(); } catch (e) {}
+    try { renderJobsPane(false); } catch (e) {}
   }
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
   window.addEventListener('pageshow', reconcile);
   try { window.matchMedia('(min-width: 761px)').addEventListener('change', reconcile); } catch (e) {}
-  setInterval(function () { if (st() && st().page === 'customers') reconcile(); }, 1500);
+  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work')) reconcile(); }, 1500);
 
   window.H38_WORKBENCH = window.H38_WORKBENCH || {};
   window.H38_WORKBENCH.panesBuild = BUILD;
+  window.H38_WORKBENCH.selectJob = selectJob;
+  window.H38_WORKBENCH.selectedJobId = function () { return jobSel; };
   window.H38_WORKBENCH.bundleEvents = bundleEvents;
   window.H38_WORKBENCH.computeMoney = computeMoney;
   window.H38_WORKBENCH.bundleFor = bundleFor;

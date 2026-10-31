@@ -113,5 +113,45 @@
   body.h38-wb-on .h38-c360-master-detail { grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) 300px; }
   body.h38-wb-on .h38-c360-master-detail > .h38-wb-rail-right {
     grid-column: 3; position: sticky; top: 10px; max-height: calc(100vh - 24px);
+    width: 300px; box-sizing: border-box; justify-self: end;
+  }
+}
+
+@media (min-width: 761px) {
+  /* ---------- jobs: list | record | rail ---------- */
+  #mainContent.h38-wb-grid-work {
+    display: grid; grid-template-columns: 292px minmax(0, 1fr) 300px;
+    column-gap: 14px; align-items: start;
+  }
+  #mainContent.h38-wb-grid-work > * { grid-column: 2; min-width: 0; }
+  #mainContent.h38-wb-grid-work > #h38WbJobList {
+    grid-column: 1; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+  }
+  #mainContent.h38-wb-grid-work > #h38WbJobRail {
+    grid-column: 3; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); width: 300px; box-sizing: border-box; justify-self: end;
+  }
+  .h38-wb-listpane {
+    background: #f4f6f8; border: 1px solid #dde4ec; border-radius: 12px;
+    overflow: hidden; min-width: 0;
+  }
+  .h38-wb-listpane-hd { padding: 11px 13px; font-weight: 800; font-size: 14.5px; border-bottom: 1px solid #e0e5ea; background: #fff; }
+  .h38-wb-listpane-hd span { color: #7a8794; font-weight: 600; font-size: 11.5px; }
+  .h38-wb-jobrow {
+    display: block; width: 100%; text-align: left; padding: 10px 13px;
+    border: 0; border-bottom: 1px solid #e6eaee; background: transparent;
+    cursor: pointer; box-shadow: none; color: #1c2733;
+  }
+  .h38-wb-jobrow:hover { background: #eef3fa; }
+  .h38-wb-jobrow.sel { background: #fff; box-shadow: inset 4px 0 0 #1450b4; }
+  .h38-wb-jobrow .t { display: block; font-weight: 700; font-size: 13.5px; }
+  .h38-wb-jobrow .s { display: block; color: #68778a; font-size: 12px; margin-top: 1px; }
+  .h38-wb-rec-head { border-bottom: 1px solid #e0e5ea; padding-bottom: 11px; margin-bottom: 12px; }
+  .h38-wb-rec-title { font-size: 15.5px !important; text-transform: none !important; letter-spacing: 0 !important; color: #1c2733 !important; margin: 0 0 3px !important; }
+  .h38-wb-rec-meta { color: #68778a; font-size: 12.5px; margin-bottom: 9px; }
+  .h38-wb-rec-primary {
+    background: #1450b4; color: #fff; border: 0; border-radius: 8px;
+    padding: 8px 13px; font-weight: 700; cursor: pointer; box-shadow: none; width: 100%;
   }
 }
