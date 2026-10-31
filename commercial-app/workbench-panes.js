@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-13
+/* H38 Workbench panes — build 20261031-workbench-14
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -839,6 +839,89 @@
     quotesKey = key;
   }
 
+  /* ---------- slice 8: settings — grouped index pane ----------
+   * Settings is one long scroll of cards. On laptop the workbench
+   * pins a grouped index on the left: Office administration (the
+   * admin access strip's own buttons, proxied — they navigate to
+   * their own screens exactly as the strip does) and On this page
+   * (every settings section heading found in the page's own DOM;
+   * clicking scrolls that section into view in the middle — the
+   * sections themselves are untouched, one renderer). The ~22-screen
+   * scroll becomes one click. */
+  var settingsKey = '';
+  function sectionTitle(el) {
+    var h = el.querySelector('h2, h3');
+    if (h && text(h.textContent)) return text(h.textContent);
+    var s = el.querySelector('strong');
+    if (s && text(s.textContent)) return text(s.textContent).slice(0, 60);
+    return '';
+  }
+  function renderSettingsPane() {
+    var main = document.getElementById('mainContent');
+    if (!main || !st() || st().page !== 'settings' || !wide()) {
+      var old = document.getElementById('h38WbSettingsIndex');
+      if (old) old.remove();
+      if (main) main.classList.remove('h38-wb-grid-settings');
+      settingsKey = '';
+      return;
+    }
+    var sections = [];
+    Array.prototype.slice.call(main.children).forEach(function (child) {
+      if (child.id === 'h38WbSettingsIndex' || child.id === 'h38AdminAccessStrip' || child.tagName === 'HEADER') return;
+      if (child.classList && child.classList.contains('grid')) {
+        Array.prototype.slice.call(child.children).forEach(function (card) {
+          var t = sectionTitle(card);
+          if (t) sections.push({ el: card, title: t });
+        });
+      } else {
+        var t2 = sectionTitle(child);
+        if (t2) sections.push({ el: child, title: t2 });
+      }
+    });
+    var stripBtns = [];
+    var strip = document.getElementById('h38AdminAccessStrip');
+    if (strip) stripBtns = Array.prototype.slice.call(strip.querySelectorAll('button'));
+    var key = sections.map(function (s) { return s.title; }).join('|') + '#' + stripBtns.length;
+    if (settingsKey === key && document.getElementById('h38WbSettingsIndex')) return;
+    main.classList.add('h38-wb-grid-settings');
+    var pane = document.getElementById('h38WbSettingsIndex');
+    if (!pane) {
+      pane = document.createElement('aside');
+      pane.id = 'h38WbSettingsIndex';
+      pane.className = 'h38-wb-listpane';
+      pane.setAttribute('aria-label', 'Settings index');
+      main.appendChild(pane);
+    }
+    var html = '<div class="h38-wb-listpane-hd">Settings index</div>';
+    if (stripBtns.length) {
+      html += '<div class="h38-wb-idx-group">Office administration</div>' + stripBtns.map(function (b, i) {
+        return '<button type="button" class="h38-wb-qitem" data-wb-admin="' + i + '"><span class="t">' + esc(text(b.textContent)) + '</span><span class="s">Opens its own screen</span></button>';
+      }).join('');
+    }
+    if (sections.length) {
+      html += '<div class="h38-wb-idx-group">On this page</div>' + sections.map(function (s, i) {
+        return '<button type="button" class="h38-wb-qitem" data-wb-section="' + i + '"><span class="t">' + esc(s.title) + '</span></button>';
+      }).join('');
+    }
+    pane.innerHTML = html;
+    pane.querySelectorAll('[data-wb-admin]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var target = stripBtns[Number(b.getAttribute('data-wb-admin'))];
+        if (target) target.click();
+      });
+    });
+    pane.querySelectorAll('[data-wb-section]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var s = sections[Number(b.getAttribute('data-wb-section'))];
+        if (!s || !s.el || !document.contains(s.el)) return;
+        s.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        s.el.classList.add('h38-wb-flash');
+        setTimeout(function () { s.el.classList.remove('h38-wb-flash'); }, 1600);
+      });
+    });
+    settingsKey = key;
+  }
+
   /* ---------- dispatcher ---------- */
   function reconcile() {
     try { renderCustomerRail(); } catch (e) {}
@@ -846,13 +929,14 @@
     try { renderMoneyPane(false); } catch (e) {}
     try { renderTodayPanes(); } catch (e) {}
     try { renderQuotesPane(); } catch (e) {}
+    try { renderSettingsPane(); } catch (e) {}
     if (!st() || st().page !== 'schedule') closeSchedPanel();
   }
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
   window.addEventListener('pageshow', reconcile);
   try { window.matchMedia('(min-width: 761px)').addEventListener('change', reconcile); } catch (e) {}
-  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money' || st().page === 'today' || st().page === 'quotes')) reconcile(); }, 1500);
+  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money' || st().page === 'today' || st().page === 'quotes' || st().page === 'settings')) reconcile(); }, 1500);
 
   window.H38_WORKBENCH = window.H38_WORKBENCH || {};
   window.H38_WORKBENCH.panesBuild = BUILD;
