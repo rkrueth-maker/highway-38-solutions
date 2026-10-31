@@ -91,7 +91,16 @@
    "newPlacement": "minimal redirect to pricing.html",
    "reason": "Consolidated Business in a Box pricing into canonical pricing.html URL. Redirect preserves inbound links.",
    "binaryPolicy": "no binary change"
-  }
+  },
+  {
+   "date": "2026-10-31",
+   "page": "index.html",
+   "section": "See it working / Don't take our word for it (demo-proof-1, demo-proof-2, demo-proof-3)",
+   "oldPlacement": "assets/demo-workthroughs/cabin-plan-sheet.png; assets/demo-workthroughs/kitchen-remodel-v2.webp; assets/approved-website-images/10-project-planning-documents.jpg",
+   "newPlacement": "assets/office-screenshots/office-today.png; assets/office-screenshots/office-quote.png; assets/office-screenshots/office-schedule.png",
+   "reason": "Owner-directed honest-scan fix C6 (2026-10-31): the section promises the software but showed construction imagery - a placement clearly unrelated to the section. Replaced with real screenshots taken from the live demo Office (Today, customer quote preview, Schedule) with populated sample data and no demo labels or test artifacts in frame. Old binaries are untouched and remain for their other approved placements.",
+   "binaryPolicy": "New screenshot binaries added under assets/office-screenshots/; no approved binary was modified, moved, or deleted."
+ }
  ],
  "pages": {
   "index.html": [
@@ -107,18 +116,18 @@
    },
    {
     "role": "demo-proof-1",
-    "src": "assets/demo-workthroughs/cabin-plan-sheet.png",
-    "alt": "Three-bedroom cabin plan sheet"
+    "src": "assets/office-screenshots/office-today.png",
+    "alt": "Screenshot of the H38 Business Office Today screen in the live demo, showing open invoices, quotes awaiting an answer, and the jobs scheduled for today"
    },
    {
     "role": "demo-proof-2",
-    "src": "assets/demo-workthroughs/kitchen-remodel-v2.webp",
-    "alt": "Completed kitchen remodel example"
+    "src": "assets/office-screenshots/office-quote.png",
+    "alt": "Screenshot of a customer quote preview in the H38 Business Office live demo, showing the scope and Good, Better, and Best options"
    },
    {
     "role": "demo-proof-3",
-    "src": "assets/approved-website-images/10-project-planning-documents.jpg",
-    "alt": "Project planning documents"
+    "src": "assets/office-screenshots/office-schedule.png",
+    "alt": "Screenshot of the H38 Business Office Schedule page in the live demo, showing service requests, routes and dispatch, and the 7-day work board"
    }
   ],
   "solutions.html": [

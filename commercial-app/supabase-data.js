@@ -168,7 +168,7 @@
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
@@ -213,6 +213,11 @@
       // the Schedule page's Service Requests inbox works this list — never
       // let the broad query's newest-first cap crowd a request out.
       fetchCollectionRows(db, businessId, 'booking_requests'),
+      // Website + customer-originated requests (Start a Request form via
+      // h38-website-request, portal): the Work requests list and the owner
+      // notification scan read this collection — same explicit paged fetch
+      // as booking_requests so the broad cap can never crowd a lead out.
+      fetchCollectionRows(db, businessId, 'requests'),
       fetchCollectionRows(db, businessId, 'properties'),
       // Owner notifications (h38-owner-notify producer): low volume, but
       // they are the owner's alert inbox — never let the broad query's
@@ -251,7 +256,7 @@
     // business_records identity is (collection, record_key): merge each once
     // so overlapping fetches never double-count a payment or expense.
     const mergedRecordKeys = new Set();
-    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows].forEach(row => {
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows].forEach(row => {
       const collection = row.collection;
       const recordKey = text(row.record_key);
       if (recordKey) {
