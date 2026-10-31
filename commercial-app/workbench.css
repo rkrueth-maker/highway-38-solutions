@@ -250,6 +250,22 @@
   .h38-wb-qitem .t { display: block; font-weight: 700; font-size: 13.5px; }
   .h38-wb-qitem .s { display: block; color: #68778a; font-size: 12px; margin-top: 1px; }
 
+  /* ---------- settings: grouped index pane ---------- */
+  #mainContent.h38-wb-grid-settings {
+    display: grid; grid-template-columns: 300px minmax(0, 1fr);
+    column-gap: 14px; align-items: start;
+  }
+  #mainContent.h38-wb-grid-settings > * { grid-column: 2; min-width: 0; }
+  #mainContent.h38-wb-grid-settings > #h38WbSettingsIndex {
+    grid-column: 1; grid-row: 1 / span 999; position: sticky; top: 10px;
+    max-height: calc(100vh - 24px); overflow-y: auto;
+  }
+  .h38-wb-idx-group {
+    padding: 10px 13px 4px; font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .07em; color: #7a8794;
+  }
+  .h38-wb-flash { outline: 3px solid #2f6fd0 !important; outline-offset: 2px; transition: outline-color .3s; }
+
   .h38-wb-listpane-ft { padding: 10px 11px; background: #fff; }
   .h38-wb-chasebtn {
     width: 100%; background: #1450b4; color: #fff; border: 0; border-radius: 8px;
