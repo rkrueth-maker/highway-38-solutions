@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-7
+/* H38 Workbench panes — build 20261031-workbench-8
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -360,20 +360,218 @@
     jobKey = key;
   }
 
+  /* ---------- slice 4: money — invoice list pane + invoice rail ----------
+   * The other crew owns the invoice EDITOR (the draft form + its live
+   * customer preview in the middle column, shipped 2026-10-31). This
+   * slice is the surrounding shell only: a compact invoice list pane
+   * (records('invoices')) and a right rail for the selected invoice:
+   * pinned header + the page row's own Invoice PDF button (proxied)
+   * + Record payment (scrolls to the page's own payment form and
+   * picks the invoice in its select — the owner still submits it;
+   * nothing is recorded by this code) + the customer's money summary
+   * (canonical computeProfileMoney over raw invoice/payment groups)
+   * + payment history for the invoice and the customer.
+   * BATCH CHASE: no native select-many chase exists on the Money
+   * page (checked live 2026-10-31: zero checkboxes). The list pane
+   * adds checkboxes on open invoices and a "prepare chase" action
+   * that hands Kit (owner chat) an instruction listing the picked
+   * invoices and requiring drafts for owner approval — the existing
+   * gated flow. The pane itself sends nothing. */
+  var invSel = '';
+  var invKey = '';
+  var chaseSet = {};
+  function isRemovedInv(r) {
+    var s = text(value(r, 'Status', 'status')).toUpperCase();
+    return /DELET|VOID/.test(s);
+  }
+  function invBalance(r) { return Number(value(r, 'Balance', 'balance')) || 0; }
+  function invOverdue(r) {
+    if (isRemovedInv(r) || invBalance(r) <= 0.005) return false;
+    var due = text(value(r, 'Due Date', 'dueDate'));
+    if (!due) return false;
+    var d = new Date(due);
+    return Number.isFinite(d.getTime()) && d.getTime() < Date.now();
+  }
+  function customerGroups(customerId) {
+    var invs = rows('invoices').filter(function (r) { return text(value(r, 'Customer ID', 'customerId')) === text(customerId); });
+    var ids = {};
+    invs.forEach(function (r) { ids[text(value(r, 'Invoice ID', 'invoiceId', 'id'))] = 1; });
+    var pays = rows('payments').filter(function (r) { return ids[text(value(r, 'Invoice ID', 'invoiceId'))]; });
+    return { invoices: invs, payments: pays };
+  }
+  function pageInvoiceRow(num) {
+    var secs = document.querySelectorAll('#mainContent section.card');
+    for (var i = 0; i < secs.length; i++) {
+      var rs = secs[i].querySelectorAll('.row');
+      for (var j = 0; j < rs.length; j++) {
+        var strong = rs[j].querySelector('strong');
+        if (strong && text(strong.textContent) === num) return rs[j];
+      }
+    }
+    return null;
+  }
+  function selectInvoice(id, fromPage) {
+    if (!id) return;
+    invSel = id;
+    var inv = rows('invoices').filter(function (r) { return text(value(r, 'Invoice ID', 'invoiceId', 'id')) === id; })[0];
+    if (inv && !fromPage) {
+      var num = text(value(inv, 'Invoice Number'));
+      var rowEl = num ? pageInvoiceRow(num) : null;
+      if (rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        rowEl.classList.add('h38-wb-flash');
+        setTimeout(function () { rowEl.classList.remove('h38-wb-flash'); }, 1500);
+      }
+    }
+    renderMoneyPane(true);
+  }
+  function stageKitMessage(msg) {
+    try { if (typeof window.openPage === 'function') window.openPage('ai'); } catch (e) {}
+    setTimeout(function () {
+      try {
+        var chat = window.H38_OWNER_CHAT;
+        if (chat && typeof chat.send === 'function' && (typeof chat.handlesWorkspaceChat !== 'function' || chat.handlesWorkspaceChat())) { chat.send(msg); return; }
+        var input = document.querySelector('#mainContent textarea, #mainContent input[type="text"]');
+        if (input) { input.value = msg; input.focus(); }
+      } catch (e) {}
+    }, 450);
+  }
+  function prepareChase() {
+    var picked = rows('invoices').filter(function (r) { return chaseSet[text(value(r, 'Invoice ID', 'invoiceId', 'id'))]; });
+    if (!picked.length) return;
+    var lines = picked.map(function (r) {
+      return 'Invoice ' + text(value(r, 'Invoice Number')) + ' — ' + customerNameOf(text(value(r, 'Customer ID', 'customerId'))) +
+        ', balance ' + moneyFmt(invBalance(r)) + ', due ' + (text(value(r, 'Due Date', 'dueDate')) || 'n/a');
+    });
+    stageKitMessage('Prepare payment reminders for these open invoices. Show me each draft for my approval before anything is sent:\n' + lines.join('\n'));
+  }
+  function renderMoneyPane(force) {
+    var main = document.getElementById('mainContent');
+    if (!main || !st() || st().page !== 'money' || !wide()) {
+      var l0 = document.getElementById('h38WbInvoiceList'), r0 = document.getElementById('h38WbInvoiceRail');
+      if (l0) l0.remove(); if (r0) r0.remove();
+      if (main) main.classList.remove('h38-wb-grid-money');
+      invKey = '';
+      return;
+    }
+    var invs = rows('invoices').filter(function (r) { return !isRemovedInv(r); }).slice().sort(function (a, b) {
+      var oa = invBalance(a) > 0.005 ? 0 : 1, ob = invBalance(b) > 0.005 ? 0 : 1;
+      if (oa !== ob) return oa - ob;
+      return eventTime(b) - eventTime(a);
+    });
+    if (!invs.length) return;
+    if (!invSel || !invs.some(function (r) { return text(value(r, 'Invoice ID', 'invoiceId', 'id')) === invSel; })) {
+      invSel = text(value(invs[0], 'Invoice ID', 'invoiceId', 'id'));
+    }
+    var chaseCount = Object.keys(chaseSet).length;
+    var key = invSel + '|' + invs.length + '|' + chaseCount + '|' + text(snap().cachedAt);
+    if (!force && invKey === key && document.getElementById('h38WbInvoiceList')) return;
+    main.classList.add('h38-wb-grid-money');
+    var list = document.getElementById('h38WbInvoiceList');
+    if (!list) {
+      list = document.createElement('aside');
+      list.id = 'h38WbInvoiceList';
+      list.className = 'h38-wb-listpane';
+      list.setAttribute('aria-label', 'Invoices list');
+      main.appendChild(list);
+    }
+    var shown = invs.slice(0, 50);
+    list.innerHTML = '<div class="h38-wb-listpane-hd">Invoices <span>· ' + invs.length + ' · tick open ones to chase</span></div>' +
+      shown.map(function (r) {
+        var id = text(value(r, 'Invoice ID', 'invoiceId', 'id'));
+        var num = text(value(r, 'Invoice Number')) || id;
+        var bal = invBalance(r), od = invOverdue(r);
+        var meta = [customerNameOf(text(value(r, 'Customer ID', 'customerId'))), text(value(r, 'Status', 'status'))].filter(Boolean).join(' · ');
+        var due = text(value(r, 'Due Date', 'dueDate'));
+        return '<div class="h38-wb-invrow' + (id === invSel ? ' sel' : '') + '" data-wb-invrow="' + esc(id) + '">' +
+          (bal > 0.005 ? '<input type="checkbox" class="h38-wb-chase" data-wb-chase="' + esc(id) + '"' + (chaseSet[id] ? ' checked' : '') + ' aria-label="Pick invoice ' + esc(num) + ' for a reminder">' : '<span class="h38-wb-chasepad"></span>') +
+          '<button type="button" class="h38-wb-invgo" data-wb-inv="' + esc(id) + '"><span class="t">' + esc(num) + (od ? ' <span class="h38-wb-od">OVERDUE</span>' : '') + '</span>' +
+          '<span class="s">' + esc(meta) + '</span><span class="s">' + esc('Total ' + moneyFmt(Number(value(r, 'Total', 'total')) || 0) + ' · Balance ' + moneyFmt(bal) + (due ? ' · Due ' + due : '')) + '</span></button></div>';
+      }).join('') +
+      '<div class="h38-wb-listpane-ft"><button type="button" class="h38-wb-chasebtn" id="h38WbChaseBtn"' + (chaseCount ? '' : ' disabled') + '>Prepare chase for ' + chaseCount + ' picked → Kit drafts, you approve</button></div>';
+    list.querySelectorAll('[data-wb-inv]').forEach(function (b) {
+      b.addEventListener('click', function () { selectInvoice(b.getAttribute('data-wb-inv'), false); });
+    });
+    list.querySelectorAll('[data-wb-chase]').forEach(function (c) {
+      c.addEventListener('change', function () {
+        var id = c.getAttribute('data-wb-chase');
+        if (c.checked) chaseSet[id] = 1; else delete chaseSet[id];
+        renderMoneyPane(true);
+      });
+    });
+    var chaseBtn = list.querySelector('#h38WbChaseBtn');
+    if (chaseBtn) chaseBtn.addEventListener('click', prepareChase);
+    var rail = document.getElementById('h38WbInvoiceRail');
+    if (!rail) {
+      rail = document.createElement('aside');
+      rail.id = 'h38WbInvoiceRail';
+      rail.className = 'h38-wb-rail-right h38-wb-invrail';
+      rail.setAttribute('aria-label', 'Invoice record, customer money and payments');
+      main.appendChild(rail);
+    }
+    var inv = invs.filter(function (r) { return text(value(r, 'Invoice ID', 'invoiceId', 'id')) === invSel; })[0];
+    if (inv) {
+      var num = text(value(inv, 'Invoice Number')) || invSel;
+      var cid = text(value(inv, 'Customer ID', 'customerId'));
+      var groups = customerGroups(cid);
+      var m = computeMoney(groups);
+      var pays = groups.payments.filter(function (p) { return text(value(p, 'Invoice ID', 'invoiceId')) === invSel; })
+        .sort(function (a, b) { return eventTime(b) - eventTime(a); });
+      var events = bundleEvents({ invoices: [inv], payments: pays }, {});
+      rail.innerHTML = '<div class="h38-wb-rec-head"><h3 class="h38-wb-rec-title">Invoice ' + esc(num) + '</h3>' +
+        '<div class="h38-wb-rec-meta">' + esc([customerNameOf(cid), text(value(inv, 'Status', 'status')), 'Total ' + moneyFmt(Number(value(inv, 'Total', 'total')) || 0), 'Balance ' + moneyFmt(invBalance(inv)), text(value(inv, 'Due Date', 'dueDate')) ? 'Due ' + text(value(inv, 'Due Date', 'dueDate')) : ''].filter(Boolean).join(' · ')) + '</div>' +
+        '<div class="h38-wb-rec-actions"><button type="button" class="h38-wb-rec-primary" id="h38WbInvPdf">Invoice PDF</button>' +
+        '<button type="button" class="h38-wb-rec-alt" id="h38WbInvPay">Record payment ↓</button></div></div>' +
+        '<h3>Customer money — ' + esc(customerNameOf(cid) || 'customer') + '</h3>' + moneySummaryHtml(m, customerNameOf(cid)) +
+        '<h3>Payments on this invoice</h3>' +
+        (pays.length ? '<div class="h38-wb-tl">' + pays.map(function (p) {
+          return '<div class="h38-wb-tl-ev"><div class="h38-wb-tl-when">' + esc(formatWhen(eventTime(p))) + '</div><strong>✓ ' + esc(moneyFmt(Number(value(p, 'Amount', 'Payment Amount')) || 0)) + '</strong><div class="h38-wb-tl-meta">' + esc([text(value(p, 'Method', 'method')), text(value(p, 'Reference', 'reference')) ? 'Ref ' + text(value(p, 'Reference', 'reference')) : '', text(value(p, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</div></div>';
+        }).join('') + '</div>' : '<div class="h38-wb-empty">No payments recorded on this invoice yet.</div>') +
+        '<h3>Invoice history</h3>' + timelineHtml(events, 10);
+      var pdfBtn = rail.querySelector('#h38WbInvPdf');
+      if (pdfBtn) pdfBtn.addEventListener('click', function () {
+        var rowEl = pageInvoiceRow(num);
+        var b = rowEl && rowEl.querySelector('[data-h38-record-pdf]');
+        if (b) b.click();
+      });
+      var payBtn = rail.querySelector('#h38WbInvPay');
+      if (payBtn) payBtn.addEventListener('click', function () {
+        var form = document.getElementById('h38-money-payments');
+        if (!form) return;
+        var sel = form.querySelector('select');
+        if (sel) {
+          for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].text.indexOf(num) >= 0 || sel.options[i].value === invSel) {
+              sel.selectedIndex = i;
+              sel.dispatchEvent(new Event('change', { bubbles: true }));
+              break;
+            }
+          }
+        }
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        form.classList.add('h38-wb-flash');
+        setTimeout(function () { form.classList.remove('h38-wb-flash'); }, 1500);
+      });
+    }
+    invKey = key;
+  }
+
   /* ---------- dispatcher ---------- */
   function reconcile() {
     try { renderCustomerRail(); } catch (e) {}
     try { renderJobsPane(false); } catch (e) {}
+    try { renderMoneyPane(false); } catch (e) {}
   }
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
   window.addEventListener('pageshow', reconcile);
   try { window.matchMedia('(min-width: 761px)').addEventListener('change', reconcile); } catch (e) {}
-  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work')) reconcile(); }, 1500);
+  setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money')) reconcile(); }, 1500);
 
   window.H38_WORKBENCH = window.H38_WORKBENCH || {};
   window.H38_WORKBENCH.panesBuild = BUILD;
   window.H38_WORKBENCH.selectJob = selectJob;
+  window.H38_WORKBENCH.selectInvoice = selectInvoice;
   window.H38_WORKBENCH.selectedJobId = function () { return jobSel; };
   window.H38_WORKBENCH.bundleEvents = bundleEvents;
   window.H38_WORKBENCH.computeMoney = computeMoney;
