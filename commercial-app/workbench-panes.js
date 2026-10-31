@@ -1,4 +1,4 @@
-/* H38 Workbench panes — build 20261031-workbench-12
+/* H38 Workbench panes — build 20261031-workbench-13
  *
  * Direction B ("The Workbench") laptop layer, page panes. Companion to
  * workbench-shell.js (slice 1: icon rail + palette). Everything here
@@ -752,7 +752,18 @@
       var id = text(value(job, 'Job ID', 'jobId', 'id'));
       closeSchedPanel();
       try { if (typeof window.openPage === 'function') window.openPage('work'); } catch (e) {}
-      setTimeout(function () { selectJob(id); }, 400);
+      /* The Jobs page's checklist renders with its lazy page group —
+       * a single early select can land before the <select> exists and
+       * be silently overwritten by the page's own first render.
+       * Retry until the selection verifiably sticks (live-proven race,
+       * slice 6 proof). */
+      [400, 1200, 2200, 3400].forEach(function (ms) {
+        setTimeout(function () {
+          if (!st() || st().page !== 'work') return;
+          var sel = document.querySelector('#supabaseChecklist select');
+          if (sel && sel.value !== id) selectJob(id);
+        }, ms);
+      });
     });
   }
   document.addEventListener('click', function (e) {
