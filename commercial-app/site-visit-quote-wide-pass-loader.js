@@ -33,11 +33,11 @@ const scripts=[
   ['./quote-reproduction-authority.js','20260823-quote-reproduction-authority-1','H38_QUOTE_REPRODUCTION_AUTHORITY_BOOT'],
   ['./quote-revision-authority.js','20261020-gbb-ws1-1','H38_QUOTE_REVISION_AUTHORITY'],
   ['./site-visit-deep-polish.js','20260825-site-visit-deep-polish-3-phone','H38_SITE_VISIT_DEEP_POLISH'],
-  ['./quote-rerender-source-picker.js','20260823-quote-rerender-source-picker-1','H38_QUOTE_RERENDER_SOURCE_PICKER'],
+  ['./quote-rerender-source-picker.js','20261031-wave1a-1','H38_QUOTE_RERENDER_SOURCE_PICKER'],
   ['./quote-historical-assets-polish.js','20260823-quote-historical-assets-polish-1','H38_QUOTE_HISTORICAL_ASSETS_POLISH'],
   ['./quote-regression-runner.js','20260823-quote-regression-runner-3-base-draft-isolation','H38_QUOTE_REGRESSION_RUNNER'],
   ['./quote-agent-contract.js','20261031-kitquote-4','H38_QUOTE_AGENT_CONTRACT'],
-  ['./office-onboarding-release-gate.js','20261031-kitquote-4','H38_OFFICE_ONBOARDING_RELEASE_GATE']
+  ['./office-onboarding-release-gate.js','20261031-wave1a-1','H38_OFFICE_ONBOARDING_RELEASE_GATE']
 ];
 function load(entry){return new Promise((resolve,reject)=>{const[path,build,global]=entry;if(window[global])return resolve();const existing=document.querySelector(`script[data-h38-wide-pass="${global}"]`);if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}const script=document.createElement('script');script.src=`${path}?build=${build}`;script.async=false;script.dataset.h38WidePass=global;script.addEventListener('load',resolve,{once:true});script.addEventListener('error',()=>reject(new Error(`Could not load ${path}`)),{once:true});document.head.appendChild(script);});}
 async function boot(){for(const entry of scripts){try{await load(entry);}catch(error){console.error('[H38 wide pass loader]',error);}}window.dispatchEvent(new CustomEvent('h38:site-visit-quote-wide-pass-ready',{detail:{build:BUILD,assetBuild:ASSET_BUILD}}));}

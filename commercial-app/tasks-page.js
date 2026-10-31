@@ -103,7 +103,7 @@ function sortOpen(rows){
 
 function taskCard(row){
   var id=Hesc(HrowId(row,'Task ID','taskId'));
-  var title=Hesc(Hv(row,'Task Title')||'Untitled task');
+  var title=Hesc((window.H38_HUMAN_NUMBERS?window.H38_HUMAN_NUMBERS.scrubText(Hv(row,'Task Title')||'',row):(Hv(row,'Task Title')||''))||'Untitled task');
   var who=Hesc(assigneeLabel(row));
   var sent=text(sentStamp(row))?Hesc(timeAgo(sentStamp(row))):'';
   var due=text(Hv(row,'Due Time'))?(' · due '+Hesc(HdateTime(Hv(row,'Due Time')))):'';
@@ -133,7 +133,7 @@ function taskCard(row){
 }
 
 function doneRow(row){
-  var title=Hesc(Hv(row,'Task Title')||'Untitled task');
+  var title=Hesc((window.H38_HUMAN_NUMBERS?window.H38_HUMAN_NUMBERS.scrubText(Hv(row,'Task Title')||'',row):(Hv(row,'Task Title')||''))||'Untitled task');
   var who=Hesc(assigneeLabel(row));
   var when=text(Hv(row,'Completed At'))?Hesc(timeAgo(Hv(row,'Completed At'))):'';
   return '<div class="row"><div class="row-top"><strong>✓ '+title+'</strong></div>'

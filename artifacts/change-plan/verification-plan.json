@@ -1,16 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-31T17:38:13.155Z",
+  "generatedAt": "2026-10-31T20:45:52.895Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/auth-autofill.css",
+    "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
+    "commercial-app/office-onboarding-release-gate.js",
+    "commercial-app/owner-home.js",
+    "commercial-app/quote-agent-contract.js",
+    "commercial-app/quote-ai-draft-persistence.js",
+    "commercial-app/quote-runtime-authority.js",
     "commercial-app/service-worker.js",
-    "commercial-app/version.json",
-    "commercial-app/workbench.css"
+    "commercial-app/site-visit-photo-quote-runtime-repair.js",
+    "commercial-app/site-visit-quote-wide-pass-loader.js",
+    "commercial-app/site-visit-wide-acceptance-final.js",
+    "commercial-app/supabase-quote-ai-auth-fix.js",
+    "commercial-app/version.json"
   ],
-  "fileCount": 5,
+  "fileCount": 13,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

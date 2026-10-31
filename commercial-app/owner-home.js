@@ -202,7 +202,8 @@
       return {
         count: open.length,
         items: open.slice(0, 3).map(t => {
-          const title = v(t, 'Task Title') || v(t, 'Title') || 'Task';
+          const rawTitle = v(t, 'Task Title') || v(t, 'Title') || 'Task';
+          const title = window.H38_HUMAN_NUMBERS ? window.H38_HUMAN_NUMBERS.scrubText(rawTitle, t) : rawTitle;
           /* P0 (2026-10-31): a Quote Review task row opens the actual
              persisted quote — the home summary is where the owner sees
              these tasks daily, so the deep link lives here, not only on
