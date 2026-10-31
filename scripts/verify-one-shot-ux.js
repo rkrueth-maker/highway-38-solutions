@@ -34,7 +34,7 @@ need('index.html','filing cabinet','homepage states the current practical outcom
 need('index.html','H38 Business System','homepage explains the project-first workflow');
 check('homepage exposes the three accepted discovery steps',['Three problems','One fix','H38 Business System'].every(marker=>home.includes(marker)));
 check('homepage separates software and project-service buyer paths',home.includes('H38 Business System')&&home.includes('Try the Live Demo')&&home.includes('See the Plans'));
-check('homepage exposes connected deliverables',['Plans and visual concepts','Detailed quotes','Job-ready instructions','Connected Business Office'].every(marker=>home.includes(marker)));
+check('homepage exposes connected deliverables',['Your whole day on one screen','Detailed quotes','Requests and the week, together','Connected Business Office'].every(marker=>home.includes(marker)));
 check('homepage preserves neutral request solutions pricing and contact routes',['start-request.html','pricing.html'].every(marker=>home.includes(marker))&&publicShell.includes("['Contact','contact.html']"));
 check('homepage does not directly sell one authenticated software product',!/href=["']business-systems\.html/i.test(home)&&!/href=["']quote-builder\.html["']/i.test(home));
 check('homepage may link product examples without turning them into the primary buyer path',home.includes('quote-builder.html#examples'));
