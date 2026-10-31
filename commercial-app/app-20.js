@@ -184,7 +184,10 @@ async function h38BuildAiQuoteDraft(){
     state.quote.possibleMissingCosts=Array.isArray(draft.possibleMissingCosts)?draft.possibleMissingCosts:[];
     state.quote.measurementNotes=[measurements?.value||'',...(draft.photoObservations||[]).map(item=>`AI photo observation: ${item}`),...(draft.missingInformation||[]).map(item=>`Needs confirmation: ${item}`)].filter(Boolean).join('\n');
     const costCount=state.quote.possibleMissingCosts.filter(item=>!item?.decision||item.decision==='PENDING').length;
-    toast(`${result.provider||'AI'} draft loaded with current pricing.${costCount?` ${costCount} possible missing cost${costCount===1?'':'s'} flagged for owner review.`:''}; nothing approved or sent.`);
+    const persistence=result.aiDraftPersistence||{};
+    if(persistence.status==='PERSISTED'&&persistence.quoteId){state.quote.quoteId=persistence.quoteId;if(persistence.quoteNumber)state.quote.quoteNumber=persistence.quoteNumber;}
+    const savedNote=persistence.status==='PERSISTED'?` Saved as draft ${persistence.quoteNumber||''} in Quotes — it stays there for your review.`:persistence.status==='FAILED'?` WARNING: the draft could not be saved to Quotes (${persistence.message||'save failed'}). The lines are on screen only — save before leaving.`:''; 
+    toast(`${result.provider||'AI'} draft loaded with current pricing.${costCount?` ${costCount} possible missing cost${costCount===1?'':'s'} flagged for owner review.`:''}${savedNote} Nothing approved or sent.`);
     renderQuotes();
   }catch(error){toast(error.message||String(error),true);if(button){button.disabled=false;button.textContent='Build with Hank';}}
 }
