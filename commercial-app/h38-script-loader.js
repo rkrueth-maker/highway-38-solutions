@@ -25,6 +25,8 @@
   const loading = new Map();
 
     const FIELD_AND_MEASURE_SCRIPTS = [
+      './app-07.js?build=20261030-two-layer-6',
+      './app-10.js?build=20261020-ws4-field-1',
       './site-scanner.js?build=20260806-0605',
       './site-scanner-mobile-guidance.js?build=20260806-0605',
       './site-scanner-cad-export.js?build=20260811-cad-review-dxf-0143',
@@ -61,8 +63,13 @@
       './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
       './site-visit-native-launch-final.js?build=20260816-native-launch-handoff-fallback-5',
       './repair-guide-integration.js?build=20261020-ws4-placeholders-1',
+      './voice-commands.js?build=20261005-voice-1',
     ];
     const PAGE_QUOTES = [
+      './app-07.js?build=20261030-two-layer-6',
+      './app-06.js?build=20261030-two-layer-7',
+      './app-20.js?build=20261031-kitquote-4',
+      './quick-start.js?build=20261013-rescan-fixes-1',
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
       './supabase-client-quote-branding.js?build=20261031-wave1ab-1',
       './quote-ai-draft-persistence.js?build=20261031-kitquote-4',
@@ -104,12 +111,14 @@
       // customers-first session (verified by browser probe). It stays in
       // FIELD_AND_MEASURE as well; the loader dedupes repeat loads.
       './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
+      './customer-readiness-polish.js?build=20261031-schedtruth-2',
     ];
     const PAGE_MEETINGS = [
       './conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1',
     ];
     const PAGE_TASKS = [
       './tasks-page.js?build=20261031-wave1ab-1',
+      './send-task.js?build=20261011-phase4-1',
     ];
     // Work (2026-10-26): the Work page's Mark Complete buttons and status
     // select route through H38CustomerComms.markJobComplete (review prompt
@@ -121,21 +130,27 @@
       './customer-comms.js?build=20261026-auto-invoice-3',
     ];
     const PAGE_SCHEDULE = [
+      './app-08.js?build=20261020-myhank-settings-1',
       './business-hours.js?build=20261030-r2-business-hours-1',
       './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
       './route-planner.js?build=20261031-wave1ab-1',
       './portal-requests.js?build=20261031-wave1ab-1',
+      './route-optimization.js?build=20261004-route-1',
     ];
     const PAGE_MESSAGES = [
+      './app-08.js?build=20261020-myhank-settings-1',
+      './app-09.js?build=20261013-messages-entry-3',
       './business-hours.js?build=20261030-r2-business-hours-1',
       './sms-provider.js?build=20261004-sms-seam-2',
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
       './email-send-runtime.js?build=20261011-email-send-1',
       './customer-comms.js?build=20261026-auto-invoice-3',
+      './communications-native-receptionist.js?build=20261030-swivl-round2-1',
     ];
     const PAGE_FLEET = [
+      './app-12.js?build=20261020-ws4-remaining-1',
       './route-manager.js?build=20261026-map-tiles-1',
       './route-planner.js?build=20261031-wave1ab-1',
       './northern-bouncie-fleet.js?build=20261026-bouncie-plumb-1',
@@ -144,12 +159,17 @@
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
       './mileage.js?build=20261031-trippath-1',
       './plow-flow.js?build=20261011-plow-flow-1',
+      './route-optimization.js?build=20261004-route-1',
     ];
     // Mileage (2026-10-22): detection has to start when the app opens, and
     // Today is the landing workspace — so the module also loads with the
     // Today group. It stays dark unless the tenant pilot switch and the
     // Owner Controls feature toggle are both on (see mileage.js).
     const PAGE_TODAY = [
+      './kit-activity-feed.js?build=20261011-kit-feed-bold-numbers-1',
+      './daily-digest.js?build=20261031-schedtruth-2',
+      './owner-controls.js?build=20261027-signed-deposit-2',
+      './owner-notifications.js?build=20261013-owner-notify-4',
       './today-command-setup.js?build=20261030-r2-today-1',
       './mileage.js?build=20261031-trippath-1',
     ];
@@ -180,6 +200,9 @@
       // a Money-first session had no canonical money math available.
       // Same ?build= URL as PAGE_CUSTOMERS so the loader dedupes it.
       './customer-profile-money.js?build=20261031-wave1ab-1',
+      './pay-bills.js?build=20261011-phase2-1',
+      './overdue-nudge.js?build=20261011-phase3-1',
+      './stripe-payments.js?build=20261006-stripepay-1',
     ];
     const PAGE_ACCOUNTING = [
       './accounting-engine.js?build=20261020-payroll-engine-1',
@@ -200,6 +223,7 @@
       './payroll-run.js?build=20261020-payroll-run-1',
       './payroll-workflow.js?build=20261020-payroll-presentation-1',
       './money-agent.js?build=20261022-perperson-1',
+      './guided-payroll.js?build=20261020-payroll-run-1',
     ];
     const PAGE_TAX = [
       './tax-packet.js?build=20261005-tax-packet-2',
@@ -227,12 +251,19 @@
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
     ];
     const PAGE_AI = [
+      './app-16.js?build=20261026-owner-chat-5',
+      './assistant-tenant-actions.js?build=20260929-readable-action-preview-8',
+      './owner-chat.js?build=20261026-owner-chat-5',
       './kits-workspace.js?build=20261026-owner-chat-5',
     ];
     const PAGE_ASSISTANT = [
+      './app-16.js?build=20261026-owner-chat-5',
+      './assistant-tenant-actions.js?build=20260929-readable-action-preview-8',
+      './owner-chat.js?build=20261026-owner-chat-5',
       './kits-workspace.js?build=20261026-owner-chat-5',
     ];
     const PAGE_SOCIAL = [
+      './app-15.js?build=20261020-ws4-remaining-1',
       './deal-alerts.js?build=20261008-inventory-module-1',
     ];
     const PAGE_PEOPLE = [
@@ -244,6 +275,19 @@
       './sms-provider-setup.js?build=20261004-sms-providers-1',
       './muse-permissions.js?build=20261006-muse-permissions-2',
       './data-usage.js?build=20261022-perperson-1',
+      './example-data-manager.js?build=20260824-example-data-manager-2',
+      './example-data-full-office.js?build=20261007-example-full-office-tenant-gate-1',
+      './machine-shop-pricebook-templates.js?build=20261004-machine-shop-templates-1',
+      './machine-shop.js?build=20261020-ws4-placeholders-1',
+      './recommended-vendors.js?build=20261020-ws4-placeholders-1',
+      './communications-native-receptionist.js?build=20261030-swivl-round2-1',
+    ];
+
+    const PAGE_INVENTORY = [
+      './inventory-checker.js?build=20261008-inventory-module-2',
+      './app-11.js?build=20261020-ws4-pricebook-1',
+      './inventory-module.js?build=20261020-ws4-pricebook-1',
+      './order-inventory.js?build=20261011-phase2-1',
     ];
 
   // Map of page -> script URLs needed for that page.
@@ -261,6 +305,7 @@
     'schedule': PAGE_SCHEDULE,
     'messages': PAGE_MESSAGES,
     'fleet': PAGE_FLEET,
+    'inventory': PAGE_INVENTORY,
     'money': PAGE_MONEY,
     'accounting': PAGE_ACCOUNTING,
     'payroll': PAGE_PAYROLL,
@@ -276,8 +321,13 @@
   };
 
   // Scripts that should preload in background after initial page load.
-  // Kept empty by the 2026-10-13 deferral pass: page groups load on first
-  // navigation instead (service-worker precache keeps that fast + offline-safe).
+  // 2026-10-31 cold-start pass: index.html no longer loads page renderers /
+  // page features upfront (they live in the PAGE_SCRIPTS groups above and
+  // load on first navigation). So that every feature is also simply
+  // PRESENT shortly after startup (guided flows launched from the owner
+  // home, Ask Hank, voice helpers), the idle preload below walks every
+  // page group sequentially once Today has rendered. Sequential + idle
+  // scheduled: it must never compete with the first usable Today.
   const PRELOAD_AFTER_IDLE = [];
 
   function loadScript(url) {
@@ -326,10 +376,16 @@
   function preloadInBackground() {
     const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 2000));
     schedule(() => {
-      PRELOAD_AFTER_IDLE.forEach(url => {
-        loadScript(url).catch(() => {}); // Silently fail background preloads
+      // Priority order: the pages a user is most likely to open next first.
+      const order = ['ai', 'assistant', 'quotes', 'schedule', 'money', 'customers', 'work', 'messages', 'tasks', 'field', 'fleet', 'inventory', 'accounting', 'payroll', 'tax', 'reports', 'books', 'documents', 'social', 'people', 'settings', 'meetings', 'today'];
+      const seen = new Set();
+      const queue = [];
+      order.forEach(page => {
+        (PAGE_SCRIPTS[page] || []).forEach(url => { if (!seen.has(url)) { seen.add(url); queue.push(url); } });
       });
-    });
+      PRELOAD_AFTER_IDLE.forEach(url => { if (!seen.has(url)) { seen.add(url); queue.push(url); } });
+      queue.reduce((chain, url) => chain.then(() => loadScript(url).catch(() => {})), Promise.resolve());
+    }, { timeout: 4000 });
   }
 
   // Mark scripts already loaded via index.html as loaded
