@@ -40,7 +40,7 @@
 // unreviewed trip details are never shown to anyone else (owners see only
 // a count of trips awaiting review per person).
 
-var BUILD='20261030-checkin-history-1';
+var BUILD='20261031-trippath-1';
 var PILOT_MODULE_KEY='mileage_tracking';
 var FEATURE_ID='mileage_tracking_enabled';
 var TRIP_COLLECTION='mileageTrips';
@@ -1215,6 +1215,7 @@ function ensureStyle(){
     '.h38-mileage-trip{border-top:1px solid var(--line,#d6e0e8);padding:12px 0}',
     '.h38-mileage-path{display:flex;gap:10px;align-items:center;margin:8px 0}',
     '.h38-mileage-path svg{background:var(--panel,#eef4f8);border:1px solid var(--line,#d6e0e8);border-radius:8px;flex:none}',
+    '.h38-mileage-path-unreadable{border:1px dashed #d8a03c;background:#fdf6e3;border-radius:8px;padding:8px 10px;color:#6b5310}',
     '.h38-mileage-trip:first-of-type{border-top:0}',
     '.h38-mileage-trip-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap}',
     '.h38-mileage-suggest{border:1px dashed #9db8cc;background:#f2f8fc;border-radius:10px;padding:10px 12px;margin-top:8px}',
@@ -1254,16 +1255,69 @@ function tripRouteLine(row){
 // detours"). Inline SVG polyline over the stored Path points — no map
 // tiles, no external calls; green dot = start, red dot = end. Renders
 // nothing for pathless records (endpoints + total are their record).
-function tripPathHtml(row){
-  var path=val(row,'Path','path');
-  if(!path||typeof path==='string'||!path.length||path.length<2)return '';
+//
+// Path payload shapes in the wild (reader must tolerate ALL of them —
+// the writer is the phone, and the web layer does not get to pick):
+//  1. a JSON array of {Lat, Lng, Timestamp} objects (the web writer,
+//     pathForRecord above);
+//  2. the same array JSON-encoded as a string;
+//  3. the NATIVE app's Kotlin toString string — what the phones
+//     actually write (proven live 2026-10-31 on H38 record
+//     TRIP-FB1FA901927C4EFCBF11, 167 points, 6.9 mi):
+//     "[{Lat=47.3052038, Lng=-93.5550772, Timestamp=2026-10-31T19:21:22.938Z}, ...]"
+//     The old reader returned '' for every string payload, so every
+//     native trip silently showed NO map. A present-but-unreadable
+//     path now renders an honest "couldn't be read" note instead of a
+//     silent blank; only a genuinely absent/empty Path renders nothing.
+function validLatLng(la,ln){
+  return Number.isFinite(la)&&Number.isFinite(ln)&&Math.abs(la)<=90&&Math.abs(ln)<=180&&!(la===0&&ln===0);
+}
+function pointsFromArray(list){
   var pts=[];
-  for(var i=0;i<path.length;i++){
-    var p=path[i]||{};
-    var la=num(p.Lat!=null?p.Lat:p.lat),ln=num(p.Lng!=null?p.Lng:p.lng);
-    if(Number.isFinite(la)&&Number.isFinite(ln))pts.push([la,ln]);
+  if(!Array.isArray(list))return pts;
+  for(var i=0;i<list.length;i++){
+    var p=list[i];
+    if(Array.isArray(p)){
+      var pla=Number(p[0]),pln=Number(p[1]);
+      if(validLatLng(pla,pln))pts.push([pla,pln]);
+      continue;
+    }
+    if(!p||typeof p!=='object')continue;
+    var rawLa=p.Lat!=null?p.Lat:(p.lat!=null?p.lat:p.latitude);
+    var rawLn=p.Lng!=null?p.Lng:(p.lng!=null?p.lng:(p.lon!=null?p.lon:p.longitude));
+    if(rawLa==null||rawLa===''||rawLn==null||rawLn==='')continue;
+    var la=Number(rawLa),ln=Number(rawLn);
+    if(validLatLng(la,ln))pts.push([la,ln]);
   }
-  if(pts.length<2)return '';
+  return pts;
+}
+function parseTripPath(raw){
+  // Returns {present, pts:[[lat,lng],...]}. present = a Path payload
+  // exists at all; pts has the drawable points (possibly <2).
+  if(raw==null||raw==='')return {present:false,pts:[]};
+  if(Array.isArray(raw))return {present:raw.length>0,pts:pointsFromArray(raw)};
+  if(typeof raw==='string'){
+    var s=raw.trim();
+    if(!s)return {present:false,pts:[]};
+    try{
+      var parsed=JSON.parse(s);
+      if(Array.isArray(parsed))return {present:true,pts:pointsFromArray(parsed)};
+    }catch(_){/* not JSON — fall through to the native string format */}
+    var pts=[],m,re=/Lat\s*=\s*(-?\d+(?:\.\d+)?)\s*,\s*Lng\s*=\s*(-?\d+(?:\.\d+)?)/gi;
+    while((m=re.exec(s))!==null){
+      var la=Number(m[1]),ln=Number(m[2]);
+      if(validLatLng(la,ln))pts.push([la,ln]);
+    }
+    return {present:true,pts:pts};
+  }
+  if(typeof raw==='object')return {present:true,pts:pointsFromArray([raw])};
+  return {present:true,pts:[]};
+}
+function tripPathHtml(row){
+  var parsed=parseTripPath(val(row,'Path','path'));
+  if(!parsed.present)return '';
+  var pts=parsed.pts;
+  if(pts.length<2)return '<div class="h38-mileage-path h38-mileage-path-unreadable"><small>⚠ This trip has a recorded path, but it couldn\u2019t be read — the miles and start/end above are still the record.</small></div>';
   var minLa=Infinity,maxLa=-Infinity,minLn=Infinity,maxLn=-Infinity;
   pts.forEach(function(p){
     if(p[0]<minLa)minLa=p[0]; if(p[0]>maxLa)maxLa=p[0];
@@ -2214,6 +2268,8 @@ w.H38Mileage=Object.freeze({
   myPlaces:myPlaces,
   decorate:decorate,
   pushNativePolicy:pushNativePolicy,
+  parseTripPath:parseTripPath,
+  tripPathHtml:tripPathHtml,
   collections:{trips:TRIP_COLLECTION,places:PLACE_COLLECTION,settings:SETTINGS_COLLECTION,days:DAY_COLLECTION,points:POINT_COLLECTION},
   foregroundOnly:!nativeBridge(),
   nativeStatus:nativeStatus,
