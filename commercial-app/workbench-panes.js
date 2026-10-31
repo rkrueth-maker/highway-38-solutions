@@ -594,7 +594,7 @@
       todayKey = '';
       return;
     }
-    var key = text(snap().cachedAt) + '|' + rows('invoices').length + '|' + rows('quotes').length + '|' + rows('scheduleEvents').length;
+    var key = text(snap().cachedAt) + '|' + rows('invoices').length + '|' + rows('quotes').length + '|' + rows('scheduleEvents').length + '|' + rows('jobs').length + '|' + rows('jobs').filter(function (j) { return /progress/i.test(text(value(j, 'Status', 'status'))); }).length;
     if (todayKey === key && document.getElementById('h38WbTodayQueue')) { wireTodayPaletteEntry(); return; }
     main.classList.add('h38-wb-grid-today');
     var queue = document.getElementById('h38WbTodayQueue');
@@ -648,6 +648,17 @@
       var s = new Date(value(e, 'Start Time', 'startTime'));
       return Number.isFinite(s.getTime()) && s.toDateString() === now.toDateString();
     }).sort(function (a, b) { return new Date(value(a, 'Start Time', 'startTime')) - new Date(value(b, 'Start Time', 'startTime')); });
+    /* Schedule truth (C3): the rail and the centre Today's Work card
+     * read the same classification — in-progress jobs are today's work
+     * here too, and the bare empty claim only renders when there is
+     * genuinely nothing timed, nothing in progress, and no active job
+     * waiting for a date. */
+    var twWb = null;
+    if (window.H38ScheduleTruth) {
+      var allEvWb = [];
+      window.H38ScheduleTruth.EVENT_COLLECTIONS.forEach(function (n) { allEvWb = allEvWb.concat(rows(n)); });
+      twWb = window.H38ScheduleTruth.todayWork(allEvWb, rows('jobs'));
+    }
     var strip = main.querySelector('.h38-today-stats');
     var statsHtml = '';
     if (strip) {
@@ -667,10 +678,12 @@
       }).join('') + '</div>';
     }
     rail.innerHTML = '<h3>Today\'s schedule</h3>' +
-      (todays.length ? '<div class="h38-wb-tl">' + todays.map(function (e) {
+      (todays.length || (twWb && twWb.inProgress.length) ? '<div class="h38-wb-tl">' + todays.map(function (e) {
         var s = new Date(value(e, 'Start Time', 'startTime'));
         return '<div class="h38-wb-tl-ev"><div class="h38-wb-tl-when">' + esc(s.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + '</div><strong>' + esc(text(value(e, 'Title')) || 'Scheduled') + '</strong><div class="h38-wb-tl-meta">' + esc([text(value(e, 'Location')), text(value(e, 'Status', 'status'))].filter(Boolean).join(' · ')) + '</div></div>';
-      }).join('') + '</div>' : '<div class="h38-wb-empty">Nothing scheduled today.</div>') +
+      }).join('') + (twWb ? twWb.inProgress.map(function (j) {
+        return '<div class="h38-wb-tl-ev"><div class="h38-wb-tl-when">In progress</div><strong>' + esc(text(value(j, 'Project Title')) || 'Job') + '</strong><div class="h38-wb-tl-meta">' + esc(text(value(j, 'Status', 'status'))) + '</div></div>';
+      }).join('') : '') + '</div>' : '<div class="h38-wb-empty">' + (twWb && twWb.needsDateJobs.length ? 'No timed work today — ' + twWb.needsDateJobs.length + ' job' + (twWb.needsDateJobs.length === 1 ? '' : 's') + ' need a date.' : 'Nothing scheduled today.') + '</div>') +
       (statsHtml ? '<h3>The numbers</h3>' + statsHtml : '');
     wireTodayPaletteEntry();
     todayKey = key;

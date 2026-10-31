@@ -45,7 +45,17 @@ function polishNav(){
 }
 function customerDisplay(customer){return text(val(customer,'Customer Name','name'))||'Customer';}
 function contextMarkup(){
-  const ctx=deriveContext(),customer=customerById(ctx.customerId);if(!customer||isInternalCustomer(customer))return'';const bundle=bundleFor(ctx.customerId),property=primaryProperty(bundle),address=text(val(property,'Address','address')),jobs=bundle?.groups?.jobs||[],quotes=bundle?.groups?.quotes||[];
+  const ctx=deriveContext(),customer=customerById(ctx.customerId);if(!customer||isInternalCustomer(customer))return'';const bundle=bundleFor(ctx.customerId),property=primaryProperty(bundle),address=text(val(property,'Address','address'));
+  /* Schedule truth (C3): the bar counts this customer's actual OPEN
+   * jobs/quotes — direct Customer ID rows unioned with the 360 bundle's
+   * groups and deduped by record id, so a late or missing bundle can
+   * never silently zero the counts while the customer's work is open. */
+  const STc=window.H38ScheduleTruth,cid=text(ctx.customerId);
+  const quoteOpen=r=>!/COMPLETE|CLOSED|CANCEL|VOID|DELET|ARCHIV|DECLIN|REJECT|EXPIRED|CONVERTED/i.test(text(val(r,'Status','status')));
+  const jobOpen=r=>STc?STc.jobActive(r):!/COMPLETE|CLOSED|CANCEL|VOID|DELET|ARCHIV|PAID/i.test(text(val(r,'Status','status')));
+  const unionOpen=(direct,grouped,kind,openTest)=>{const seen=new Set();[...(direct||[]),...(grouped||[])].forEach(r=>{if(!openTest(r))return;seen.add(recordId(r,kind==='job'?'Job ID':'Quote ID',kind==='job'?'jobId':'quoteId','id')||text(val(r,'Project Title','Title')));});return seen.size;};
+  const jobs={length:STc?unionOpen(rows('jobs').filter(r=>text(val(r,'Customer ID','customerId'))===cid),bundle?.groups?.jobs,'job',jobOpen):(bundle?.groups?.jobs||[]).length};
+  const quotes={length:STc?unionOpen(rows('quotes').filter(r=>text(val(r,'Customer ID','customerId'))===cid),bundle?.groups?.quotes,'quote',quoteOpen):(bundle?.groups?.quotes||[]).length};
   return `<section id="h38OwnerCustomerContext" class="h38-owner-context" data-customer-id="${esc(ctx.customerId)}"><button type="button" class="h38-owner-context-main" data-owner-context="customer" title="${esc(customerDisplay(customer))}" aria-label="Working for ${esc(customerDisplay(customer))}"><span>WORKING FOR</span><strong>${esc(customerDisplay(customer))}</strong><small>${esc(address||'Customer record')}</small></button><div class="h38-owner-context-stats"><span>${jobs.length} job${jobs.length===1?'':'s'}</span><span>${quotes.length} quote${quotes.length===1?'':'s'}</span></div><div class="h38-owner-context-actions"><button type="button" class="secondary" data-owner-context="quote">Quote</button><button type="button" class="secondary" data-owner-context="meeting">Meeting</button><button type="button" class="secondary" data-owner-context="clear" aria-label="Clear customer context">×</button></div></section>`;
 }
 function injectContext(){
