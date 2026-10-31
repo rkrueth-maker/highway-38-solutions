@@ -47,7 +47,7 @@ assert.strictEqual(api.actionPictureInfo(quoteId,{}).sourceId,'ATTACH-AF0EA095-F
 
 const runtime=read('commercial-app/quote-runtime-authority.js');
 new vm.Script(runtime,{filename:'quote-runtime-authority.js'});
-for(const marker of ['20261004-quote-runtime-authority-3-kit-build','QUOTE_RESPONSE_BUDGET_MS=60000','QUOTE_PROVIDER_BUDGET_MS=55000','OPTIONS_RESPONSE_BUDGET_MS=80000','function ownerReviewFallback(prepared,reason)','function boundedBuild(promise,prepared)','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','allQuoteBuildsUseMachine:true','ownerActionStartsMachine:true','if(action===\'aiBuildQuoteDraft\')return buildQuote','void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)'])assert(runtime.includes(marker),`runtime missing ${marker}`);
+for(const marker of ['20261031-quote-runtime-authority-4-budgets','QUOTE_RESPONSE_BUDGET_MS=130000','QUOTE_PROVIDER_BUDGET_MS=120000','OPTIONS_RESPONSE_BUDGET_MS=80000','function ownerReviewFallback(prepared,reason)','function boundedBuild(promise,prepared)','automaticDraftRepair:true','automaticFailureRecovery:true','automaticMeasurementHydration:true','automaticDirectionsAfterBaseDraft:true','directionsDoNotBlockBaseQuote:true','allQuoteBuildsUseMachine:true','ownerActionStartsMachine:true','if(action===\'aiBuildQuoteDraft\')return buildQuote','void loadDirections(prepared,base,OPTIONS_RESPONSE_BUDGET_MS)'])assert(runtime.includes(marker),`runtime missing ${marker}`);
 assert(!runtime.includes("Amanda's flower garden border"));
 
 const identity=read('commercial-app/site-visit-work-dedupe-final.js');
@@ -72,7 +72,7 @@ for(const marker of ['20260821-render-saved-action-picture-2-phone','function in
 assert(!render.includes('window.state?.bridge?.request'));
 
 const quoteAi=read('supabase/functions/h38-quote-ai/index.ts');
-for(const marker of ['const QUOTE_AI_BUILD = "20261002-timeout-retry-23"','const QUOTE_MODEL_TIMEOUT_MS = 120000;','detail: "low"','serverBreakoutSecondPass: false','singleModelPass: true'])assert(quoteAi.includes(marker),`quote ai missing ${marker}`);
+for(const marker of ['const QUOTE_AI_BUILD = "20261031-sell-price-rate-24"','const QUOTE_MODEL_TIMEOUT_MS = 120000;','detail: "low"','serverBreakoutSecondPass: false','singleModelPass: true'])assert(quoteAi.includes(marker),`quote ai missing ${marker}`);
 assert.strictEqual((quoteAi.match(/draft = await callQuoteModelWithRetry\(service, businessId, context, photos\)/g)||[]).length,1);
 assert(!quoteAi.includes('SERVER REPAIR REQUEST'));
 assert(!quoteAi.includes('previousDraft'));
@@ -91,7 +91,7 @@ new vm.Script(revision,{filename:'quote-revision-authority.js'});
 for(const marker of ['20261020-gbb-ws1-1','collection:\'quoteRevisions\'','INTERNAL_QUOTE_WORKING_COPY_NOT_COMMITTED','contentChangeOnlyRevisions:true','immutableRevisionSnapshots:true','internalPrebuildDoesNotBumpRevision:true','unchangedSaveKeepsRevision:true','changedSaveCreatesRevision:true','changedSendCreatesRevision:true','imageAndRenderChangesCount:true'])assert(revision.includes(marker),`revision missing ${marker}`);
 
 const loader=read('commercial-app/site-visit-quote-wide-pass-loader.js');
-for(const marker of ['20260823-site-visit-quote-wide-pass-loader-16-revision','20260822-quote-runtime-authority-2-machine','20260826-site-visit-work-dedupe-final-9-stable-jobs','20260822-site-visit-quote-handoff-final-5-machine','20260826-site-visit-wide-acceptance-final-4-stable-jobs','20260823-spoken-measurement-authority-final-1','20260823-quote-reproduction-authority-1','20261020-gbb-ws1-1','20260823-site-visit-deep-polish-1','20260823-quote-regression-runner-1',"ASSET_BUILD='20260823-quote-revision-polish-1'",'sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','historicalQuotesShareRepairMachine:true','contentChangeOnlyQuoteRevisions:true','immutableQuoteRevisionSnapshots:true','internalPrebuildDoesNotBumpRevision:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','legacyManualRenderGateBypassed:true'])assert(loader.includes(marker),`loader missing ${marker}`);
+for(const marker of ['20260823-site-visit-quote-wide-pass-loader-16-revision','20261031-quote-runtime-authority-4-budgets','20260826-site-visit-work-dedupe-final-9-stable-jobs','20260822-site-visit-quote-handoff-final-5-machine','20260826-site-visit-wide-acceptance-final-4-stable-jobs','20260823-spoken-measurement-authority-final-1','20260823-quote-reproduction-authority-1','20261020-gbb-ws1-1','20260823-site-visit-deep-polish-1','20260823-quote-regression-runner-1',"ASSET_BUILD='20260823-quote-revision-polish-1'",'sharedQuoteRepairMachine:true','allQuotesShareRepairMachine:true','historicalQuotesShareRepairMachine:true','contentChangeOnlyQuoteRevisions:true','immutableQuoteRevisionSnapshots:true','internalPrebuildDoesNotBumpRevision:true','canonicalQuoteHandoff:true','poisonedLocalDatasetSuppression:true','boundedQuoteDraftResponse:true','legacyManualRenderGateBypassed:true'])assert(loader.includes(marker),`loader missing ${marker}`);
 const hammer=read('commercial-app/quote-working-hammer.js');
 assert(hammer.includes('20260823-quote-working-ui-only-18-revision'));
 assert(hammer.includes('site-visit-quote-wide-pass-loader-16-revision'));
