@@ -40,7 +40,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261031-workbench-3';
+  var BUILD = '20261031-authfix-1';
 
   function st() { try { return window.state || null; } catch (e) { return null; } }
   function text(v) { return String(v == null ? '' : v).trim(); }
@@ -923,7 +923,21 @@
   }
 
   /* ---------- dispatcher ---------- */
+  /* Auth lock (Rick 2026-10-31): the workbench is a signed-in layer. While
+   * the sign-in screen is up (body.h38-auth-locked) no pane may render —
+   * pre-auth the snapshot is empty, so the Today panes painted "All clear"
+   * and "Nothing scheduled today" cards over the sign-in screen. */
+  function locked() { return !!(document.body && document.body.classList.contains('h38-auth-locked')); }
+  function clearAllPanes() {
+    try { closeSchedPanel(); } catch (e) {}
+    var main = document.getElementById('mainContent');
+    if (!main) return;
+    main.querySelectorAll('.h38-wb-listpane,.h38-wb-rail-right,.h38-wb-sched-panel').forEach(function (n) { n.remove(); });
+    main.classList.remove('h38-wb-grid-today', 'h38-wb-grid-work', 'h38-wb-grid-money', 'h38-wb-grid-quotes', 'h38-wb-grid-settings');
+    custRailKey = ''; jobKey = ''; invKey = ''; todayKey = ''; quotesKey = ''; settingsKey = '';
+  }
   function reconcile() {
+    if (locked()) { clearAllPanes(); return; }
     try { renderCustomerRail(); } catch (e) {}
     try { renderJobsPane(false); } catch (e) {}
     try { renderMoneyPane(false); } catch (e) {}
