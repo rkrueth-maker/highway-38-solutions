@@ -1,4 +1,4 @@
-/* H38 Workbench — Direction B laptop layer. Build 20261031-workbench-15.
+/* H38 Workbench — Direction B laptop layer. Build 20261031-converge-1.
  *
  * EVERY rule in this file lives inside @media (min-width: 761px) or is
  * scoped to workbench-owned elements that only exist when the
@@ -276,6 +276,15 @@
     padding: 8px 10px; font-weight: 700; font-size: 12.5px; cursor: pointer; box-shadow: none;
   }
   .h38-wb-chasebtn[disabled] { background: #c8d2dd; cursor: default; }
+
+  /* ---------- convergence (C2, 20261031-converge-1) ---------- */
+  /* Page surfaces retired on laptop because a workbench pane is the
+   * surface for the same records (see workbench-panes.js). Hidden,
+   * never removed: proxied page controls inside them must stay
+   * clickable. This rule lives inside the >=761px block, and the
+   * class is only ever added by the wide-gated panes module, so the
+   * phone pages are untouched. */
+  .h38-wb-retired { display: none !important; }
 
   /* ---------- auth lock + brand size (Rick 2026-10-31) ---------- */
   /* While the sign-in screen is up, workbench pieces never paint over it

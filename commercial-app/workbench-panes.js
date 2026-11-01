@@ -40,7 +40,48 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261031-authfix-1';
+  var BUILD = '20261031-converge-1';
+
+  /* ---------- convergence (honest-scan C2, 20261031-converge-1) ----------
+   * The Workbench panes are THE laptop surface for their records. Where
+   * a classic page body renders the same list a pane already shows, the
+   * page copy is retired on laptop (CSS-hidden via .h38-wb-retired,
+   * never removed from the DOM — the pane's proxied actions, e.g. the
+   * Money rail's Invoice PDF button, still click the page rows' own
+   * controls). Phone (<=760px) never runs this module's renderers
+   * (wide() gate) and the CSS rule lives inside the >=761px block, so
+   * the phone pages keep every classic list exactly as before.
+   * Retired on laptop:
+   *  - Quotes: the page's Saved quotes card ([data-h38-canonical-quotes])
+   *    — the WB saved-quotes pane is the list; clicking it opens the
+   *    quote in the builder via window.openQuote.
+   *  - Jobs: the classic Jobs card list in the page grid — the WB jobs
+   *    pane is the list. Requests / Tasks / forms stay (no pane twin).
+   *  - Money: the page's Invoices section — the WB invoice pane is the
+   *    list; the rail keeps the record, money summary and payments.
+   *  - Settings: the admin access strip — the WB settings index proxies
+   *    the strip's own buttons, so the strip itself is a duplicate nav
+   *    layer on laptop. Sections themselves stay (index navigates).
+   * Jobs selection is SINGLE-SOURCED on the canonical job-lifecycle
+   * selection (H38_JOB_LIFECYCLE.selectedJobId): the WB pane adopts it
+   * whenever it moves outside the workbench, and WB clicks push into
+   * it, so the list pane, the job command home, the lifecycle panel
+   * and the WB rail always describe the same job. Quotes selection
+   * likewise follows state.quote.quoteId (the builder's open quote). */
+  function retireOnLaptop(el, why) {
+    if (!el || el.classList.contains('h38-wb-retired')) return;
+    el.classList.add('h38-wb-retired');
+    el.setAttribute('data-h38-wb-retired', why);
+  }
+  function pageSectionByTitle(main, title) {
+    var want = String(title).toLowerCase();
+    var secs = main.querySelectorAll('section.card');
+    for (var i = 0; i < secs.length; i++) {
+      var h = secs[i].querySelector(':scope > h2');
+      if (h && text(h.textContent).toLowerCase() === want) return secs[i];
+    }
+    return null;
+  }
 
   function st() { try { return window.state || null; } catch (e) { return null; } }
   function text(v) { return String(v == null ? '' : v).trim(); }
@@ -239,6 +280,35 @@
    * same selection the phone would make — one state, two shells. */
   var jobSel = '';
   var jobKey = '';
+  /* Convergence: the canonical job selection lives in the job
+   * lifecycle module (H38_JOB_LIFECYCLE.selectedJobId) — the job
+   * command home and the lifecycle panel already read it. jobSel
+   * mirrors it; jobCanonSeen tracks the last canonical value this
+   * module observed so an outside move (lifecycle <select>, a classic
+   * "Do next step" click, a Today/Schedule handoff) is adopted, and
+   * jobNeedsPush marks a workbench pick made before the lifecycle
+   * module was reachable so it is pushed once it appears. */
+  var jobCanonSeen = '';
+  var jobNeedsPush = false;
+  var jobPushing = false;
+  function canonJobId() {
+    try {
+      var L = window.H38_JOB_LIFECYCLE;
+      if (L && typeof L.selectedJobId === 'function') return text(L.selectedJobId());
+    } catch (e) {}
+    return '';
+  }
+  function pushJobToCanon(id) {
+    if (!id || jobPushing) return;
+    try {
+      var L = window.H38_JOB_LIFECYCLE;
+      if (L && typeof L.selectJob === 'function' && text(L.selectedJobId()) !== id) {
+        jobPushing = true;
+        L.selectJob(id);
+        jobPushing = false;
+      }
+    } catch (e) { jobPushing = false; }
+  }
   function rows(name) {
     try { if (typeof window.records === 'function') { var r = window.records(name); if (Array.isArray(r)) return r; } } catch (e) {}
     var s = snap();
@@ -253,6 +323,14 @@
   function selectJob(id) {
     if (!id) return;
     jobSel = id;
+    /* Single source: a workbench pick IS the canonical selection —
+     * push it into the job lifecycle so the command home, the
+     * lifecycle panel and every other reader follow the same job.
+     * If the lifecycle module is not reachable yet, mark the pick so
+     * renderJobsPane pushes it the moment the module appears. */
+    jobCanonSeen = id;
+    if (canonJobId()) { pushJobToCanon(id); jobNeedsPush = false; }
+    else jobNeedsPush = true;
     /* Drive ONLY the Job checklist card's job picker — the page's
      * current-job view state (its options carry Job ID values).
      * Other selects on this page (e.g. the change-request form's job
@@ -312,13 +390,36 @@
       if (l0) l0.remove(); if (r0) r0.remove();
       if (main) main.classList.remove('h38-wb-grid-work');
       jobKey = '';
+      jobCanonSeen = '';
+      jobNeedsPush = false;
       return;
     }
     var jobs = rows('jobs').slice().sort(function (a, b) { return eventTime(b) - eventTime(a); });
     if (!jobs.length) return;
-    if (!jobSel || !jobs.some(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === jobSel; })) {
-      jobSel = text(value(jobs[0], 'Job ID', 'jobId', 'id'));
+    /* Single-source adoption: if the canonical lifecycle selection
+     * moved since we last looked (its own <select>, a classic
+     * "Do next step" click, a Today/Schedule handoff), follow it —
+     * unless this module made a pick before the lifecycle module was
+     * reachable, in which case push that pick once and keep it. */
+    var canon = canonJobId();
+    var canonValid = !!canon && jobs.some(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === canon; });
+    if (canonValid && canon !== jobCanonSeen) {
+      if (jobNeedsPush && jobSel && jobSel !== canon) {
+        jobCanonSeen = jobSel;
+        jobNeedsPush = false;
+        pushJobToCanon(jobSel);
+      } else {
+        jobSel = canon;
+        jobCanonSeen = canon;
+      }
     }
+    if (!jobSel || !jobs.some(function (j) { return text(value(j, 'Job ID', 'jobId', 'id')) === jobSel; })) {
+      jobSel = canonValid ? canon : text(value(jobs[0], 'Job ID', 'jobId', 'id'));
+      if (canonValid) jobCanonSeen = canon;
+    }
+    /* Convergence: the classic Jobs card list in the page grid is the
+     * same list this pane shows — retire it on laptop. */
+    retireOnLaptop(pageSectionByTitle(main, 'Jobs'), 'jobs-page-list');
     var key = jobSel + '|' + jobs.length + '|' + text(snap().cachedAt);
     if (!force && jobKey === key && document.getElementById('h38WbJobList')) return;
     main.classList.add('h38-wb-grid-work');
@@ -477,6 +578,10 @@
     }
     var chaseCount = Object.keys(chaseSet).length;
     var key = invSel + '|' + invs.length + '|' + chaseCount + '|' + text(snap().cachedAt);
+    /* Convergence: the page's own Invoices section is the same list
+     * this pane shows — retire it on laptop (kept in the DOM: the
+     * rail's Invoice PDF action still clicks its rows' own buttons). */
+    retireOnLaptop(pageSectionByTitle(main, 'Invoices'), 'money-page-list');
     if (!force && invKey === key && document.getElementById('h38WbInvoiceList')) return;
     main.classList.add('h38-wb-grid-money');
     var list = document.getElementById('h38WbInvoiceList');
@@ -842,6 +947,18 @@
       quotesKey = '';
       return;
     }
+    /* Single source for "which quote is open": the builder's own
+     * state (state.quote.quoteId, set by window.openQuote from any
+     * surface) — the pane highlight follows it, never the reverse. */
+    var openQuoteId = st() && st().quote ? text(st().quote.quoteId) : '';
+    if (openQuoteId && rows('quotes').some(function (q) { return text(value(q, 'Quote ID', 'quoteId', 'id')) === openQuoteId; })) {
+      selectedQuoteId = openQuoteId;
+    }
+    /* Convergence: the page's Saved quotes card is the same list this
+     * pane shows — retire it on laptop. In list view the pane becomes
+     * the whole list surface (click opens the builder); in builder
+     * view the card is not rendered and this is a no-op. */
+    retireOnLaptop(main.querySelector('[data-h38-canonical-quotes]'), 'quotes-page-list');
     var key = rows('quotes').length + '|' + text(snap().cachedAt) + '|' + selectedQuoteId;
     if (quotesKey === key && document.getElementById('h38WbQuotesList')) return;
     main.classList.add('h38-wb-grid-quotes');
@@ -919,6 +1036,11 @@
     var stripBtns = [];
     var strip = document.getElementById('h38AdminAccessStrip');
     if (strip) stripBtns = Array.prototype.slice.call(strip.querySelectorAll('button'));
+    /* Convergence: the index below proxies the strip's own buttons —
+     * on laptop the strip itself is a duplicate navigation layer, so
+     * retire the strip (kept in the DOM; the index still clicks its
+     * buttons, which navigate exactly as the strip does). */
+    if (strip) retireOnLaptop(strip, 'settings-admin-strip');
     var key = sections.map(function (s) { return s.title; }).join('|') + '#' + stripBtns.length;
     if (settingsKey === key && document.getElementById('h38WbSettingsIndex')) return;
     main.classList.add('h38-wb-grid-settings');
@@ -995,6 +1117,9 @@
   window.H38_WORKBENCH.selectJob = selectJob;
   window.H38_WORKBENCH.selectInvoice = selectInvoice;
   window.H38_WORKBENCH.selectedJobId = function () { return jobSel; };
+  window.H38_WORKBENCH.retiredSurfaces = function () {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-h38-wb-retired]')).map(function (n) { return n.getAttribute('data-h38-wb-retired'); });
+  };
   window.H38_WORKBENCH.bundleEvents = bundleEvents;
   window.H38_WORKBENCH.computeMoney = computeMoney;
   window.H38_WORKBENCH.bundleFor = bundleFor;
