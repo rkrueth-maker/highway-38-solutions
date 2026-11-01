@@ -348,6 +348,8 @@ function customerFullAddress(c){
   var city=text(v(c,'Service City','City')),state=text(v(c,'Service State','State')),zip=text(v(c,'ZIP','Zip','Postal Code'));
   var tail=[city,state].filter(Boolean).join(', ');
   if(zip)tail=(tail?tail+' ':'')+zip;
+  var sl=street.toLowerCase();
+  if(city&&sl.indexOf(city.toLowerCase())>=0&&(!zip||sl.indexOf(zip.toLowerCase())>=0))return street;
   return tail?street+', '+tail:street;
 }
 function customerCoords(c){

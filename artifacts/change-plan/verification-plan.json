@@ -1,18 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-31T21:10:40.099Z",
+  "generatedAt": "2026-11-01T02:14:50.618Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/app-01.js",
-    "commercial-app/app-02.js",
-    "commercial-app/bundle-features.js",
-    "commercial-app/bundle-pages.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/index.html",
-    "commercial-app/supabase-startup.js"
+    "commercial-app/service-worker.js",
+    "commercial-app/version.json"
   ],
-  "fileCount": 7,
+  "fileCount": 4,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,

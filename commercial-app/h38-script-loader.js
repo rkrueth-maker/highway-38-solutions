@@ -101,10 +101,10 @@
       './customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1',
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
-      './customer-360-authority.js?build=20261013-complete-scan-fixes-1',
+      './customer-360-authority.js?build=20261101-wave3-1',
       './customer-360-browser-integration-v3.js?build=20261013-search-nomatch-1',
       './accounting-engine.js?build=20261020-payroll-engine-1',
-      './customer-profile-money.js?build=20261031-wave1ab-1',
+      './customer-profile-money.js?build=20261101-wave3-1',
       // CI triage fix (2026-10-13, class-b): site-visit-top-action.js is the
       // Customers-page top action bar ("Start Site Visit" / "Add Customer");
       // grouping it only under field/measure lost that bar on a
@@ -155,7 +155,7 @@
       './route-planner.js?build=20261031-wave1ab-1',
       './northern-bouncie-fleet.js?build=20261026-bouncie-plumb-1',
       './fleet-providers.js?build=20261026-fleet-providers-6',
-      './gps-dispatch.js?build=20261030-r2-map-1',
+      './gps-dispatch.js?build=20261101-wave3-1',
       './crew-phone-location.js?build=20261008-crew-phone-location-4',
       './mileage.js?build=20261031-trippath-1',
       './plow-flow.js?build=20261011-plow-flow-1',
@@ -199,7 +199,7 @@
       // that module otherwise loads only with the Customers group, so
       // a Money-first session had no canonical money math available.
       // Same ?build= URL as PAGE_CUSTOMERS so the loader dedupes it.
-      './customer-profile-money.js?build=20261031-wave1ab-1',
+      './customer-profile-money.js?build=20261101-wave3-1',
       './pay-bills.js?build=20261011-phase2-1',
       './overdue-nudge.js?build=20261011-phase3-1',
       './stripe-payments.js?build=20261006-stripepay-1',
@@ -235,7 +235,7 @@
       // math, operations for R5 jobCost. R6 stays dependency-free.
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
-      './reports-section.js?build=20261030-laptop-phase1-1',
+      './reports-section.js?build=20261101-wave3-1',
       './accountant-share.js?build=20261030-laptop-phase1-1',
       './money-agent.js?build=20261022-perperson-1',
     ];
