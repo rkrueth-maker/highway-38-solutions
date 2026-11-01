@@ -1,4 +1,4 @@
-/* H38 Workbench — Direction B laptop layer. Build 20261031-converge-1.
+/* H38 Workbench — Direction B laptop layer. Build 20261031-converge-2.
  *
  * EVERY rule in this file lives inside @media (min-width: 761px) or is
  * scoped to workbench-owned elements that only exist when the
@@ -277,7 +277,7 @@
   }
   .h38-wb-chasebtn[disabled] { background: #c8d2dd; cursor: default; }
 
-  /* ---------- convergence (C2, 20261031-converge-1) ---------- */
+  /* ---------- convergence (C2, 20261031-converge-2) ---------- */
   /* Page surfaces retired on laptop because a workbench pane is the
    * surface for the same records (see workbench-panes.js). Hidden,
    * never removed: proxied page controls inside them must stay

@@ -40,9 +40,9 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261031-converge-1';
+  var BUILD = '20261031-converge-2';
 
-  /* ---------- convergence (honest-scan C2, 20261031-converge-1) ----------
+  /* ---------- convergence (honest-scan C2, 20261031-converge-2) ----------
    * The Workbench panes are THE laptop surface for their records. Where
    * a classic page body renders the same list a pane already shows, the
    * page copy is retired on laptop (CSS-hidden via .h38-wb-retired,
@@ -74,10 +74,13 @@
     el.setAttribute('data-h38-wb-retired', why);
   }
   function pageSectionByTitle(main, title) {
+    /* First descendant <h2>, not :scope > h2 — live cards wrap their
+     * heading inside the card body markup (verified live 2026-10-31:
+     * every section.card on Jobs/Money has h2direct=null, h2 set). */
     var want = String(title).toLowerCase();
     var secs = main.querySelectorAll('section.card');
     for (var i = 0; i < secs.length; i++) {
-      var h = secs[i].querySelector(':scope > h2');
+      var h = secs[i].querySelector('h2');
       if (h && text(h.textContent).toLowerCase() === want) return secs[i];
     }
     return null;
