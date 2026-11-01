@@ -355,14 +355,35 @@
 
   // Load a page group sequentially so override/wrapper scripts execute in
   // the same order they had as deferred tags in index.html.
+  // Group loads (2026-10-31 cold-start follow-up): fetch the whole group in
+  // PARALLEL but execute in group order (script.async=false on dynamically
+  // inserted classic scripts preserves insertion execution order). The old
+  // sequential chain paid one network round-trip per script — with 6-30
+  // scripts per group that serialized seconds into first navigation and
+  // into the Today group's first render. Execution order is unchanged, so
+  // wrapper/override scripts still land after the renderers they wrap.
+  function loadScriptOrdered(url) {
+    if (loaded.has(url)) return Promise.resolve();
+    if (loading.has(url)) return loading.get(url);
+    const promise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = false;
+      script.onload = () => { loaded.add(url); loading.delete(url); resolve(); };
+      script.onerror = (e) => { loading.delete(url); reject(new Error('Failed to load script: ' + url)); };
+      document.head.appendChild(script);
+    });
+    loading.set(url, promise);
+    return promise;
+  }
   function loadPageScripts(page) {
     const scripts = PAGE_SCRIPTS[page] || [];
     if (!scripts.length) return Promise.resolve();
-    return scripts.reduce((chain, url) => chain.then(() =>
-      loadScript(url).catch(() => loadScript(url)).catch(err => {
+    return Promise.all(scripts.map(url =>
+      loadScriptOrdered(url).catch(() => loadScriptOrdered(url)).catch(err => {
         try { console.error('[H38 lazy load] script failed for page', page, err); } catch (e) {}
       })
-    ), Promise.resolve());
+    ));
   }
 
   function pageScriptsReady(page) {
@@ -384,7 +405,13 @@
         (PAGE_SCRIPTS[page] || []).forEach(url => { if (!seen.has(url)) { seen.add(url); queue.push(url); } });
       });
       PRELOAD_AFTER_IDLE.forEach(url => { if (!seen.has(url)) { seen.add(url); queue.push(url); } });
-      queue.reduce((chain, url) => chain.then(() => loadScript(url).catch(() => {})), Promise.resolve());
+      // Ordered insertion (loadScriptOrdered) everywhere keeps global
+      // execution order == insertion order, and this chain inserts the
+      // next preload script only after the previous one executed — so at
+      // any moment the executed set is a prefix of this queue, and a page
+      // group opened mid-preload only ever inserts scripts whose
+      // dependencies are already executed or earlier in its own group.
+      queue.reduce((chain, url) => chain.then(() => loadScriptOrdered(url).catch(() => {})), Promise.resolve());
     }, { timeout: 4000 });
   }
 
