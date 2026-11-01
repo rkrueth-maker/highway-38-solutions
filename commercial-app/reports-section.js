@@ -310,7 +310,7 @@
   // ---------- tab bodies ----------
   // ---------- R1: Profit & Loss (ledger) ----------
   function bodyLedgerPL(r){
-    S.reportTitle='Profit & Loss (ledger)';
+    S.reportTitle='Profit & Loss';
     const A=engineOrNull();
     if(!A)return {html:`<div class="notice warn"><strong>Ledger unavailable.</strong> The accounting engine did not load, so the ledger P&L cannot be computed. The Cash snapshot tab still works from operational records.</div>`,csv:null};
     const tx=ledgerTxs().filter(x=>inRange(x.date,r.start,r.end));
@@ -350,14 +350,14 @@
     const byType=type=>detail.filter(x=>x.account.type===type);
     const section=(title,rowsList)=>rowsList.length?`<h3>${esc(title)}</h3>${table(['Account','Balance'],rowsList.map(x=>`<tr><td>${esc(x.account.code)} — ${esc(x.account.name)}</td>${numCell(x.balance)}</tr>`).join(''))}`:'';
     const html=`
-    <p class="muted small">Point-in-time: all ledger activity <strong>on or before ${esc(end)}</strong> (the range start is ignored for this report). Check: assets − liabilities − equity must be $0.00.</p>
+    <p class="muted small">This report shows everything in your books <strong>on or before ${esc(end)}</strong>. It always runs from the start of your books up to that date, so the start date you picked above doesn't change it.</p>
     <div class="stats">
       ${stat('Assets',money(bs.assets))}${stat('Liabilities',money(bs.liabilities))}${stat('Equity incl. current earnings',money(bs.equity))}
-      ${stat('Balance difference (must be 0)',money(bs.difference))}
+      ${stat('Balance difference',money(bs.difference))}
     </div>
     ${bs.difference===0?'<div class="notice"><strong>Balanced ✓</strong> — assets equal liabilities + equity.</div>':`<div class="notice warn"><strong>Out of balance by ${money(bs.difference)}.</strong> Review the ledger before relying on these numbers.</div>`}
     ${section('Assets',byType('asset'))}${section('Liabilities',byType('liability'))}${section('Equity',byType('equity'))}
-    <p class="muted small">Current earnings (${money(bs.retainedCurrentEarnings)}) are included in equity above. The Accounts Receivable line ties to the AR Aging grand total when the range end is today.</p>`;
+    <p class="muted small">Current earnings (${money(bs.retainedCurrentEarnings)}) are included in equity above. If the date above is today, the Accounts Receivable amount here should match the total on the AR Aging report.</p>`;
     return {html,csv:()=>downloadCSV(`balance-sheet-${end}.csv`,
       ['Account','Type','Balance'],
       [...detail.map(x=>[`${x.account.code} — ${x.account.name}`,x.account.type,x.balance.toFixed(2)]),['Assets','',bs.assets.toFixed(2)],['Liabilities','',bs.liabilities.toFixed(2)],['Equity (incl. earnings)','',bs.equity.toFixed(2)],['Difference','',bs.difference.toFixed(2)]])};
@@ -371,9 +371,9 @@
     if(A){try{ledgerIncome=A.profitAndLoss(ledgerTxs().filter(x=>inRange(x.date,r.start,r.end)),rows('accountingAccounts')).income;}catch(e){}}
     const diff=ledgerIncome==null?null:Math.round((d.invoicedTotal-ledgerIncome)*100)/100;
     const html=`
-    <p class="muted small">Accrual view: invoices by <strong>Invoice Date</strong> in range (${d.list.reduce((s,x)=>s+x.count,0)} invoices). “Open (stored)” cross-checks each customer's stored invoice Balance — differences against invoiced − collected are listed, not hidden.</p>
+    <p class="muted small">Accrual view: invoices by <strong>Invoice Date</strong> in range (${d.list.reduce((s,x)=>s+x.count,0)} invoices). The “Open (stored Balance)” column shows the balance saved on each customer's invoices. If it doesn't match invoiced minus collected, the row is flagged with a Δ so you can see it.</p>
     <div class="stats">${stat('Invoiced',money(d.invoicedTotal))}${stat('Collected',money(d.collectedTotal))}${stat('Customers',String(d.list.length))}</div>
-    ${ledgerIncome==null?'':`<p class="muted small">Tie-out: invoiced ${money(d.invoicedTotal)} vs ledger income (R1) ${money(ledgerIncome)} — difference ${money(diff)} is revenue posted to the ledger outside invoices (or invoices not yet posted).</p>`}
+    ${ledgerIncome==null?'':`<p class="muted small">How this lines up with your books: you invoiced ${money(d.invoicedTotal)}, and your Profit &amp; Loss shows ${money(ledgerIncome)} of income. The difference of ${money(diff)} is income recorded in your books outside of invoices (or invoices that haven't been added to your books yet).</p>`}
     ${table(['Customer','Invoiced','Tax','Collected','Open (invoiced − collected)','Open (stored Balance)'],d.list.map(x=>`<tr><td>${esc(x.name)}</td>${numCell(x.invoiced)}${numCell(x.tax)}${numCell(x.collected)}${numCell(x.open)}${numCell(x.openStored)}${Math.abs(x.open-x.openStored)>0.005?' <span class="pill warn">Δ</span>':''}</tr>`).join(''),
       `<tr class="total"><td>Total</td>${numCell(d.invoicedTotal)}<td></td>${numCell(d.collectedTotal)}<td></td><td></td></tr>`)}`;
     return {html,csv:()=>downloadCSV(`sales-by-customer-${r.start}-to-${r.end}.csv`,
@@ -399,11 +399,11 @@
     out.sort((a,b)=>b.grossProfit-a.grossProfit);
     const tot=out.reduce((s,x)=>({rev:s.rev+x.invoicedRevenue,cost:s.cost+x.cost,gp:s.gp+x.grossProfit}),{rev:0,cost:0,gp:0});
     const html=`
-    <p class="muted small">Per-job revenue and cost from records linked by <strong>Job ID</strong> (all dates in the snapshot; range does not filter job costing in v1). Jobs with costs but no invoice — and invoices with no costs — are shown, not dropped.</p>
+    <p class="muted small">Per-job revenue and cost from records linked by <strong>Job ID</strong> (job costing always covers every date on file — the date range above doesn't narrow it). Jobs with costs but no invoice — and invoices with no costs — are included in the list.</p>
     <div class="stats">${stat('Invoiced',money(tot.rev))}${stat('Total cost',money(tot.cost))}${stat('Gross profit',money(tot.gp))}${stat('Jobs',String(out.length))}</div>
     ${table(['Job','Invoiced','Collected','Cost','Gross profit','Margin'],out.map(x=>`<tr><td>${esc(x.job)}</td>${numCell(x.invoicedRevenue)}${numCell(x.collectedRevenue)}${numCell(x.cost)}${numCell(x.grossProfit)}<td class="num">${Math.round(x.grossMargin*1000)/10}%</td></tr>`).join(''),
       `<tr class="total"><td>Total</td>${numCell(tot.rev)}<td></td>${numCell(tot.cost)}${numCell(tot.gp)}<td></td></tr>`)}
-    <p class="muted small">Rate note: job costing prices labor at each time entry's <strong>Hourly Cost</strong>, while payroll pays the employee's pay rate — totals across all jobs will differ from payroll job allocations for that reason. Verify one job by hand-summing its linked records.</p>`;
+    <p class="muted small">Why this can differ from payroll: job costing prices labor at each time entry's <strong>Hourly Cost</strong>, while payroll pays the employee's pay rate — so labor totals across all jobs won't match the job allocations in payroll.</p>`;
     return {html,csv:()=>downloadCSV(`job-costing.csv`,
       ['Job','Job ID','Invoiced','Collected','Cost','Gross profit','Margin %'],
       out.map(x=>[x.job,x.id,x.invoicedRevenue.toFixed(2),x.collectedRevenue.toFixed(2),x.cost.toFixed(2),x.grossProfit.toFixed(2),(Math.round(x.grossMargin*1000)/10).toFixed(1)]))};
@@ -414,7 +414,7 @@
     const d=payrollSummary(r.start,r.end);
     S.reportTitle='Payroll Summary';
     const html=`
-    <p class="muted small">Source: payroll lines on runs with Status <strong>Finalized or Posted</strong> only (Draft/Reviewed excluded), by <strong>Pay Date</strong> in range · ${d.lineCount} lines. Period totals must equal the run headers' stored totals; Posted runs must also equal their GL-PAYROLL ledger entry.</p>
+    <p class="muted small">Source: payroll lines on runs with Status <strong>Finalized or Posted</strong> only (Draft/Reviewed excluded), by <strong>Pay Date</strong> in range · ${d.lineCount} lines. These totals come from the pay runs themselves. Runs marked Posted have also been recorded in your books.</p>
     <div class="stats">${stat('Gross',money(d.tot.gross))}${stat('Net',money(d.tot.net))}${stat('Employer taxes',money(d.tot.employerTax))}${stat('Employer cost',money(d.tot.cost))}</div>
     ${table(['Employee','Hours','Gross','Federal','FICA','State','Deductions','Net','Employer cost'],d.list.map(x=>`<tr><td>${esc(x.name)}</td><td class="num">${x.hours.toFixed(2)}</td>${numCell(x.gross)}${numCell(x.federal)}${numCell(x.fica)}${numCell(x.state)}${numCell(x.deductions)}${numCell(x.net)}${numCell(x.cost)}</tr>`).join(''),
       `<tr class="total"><td>Total</td><td></td>${numCell(d.tot.gross)}${numCell(d.tot.federal)}${numCell(d.tot.fica)}${numCell(d.tot.state)}${numCell(d.tot.deductions)}${numCell(d.tot.net)}${numCell(d.tot.cost)}</tr>`)}
@@ -449,9 +449,9 @@
     S.reportTitle='Expenses by Category';
     const gap=d.ledgerTotal==null?null:Math.round((d.total-d.ledgerTotal)*100)/100;
     const html=`
-    <p class="muted small">Source: expense records by <strong>Expense Date</strong> in range · ${d.count} records. Amount = Amount + Tax, the same rule the Money list uses.</p>
+    <p class="muted small">Source: expense records by <strong>Expense Date</strong> in range · ${d.count} records. Each expense counts its amount plus its tax, the same way the Money list totals expenses.</p>
     <div class="stats">${stat('Operational total',money(d.total))}${d.ledgerTotal==null?'':stat('Ledger total (COGS + expense accounts)',money(d.ledgerTotal))}${stat('Categories',String(d.list.length))}</div>
-    ${gap==null?'':`<p class="muted small">Gap: ${money(Math.abs(gap))} of operational expenses are <strong>not yet posted to the ledger</strong> (expense autopost is off by design — expenses post only through an explicit ledger entry).</p>`}
+    ${gap==null?'':`<p class="muted small">Gap: ${money(Math.abs(gap))} of operational expenses are <strong>not yet posted to the ledger</strong> (expenses only get into your books when a ledger entry is made for them).</p>`}
     ${table(['Category','Count','% of total','Amount'],d.list.map(x=>`<tr><td>${esc(x.category)}</td><td class="num">${x.count}</td><td class="num">${x.pct.toFixed(1)}%</td>${numCell(x.total)}</tr>`).join(''),
       `<tr class="total"><td>Total</td><td class="num">${d.count}</td><td></td>${numCell(d.total)}</tr>`)}
     ${d.list.map(x=>`<h3>${esc(x.category)} — detail</h3>${table(['Date','Payee / vendor','Description','Job','Amount'],x.rows.map(y=>`<tr><td>${esc(y.date)}</td><td>${esc(y.payee)}</td><td>${esc(y.desc)}</td><td>${esc(y.job)}</td>${numCell(y.amount)}</tr>`).join(''))}`).join('')}`;
@@ -502,7 +502,7 @@
     const labels={'current':'Current (not yet due)','1-30':'1–30 days overdue','31-60':'31–60 days','61-90':'61–90 days','90+':'Over 90 days'};
     const order=['current','1-30','31-60','61-90','90+'];
     const html=`
-    <p class="muted small">Engine aging by <strong>Due Date</strong> as of ${esc(d.asOf||r.end||'today')} — the same buckets as the Accounting page. Grand total must equal Σ Balance over open invoices.</p>
+    <p class="muted small">Engine aging by <strong>Due Date</strong> as of ${esc(d.asOf||r.end||'today')} — the same buckets as the Accounting page. The grand total is the sum of the balances on all open invoices.</p>
     ${d.engineMissing?'<div class="notice warn"><strong>Accounting engine unavailable</strong> — aging not computed rather than computed with different math.</div>':''}
     <div class="stats">${stat('Total outstanding',money(d.grand))}${stat('Open invoices',String(order.reduce((s,k)=>s+d.buckets[k].length,0)))}</div>
     ${order.map(k=>`

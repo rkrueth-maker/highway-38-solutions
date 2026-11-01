@@ -341,7 +341,7 @@ window.addEventListener('beforeunload',function(){flush();});
 /* --- ./runtime-rowid-fix.js --- */
 (function(){
 'use strict';
-const CUSTOMER_WORKSPACE_BUILD='20260922-customer-master-detail-4';
+const CUSTOMER_WORKSPACE_BUILD='20261101-wave3-1';
 const CUSTOMER_RENDER_HOOK_BUILD='20260911-customer-workspace-render-hook-1';
 const QUICK_MEETING_BUILD='20260915-quick-meeting-notes-2';
 const OWNER_MOBILE_QUICK_ACTIONS_BUILD='20261011-e2e-mutation-fix-1';

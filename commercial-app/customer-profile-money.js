@@ -141,8 +141,10 @@ function latestOf(list,dateKeys){
 function serviceAddressOf(customer,properties){
   const c=customer||{};
   const street=[value(c,'Service Address','Address'),value(c,'Service Address 2','Address 2')].map(text).filter(Boolean).join(', ');
-  const locality=[value(c,'Service City','City'),value(c,'Service State','State'),value(c,'Service ZIP','ZIP')].map(text).filter(Boolean).join(' ');
-  const own=[street,locality].filter(Boolean).join(', ');
+  const city=text(value(c,'Service City','City')),zip=text(value(c,'Service ZIP','ZIP'));
+  const locality=[city,value(c,'Service State','State'),zip].map(text).filter(Boolean).join(' ');
+  const sl=street.toLowerCase();
+  const own=(street&&city&&sl.indexOf(city.toLowerCase())>=0&&(!zip||sl.indexOf(zip.toLowerCase())>=0))?street:[street,locality].filter(Boolean).join(', ');
   if(own)return own;
   const p=(properties||[])[0];
   return p?text(value(p,'Address','address','Service Address')):'';

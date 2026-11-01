@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261012-mobile-polish-1';
+const BUILD='20261101-wave3-1';
 const MULTI_EQUIPMENT_BUILD='20260912-multi-equipment-invoicing-1';
 const BUCKET='business-office-files';
 const LARGE_FILE_THRESHOLD=3000000;
@@ -13,7 +13,7 @@ const rows=name=>Array.isArray(snap()[name])?snap()[name]:[];
 const value=(row,...keys)=>{for(const key of keys){if(row&&row[key]!==undefined&&row[key]!==null&&row[key]!=='')return row[key];}return'';};
 const customerId=row=>text(value(row,'Customer ID','customerId','id'));
 const customerName=row=>text(value(row,'Customer Name','name'))||'Customer';
-const customerAddress=row=>{const street=[value(row,'Service Address','Address'),value(row,'Service Address 2','Address 2')].map(text).filter(Boolean).join(', '),locality=[value(row,'Service City','City'),value(row,'Service State','State'),value(row,'Service ZIP','ZIP')].map(text).filter(Boolean).join(' ');return[street,locality].filter(Boolean).join(', ');};
+const customerAddress=row=>{const street=[value(row,'Service Address','Address'),value(row,'Service Address 2','Address 2')].map(text).filter(Boolean).join(', '),city=text(value(row,'Service City','City')),zip=text(value(row,'Service ZIP','ZIP')),locality=[city,value(row,'Service State','State'),zip].map(text).filter(Boolean).join(' '),sl=street.toLowerCase();if(street&&city&&sl.indexOf(city.toLowerCase())>=0&&(!zip||sl.indexOf(zip.toLowerCase())>=0))return street;return[street,locality].filter(Boolean).join(', ');};
 const customerRate=row=>{for(const field of ['Recurring Service Rate','Mowing Rate','Plowing Rate','Property Maintenance Rate','Hourly Rate','Flat Rate','Minimum Charge','Equipment Rate','Travel / Service Call Charge','Contract Pricing']){const amount=text(value(row,field));if(amount)return`${field}: ${amount}`;}return'';};
 const rateNumber=v=>{const match=text(v).match(/\$?\s*([0-9]+(?:\.[0-9]+)?)/);const n=Number(match?.[1]);return Number.isFinite(n)?n:0;};
 function rateComponents(v){
