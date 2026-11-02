@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261101-wave3f-checklist-gate-1';
+const BUILD='20261101-wave3h-costing-1';
 const STAGES=[
   ['INTAKE','Intake'],
   ['SITE_VISIT','Site Visit'],
@@ -182,7 +182,11 @@ function jobCosting(job,quotes){
   const knownCost=expenseTotal+laborCost;
   const projectedKnown=revenue-knownCost;
   const knownMargin=revenue?projectedKnown/revenue*100:0;
-  return {revenue,quotedRevenue,invoiceTotal,expenseTotal,hours,laborCost,laborUnpriced,committed,knownCost,projectedKnown,knownMargin};
+  /* Wave 3 (h) ADD #2: estimate (accepted quote) vs actual (invoiced) split,
+   * plus an explicit underwater flag when known costs exceed revenue. */
+  const estimate=accepted?num(val(accepted,'Total','total','Amount','amount')):0;
+  const underwater=revenue>0&&projectedKnown<0;
+  return {revenue,quotedRevenue,invoiceTotal,estimate,estimateAccepted:!!accepted,actual:invoiceTotal,underwater,expenseTotal,hours,laborCost,laborUnpriced,committed,knownCost,projectedKnown,knownMargin};
 }
 function requiredChecklist(job,requiredBefore){
   return checklistRowsForJob(job).filter(row=>upper(val(row,'Required Before','requiredBefore'))===upper(requiredBefore));
@@ -240,6 +244,7 @@ function lifecycle(job){
   }
   if(changes.length&&stage!=='QUALITY')warnings.push(`${changes.length} unresolved change order${changes.length===1?'':'s'}`);
   if(cost.laborUnpriced)warnings.push(`${cost.hours.toFixed(1)} labor hour${cost.hours===1?'':'s'} recorded without labor cost`);
+  if(cost.underwater)warnings.push(`Underwater on known costs: costs exceed revenue by ${moneyValue(-cost.projectedKnown)}`);
   const stageLabel=STAGES.find(([key])=>key===stage)?.[1]||stage;
   return {job,jid,stage,stageLabel,next,blockers,warnings,quotes,accepted,presented,site,schedules,checklists,changes,invoices,payments,balance,cost};
 }
@@ -358,7 +363,7 @@ function lifecycleProgress(context){
   return `<div class="h38-life-progress" aria-label="Job lifecycle">${STAGES.map(([key,label],i)=>`<span class="${i<index?'done':i===index?'current':''}" title="${esc(label)}">${i+1}</span>`).join('')}</div>`;
 }
 function costingHtml(cost){
-  return `<div class="h38-life-cost-grid"><div><strong>${moneyValue(cost.revenue)}</strong><span>Quoted / billed revenue</span></div><div><strong>${moneyValue(cost.knownCost)}</strong><span>Known actual cost</span></div><div><strong>${cost.hours.toFixed(1)}</strong><span>Labor hours</span></div><div><strong>${moneyValue(cost.projectedKnown)}</strong><span>${cost.laborUnpriced?'Known margin before unpriced labor':'Known gross profit'}</span></div><div><strong>${cost.revenue?cost.knownMargin.toFixed(1)+'%':'—'}</strong><span>Known margin</span></div><div><strong>${moneyValue(cost.committed)}</strong><span>Material commitments</span></div></div>${cost.laborUnpriced?`<div class="notice warn">Labor hours exist but no labor cost is stored. H38 will not invent a labor rate.</div>`:''}`;
+  return `<div class="h38-life-cost-grid"><div><strong>${cost.estimate?moneyValue(cost.estimate):'—'}</strong><span>${cost.estimateAccepted?'Estimated revenue (accepted quote)':'Estimated revenue (no accepted quote)'}</span></div><div><strong>${moneyValue(cost.actual)}</strong><span>Actual billed (invoices)</span></div><div><strong>${moneyValue(cost.knownCost)}</strong><span>Known actual cost</span></div><div><strong>${cost.hours.toFixed(1)}</strong><span>Labor hours</span></div><div><strong>${moneyValue(cost.projectedKnown)}</strong><span>${cost.laborUnpriced?'Known margin before unpriced labor':'Known gross profit'}</span></div><div><strong>${cost.revenue?cost.knownMargin.toFixed(1)+'%':'—'}</strong><span>Known margin</span></div><div><strong>${moneyValue(cost.committed)}</strong><span>Material commitments</span></div></div>${cost.underwater?`<div class="notice warn">⚠ Underwater: known costs exceed revenue by ${moneyValue(-cost.projectedKnown)} on this job.</div>`:''}${cost.laborUnpriced?`<div class="notice warn">Labor hours exist but no labor cost is stored. H38 will not invent a labor rate.</div>`:''}`;
 }
 function portalHtml(context){
   const jid=context.jid,cid=customerId(context.job);
