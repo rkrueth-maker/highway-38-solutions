@@ -35296,7 +35296,7 @@ window.H38VoiceCommands={
 (function(){
   'use strict';
 
-  const ENGINE_BUILD='20261101-wave3tail9-engine-1';
+  const ENGINE_BUILD='20261101-wave3tail9-engine-2';
   const RENEWAL_ALERT_DAYS=30;
   const FREQ_MONTHS={Monthly:1,Quarterly:3,Annual:12};
   const FREQ_LABEL={Monthly:'per month',Quarterly:'per quarter',Annual:'per year'};
@@ -35586,7 +35586,7 @@ window.H38VoiceCommands={
   function patchTodayRenewals(){
     try{
       if(typeof state==='undefined'||!state||state.page!=='today')return;
-      const panel=document.querySelector('.h38-life-today');if(!panel)return;
+      const panel=document.querySelector('.h38-life-today')||document.querySelector('#mainContent');if(!panel)return;
       const due=renewalsDue(RENEWAL_ALERT_DAYS);
       const existingBox=panel.querySelector('[data-h38-membership-renewals]');
       if(!due.length){if(existingBox)existingBox.remove();return;}

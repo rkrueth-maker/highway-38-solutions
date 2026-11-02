@@ -176,12 +176,12 @@
       // drafts, plan-visit refill, renewal alerts) runs from Today, the
       // landing workspace. Same ?build= URL as PAGE_MONEY so the loader
       // dedupes it; the module is inert until a business snapshot exists.
-      './membership-engine.js?build=20261101-wave3tail9-engine-1',
+      './membership-engine.js?build=20261101-wave3tail9-engine-2',
     ];
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './membership-engine.js?build=20261101-wave3tail9-engine-1',
+      './membership-engine.js?build=20261101-wave3tail9-engine-2',
       './card-vault.js?build=20261005-cardvault-1',
       // Tally cold-mount fix (2026-10-20): money-agent's brief reads its
       // books state from the accounting workspace or, failing that, this
