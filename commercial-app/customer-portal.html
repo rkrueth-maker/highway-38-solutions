@@ -62,6 +62,9 @@ button.block{width:100%}
 .center{text-align:center;padding:30px 10px;color:#687e8d}
 .spinner{width:28px;height:28px;border:3px solid #cbd7df;border-top-color:#0b6aa2;border-radius:50%;animation:sp 0.8s linear infinite;margin:0 auto 12px}
 @keyframes sp{to{transform:rotate(360deg)}}
+.slots{display:flex;flex-wrap:wrap;gap:8px}
+.slots button{background:#eef4f8;color:#12303f;border:1px solid #c3d3de;border-radius:999px;padding:10px 14px;font-weight:700;min-height:44px}
+.slots button.sel{background:#0b6aa2;color:#fff;border-color:#0b6aa2}
 </style>
 </head>
 <body>
@@ -142,11 +145,12 @@ button.block{width:100%}
             <div class="field"><label for="bDate">Preferred date</label><input id="bDate" type="date"></div>
             <div class="field"><label for="bTime">Preferred time</label><select id="bTime"><option value="">Flexible</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select></div>
           </div>
+          <div class="field" id="slotWrap" hidden><label>Pick a time</label><div class="slots" id="slotGrid"></div><p class="note" id="slotHint">Choose a date first.</p></div>
           <div class="field"><label for="bNotes">Details (optional)</label><textarea id="bNotes" rows="3" maxlength="1000" placeholder="Tell us about the project…"></textarea></div>
           <button class="block" id="bookBtn">Request Service</button>
-          <p class="note">We'll call you back to confirm. No payment due until the work is agreed.</p>
+          <p class="note" id="bookNote">We'll call you back to confirm. No payment due until the work is agreed.</p>
         </div>
-        <div class="ok" id="bookDone" hidden><h2>Request received</h2><p style="margin-top:8px">Thanks — we'll call you shortly to confirm.</p></div>
+        <div class="ok" id="bookDone" hidden><h2 id="bookDoneTitle">Request received</h2><p style="margin-top:8px" id="bookDoneText">Thanks — we'll call you shortly to confirm.</p></div>
       </div>
     </div>
 
@@ -221,7 +225,7 @@ function loadSession(token){
   fetch(FN_URL+'?action=session&token='+encodeURIComponent(token))
     .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
     .then(function(r){
-      if(r.ok&&r.o&&r.o.customer){bundle=r.o;window.__h38PortalBundle=r.o;window.__h38OnlinePayments=!!(r.o.payments&&r.o.payments.onlineEnabled);renderPortal();}
+      if(r.ok&&r.o&&r.o.customer){bundle=r.o;window.__h38PortalBundle=r.o;window.__h38OnlinePayments=!!(r.o.payments&&r.o.payments.onlineEnabled);window.__h38Booking=(r.o.booking||null);renderPortal();}
       else{sessionStorage.removeItem('h38-portal-session');sessionToken='';showRedeemError((r.o&&r.o.error)||'Your session expired. Please sign in again.');}
     })
     .catch(function(){showRedeemError('Could not reach the portal. Please try again.');});
@@ -270,6 +274,49 @@ function fillServiceOptions(){
   if(current)sel.value=current;
 }
 
+// ---- Confirmed-slot booking ----
+// When the business runs confirmed slots (bundle.booking.mode), the Book
+// form offers real open times inside the business's hours instead of a
+// preferred-time guess: pick a date, tap a time, booked on the spot.
+// Request-style booking stays exactly as before for everyone else.
+var bookingMode='request', chosenSlot=null;
+function setupBookingMode(){
+  var b=(bundle&&bundle.booking)||{};
+  bookingMode=(b.mode==='confirmed')?'confirmed':'request';
+  chosenSlot=null;
+  var isConf=bookingMode==='confirmed';
+  $('slotWrap').hidden=!isConf;
+  var timeField=$('bTime').closest('.field');
+  if(timeField)timeField.hidden=isConf;
+  $('bookBtn').textContent=isConf?'Book this time':'Request Service';
+  $('bookNote').textContent=isConf
+    ? 'Pick a date and an open time — you are booked right away. No payment due until the work is agreed.'
+    : "We'll call you back to confirm. No payment due until the work is agreed.";
+  if(isConf&&$('bDate').value)loadSlots();
+}
+function loadSlots(){
+  var date=$('bDate').value,grid=$('slotGrid'),hint=$('slotHint');
+  chosenSlot=null;grid.innerHTML='';
+  if(!date){hint.textContent='Choose a date first.';return;}
+  hint.textContent='Loading open times…';
+  api('booking-slots',{session_token:sessionToken,date:date}).then(function(r){
+    if(!r.ok){hint.textContent=(r.o&&r.o.error)||'Could not load times.';return;}
+    var open=(r.o.slots||[]).filter(function(s){return s.available;});
+    if(!open.length){hint.textContent='No open times that day. Try another date.';return;}
+    hint.textContent='Tap a time to choose it.';
+    open.forEach(function(s){
+      var btn=document.createElement('button');
+      btn.type='button';btn.textContent=s.label;
+      btn.addEventListener('click',function(){
+        chosenSlot=s;
+        Array.prototype.forEach.call(grid.querySelectorAll('button'),function(x){x.classList.remove('sel');});
+        btn.classList.add('sel');
+      });
+      grid.appendChild(btn);
+    });
+  }).catch(function(){hint.textContent='Could not load times.';});
+}
+
 // ---- Render ----
 function statusPill(s){
   s=String(s||'');var cls='';
@@ -292,6 +339,7 @@ function renderPortal(){
   $('statDue').textContent=money(due);
   $('statAppts').textContent=bundle.appointments.length;
   fillServiceOptions();
+  setupBookingMode();
 
   // Action list
   var acts=[];
@@ -485,10 +533,26 @@ function payInvoice(invoiceId,amount){
 }
 
 // ---- Book service ----
+$('bDate').addEventListener('change',function(){if(bookingMode==='confirmed')loadSlots();});
 $('bookBtn').addEventListener('click',function(){
   var btn=$('bookBtn'),err=$('bookErr');err.hidden=true;
   var service=$('bService').value;
   if(!service){err.textContent='Choose a service.';err.hidden=false;return;}
+  if(bookingMode==='confirmed'){
+    if(!chosenSlot){err.textContent='Pick a date and tap an open time.';err.hidden=false;return;}
+    btn.disabled=true;btn.textContent='Booking…';
+    api('book-slot',{session_token:sessionToken,service:service,slotStart:chosenSlot.start,notes:$('bNotes').value}).then(function(r){
+      btn.disabled=false;btn.textContent='Book this time';
+      if(r.ok){
+        $('bookFormWrap').hidden=true;
+        $('bookDoneTitle').textContent='You\u2019re booked';
+        if(r.o&&r.o.message)$('bookDoneText').textContent=r.o.message;
+        $('bookDone').hidden=false;
+      }
+      else{err.textContent=(r.o&&r.o.error)||'Something went wrong.';err.hidden=false;loadSlots();}
+    }).catch(function(){btn.disabled=false;btn.textContent='Book this time';err.textContent='Could not reach the portal.';err.hidden=false;});
+    return;
+  }
   btn.disabled=true;btn.textContent='Sending…';
   api('request-service',{session_token:sessionToken,service:service,date:$('bDate').value,time:$('bTime').value,notes:$('bNotes').value}).then(function(r){
     btn.disabled=false;btn.textContent='Request Service';
