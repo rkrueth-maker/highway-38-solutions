@@ -12848,7 +12848,7 @@ if (document.readyState === 'loading') {
     const scripts=[
       ['H38_PLATFORM_DEEPEN','h38-platform-deepen','./platform-deepen.js?build=20260924-platform-deepen-1'],
       ['H38_QUICKBOOKS_SERVER_BRIDGE','h38-quickbooks-server-bridge','./quickbooks-server-bridge.js?build=20261019-qbo-server-bridge-2'],
-      ['H38_TAX_CENTER','h38-tax-center','./tax-center.js?build=20260924-tax-center-1']
+      ['H38_TAX_CENTER','h38-tax-center','./tax-center.js?build=20261101-wave3tail1-tax-center-1']
     ];
     scripts.forEach(([globalName,datasetKey,src])=>{
       if(window[globalName]||document.querySelector(`script[data-${datasetKey}]`))return;
