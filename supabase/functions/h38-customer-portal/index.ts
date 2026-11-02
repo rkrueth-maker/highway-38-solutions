@@ -1298,7 +1298,7 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
         return reply(req, 403, { error: "Change order not found." });
       }
       const status = clean(pick(co, "Status", "status"), 60).toUpperCase();
-      if (!/SENT|PRESENTED|AWAITING/.test(status) || /APPROV|ACCEPT|DECLIN|REJECT|VOID|CANCEL/.test(status)) {
+      if (!/SENT|PRESENTED|AWAITING/.test(status) || /APPROVED|ACCEPTED|SIGNED|DECLIN|REJECT|VOID|CANCEL/.test(status)) {
         return reply(req, 409, { error: "This change order can no longer be signed online. Please call us." });
       }
       const currentRevision = Math.max(1, Math.trunc(numberValue(pick(co, "Record Version", "recordVersion")) || 1));
