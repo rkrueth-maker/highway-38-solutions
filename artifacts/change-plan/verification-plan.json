@@ -1,23 +1,23 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-02T04:36:42.180Z",
+  "generatedAt": "2026-11-02T04:40:01.854Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/quickbooks-server-bridge.js",
+    "commercial-app/ai-team-owner-polish.js",
+    "commercial-app/bundle-features.js",
     "commercial-app/service-worker.js",
     "commercial-app/supabase-final-startup.js",
-    "commercial-app/version.json",
-    "supabase/functions/h38-quickbooks-bridge/index.ts",
-    "supabase/migrations/20261102010000_h38_quickbooks_sync_outbox.sql"
+    "commercial-app/tax-center.js",
+    "commercial-app/version.json"
   ],
   "fileCount": 6,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -28,18 +28,16 @@
     "publicRendering": false,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": true
+    "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-unified-app-architecture.js",
     "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js",
     "node scripts/verify-h38-office-access.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces",
-    "resumable small-batch generation with cursor and exact final counts"
+    "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
