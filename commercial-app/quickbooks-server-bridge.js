@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261019-qbo-server-bridge-2';
+const BUILD='20261101-wave3tail1-qbo-sync-1';
 const ENDPOINT='h38-quickbooks-bridge';
 const cfg=window.H38_BUSINESS_OFFICE_SUPABASE||{};
 let db=null,scheduled=false,statusCache=new Map();
@@ -55,7 +55,7 @@ function statusLine(connection){
 async function persistMetadata(connection){
   if(!connection||connection.status!=='connected'||typeof window.H38_PLATFORM_NEXT?.saveEntity!=='function')return;
   const prior=(Array.isArray(window.state?.snapshot?.accountingConnections)?window.state.snapshot.accountingConnections:[]).find(r=>text(r.id||r['Accounting Connection ID'])==='quickbooks-online')||{};
-  const record={...prior,id:'quickbooks-online','Accounting Connection ID':'quickbooks-online','Business ID':window.state.businessId,provider:'quickbooks-online',companyLabel:text(connection.companyName),realmId:text(connection.realmId),mode:text(connection.mode)||'production',status:'Connected — Server Managed',serverManaged:true,externalWritesEnabled:false,lastServerSync:text(connection.lastSyncedAt),'Updated Time':new Date().toISOString(),'Record Version':Math.max(1,Number(prior['Record Version']||0)+1)};
+  const record={...prior,id:'quickbooks-online','Accounting Connection ID':'quickbooks-online','Business ID':window.state.businessId,provider:'quickbooks-online',companyLabel:text(connection.companyName),realmId:text(connection.realmId),mode:text(connection.mode)||'production',status:'Connected — Server Managed',serverManaged:true,externalWritesEnabled:connection.externalWritesEnabled===true,lastServerSync:text(connection.lastSyncedAt),'Updated Time':new Date().toISOString(),'Record Version':Math.max(1,Number(prior['Record Version']||0)+1)};
   await window.H38_PLATFORM_NEXT.saveEntity('accountingConnections','Accounting Connection','quickbooks-online',record,['id']);
 }
 async function recordPreview(payload){
@@ -70,6 +70,18 @@ function renderPreview(panel,preview){
   if(!preview){target.innerHTML='<p class="h38-platform-note">Run a read-only reconciliation preview after connecting. Nothing is posted to QuickBooks.</p>';return;}
   const rows=['customers','invoices','payments','expenses'].map(key=>{const row=preview.counts?.[key]||{};return `<div class="h38-platform-row"><strong>${esc(key[0].toUpperCase()+key.slice(1))}</strong><small>H38 ${Number(row.h38||0)} · QuickBooks ${Number(row.quickBooks||0)} · mapped ${Number(row.mapped||0)}</small></div>`;}).join('');
   target.innerHTML=`<div class="h38-platform-list">${rows}</div><p class="h38-platform-note">${esc(preview.message||'Preview complete.')} Conflicts stay review-first.</p>`;
+}
+function renderQueue(panel,queue){
+  const target=panel.querySelector('[data-qbo-sync-queue]');
+  if(!target)return;
+  if(!queue){target.innerHTML='<p class="h38-platform-note">Sync queue loads after the connection status.</p>';return;}
+  const counts=queue.counts||{};
+  const failed=(queue.items||[]).filter(item=>item.status==='failed');
+  const rows=failed.slice(0,10).map(item=>`<div class="h38-platform-row"><strong>${esc(item.entityType||'')} · ${esc(item.h38RecordKey||'')}</strong><small>${esc(item.lastError||'Sync failed.')} (attempts: ${Number(item.attempts||0)})</small></div>`).join('');
+  target.innerHTML=`<div class="h38-platform-list"><div class="h38-platform-row"><strong>Sync queue</strong><small>${Number(counts.pending||0)} waiting · ${Number(counts.failed||0)} in the error queue · ${Number(counts.synced||0)} synced</small></div>${rows||'<div class="h38-platform-row"><strong>Error queue is clear</strong><small>No failed syncs waiting for review.</small></div>'}</div>`;
+}
+async function loadQueue(panel){
+  try{const data=await invoke('queue');renderQueue(panel,data.queue);}catch(error){renderQueue(panel,null);const target=panel.querySelector('[data-qbo-sync-queue]');if(target)target.innerHTML=`<p class="h38-platform-note">Sync queue could not load: ${esc(text(error.message))}</p>`;}
 }
 function bind(panel,connection){
   panel.querySelector('[data-qbo-connect]')?.addEventListener('click',async()=>{
@@ -86,6 +98,14 @@ function bind(panel,connection){
   panel.querySelector('[data-qbo-disconnect]')?.addEventListener('click',async()=>{
     if(!window.confirm('Disconnect QuickBooks for this business? This revokes the provider connection but does not delete H38 records.'))return;
     try{const data=await invoke('disconnect');statusCache.set(text(window.state.businessId),{time:Date.now(),connection:data.connection});window.toast?.('QuickBooks disconnected.');schedule();}catch(error){window.toast?.(text(error.message)||'QuickBooks disconnect failed.');}
+  });
+  panel.querySelector('[data-qbo-sync-run]')?.addEventListener('click',async()=>{
+    const button=panel.querySelector('[data-qbo-sync-run]');
+    try{button.disabled=true;button.textContent='Syncing…';await invoke('enqueue');const data=await invoke('sync');renderQueue(panel,data.queue);const s=data.sync||{};window.toast?.(s.connected?`QuickBooks sync: ${Number(s.synced||0)} sent, ${Number(s.importedPayments||0)} payments pulled in, ${Number(s.failed||0)} in the error queue.`:`QuickBooks is not reachable yet — ${Number(s.failed||0)} record(s) are safe in the error queue with the reason. Connect QuickBooks, then Retry.`,Number(s.failed||0)>0);}catch(error){window.toast?.(text(error.message)||'QuickBooks sync failed.');loadQueue(panel);}finally{button.disabled=false;button.textContent='Sync now';}
+  });
+  panel.querySelector('[data-qbo-retry]')?.addEventListener('click',async()=>{
+    const button=panel.querySelector('[data-qbo-retry]');
+    try{button.disabled=true;const data=await invoke('retry');renderQueue(panel,data.queue);window.toast?.(`${Number(data.retry?.requeued||0)} failed sync(s) put back in line. Run Sync now to send them.`);}catch(error){window.toast?.(text(error.message)||'Retry failed.');}finally{button.disabled=false;}
   });
 }
 async function loadStatus(force=false){
@@ -106,8 +126,8 @@ async function render(){
   try{connection=await loadStatus(false)||connection;}catch(error){connection={status:'error',configured:true,lastError:text(error.message),externalWritesEnabled:false};}
   if(taxCenterOwnsUi()){panel.remove();return;}
   const connected=connection.status==='connected';
-  panel.innerHTML=`<div class="h38-platform-head"><div><span class="h38-platform-kicker">SERVER CONNECTION</span><h3>Secure Intuit connection</h3><p class="h38-platform-note">${esc(statusLine(connection))}</p></div><span class="h38-platform-badge">${esc(connection.status||'unknown')}</span></div><div class="h38-platform-actions">${connected?'<button type="button" class="secondary" data-qbo-refresh>Refresh connection</button><button type="button" class="secondary" data-qbo-preview-run>Reconciliation preview</button><button type="button" class="secondary" data-qbo-disconnect>Disconnect</button>':'<button type="button" data-qbo-connect>Connect QuickBooks</button>'}</div>${connection.lastError?`<p class="h38-platform-note">Last connector error: ${esc(connection.lastError)}</p>`:''}<div data-qbo-server-preview></div><p class="h38-platform-note">OAuth tokens stay encrypted on the server. Browser code receives only non-secret status. QuickBooks accounting writes remain disabled in this phase.</p>`;
-  renderPreview(panel,null);bind(panel,connection);
+  panel.innerHTML=`<div class="h38-platform-head"><div><span class="h38-platform-kicker">SERVER CONNECTION</span><h3>Secure Intuit connection</h3><p class="h38-platform-note">${esc(statusLine(connection))}</p></div><span class="h38-platform-badge">${esc(connection.status||'unknown')}</span></div><div class="h38-platform-actions">${connected?'<button type="button" class="secondary" data-qbo-refresh>Refresh connection</button><button type="button" class="secondary" data-qbo-preview-run>Reconciliation preview</button><button type="button" class="secondary" data-qbo-disconnect>Disconnect</button>':'<button type="button" data-qbo-connect>Connect QuickBooks</button>'}<button type="button" data-qbo-sync-run>Sync now</button><button type="button" class="secondary" data-qbo-retry>Retry failed</button></div>${connection.lastError?`<p class="h38-platform-note">Last connector error: ${esc(connection.lastError)}</p>`:''}<div data-qbo-server-preview></div><div data-qbo-sync-queue></div><p class="h38-platform-note">OAuth tokens stay encrypted on the server. Browser code receives only non-secret status. Two-way sync: customers, invoices and payments push to QuickBooks, and payments recorded in QuickBooks pull back into the Office. Anything that fails lands in the error queue above with the reason — retry it after fixing the cause.</p>`;
+  renderPreview(panel,null);bind(panel,connection);loadQueue(panel);
 }
 function consumeCallbackMarker(){
   const url=new URL(window.location.href),marker=url.searchParams.get('qbo');
@@ -123,5 +143,5 @@ window.addEventListener('h38:office-page-rendered',schedule);
 window.addEventListener('h38:business-snapshot-updated',schedule);
 window.addEventListener('pageshow',schedule);
 consumeCallbackMarker();schedule();
-window.H38_QUICKBOOKS_SERVER_BRIDGE=Object.freeze({build:BUILD,endpoint:ENDPOINT,serverManagedTokens:true,browserSecrets:false,externalAccountingWrites:false,loadStatus,invoke});
+window.H38_QUICKBOOKS_SERVER_BRIDGE=Object.freeze({build:BUILD,endpoint:ENDPOINT,serverManagedTokens:true,browserSecrets:false,externalAccountingWrites:true,loadStatus,invoke});
 })();
