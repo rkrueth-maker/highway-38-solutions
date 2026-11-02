@@ -178,7 +178,7 @@
     }
     if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
       const script = document.createElement('script');
-      script.src = './job-lifecycle.js?build=20261022-perperson-1';
+      script.src = './job-lifecycle.js?build=20261101-wave3f-gate-1';
       script.dataset.h38JobLifecycle = '1';
       document.body.appendChild(script);
     }
