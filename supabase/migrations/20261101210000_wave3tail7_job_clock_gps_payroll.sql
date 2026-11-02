@@ -73,15 +73,20 @@ begin
     'Start Time', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
     'End Time', '', 'Break Minutes', 0, 'Hours', 0, 'Status', 'Clocked In', 'Approval Status', 'Owner Approval Required',
     'Hourly Rate', '',
-    'Clock In Lat', case when p_lat is null then '' else p_lat end,
-    'Clock In Lng', case when p_lng is null then '' else p_lng end,
-    'Clock In Accuracy', case when p_accuracy is null then '' else p_accuracy end,
-    'Location Status', case when p_lat is not null and p_lng is not null then 'gps' else 'manual — no location' end,
+    'Clock In Lat', '', 'Clock In Lng', '', 'Clock In Accuracy', '',
+    'Location Status', 'manual — no location',
     'Notes', coalesce(p_notes, ''), 'Source', 'Employee Time Clock', 'Created Time', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
     'Updated Time', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), 'Record Version', 1
   );
   if v_rate is not null then
     v_payload := v_payload || jsonb_build_object('Hourly Rate', v_rate);
+  end if;
+  if p_lat is not null and p_lng is not null then
+    v_payload := v_payload || jsonb_build_object(
+      'Clock In Lat', p_lat, 'Clock In Lng', p_lng, 'Location Status', 'gps');
+    if p_accuracy is not null then
+      v_payload := v_payload || jsonb_build_object('Clock In Accuracy', p_accuracy);
+    end if;
   end if;
   insert into public.business_records(business_id, collection, record_key, payload, record_status, created_by, updated_by)
   values(p_business_id, 'timeEntries', v_key, v_payload, 'active', v_uid, v_uid);
@@ -160,10 +165,8 @@ begin
     'Pause Type', '',
     'Employee ID', v_emp_id,
     'Date', coalesce(nullif(v_row.payload ->> 'Date', ''), to_char(v_start at time zone 'UTC', 'YYYY-MM-DD')),
-    'Clock Out Lat', case when p_lat is null then '' else p_lat end,
-    'Clock Out Lng', case when p_lng is null then '' else p_lng end,
-    'Clock Out Accuracy', case when p_accuracy is null then '' else p_accuracy end,
-    'Clock Out Location Status', case when p_lat is not null and p_lng is not null then 'gps' else 'manual — no location' end,
+    'Clock Out Lat', '', 'Clock Out Lng', '', 'Clock Out Accuracy', '',
+    'Clock Out Location Status', 'manual — no location',
     'Notes', case when coalesce(btrim(p_notes), '') = '' then coalesce(v_row.payload ->> 'Notes', '') else p_notes end,
     'Updated Time', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), 'Record Version', coalesce((v_row.payload ->> 'Record Version')::int, 1) + 1
   );
@@ -172,6 +175,13 @@ begin
   end if;
   if v_labor is not null then
     v_payload := v_payload || jsonb_build_object('Labor Cost', v_labor);
+  end if;
+  if p_lat is not null and p_lng is not null then
+    v_payload := v_payload || jsonb_build_object(
+      'Clock Out Lat', p_lat, 'Clock Out Lng', p_lng, 'Clock Out Location Status', 'gps');
+    if p_accuracy is not null then
+      v_payload := v_payload || jsonb_build_object('Clock Out Accuracy', p_accuracy);
+    end if;
   end if;
   update public.business_records set payload = v_payload, updated_by = v_uid, updated_at = v_now where id = v_row.id;
   return v_payload;
