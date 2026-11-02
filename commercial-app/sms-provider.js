@@ -405,7 +405,7 @@ async function sendSms(opts){
   if(segments>MAX_SEGMENTS){
     throw new Error('Message is too long ('+segments+' segments). Keep it under '+MAX_SEGMENTS+' segments.');
   }
-  var deliverAfter=text(opts.deliverAfter)||(deliveryAllowed(new Date())?'':nextDeliveryTime().toISOString());
+  var deliverAfter=String(opts.deliverAfter||'')||(deliveryAllowed(new Date())?'':nextDeliveryTime().toISOString());
   // Pre-approved sends: the owner pre-approved this message category by enabling
   // its auto-send toggle (e.g. auto review requests). The thread skips the
   // per-message approval queue; consent, STOP, quiet-hours and category rules
