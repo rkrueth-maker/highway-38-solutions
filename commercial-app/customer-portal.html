@@ -113,6 +113,16 @@ button.block{width:100%}
         <div class="row"><button class="block" id="signSubmitBtn">Sign &amp; accept</button><button class="secondary block" id="signCancelBtn" type="button">Not yet</button></div>
         <p class="note">Typing your name is your signature. We store it, with the date and time, on this exact quote version.</p>
       </div>
+      <div class="card" id="coCard" hidden><h2>Change orders</h2><div id="coList"></div></div>
+      <div class="card" id="coSignPanel" hidden>
+        <h2>Sign &amp; approve change order</h2>
+        <p class="small" id="coSignSummary" style="margin-bottom:10px"></p>
+        <div id="coSignErr" class="err" hidden></div>
+        <div class="field"><label for="coSignName">Type your full name to sign</label><input id="coSignName" type="text" maxlength="80" autocomplete="name" placeholder="Your full name"></div>
+        <p class="small" style="margin-bottom:12px">Signing approves this priced change. The amount is added to your job's billing as an invoice.</p>
+        <div class="row"><button class="block" id="coSignSubmitBtn">Sign &amp; approve</button><button class="secondary block" id="coSignCancelBtn" type="button">Not yet</button></div>
+        <p class="note">Typing your name is your signature. We store it, with the date and time, on this exact change order version.</p>
+      </div>
     </div>
 
     <div class="view" id="view-invoices">
@@ -281,6 +291,7 @@ function renderPortal(){
   // Action list
   var acts=[];
   openQuotes.forEach(function(q){acts.push({t:'Review quote: '+q.title+' ('+money(q.total)+')',view:'view-quotes'});});
+  (bundle.changeOrders||[]).filter(function(co){return /sent|awaiting|presented/i.test(co.status)&&!/approved/i.test(co.status);}).forEach(function(co){acts.push({t:'Sign change order: '+co.title+' ('+money(co.amount)+')',view:'view-quotes'});});
   openInvoices.forEach(function(i){acts.push({t:'Pay invoice '+(i.number||'')+' — '+money(i.balance)+' due',view:'view-invoices'});});
   $('actionList').innerHTML=acts.length?acts.map(function(a){
     return '<div class="item"><div class="top"><strong>'+esc(a.t)+'</strong><button class="secondary" data-goto="'+a.view+'">Open</button></div></div>';
@@ -313,6 +324,21 @@ function renderPortal(){
     '</div>';
   }).join(''):'<p class="muted">No quotes yet.</p>';
 
+  // Change orders (Wave 3 tail #6): priced changes the owner sent for
+  // signature. Signing reuses the typed-name rails; the amount flows to an
+  // invoice on the job server-side.
+  var cos=bundle.changeOrders||[];
+  $('coCard').hidden=!cos.length;
+  $('coList').innerHTML=cos.map(function(co){
+    var awaiting=/sent|awaiting|presented/i.test(co.status)&&!/approved/i.test(co.status);
+    var signedHtml=co.signedBy?'<div class="small" style="margin-top:6px">✍️ Signed by <strong>'+esc(co.signedBy)+'</strong>'+(co.signedAt?' · '+esc(fmtDate(co.signedAt)):'')+'</div>':'';
+    return '<div class="item"><div class="top"><strong>'+esc(co.title||'Change order')+'</strong>'+statusPill(co.status)+'</div>'+
+      '<div class="muted small">Change: '+money(co.amount)+'</div>'+
+      (co.description?'<div class="small" style="margin-top:4px">'+esc(co.description)+'</div>':'')+signedHtml+
+      (awaiting&&sdOn?'<button class="block" style="margin-top:10px" data-sign-co="'+esc(co.id)+'">Review &amp; sign</button>':'')+
+      (awaiting&&!sdOn?'<p class="small muted" style="margin-top:8px">Please call us to approve this change.</p>':'')+'</div>';
+  }).join('');
+
   // Invoices
   $('invoiceList').innerHTML=bundle.invoices.length?bundle.invoices.map(function(i){
     var bal=Number(i.balance)||0;
@@ -338,6 +364,8 @@ document.addEventListener('click',function(e){
   if(ap){var qid=ap.dataset.approve;var found=((typeof bundle!=='undefined'&&bundle&&bundle.quotes)||[]).find(function(x){return x.id===qid;})||null;approveQuote(qid,ap.dataset.tierIndex!==undefined&&ap.dataset.tierIndex!==''?Number(ap.dataset.tierIndex):null,found);return;}
   var sg=e.target.closest('[data-sign]');
   if(sg){var sqid=sg.dataset.sign;var sfound=((typeof bundle!=='undefined'&&bundle&&bundle.quotes)||[]).find(function(x){return x.id===sqid;})||null;openSignPanel(sqid,sg.dataset.tierIndex!==undefined&&sg.dataset.tierIndex!==''?Number(sg.dataset.tierIndex):null,sfound);return;}
+  var sc=e.target.closest('[data-sign-co]');
+  if(sc){var coid=sc.dataset.signCo;var cofound=((typeof bundle!=='undefined'&&bundle&&bundle.changeOrders)||[]).find(function(x){return x.id===coid;})||null;openCoSignPanel(cofound);return;}
   var dc=e.target.closest('[data-decline]');
   if(dc){declineQuote(dc.dataset.decline);return;}
   var py=e.target.closest('[data-pay]');
@@ -388,6 +416,36 @@ $('signSubmitBtn').addEventListener('click',function(){
     if(r.ok){$('signPanel').hidden=true;signCtx=null;alert((r.o&&r.o.message)||'Quote signed and accepted.');loadSession(sessionToken);}
     else{err.textContent=(r.o&&(r.o.error||r.o.message))||'Signing failed. Please try again.';err.hidden=false;}
   }).catch(function(){btn.disabled=false;btn.textContent='Sign & accept';err.textContent='Could not reach the portal. Please try again.';err.hidden=false;});
+});
+// ---- Signed change orders (Wave 3 tail #6) ----
+// Same pattern as quote signing: the server re-checks the tenant switch,
+// ownership, status and the exact change-order version, stamps the
+// signature, and creates the one linked invoice. This panel only collects
+// the typed name.
+var coSignCtx=null;
+function openCoSignPanel(co){
+  if(!co)return;
+  coSignCtx={coId:co.id,revision:co.revision};
+  $('coSignSummary').textContent='You are approving the change "'+(co.title||'Change order')+'"'+(co.description?' — '+co.description:'')+' at '+money(co.amount)+'. This amount is added to your job\u2019s billing.';
+  $('coSignErr').hidden=true;
+  $('coSignName').value='';
+  $('coSignPanel').hidden=false;
+  $('coSignPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(function(){try{$('coSignName').focus();}catch(e){}},250);
+}
+$('coSignCancelBtn').addEventListener('click',function(){$('coSignPanel').hidden=true;coSignCtx=null;});
+$('coSignSubmitBtn').addEventListener('click',function(){
+  if(!coSignCtx)return;
+  var name=$('coSignName').value.trim();
+  var err=$('coSignErr');
+  if(name.length<2){err.textContent='Type your full name to sign.';err.hidden=false;return;}
+  err.hidden=true;
+  var btn=$('coSignSubmitBtn');btn.disabled=true;btn.textContent='Signing…';
+  api('sign-change-order',{session_token:sessionToken,change_order_id:coSignCtx.coId,expected_revision:coSignCtx.revision,signer_name:name}).then(function(r){
+    btn.disabled=false;btn.textContent='Sign & approve';
+    if(r.ok){$('coSignPanel').hidden=true;coSignCtx=null;alert((r.o&&r.o.message)||'Change order signed and approved.');loadSession(sessionToken);}
+    else{err.textContent=(r.o&&(r.o.error||r.o.message))||'Signing failed. Please try again.';err.hidden=false;}
+  }).catch(function(){btn.disabled=false;btn.textContent='Sign & approve';err.textContent='Could not reach the portal. Please try again.';err.hidden=false;});
 });
 function declineQuote(quoteId){
   var reason=prompt('Anything we should know? (optional)')||'';

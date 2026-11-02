@@ -46,6 +46,7 @@ const BOOKING_MODULE_KEY = "online_booking";
 const ONLINE_PAYMENTS_MODULE_KEY = "online_payments";
 const SIGNED_DEPOSIT_MODULE_KEY = "signed_deposit_acceptance";
 const DEPOSIT_INVOICE_SOURCE = "Deposit on signed quote acceptance";
+const CHANGE_ORDER_INVOICE_SOURCE = "Change order signed approval";
 const DEFAULT_DEPOSIT_PERCENT = 50;
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") || "";
 const TOKEN_COLLECTION = "portal_tokens";
@@ -657,6 +658,41 @@ async function buildSessionBundle(
       };
     });
 
+  // Change orders on this customer's jobs (Wave 3 tail #6): the customer
+  // sees priced change orders the owner sent to the portal and signs them
+  // with the same typed-name rails as quote acceptance.
+  const customerJobIds = new Set(jobs.map((j) => j.id));
+  const { data: changeOrderRows } = await service
+    .from("business_records")
+    .select("record_key,payload,updated_at")
+    .eq("business_id", businessId)
+    .eq("collection", "changeOrders")
+    .eq("record_status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+  const changeOrders = (changeOrderRows || [])
+    .filter((r) => {
+      const p = (r.payload || {}) as JsonObject;
+      const jobId = clean(pick(p, "Job ID", "jobId"), 120);
+      const coCustomer = clean(pick(p, "Customer ID", "customerId"), 120);
+      return (jobId && customerJobIds.has(jobId)) || coCustomer === customerKey;
+    })
+    .map((r) => {
+      const p = (r.payload || {}) as JsonObject;
+      return {
+        id: r.record_key,
+        jobId: clean(pick(p, "Job ID", "jobId"), 120),
+        title: clean(pick(p, "Title", "title"), 160),
+        description: clean(pick(p, "Description", "description"), 1000),
+        amount: numberValue(pick(p, "Amount", "amount")),
+        status: clean(pick(p, "Status", "status"), 60),
+        revision: Math.max(1, Math.trunc(numberValue(pick(p, "Record Version", "recordVersion")) || 1)),
+        signedBy: clean(pick(p, "Signed By Name", "signedByName"), 80),
+        signedAt: clean(pick(p, "Signed At", "signedAt"), 40),
+        invoiceId: clean(pick(p, "Invoice ID", "invoiceId"), 120),
+      };
+    });
+
   const paymentsState = await onlinePaymentsState(service, businessId);
   const services = await businessServices(service, businessId);
 
@@ -674,6 +710,7 @@ async function buildSessionBundle(
     invoices,
     appointments,
     jobs,
+    changeOrders,
   };
 }
 
@@ -1208,6 +1245,160 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
           ? `Quote signed and accepted. A deposit invoice for $${depositAmount.toFixed(2)} was created — we will contact you about the deposit and scheduling.`
           : "Quote signed and accepted. We will contact you to schedule the work.",
         deposit: { invoiceId: depositInvoiceId, amount: depositAmount, percent: pct },
+      });
+    }
+
+    // ---- sign-change-order (Wave 3 tail #6) ----
+    // Same signed-acceptance rails as sign-quote, gated on the same
+    // signed_deposit_acceptance switch: typed-name signature + timestamp
+    // stored on the exact change-order version the customer reviewed
+    // (Record Version must match, so a priced change after they opened it
+    // blocks signing). On signing, the priced delta flows to exactly ONE
+    // invoice linked to the job (deduped on Change Order ID + revision,
+    // same pattern as the deposit invoice) — a Draft the office sends and
+    // collects through the normal rails. No money moves here.
+    if (postAction === "sign-change-order") {
+      const settings = await signedDepositSettings(sb, session.businessId);
+      if (!settings.enabled) {
+        return reply(req, 403, { error: "Signed approvals aren't turned on for this business. Please call us to approve this change." });
+      }
+      const coId = clean(body.change_order_id || body.changeOrderId, 120);
+      const signerName = clean(body.signer_name || body.signerName, MAX.name);
+      const expectedRevisionRaw = body.expected_revision ?? body.expectedRevision;
+      const expectedRevision = expectedRevisionRaw === undefined || expectedRevisionRaw === null || expectedRevisionRaw === "" ? null : Math.trunc(numberValue(expectedRevisionRaw));
+      if (!coId) return reply(req, 400, { error: "Invalid request." });
+      if (signerName.length < 2) return reply(req, 400, { error: "Type your full name to sign." });
+      const { data: row, error } = await sb
+        .from("business_records")
+        .select("id,record_key,payload")
+        .eq("business_id", session.businessId)
+        .eq("collection", "changeOrders")
+        .eq("record_key", coId)
+        .eq("record_status", "active")
+        .maybeSingle();
+      if (error) throw error;
+      if (!row) return reply(req, 404, { error: "Change order not found." });
+      const co = (row.payload || {}) as JsonObject;
+      const jobId = clean(pick(co, "Job ID", "jobId"), 120);
+      // Ownership: the change order's job (or the change order itself) must
+      // belong to the session's customer.
+      let ownerCustomerKey = clean(pick(co, "Customer ID", "customerId"), 120);
+      if (jobId) {
+        const { data: jobRow } = await sb
+          .from("business_records")
+          .select("payload")
+          .eq("business_id", session.businessId)
+          .eq("collection", "jobs")
+          .eq("record_key", jobId)
+          .eq("record_status", "active")
+          .maybeSingle();
+        if (jobRow) ownerCustomerKey = clean(pick(jobRow.payload || {}, "Customer ID", "customerId"), 120) || ownerCustomerKey;
+      }
+      if (ownerCustomerKey !== session.customerKey) {
+        return reply(req, 403, { error: "Change order not found." });
+      }
+      const status = clean(pick(co, "Status", "status"), 60).toUpperCase();
+      if (!/SENT|PRESENTED|AWAITING/.test(status) || /APPROV|ACCEPT|DECLIN|REJECT|VOID|CANCEL/.test(status)) {
+        return reply(req, 409, { error: "This change order can no longer be signed online. Please call us." });
+      }
+      const currentRevision = Math.max(1, Math.trunc(numberValue(pick(co, "Record Version", "recordVersion")) || 1));
+      if (expectedRevision === null || expectedRevision !== currentRevision) {
+        return reply(req, 409, { error: "This change order changed since you opened it. Please reload and review the current version before signing." });
+      }
+      const now = new Date().toISOString();
+      const amount = round2(numberValue(pick(co, "Amount", "amount")));
+      const actorId = await attributionUserId(sb, session.businessId);
+      // Dedupe: an existing change-order invoice for this exact revision is
+      // reused, never duplicated.
+      let invoiceId = clean(pick(co, "Invoice ID", "invoiceId"), 120);
+      if (amount > 0 && !invoiceId) {
+        const { data: invRows, error: invErr } = await sb
+          .from("business_records")
+          .select("record_key,payload")
+          .eq("business_id", session.businessId)
+          .eq("collection", "invoices")
+          .eq("record_status", "active")
+          .limit(500);
+        if (invErr) throw invErr;
+        const found = (invRows || []).find((r) => {
+          const p = (r.payload || {}) as JsonObject;
+          return clean(pick(p, "Change Order ID", "changeOrderId"), 120) === coId
+            && numberValue(pick(p, "Change Order Revision", "changeOrderRevision")) === currentRevision
+            && clean(pick(p, "Source", "source"), 80) === CHANGE_ORDER_INVOICE_SOURCE
+            && !/void/i.test(clean(pick(p, "Status", "status"), 40));
+        });
+        if (found) invoiceId = found.record_key;
+      }
+      if (amount > 0 && !invoiceId) {
+        invoiceId = `INVOICE-${crypto.randomUUID().toUpperCase()}`;
+        const title = clean(pick(co, "Title", "title"), 160) || "Change order";
+        const description = clean(pick(co, "Description", "description"), 1000);
+        const { error: insErr } = await sb.from("business_records").insert({
+          business_id: session.businessId,
+          collection: "invoices",
+          record_key: invoiceId,
+          record_status: "active",
+          created_by: actorId,
+          updated_by: actorId,
+          payload: {
+            "Invoice ID": invoiceId,
+            "Invoice Number": `LOCAL-${Date.now()}`,
+            "Business ID": session.businessId,
+            "Customer ID": session.customerKey,
+            "Job ID": jobId,
+            "Quote ID": clean(pick(co, "Quote ID", "quoteId"), 120),
+            "Change Order ID": coId,
+            "Change Order Revision": currentRevision,
+            "Source": CHANGE_ORDER_INVOICE_SOURCE,
+            "Status": "Draft",
+            "Send Allowed": "No",
+            "Delivery Status": "Not Sent",
+            "Total": amount,
+            "Subtotal": amount,
+            "Tax": 0,
+            "Balance": amount,
+            "Due Date": "",
+            "lines": [{
+              description: `Change order — ${title}${description ? `: ${description}` : ""}`.slice(0, 300),
+              quantity: 1,
+              unit: "each",
+              unitPrice: amount,
+            }],
+            "Signed By Name": signerName,
+            "Signed At": now,
+            "Created Time": now,
+            "Updated Time": now,
+            "Record Version": 1,
+          },
+        });
+        if (insErr) throw insErr;
+      }
+      const updated: JsonObject = {
+        ...co,
+        "Status": "Approved — Signed",
+        "Customer Decision": "Accepted — signed",
+        "Customer Approved Time": now,
+        "Signed By Name": signerName,
+        "Signed At": now,
+        "Signature Type": "Typed name",
+        "Signed Revision": currentRevision,
+        "Invoice ID": invoiceId,
+        "Updated Time": now,
+        "Record Version": currentRevision + 1,
+      };
+      delete updated.__localPending;
+      const { error: upErr } = await sb.from("business_records").update({
+        payload: updated,
+        updated_at: now,
+      }).eq("id", row.id);
+      if (upErr) throw upErr;
+      await writeProof(sb, session.businessId, "PORTAL_CHANGE_ORDER_SIGNED", "Change Order", coId, "OK", { signerName, signedRevision: currentRevision, amount, invoiceId, jobId });
+      return reply(req, 200, {
+        ok: true,
+        message: amount > 0
+          ? `Change order signed and approved. An invoice for $${amount.toFixed(2)} was added to your job — we will send it through the normal billing process.`
+          : "Change order signed and approved. We will take care of the rest.",
+        invoice: { id: invoiceId, amount },
       });
     }
 
