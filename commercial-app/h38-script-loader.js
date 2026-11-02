@@ -128,6 +128,7 @@
     // ?build= URL as PAGE_MESSAGES so the loader dedupes it.
     const PAGE_WORK = [
       './customer-comms.js?build=20261101-wave3tail10-1',
+      './photo-markup.js?build=20261102-markup-1',
     ];
     const PAGE_SCHEDULE = [
       './app-08.js?build=20261020-myhank-settings-1',
