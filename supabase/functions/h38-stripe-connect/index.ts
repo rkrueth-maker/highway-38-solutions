@@ -433,6 +433,15 @@ Deno.serve(async (req: Request) => {
             throw v2Error;
           }
         }
+        // Persist the new account id BEFORE asking Stripe for the link:
+        // if link creation fails, the retry reuses this account instead of
+        // creating an orphaned duplicate on Stripe's side.
+        await saveSettings(sb, businessId, settings.enabled === true, {
+          ...config,
+          stripeAccountId: acct,
+          accountApi: apiVersion,
+          ...(initialFlags || {}),
+        }, user.id);
       }
       let url = "";
       if (apiVersion === "v2") {
@@ -441,7 +450,6 @@ Deno.serve(async (req: Request) => {
           use_case: {
             type: "account_onboarding",
             account_onboarding: {
-              configurations: ["merchant"],
               refresh_url: OFFICE_URL,
               return_url: OFFICE_URL,
               // Up-front onboarding: collect eventually-due requirements in
