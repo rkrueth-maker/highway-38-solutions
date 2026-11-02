@@ -26,7 +26,7 @@
 
     const FIELD_AND_MEASURE_SCRIPTS = [
       './app-07.js?build=20261030-two-layer-6',
-      './app-10.js?build=20261020-ws4-field-1',
+      './app-10.js?build=20261101-wave3tail11-1',
       './site-scanner.js?build=20260806-0605',
       './site-scanner-mobile-guidance.js?build=20260806-0605',
       './site-scanner-cad-export.js?build=20260811-cad-review-dxf-0143',

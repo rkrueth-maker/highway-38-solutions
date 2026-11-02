@@ -4,12 +4,12 @@
 // Extends the existing offline queue in app-02.js (queueOperation/sync/syncPass). Builds no second queue.
 // Parse-time work is trivial (toggle registration + event listeners); nothing here runs at startup
 // beyond that, so the authenticated shell startup budget is untouched.
-const BUILD='20261012-offline-polish-1';
+const BUILD='20261101-wave3tail11-1';
 const FEATURE_ID='offline_mode';
 
 // --- Owner Controls toggle (id-guarded push; owner-controls.js is never edited) ---
 if(window.H38OwnerControls&&Array.isArray(window.H38OwnerControls.FEATURES)&&!window.H38OwnerControls.FEATURES.some(f=>f.id===FEATURE_ID)){
-  window.H38OwnerControls.FEATURES.push({id:FEATURE_ID,title:'Offline mode',desc:'Full offline operation: cached business pack, offline queue with auto-sync, sync status.',icon:'📴',default:true,category:'General'});
+  window.H38OwnerControls.FEATURES.push({id:FEATURE_ID,title:'Offline mode',desc:'Work offline in the field: cached business pack, an offline queue that syncs when you are back online, and sync status.',icon:'📴',default:true,category:'General'});
 }
 
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -236,6 +236,35 @@ async function renderPanel(){
 }
 function refreshPanel(){if($('offlineReadinessPanel'))renderPanel();updateBanner();}
 
+// ---------- queued-work flush watcher (Wave 3 tail #11, 2026-11-01) ----------
+// Proof on the demo tenant: work queued offline in a session whose bridge
+// was already up syncs by itself on reconnect (handleOnline above). But a
+// queue left over from a PREVIOUS session never flushed on its own — the
+// Supabase startup path marks the bridge ready without calling sync, and a
+// fresh app load with work waiting sat pending 90 s+ until a manual sync.
+// This watcher closes that hole using the existing sync (no second queue):
+// while the Office is open, online, and the bridge is ready, waiting
+// (non-usage) work triggers a sync. Attempts are spaced and capped per
+// distinct queue signature so a permanently failing op cannot spin; the
+// sync badge/banner keep offering manual retry after the cap.
+let flushWatchTimer=null,flushLastAttemptAt=0;const flushAttempts={};
+async function flushWatchTick(){
+  if(!enabled()||!isOnline())return;
+  const st=office();if(!st.bridgeReady||!st.businessId)return;
+  const counts=await pendingCounts();
+  if(!counts.pending)return;
+  const ops=await businessOps();
+  const sig=ops.filter(o=>o.syncStatus==='PENDING'&&String(o.action||'').toUpperCase()!=='RECORD_USAGE_EVENT').map(o=>String(o.operationId||o.id)).sort().join(',');
+  if(!sig)return;
+  const nowMs=Date.now();
+  if(nowMs-flushLastAttemptAt<20000)return;
+  flushAttempts[sig]=(flushAttempts[sig]||0)+1;
+  if(flushAttempts[sig]>6)return;
+  flushLastAttemptAt=nowMs;
+  callGlobal('sync',false);
+}
+function startFlushWatcher(){if(flushWatchTimer)return;flushWatchTimer=setInterval(()=>{flushWatchTick().catch(()=>{});},5000);}
+
 // ---------- wiring (installed once; never re-registers) ----------
 if(!window.__h38OfflineModeInstalled){
   window.__h38OfflineModeInstalled=true;
@@ -244,6 +273,7 @@ if(!window.__h38OfflineModeInstalled){
   window.addEventListener('h38:sync-pass-complete',event=>{onSyncPassComplete(event&&event.detail);});
   window.addEventListener('h38:pending-updated',()=>{updateBanner();});
   window.addEventListener('resize',()=>{if(bannerEl&&bannerEl.style.display!=='none')updateBanner();});
+  startFlushWatcher();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{updateBanner();},{once:true});
   else updateBanner();
 }
@@ -253,6 +283,7 @@ window.H38OfflineMode=Object.freeze({
   isEnabled:enabled,
   renderPanel,refreshPanel,updateBanner,
   syncNow:()=>callGlobal('sync',true),
+  flushWatchTick,
   refreshPack,autoRefreshPack,
   handleOnline,onSyncPassComplete,
   businessOps,cachedCollections,findCachedRecord,describeConflict,payloadFields,
