@@ -1,16 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-02T02:24:02.440Z",
+  "generatedAt": "2026-11-02T02:27:05.455Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/app-17.js",
     "commercial-app/data-export.js",
     "commercial-app/index.html",
     "commercial-app/service-worker.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 5,
+  "fileCount": 4,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
