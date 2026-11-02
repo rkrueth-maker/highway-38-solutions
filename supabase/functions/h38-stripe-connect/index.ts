@@ -3,9 +3,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 // h38-stripe-connect — owner-side Stripe Connect actions for the H38 Office.
 //
-// Each Office business (tenant) connects its OWN Stripe account (Connect
-// standard). Payments settle directly to that business's bank account; H38
-// never holds or routes customer funds. The Office only:
+// Each Office business (tenant) connects its OWN Stripe account (Connect,
+// full Stripe Dashboard with Stripe collecting fees and bearing losses —
+// the Accounts v2 equivalent of the old "standard" account). Payments
+// settle directly to that business's bank account; H38 never holds or
+// routes customer funds. The Office only:
 //   - creates the Connect onboarding link (account_link action),
 //   - refreshes and stores connection status (account_status action),
 //   - creates hosted Checkout links for open invoices (checkout_link),
@@ -168,6 +170,100 @@ async function stripeRequest(
   return data as JsonObject;
 }
 
+// ---- Stripe API v2 (Accounts) -------------------------------------------
+// Stripe no longer lets new Connect platforms create accounts through the
+// v1 Accounts API: POST /v1/accounts is rejected with a pointer to Accounts
+// v2. Account creation, onboarding links, and status reads for accounts
+// created here therefore use /v2/core/* (JSON bodies, pinned preview
+// version below). Checkout sessions, refunds, and webhooks stay on the v1
+// API — they address the connected account by id through the Stripe-Account
+// header, which is unaffected by how the account was created. The stored
+// config records which API created the account ("accountApi": "v2" | "v1")
+// so status reads always use the matching object shape; if the platform
+// has not enabled Accounts v2 yet, creation falls back to the v1 call.
+const STRIPE_API_V2_VERSION = "2026-10-28.preview";
+
+async function stripeV2Request(
+  path: string,
+  jsonBody: JsonObject | null,
+): Promise<JsonObject> {
+  const res = await fetch(`https://api.stripe.com/v2/core/${path}`, {
+    method: jsonBody ? "POST" : "GET",
+    headers: {
+      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+      "Stripe-Version": STRIPE_API_V2_VERSION,
+      ...(jsonBody ? { "Content-Type": "application/json" } : {}),
+    },
+    body: jsonBody ? JSON.stringify(jsonBody) : undefined,
+    signal: AbortSignal.timeout(30000),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = (data as JsonObject)?.error as JsonObject | undefined;
+    throw new Error(safeMessage(err?.message || `Stripe error (HTTP ${res.status}).`));
+  }
+  return data as JsonObject;
+}
+
+// Maps a v2 account object (with configuration.merchant, requirements, and
+// identity included) onto the flags the Office stores. Flags only turn true
+// on positive evidence — card_payments capability status "active" and no
+// outstanding currently/past-due requirements — so a partially-onboarded
+// account can never look ready by accident.
+function mapV2AccountFlags(acct: JsonObject): {
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+} {
+  const merchant = ((acct.configuration as JsonObject | undefined)?.merchant || {}) as JsonObject;
+  const caps = (merchant.capabilities || {}) as JsonObject;
+  const cardStatus = String(((caps.card_payments as JsonObject | undefined)?.status) || "");
+  const chargesEnabled = cardStatus === "active";
+  const reqs = Array.isArray(acct.requirements) ? (acct.requirements as JsonObject[]) : [];
+  const hasBlockingRequirement = reqs.some((r) => {
+    const status = String(((r.minimum_deadline as JsonObject | undefined)?.status) || "");
+    return status === "currently_due" || status === "past_due";
+  });
+  const identity = (acct.identity || {}) as JsonObject;
+  const detailsSubmitted = Object.keys(identity).length > 0 && !hasBlockingRequirement;
+  return {
+    chargesEnabled,
+    payoutsEnabled: chargesEnabled && !hasBlockingRequirement,
+    detailsSubmitted,
+  };
+}
+
+// Creates the tenant's connected account through Accounts v2 with the
+// profile that matches the old v1 "standard" account: the business keeps
+// its full Stripe Dashboard, Stripe collects the payment fees, and Stripe
+// bears losses on the account.
+async function createConnectedAccountV2(
+  sb: ReturnType<typeof createClient>,
+  businessId: string,
+): Promise<{ id: string; acct: JsonObject }> {
+  const { data: biz } = await sb
+    .from("businesses")
+    .select("display_name")
+    .eq("id", businessId)
+    .maybeSingle();
+  const displayName = clean((biz as JsonObject | null)?.display_name, 120);
+  const created = await stripeV2Request("accounts", {
+    ...(displayName ? { display_name: displayName } : {}),
+    dashboard: "full",
+    defaults: {
+      currency: "usd",
+      responsibilities: { fees_collector: "stripe", losses_collector: "stripe" },
+      locales: ["en-US"],
+    },
+    configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
+    metadata: { business_id: businessId },
+    include: ["configuration.merchant", "requirements", "identity"],
+  });
+  const id = String(created.id || "");
+  if (!id) throw new Error("Stripe did not return an account id.");
+  return { id, acct: created };
+}
+
 async function loadInvoice(sb: ReturnType<typeof createClient>, businessId: string, invoiceId: string) {
   const { data, error } = await sb
     .from("business_records")
@@ -299,35 +395,91 @@ Deno.serve(async (req: Request) => {
     // ---- connect / continue onboarding ----
     if (action === "account_link") {
       let acct = accountId;
+      let apiVersion = clean(config.accountApi, 10) || (acct ? "v1" : "");
+      let initialFlags: {
+        chargesEnabled: boolean;
+        payoutsEnabled: boolean;
+        detailsSubmitted: boolean;
+      } | null = null;
       if (!acct) {
-        const params = new URLSearchParams();
-        params.set("type", "standard");
-        params.set("metadata[business_id]", businessId);
-        const created = await stripeRequest("accounts", params);
-        acct = String(created.id || "");
-        if (!acct) throw new Error("Stripe did not return an account id.");
+        // New accounts are created through Accounts v2 (Stripe rejects the
+        // v1 create for new platforms). If the platform has not enabled v2
+        // yet, fall back to the v1 create; if both fail, the v2 error is
+        // surfaced because it names the current dashboard step.
+        try {
+          const createdV2 = await createConnectedAccountV2(sb, businessId);
+          acct = createdV2.id;
+          apiVersion = "v2";
+          initialFlags = mapV2AccountFlags(createdV2.acct);
+        } catch (v2Error) {
+          try {
+            const params = new URLSearchParams();
+            params.set("type", "standard");
+            params.set("metadata[business_id]", businessId);
+            const created = await stripeRequest("accounts", params);
+            acct = String(created.id || "");
+            if (!acct) throw new Error("Stripe did not return an account id.");
+            apiVersion = "v1";
+          } catch (_v1Error) {
+            throw v2Error;
+          }
+        }
       }
-      const linkParams = new URLSearchParams();
-      linkParams.set("account", acct);
-      linkParams.set("refresh_url", OFFICE_URL);
-      linkParams.set("return_url", OFFICE_URL);
-      linkParams.set("type", "account_onboarding");
-      const link = await stripeRequest("account_links", linkParams);
-      await saveSettings(sb, businessId, settings.enabled === true, { ...config, stripeAccountId: acct }, user.id);
-      return json(origin, 200, { status: "PASS", url: String(link.url || ""), accountId: acct });
+      let url = "";
+      if (apiVersion === "v2") {
+        const link = await stripeV2Request("account_links", {
+          account: acct,
+          use_case: {
+            type: "account_onboarding",
+            account_onboarding: {
+              configurations: ["merchant"],
+              refresh_url: OFFICE_URL,
+              return_url: OFFICE_URL,
+              // Up-front onboarding: collect eventually-due requirements in
+              // one pass, matching the old v1 onboarding behavior.
+              collection_options: { fields: "eventually_due" },
+            },
+          },
+        });
+        url = String(link.url || "");
+      } else {
+        const linkParams = new URLSearchParams();
+        linkParams.set("account", acct);
+        linkParams.set("refresh_url", OFFICE_URL);
+        linkParams.set("return_url", OFFICE_URL);
+        linkParams.set("type", "account_onboarding");
+        const link = await stripeRequest("account_links", linkParams);
+        url = String(link.url || "");
+      }
+      if (!url) throw new Error("Stripe did not return an onboarding link.");
+      await saveSettings(sb, businessId, settings.enabled === true, {
+        ...config,
+        stripeAccountId: acct,
+        accountApi: apiVersion,
+        ...(initialFlags || {}),
+      }, user.id);
+      return json(origin, 200, { status: "PASS", url, accountId: acct });
     }
 
     // ---- refresh connection status from Stripe ----
     if (action === "account_status") {
       if (!accountId) throw new Error("Stripe is not connected for this business yet.");
-      const acct = await stripeRequest(`accounts/${accountId}`, null);
-      const nextConfig = {
-        ...config,
-        stripeAccountId: accountId,
-        chargesEnabled: acct.charges_enabled === true,
-        payoutsEnabled: acct.payouts_enabled === true,
-        detailsSubmitted: acct.details_submitted === true,
-      };
+      let flags: { chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean };
+      if (clean(config.accountApi, 10) === "v2") {
+        const acct = await stripeV2Request(
+          `accounts/${accountId}?include[0]=configuration.merchant&include[1]=requirements&include[2]=identity`,
+          null,
+        );
+        flags = mapV2AccountFlags(acct);
+      } else {
+        const acct = await stripeRequest(`accounts/${accountId}`, null);
+        flags = {
+          chargesEnabled: acct.charges_enabled === true,
+          payoutsEnabled: acct.payouts_enabled === true,
+          detailsSubmitted: acct.details_submitted === true,
+        };
+      }
+      const nextConfig = { ...config, stripeAccountId: accountId, ...flags };
       await saveSettings(sb, businessId, settings.enabled === true, nextConfig, user.id);
       return json(origin, 200, {
         status: "PASS",
