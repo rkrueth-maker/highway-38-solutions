@@ -243,6 +243,7 @@
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
       './reports-section.js?build=20261101-wave3-1',
+      './lead-sources.js?build=20261102-leadsrc-1',
       './accountant-share.js?build=20261030-laptop-phase1-1',
       './money-agent.js?build=20261022-perperson-1',
     ];

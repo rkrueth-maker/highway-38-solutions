@@ -254,6 +254,11 @@ export async function handleBookingRequest(
   const date = clean(body.date, MAX.date);
   const time = clean(body.time, MAX.time);
   const notes = clean(body.notes, MAX.notes);
+  // Lead source (WS5): self-reported on the booking form; missing or
+  // unexpected values count as "Website" (the booking page is web intake).
+  const LEAD_SOURCES = ["Website", "Referral", "Repeat customer", "Other"];
+  const leadSourceRaw = clean(body.leadSource, 40);
+  const leadSource = LEAD_SOURCES.includes(leadSourceRaw) ? leadSourceRaw : "Website";
 
   if (!name || !phone || !service) {
     return json(400, { error: "Name, phone, and service are required." }, headers);
@@ -301,6 +306,7 @@ export async function handleBookingRequest(
         "Notes": notes,
         "Status": "New — needs owner review",
         "Source": "Online booking",
+        "Lead Source": leadSource,
         "Recorded By": "System — anonymous online booking request",
         "Business ID": businessId,
         "Created Time": now,
