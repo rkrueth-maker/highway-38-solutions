@@ -35296,6 +35296,8 @@ window.H38VoiceCommands={
 (function(){
   'use strict';
 
+  const ENGINE_BUILD='20261101-wave3tail9-engine-1';
+  const RENEWAL_ALERT_DAYS=30;
   const FREQ_MONTHS={Monthly:1,Quarterly:3,Annual:12};
   const FREQ_LABEL={Monthly:'per month',Quarterly:'per quarter',Annual:'per year'};
   const DAY_MS=86400000;
@@ -35336,6 +35338,23 @@ window.H38VoiceCommands={
     return String(next).slice(0,10)<=new Date().toISOString().slice(0,10);
   }
   function dueMemberships(){return activeMemberships().filter(isDue).sort((a,b)=>String(v(a,'Next Billing Date')).localeCompare(String(v(b,'Next Billing Date'))));}
+  /* Renewal date: stored on the membership; older enrollments without one
+   * derive it as Start Date + 12 months so the alert works for them too. */
+  function renewalDateOf(m){
+    const stored=String(v(m,'Renewal Date')||'').slice(0,10);
+    if(stored)return stored;
+    const start=String(v(m,'Start Date')||'').slice(0,10);
+    return start?addMonthsISO(start,12):'';
+  }
+  function renewalsDue(days){
+    const today=new Date().toISOString().slice(0,10);
+    const h=new Date(`${today}T12:00:00`);h.setDate(h.getDate()+(days||RENEWAL_ALERT_DAYS));
+    const horizonStr=h.toISOString().slice(0,10);
+    return activeMemberships().filter(m=>{
+      const r=renewalDateOf(m);
+      return r&&r>=today&&r<=horizonStr;
+    }).sort((a,b)=>renewalDateOf(a).localeCompare(renewalDateOf(b)));
+  }
   function failedMembershipInvoices(){
     const today=new Date().toISOString().slice(0,10);
     return records('invoices').filter(r=>{
@@ -35405,6 +35424,7 @@ window.H38VoiceCommands={
       'Plan ID':String(v(plan,'Plan ID')),'Customer ID':String(data.customerId),
       'Start Date':startDate,'Billing Day':Math.min(28,Math.max(1,Math.round(num(data.billingDay)||1))),
       'Next Billing Date':startDate,
+      'Renewal Date':String(data.renewalDate||'').slice(0,10)||addMonthsISO(startDate,12),
       'Payment Method':PAY_METHODS.includes(data.paymentMethod)?data.paymentMethod:PAY_METHODS[0],
       'Status':'Active','Enrollment Notes':data.notes||'',
       'Paused Date':'','Cancellation Date':'','Cancellation Effective Date':'','Cancellation Note':'',
@@ -35446,23 +35466,30 @@ window.H38VoiceCommands={
   }
 
   /* ---------- recurring billing (drafts only — never charges) ---------- */
-  async function generateBilling(){
-    const due=dueMemberships();
-    if(!due.length){toast('No membership billing is due.');return{created:0};}
-    let created=0;
-    for(const m of due){
-      const plan=planById(v(m,'Plan ID'));
-      if(!plan)continue;
-      const price=num(v(plan,'Price')),freq=v(plan,'Billing Frequency')||'Monthly';
-      const mid=String(v(m,'Membership ID')),cid=String(v(m,'Customer ID'));
+  /* Idempotency: every billing draft carries the Billing Period it bills
+   * (the membership's Next Billing Date at run time). A period that already
+   * has an invoice is never billed twice — the date just advances. */
+  function invoiceForPeriod(mid,period){
+    if(!period)return null;
+    return records('invoices').find(r=>String(v(r,'Membership ID'))===String(mid)&&String(v(r,'Billing Period')||'')===period)||null;
+  }
+  async function billMembership(m){
+    const plan=planById(v(m,'Plan ID'));
+    if(!plan)return false;
+    const price=num(v(plan,'Price')),freq=v(plan,'Billing Frequency')||'Monthly';
+    const mid=String(v(m,'Membership ID')),cid=String(v(m,'Customer ID'));
+    const period=String(v(m,'Next Billing Date')||'').slice(0,10)||new Date().toISOString().slice(0,10);
+    let created=false;
+    if(!invoiceForPeriod(mid,period)){
       const id=newId('INVOICE');
       const description=`${v(plan,'Plan Name')} — ${freq.toLowerCase()} membership billing`;
       const dueDate=addMonthsISO(new Date().toISOString().slice(0,10),1);
       const record={
         'Invoice ID':id,'Business ID':state.businessId,'Customer ID':cid,'Job ID':'',
-        'Invoice Number':`LOCAL-${Date.now()}-${created}`,
+        'Invoice Number':`LOCAL-${Date.now()}-${Math.floor(Math.random()*100000)}`,
         'Status':'Draft','Invoice Type':'Membership Billing',
         'Membership ID':mid,'Plan ID':String(v(plan,'Plan ID')),
+        'Billing Period':period,
         'Approval Status':'Owner Approval Required',
         'Description':description,'Due Date':dueDate,
         'Subtotal':price,'Tax':0,'Total':price,'Balance':price,
@@ -35470,15 +35497,121 @@ window.H38VoiceCommands={
         'Created Time':now(),'Updated Time':now(),'Record Version':1
       };
       await saveEntity('invoices','Invoice',id,record,['Invoice ID']);
-      const advanced=addMonthsISO(String(v(m,'Next Billing Date')).slice(0,10)||new Date().toISOString().slice(0,10),freqMonths(freq));
-      const updated={...m,'Next Billing Date':advanced,'Updated Time':now(),'Record Version':Math.max(1,num(v(m,'Record Version'))+1)};
-      delete updated.__localPending;
-      await saveEntity('memberships','Membership',mid,updated,['Membership ID']);
-      created++;
+      created=true;
     }
+    const advanced=addMonthsISO(period,freqMonths(freq));
+    const updated={...m,'Next Billing Date':advanced,'Updated Time':now(),'Record Version':Math.max(1,num(v(m,'Record Version'))+1)};
+    delete updated.__localPending;
+    await saveEntity('memberships','Membership',mid,updated,['Membership ID']);
+    return created;
+  }
+  async function generateBilling(){
+    const due=dueMemberships();
+    if(!due.length){toast('No membership billing is due.');return{created:0};}
+    let created=0;
+    for(const m of due){if(await billMembership(m))created++;}
     if(navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);
     toast(`${created} membership billing draft${created===1?'':'s'} prepared. Nothing charged — owner approval required before sending.`);
     return{created};
+  }
+
+  /* ---------- the engine: auto-billing + visit refill on app load ----------
+   * Runs from the in-app load path (business snapshot arriving / Today
+   * rendering), the same pattern as the offline queue flush watcher. There
+   * is no server cron in this product, so the honest scope is: whenever the
+   * Office is opened, anything due is prepared then — drafts only, never a
+   * charge — and every step is deduped so re-running changes nothing. */
+  async function refillVisits(m){
+    const plan=planById(v(m,'Plan ID'));if(!plan)return 0;
+    const n=includedVisits(plan);if(!n)return 0;
+    const mid=String(v(m,'Membership ID'));
+    if(upcomingVisitsOf(mid).length)return 0;
+    const existing=planVisitsOf(mid);
+    const taken=new Set(existing.map(r=>String(v(r,'Start Time')).slice(0,10)));
+    const intervalDays=365.25/n;
+    const today=new Date().toISOString().slice(0,10);
+    let startStr;
+    if(existing.length){
+      const last=taken.size?[...taken].sort().pop():today;
+      const d=new Date(`${last}T12:00:00`);d.setDate(d.getDate()+Math.round(intervalDays));
+      startStr=d.toISOString().slice(0,10);
+      if(startStr<today)startStr=today;
+    }else{
+      startStr=String(v(m,'Start Date')).slice(0,10)||today;
+      if(startStr<today)startStr=today;
+    }
+    const cid=String(v(m,'Customer ID')),location=customerAddress(cid);
+    let created=0;
+    for(let i=0;i<n;i++){
+      const d=new Date(`${startStr}T12:00:00`);d.setDate(d.getDate()+Math.round(i*intervalDays));
+      const day=d.toISOString().slice(0,10);
+      if(taken.has(day))continue;
+      const id=newId('SCHEDULE');
+      const record={
+        'Schedule Event ID':id,'Business ID':state.businessId,
+        'Event Type':'Plan Visit',
+        'Title':`${v(plan,'Plan Name')} — plan visit ${existing.length+created+1}`,
+        'Related Record Type':'Membership','Related Record ID':mid,
+        'Membership ID':mid,'Customer ID':cid,
+        'Assigned User ID':'',
+        'Start Time':`${day}T09:00`,'End Time':`${day}T11:00`,
+        'Location':location,'Status':'Scheduled',
+        'Notes':`Membership plan visit prepared by the membership engine when the previous cycle ran out. Confirm with the customer and dispatch from Schedule.`,
+        'Created Time':now(),'Updated Time':now(),'Record Version':1
+      };
+      await saveEntity('scheduleEvents','Schedule Event',id,record,['Schedule Event ID']);
+      taken.add(day);created++;
+    }
+    return created;
+  }
+  let engineRunning=false,engineDoneKey='';
+  async function runEngine(opts={}){
+    if(engineRunning)return{skipped:'running'};
+    if(typeof state==='undefined'||!state||!state.businessId)return{skipped:'no-business'};
+    if(typeof navigator!=='undefined'&&!navigator.onLine)return{skipped:'offline'};
+    const key=[state.businessId,memberships().length,dueMemberships().length,records('scheduleEvents').length,records('invoices').length].join('|');
+    if(!opts.force&&engineDoneKey===key)return{skipped:'already-ran'};
+    engineRunning=true;
+    try{
+      let billed=0,visits=0;
+      for(const m of dueMemberships()){if(await billMembership(m))billed++;}
+      for(const m of activeMemberships()){visits+=await refillVisits(m);}
+      if((billed||visits)&&navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);
+      engineDoneKey=key;
+      return{billed,visits,renewals:renewalsDue(RENEWAL_ALERT_DAYS).length};
+    }finally{engineRunning=false;}
+  }
+  /* Renewal alert on Today (the landing workspace), same DOM patch pattern
+   * as the recurring-plans runtime: one box, signature-guarded. */
+  function patchTodayRenewals(){
+    try{
+      if(typeof state==='undefined'||!state||state.page!=='today')return;
+      const panel=document.querySelector('.h38-life-today');if(!panel)return;
+      const due=renewalsDue(RENEWAL_ALERT_DAYS);
+      const existingBox=panel.querySelector('[data-h38-membership-renewals]');
+      if(!due.length){if(existingBox)existingBox.remove();return;}
+      const sig=due.map(m=>`${v(m,'Membership ID')}:${renewalDateOf(m)}`).join('|');
+      if(existingBox&&existingBox.dataset.sig===sig)return;
+      const box=document.createElement('div');
+      box.className='h38-membership-renewals';box.dataset.h38MembershipRenewals='1';box.dataset.sig=sig;
+      box.innerHTML=`<div><strong>Service plan renewals coming up</strong><small>${due.map(m=>{const p=planById(v(m,'Plan ID'));return `${esc(customerName(v(m,'Customer ID')))} — ${esc(v(p,'Plan Name')||'Service plan')} renews ${esc(dateOnly(renewalDateOf(m)))}`;}).join(' · ')}</small></div><button type="button">Review memberships</button>`;
+      box.querySelector('button').onclick=()=>openPage('memberships');
+      if(existingBox)existingBox.replaceWith(box);
+      else{const head=panel.querySelector('.h38-life-head');if(head)head.insertAdjacentElement('afterend',box);else panel.prepend(box);}
+    }catch(e){/* renewals are advisory; never break Today */}
+  }
+  let renewalPatchPending=false;
+  function queueRenewalPatch(){if(renewalPatchPending)return;renewalPatchPending=true;requestAnimationFrame(()=>{renewalPatchPending=false;patchTodayRenewals();});}
+  function startEngineHooks(){
+    window.addEventListener('h38:business-snapshot-updated',()=>{
+      setTimeout(()=>{runEngine().catch(()=>{});},600);
+      queueRenewalPatch();
+    });
+    window.addEventListener('h38:office-page-rendered',queueRenewalPatch);
+    if(typeof document!=='undefined'&&document.documentElement){
+      new MutationObserver(queueRenewalPatch).observe(document.documentElement,{childList:true,subtree:true});
+    }
+    setTimeout(()=>{runEngine().catch(()=>{});queueRenewalPatch();},1500);
   }
 
   /* ---------- member lifecycle ---------- */
@@ -35536,7 +35669,7 @@ window.H38VoiceCommands={
     const st=String(v(m,'Status')).toUpperCase();
     return `<div class="row"><div class="row-top"><strong>${esc(customerName(cid))}</strong>${statusPill(v(m,'Status'))}</div>`+
       `<small>${esc(v(plan,'Plan Name')||'Plan removed')} · ${money(v(plan,'Price'))} ${esc(FREQ_LABEL[v(plan,'Billing Frequency')]||'per month')} · `+
-      `visits ${used} used / ${remaining} remaining · next billing ${dateOnly(v(m,'Next Billing Date'))}`+
+      `visits ${used} used / ${remaining} remaining · next billing ${dateOnly(v(m,'Next Billing Date'))} · renews ${dateOnly(renewalDateOf(m))}`+
       `${nextVisit?` · next visit ${dateOnly(v(nextVisit,'Start Time'))}`:' · no visits scheduled'}`+
       `${failed?' · <strong>past-due balance needs follow-up</strong>':''}</small>`+
       `<details><summary>Billing history (${history.length})</summary><div class="list">`+
@@ -35558,13 +35691,14 @@ window.H38VoiceCommands={
     const allPlans=plans(),allMembers=memberships();
     const active=allMembers.filter(m=>['ACTIVE','PAUSED'].includes(String(v(m,'Status')).toUpperCase()));
     const cancelled=allMembers.filter(m=>String(v(m,'Status')).toUpperCase()==='CANCELLED');
-    const due=dueMemberships(),failed=failedMembershipInvoices(),awaiting=membershipInvoicesAwaiting();
+    const due=dueMemberships(),failed=failedMembershipInvoices(),awaiting=membershipInvoicesAwaiting(),renewals=renewalsDue(RENEWAL_ALERT_DAYS);
     const upcoming=records('scheduleEvents').filter(r=>String(v(r,'Event Type'))==='Plan Visit'&&!['COMPLETE','CANCELLED'].includes(String(v(r,'Status')).toUpperCase())&&new Date(v(r,'Start Time')).getTime()>=Date.now()-4*3600000);
     const customers=records('customers'),plansOpts=optionRows(activePlans(),['Plan ID'],r=>`${v(r,'Plan Name')} — ${money(v(r,'Price'))} ${FREQ_LABEL[v(r,'Billing Frequency')]||''}`,'Select plan');
     const preselect=window.__h38MembershipPreselect||'';
     window.__h38MembershipPreselect='';
 
-    $('mainContent').innerHTML=pageHead('Memberships','Sell service plans, enroll customers, bill on the cycle and track fulfillment visits. Billing prepares drafts — nothing is charged without owner approval.')+
+    const h38MembershipHead={page:'memberships',title:'Memberships',purpose:'Sell service plans, enroll customers, and bill them on schedule. Due billing drafts and the next round of plan visits are prepared automatically when the Office opens — drafts only, nothing is charged without owner approval.',primary:{label:'＋ New plan',handler:()=>{const f=document.getElementById('planForm');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});f.querySelector('input')?.focus({preventScroll:true});}}},secondary:[{label:'Enroll a customer',handler:()=>{const f=document.getElementById('enrollForm');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});f.querySelector('select')?.focus({preventScroll:true});}}}]};
+    $('mainContent').innerHTML=(window.H38Flow?window.H38Flow.screenHeader(h38MembershipHead):pageHead('Memberships',h38MembershipHead.purpose))+
     `<div class="grid">`+
     `<section class="card span12"><div class="stats">`+
       `<div class="stat"><strong>${money(planMRR())}</strong><span>Monthly recurring revenue</span></div>`+
@@ -35573,6 +35707,7 @@ window.H38VoiceCommands={
       `<div class="stat"><strong>${awaiting.length}</strong><span>Billing drafts awaiting approval</span></div>`+
     `</div>`+
     (failed.length?`<div class="notice warn"><strong>${failed.length} past-due membership invoice${failed.length===1?'':'s'}</strong> need follow-up. Open Money to collect.</div>`:'')+
+    (renewals.length?`<div class="notice warn"><strong>${renewals.length} service plan renewal${renewals.length===1?'':'s'} coming up in the next ${RENEWAL_ALERT_DAYS} days:</strong> ${renewals.map(m=>`${esc(customerName(v(m,'Customer ID')))} renews ${esc(dateOnly(renewalDateOf(m)))}`).join(' · ')}</div>`:'')+
     `</section>`+
 
     `<section class="card span4"><h2>Plan builder</h2><form id="planForm">`+
@@ -35591,6 +35726,7 @@ window.H38VoiceCommands={
       `<label>Plan</label><select name="planId">${plansOpts}</select>`+
       `<div class="two"><div><label>Start date</label><input name="startDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>`+
       `<div><label>Billing day (1–28)</label><input name="billingDay" type="number" min="1" max="28" value="1"></div></div>`+
+      `<label>Renewal date</label><input name="renewalDate" type="date" value="${addMonthsISO(new Date().toISOString().slice(0,10),12)}">`+
       `<label>Payment method</label><select name="paymentMethod">${PAY_METHODS.map(p=>`<option>${esc(p)}</option>`).join('')}</select>`+
       `<label>Notes</label><textarea name="notes"></textarea>`+
       `<div class="actions"><button>Enroll and schedule visits</button></div></form>`+
@@ -35600,7 +35736,7 @@ window.H38VoiceCommands={
       `<p class="muted">${due.length?`${due.length} membership${due.length===1?'':'s'} due for billing:`:'No membership billing is due right now.'}</p>`+
       `<div class="list">${due.slice(0,10).map(m=>{const p=planById(v(m,'Plan ID'));return `<div class="row"><div class="row-top"><strong>${esc(customerName(v(m,'Customer ID')))}</strong></div><small>${esc(v(p,'Plan Name'))} · ${money(v(p,'Price'))} · due ${dateOnly(v(m,'Next Billing Date'))}</small></div>`;}).join('')}</div>`+
       `<div class="actions"><button id="billingRunButton" ${due.length?'':'disabled'}>Prepare billing drafts</button></div>`+
-      `<p class="muted small">Creates invoice drafts with Owner Approval Required. Review them in Money before sending or collecting. Nothing is charged automatically.</p></section>`+
+      `<p class="muted small">Due drafts are also prepared automatically when the Office opens. Creates invoice drafts with Owner Approval Required. Review them in Money before sending or collecting. Nothing is charged automatically.</p></section>`+
 
     `<section class="card span6"><h2>Service plans (${allPlans.length})</h2><div class="list">`+
       (allPlans.length?allPlans.map(p=>`<div class="row"><div class="row-top"><strong>${esc(v(p,'Plan Name'))}</strong>${statusPill(v(p,'Status'))}</div>`+
@@ -35620,6 +35756,7 @@ window.H38VoiceCommands={
 
     if(preselect){const sel=document.querySelector('#enrollForm select[name="customerId"]');if(sel)sel.value=preselect;}
 
+    if(window.H38Flow)window.H38Flow.bindScreenHeader($('mainContent'),h38MembershipHead);
     bindForm('planForm',async(data,form)=>{await savePlan(data);form.reset();if(navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);toast('Service plan saved.');renderMemberships();});
     bindForm('enrollForm',async(data,form)=>{await enrollMembership(data);form.reset();if(navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);toast('Member enrolled. Plan visits scheduled. First billing draft will appear on the next billing run.');renderMemberships();});
 
@@ -35647,17 +35784,22 @@ window.H38VoiceCommands={
 
   window.renderMemberships=renderMemberships;
   window.H38MembershipEngine={
+    build:ENGINE_BUILD,
     render:renderMemberships,
     openEnrollment,
     enroll:enrollMembership,
     generateBilling,
+    runEngine,
+    refillVisits,
+    renewalsDue,
+    renewalDateOf,
     cancel:cancelMembership,
     pause:pauseMembership,
     resume:resumeMembership,
     plans,activePlans,memberships,activeMemberships,dueMemberships,planMRR
   };
+  startEngineHooks();
 })();
-;
 
 /* --- ./card-vault.js --- */
 // H38 Card Vault: card-on-file + one-tap invoice charge + approval-gated auto-charge.

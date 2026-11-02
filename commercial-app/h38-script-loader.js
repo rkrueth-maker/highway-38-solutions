@@ -172,11 +172,16 @@
       './owner-notifications.js?build=20261013-owner-notify-4',
       './today-command-setup.js?build=20261030-r2-today-1',
       './mileage.js?build=20261031-trippath-1',
+      // Wave 3 tail #9: the membership engine's on-load check (due billing
+      // drafts, plan-visit refill, renewal alerts) runs from Today, the
+      // landing workspace. Same ?build= URL as PAGE_MONEY so the loader
+      // dedupes it; the module is inert until a business snapshot exists.
+      './membership-engine.js?build=20261101-wave3tail9-engine-1',
     ];
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './membership-engine.js?build=20261020-ws4-remaining-1',
+      './membership-engine.js?build=20261101-wave3tail9-engine-1',
       './card-vault.js?build=20261005-cardvault-1',
       // Tally cold-mount fix (2026-10-20): money-agent's brief reads its
       // books state from the accounting workspace or, failing that, this
