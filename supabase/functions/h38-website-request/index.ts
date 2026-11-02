@@ -165,6 +165,12 @@ export async function handleWebsiteRequest(
   const email = clean(body.email, MAX.email);
   const message = clean(body.message, MAX.message);
   const idempotencyKey = clean(body.idempotencyKey, MAX.idempotencyKey);
+  // Lead source (WS5): how the customer says they found the business.
+  // Self-reported on the form; anything missing or unexpected counts as
+  // "Website" — the form itself is the website intake.
+  const LEAD_SOURCES = ["Website", "Referral", "Repeat customer", "Other"];
+  const leadSourceRaw = clean(body.leadSource, 40);
+  const leadSource = LEAD_SOURCES.includes(leadSourceRaw) ? leadSourceRaw : "Website";
 
   if (!name || !email || !phone || !message) {
     return json(400, { error: "Name, email, phone, and a short message are required." }, headers);
@@ -213,6 +219,7 @@ export async function handleWebsiteRequest(
         "Business ID": BUSINESS_ID,
         "Customer ID": "",
         "Source": "Website",
+        "Lead Source": leadSource,
         "Subject": `Website request — ${name}`,
         "Details": details,
         "Priority": "Normal",
