@@ -161,7 +161,7 @@ function bindGrid(section){
     btn.onclick=function(){
       var n=Number(btn.getAttribute('data-wg-nav'));
       weekOffset=n===0?0:weekOffset+n;
-      mount(true);
+      mount();
     };
   });
   section.querySelectorAll('.h38-wg-chip').forEach(function(chip){
@@ -184,9 +184,11 @@ function bindGrid(section){
   });
 }
 
-function mount(keepWeek){
+function mount(){
   if(typeof document==='undefined')return;
-  if(!keepWeek)weekOffset=0;
+  // weekOffset lives in the module, so it survives the re-render that
+  // follows a drag-save: the owner stays on the week they were planning.
+  // The "This week" button is the explicit way back.
   if(window.innerWidth<1024)return; // desktop surface only; phone list is unchanged
   var main=document.getElementById('mainContent');
   if(!main||!main.querySelector('.calendar-list'))return; // not the Schedule page
@@ -209,7 +211,7 @@ function wire(){
   if(base.__h38WeekGridWrapped)return;
   var wrapped=function(){
     var r=base.apply(this,arguments);
-    try{mount(false);}catch(e){console.warn('[H38 week grid] mount failed:',e);}
+    try{mount();}catch(e){console.warn('[H38 week grid] mount failed:',e);}
     return r;
   };
   wrapped.__h38WeekGridWrapped=true;
