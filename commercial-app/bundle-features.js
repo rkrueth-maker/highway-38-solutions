@@ -7254,6 +7254,14 @@ window.H38_SMART_UPLOAD_AI=Object.freeze({
       'Access Classification':p.visibility || 'Internal',
       'Storage Bucket':STORAGE_BUCKET,
       'Storage Path':path,
+      /* Wave 3 tail #8: stamp the job/customer link and the author on the
+       * document itself (previously derivable only from Source Type/ID and
+       * not stored at all for the author), so the job photo timeline can
+       * show time + who and the portal can scope photos to the job. */
+      'Customer ID':text(p.customerId || ''),
+      'Job ID':/^job$/i.test(text(p.relatedRecordType)) ? text(p.relatedRecordId) : text(p.jobId || ''),
+      'Created By':text(auth.getState().userId || ''),
+      'Capture Time':p.captureTime || operation.localTimestamp || isoNow(),
       'Status':'Available — Private',
       'Created Time':p.captureTime || operation.localTimestamp || isoNow(),
       'Updated Time':isoNow(),
@@ -19816,13 +19824,13 @@ window.H38_MANUAL_IMAGE_CONTROLS=Object.freeze({enabled:true,build:BUILD,manualS
     if (!document.querySelector('link[data-h38-job-lifecycle]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = './job-lifecycle.css?build=20261013-scout-alerts-office-1';
+      link.href = './job-lifecycle.css?build=20261101-wave3tail8-photos-1';
       link.dataset.h38JobLifecycle = '1';
       document.head.appendChild(link);
     }
     if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
       const script = document.createElement('script');
-      script.src = './job-lifecycle.js?build=20261101-wave3tail7-clock-1';
+      script.src = './job-lifecycle.js?build=20261101-wave3tail8-photos-1';
       script.dataset.h38JobLifecycle = '1';
       document.body.appendChild(script);
     }

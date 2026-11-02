@@ -35,6 +35,10 @@ button.block{width:100%}
 .stat b{display:block;font-size:19px;color:#0b2438}
 .stat span{font-size:12px;color:#687e8d}
 .item{border:1px solid #e1e9ef;border-radius:12px;padding:14px;margin-bottom:10px}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.photo-item{display:block;text-decoration:none;color:inherit}
+.photo-item img{width:100%;height:120px;object-fit:cover;border-radius:10px;display:block;background:#edf1f4}
+.photo-item span{display:block;font-size:12px;color:#5b7182;margin-top:5px}
 .item .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .item .top strong{font-size:15px}
 .pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e8eef3;color:#3d5261}
@@ -148,6 +152,7 @@ button.block{width:100%}
 
     <div class="view" id="view-history">
       <div class="card"><h2>Job history</h2><div id="historyList"></div></div>
+      <div class="card" id="photoCard" hidden><h2>Job photos</h2><p class="small muted" style="margin-bottom:10px">Photos from your jobs, in the order they were taken. Tap a photo to see it full size.</p><div class="photo-grid" id="photoList"></div></div>
     </div>
 
     <nav class="tabs" id="tabBar">
@@ -346,6 +351,14 @@ function renderPortal(){
       '<div class="muted small">Total '+money(i.total)+' · Balance '+money(bal)+(i.dueDate?' · Due '+esc(i.dueDate):'')+'</div>'+
       (bal>0?'<button class="block" style="margin-top:10px" data-pay="'+esc(i.id)+'" data-amount="'+bal+'">'+(window.__h38OnlinePayments?'Pay '+money(bal)+' online':'Pay '+money(bal))+'</button>':'')+'</div>';
   }).join(''):'<p class="muted">No invoices yet.</p>';
+
+  // Job photos (Wave 3 tail #8): the shared end of the job photo timeline —
+  // the bundle only ever carries this customer's own jobs' shared photos.
+  var photos=bundle.jobPhotos||[];
+  $('photoCard').hidden=!photos.length;
+  $('photoList').innerHTML=photos.map(function(p){
+    return '<a class="photo-item" href="'+esc(p.url)+'" target="_blank" rel="noopener"><img src="'+esc(p.url)+'" alt="'+esc(p.fileName||'Job photo')+'" loading="lazy"><span>'+esc(p.jobTitle||'Your job')+(p.capturedAt?' · '+esc(fmtDate(p.capturedAt)):'')+'</span></a>';
+  }).join('');
 
   // History
   var pastJobs=bundle.jobs.filter(function(j){return/complet/i.test(j.status);});

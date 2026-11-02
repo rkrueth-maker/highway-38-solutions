@@ -477,6 +477,14 @@
       'Access Classification':p.visibility || 'Internal',
       'Storage Bucket':STORAGE_BUCKET,
       'Storage Path':path,
+      /* Wave 3 tail #8: stamp the job/customer link and the author on the
+       * document itself (previously derivable only from Source Type/ID and
+       * not stored at all for the author), so the job photo timeline can
+       * show time + who and the portal can scope photos to the job. */
+      'Customer ID':text(p.customerId || ''),
+      'Job ID':/^job$/i.test(text(p.relatedRecordType)) ? text(p.relatedRecordId) : text(p.jobId || ''),
+      'Created By':text(auth.getState().userId || ''),
+      'Capture Time':p.captureTime || operation.localTimestamp || isoNow(),
       'Status':'Available — Private',
       'Created Time':p.captureTime || operation.localTimestamp || isoNow(),
       'Updated Time':isoNow(),
