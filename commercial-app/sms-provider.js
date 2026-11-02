@@ -1,4 +1,4 @@
-// H38 SMS provider seam — BUILD 20261004-sms-seam-2
+// H38 SMS provider seam — BUILD 20261101-wave3tail10-1
 // Single sendSms() abstraction for the Office. The provider (telnyx|twilio|plivo)
 // lives behind config; nothing here holds API keys or sends directly.
 //
@@ -27,7 +27,7 @@
 // his PERSONAL number and breaks on longer messages — never for customers.
 (function(){
 'use strict';
-var BUILD='20261004-sms-seam-2';
+var BUILD='20261101-wave3tail10-1';
 var SUPPORTED_PROVIDERS=['telnyx','twilio','plivo'];
 var MAX_SEGMENTS=5;
 
@@ -224,13 +224,27 @@ function templatesCard(){
       +'<div class="actions"><button>Save as draft</button></div></form></section>';
   }catch(e){ return ''; }
 }
+function jobTitleForId(jid){
+  if(!jid) return '';
+  try{
+    var jobs=records('jobs')||[];
+    for(var i=0;i<jobs.length;i++){
+      var id=''; try{ id=String(rowId(jobs[i],'Job ID','jobId')||''); }catch(e){ id=String(v(jobs[i],'Job ID')||''); }
+      if(id===String(jid)) return String(v(jobs[i],'Project Title')||v(jobs[i],'Job Number')||'');
+    }
+  }catch(e){}
+  return '';
+}
 function queueCard(){
   try{
     var rows=threads().filter(function(r){ return /queued/i.test(String(v(r,'Status')||''))||String(v(r,'Status')||'')==='Failed'||String(v(r,'Status')||'')==='Approved — Queued to Send'; }).slice(0,50);
     var list=rows.length?rows.map(function(r){
       var actions=(window.H38SmsApproval&&window.H38SmsApproval.queueRowActions)?window.H38SmsApproval.queueRowActions(r):'';
+      var jobTitle=jobTitleForId(v(r,'Job ID'));
       return '<div class="row"><div class="row-top"><strong>'+esc(v(r,'Customer Number'))+'</strong>'+pill(v(r,'Status'))+'</div>'
         +'<small>'+esc(v(r,'Purpose')||'')+' · '+esc(v(r,'Category')||'')+' · '+esc(String(v(r,'Pending Body')||'').slice(0,90))+'…'
+        +(jobTitle?' · Job: '+esc(jobTitle):'')
+        +(v(r,'Queued By')?' · queued by '+esc(v(r,'Queued By')):'')
         +(v(r,'Deliver After')?' · <em>after '+esc(v(r,'Deliver After'))+'</em>':'')+'</small>'+actions+'</div>';
     }).join(''):'<p class="muted">Nothing waiting. Hank\'s drafts and your send requests land here.</p>';
     return '<section class="card span7"><h2>Approval queue</h2>'+'<div class="list" id="h38SmsQueueList">'+list+'</div>'
@@ -367,6 +381,25 @@ async function sendSms(opts){
   }
   if(typeof state==='undefined'||!state.businessId) throw new Error('Open a business first.');
 
+  // Shared-inbox linking (Wave 3 tail #10): every queued text carries the
+  // customer and job it belongs to plus who queued it, so the whole crew
+  // sees the same thread, on the same job, with the author named. Callers
+  // may pass customerId/jobId; otherwise the customer is resolved from the
+  // phone number on file.
+  var linkCustomerId=String(opts.customerId||'');
+  var linkJobId=String(opts.jobId||'');
+  if(!linkCustomerId){
+    var linkCust=findCustomerByPhone(to);
+    if(linkCust){
+      try{ linkCustomerId=String(rowId(linkCust,'Customer ID','customerId')||''); }catch(e){ linkCustomerId=String(v(linkCust,'Customer ID')||''); }
+    }
+  }
+  var queuedBy='';
+  try{
+    var su=(state.snapshot&&state.snapshot.user)||{};
+    queuedBy=String(su.email||su.userId||'');
+  }catch(e){}
+
   // Active sender routing (H38SmsSetup; default 'phone-bridge' = Ricky's cell,
   // interim). The queued thread records which pipe delivers it after owner
   // approval, so the approved executor can route phone-bridge sends to the
@@ -388,6 +421,7 @@ async function sendSms(opts){
     var pbPurpose=String(opts.purpose||'Customer text');
     var pbThread={'SMS Thread ID':pbThreadId,'Business ID':state.businessId,'Provider':'phone-bridge',
       'Customer Number':to,'Consent Status':'Consented','Status':'Sent via phone (testing)',
+      'Customer ID':linkCustomerId,'Job ID':linkJobId,'Queued By':queuedBy,
       'Pending Body':body,'Segments':smsSegmentCount(body),'Purpose':pbPurpose,'Category':category,
       'Last Message Time':now(),'Record Version':1};
     await queueOperation('SEND_SMS_PHONE','SMS Message',newId('SMS-MESSAGE'),
@@ -420,6 +454,9 @@ async function sendSms(opts){
     'Business ID':state.businessId,
     'Provider':deliverProvider,
     'Customer Number':to,
+    'Customer ID':linkCustomerId,
+    'Job ID':linkJobId,
+    'Queued By':queuedBy,
     'Consent Status':'Consented',
     'Status':preApproved?'Approved — Queued to Send':'Queued — Owner Approval Required',
     'Approved By':preApproved?'auto-send:'+purpose:'',
@@ -443,6 +480,8 @@ async function sendSms(opts){
     category:category,
     deliverAfter:deliverAfter,
     consentStatus:'Consented',
+    customerId:linkCustomerId,
+    jobId:linkJobId,
     queuedBy:(state.snapshot&&state.snapshot.user&&state.snapshot.user.userId)||''
   },{collection:'smsThreads',record:thread,idKeys:['SMS Thread ID']});
   if(typeof toast==='function') toast(preApproved?'Text queued to send automatically (pre-approved).':'Text queued for owner approval. Nothing sent yet.');

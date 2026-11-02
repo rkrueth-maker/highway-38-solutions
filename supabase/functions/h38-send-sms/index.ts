@@ -139,6 +139,23 @@ async function maybeHandleInbound(req: Request, headers: Record<string, string>)
   if (!isWebhook) return null;
   const t = text.trim().toLowerCase();
   const stop = /^(stop|quit|cancel|end|unsubscribe)\b/.test(t);
+  // Shared-inbox ingestion (Wave 3 tail #10): a normal customer reply used to
+  // be acknowledged and thrown away — the crew never saw it. Now it lands in
+  // the business's shared inbox as an smsMessages row on the customer's
+  // thread (smsThreads), visible to every crew member of that business.
+  // Business resolution: the provider number is deployment-wide, so the
+  // business is resolved from the sender's number — the business holding a
+  // thread (most recent wins) or a customer record with that phone.
+  if (!stop && text.trim() && SUPABASE_URL && SERVICE_KEY) {
+    try {
+      const recorded = await recordInboundText(from, text);
+      if (recorded) {
+        return new Response(JSON.stringify({ ok: true, optOut: false, recorded: true, threadId: recorded.threadId, businessId: recorded.businessId }), { headers });
+      }
+    } catch {
+      // Ingestion must never break the webhook acknowledgement.
+    }
+  }
   if (stop && SUPABASE_URL && SERVICE_KEY) {
     try {
       const sb = createClient(SUPABASE_URL, SERVICE_KEY);
@@ -165,6 +182,151 @@ async function maybeHandleInbound(req: Request, headers: Record<string, string>)
     }
   }
   return new Response(JSON.stringify({ ok: true, optOut: stop }), { headers });
+}
+
+// Record one inbound customer text into the shared inbox. Returns the thread
+// and business it landed on, or null when the sender's number cannot be
+// attributed to any business (unknown numbers are acknowledged, not stored).
+async function recordInboundText(from: string, bodyText: string): Promise<{ threadId: string; businessId: string } | null> {
+  const sb = createClient(SUPABASE_URL, SERVICE_KEY);
+  const digits = from.replace(/\D/g, "").slice(-10);
+  if (!digits) return null;
+  const last10 = (value: unknown) => String(value || "").replace(/\D/g, "").slice(-10);
+
+  // 1) Resolve the business from existing threads for this number.
+  let businessId = "";
+  let threadRow: { id: string; payload: Record<string, unknown> } | null = null;
+  const threadScan = await sb.from("business_records")
+    .select("id,business_id,payload,updated_at")
+    .eq("collection", "smsThreads")
+    .eq("record_status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(500);
+  for (const row of threadScan.data || []) {
+    const payload = (row.payload || {}) as Record<string, unknown>;
+    if (last10(payload["Customer Number"]) === digits) {
+      if (!businessId) { businessId = String(row.business_id || ""); threadRow = { id: row.id, payload }; }
+      break;
+    }
+  }
+
+  // 2) Fall back to a customer record carrying this phone.
+  let customerId = "";
+  let customerName = "";
+  if (!businessId) {
+    const custScan = await sb.from("business_records")
+      .select("business_id,record_key,payload")
+      .eq("collection", "customers")
+      .eq("record_status", "active")
+      .limit(1000);
+    for (const row of custScan.data || []) {
+      const payload = (row.payload || {}) as Record<string, unknown>;
+      if (last10(payload["Phone"]) === digits || last10(payload["Mobile Phone"]) === digits) {
+        businessId = String(row.business_id || "");
+        customerId = String(payload["Customer ID"] || row.record_key || "");
+        customerName = String(payload["Customer Name"] || "");
+        break;
+      }
+    }
+  }
+  if (!businessId) return null;
+
+  // Attribution user for created_by/updated_by (NOT NULL FK): an active
+  // owner/admin member of the resolved business.
+  const member = await sb.from("business_memberships")
+    .select("auth_user_id,role")
+    .eq("business_id", businessId)
+    .eq("status", "active")
+    .limit(10);
+  const members = member.data || [];
+  const actor = (members.find((m: { role?: string }) => m.role === "owner") || members[0]) as { auth_user_id?: string } | undefined;
+  const actorId = actor?.auth_user_id || "";
+  if (!actorId) return null;
+
+  const nowIso = new Date().toISOString();
+  // Thread: reuse the resolved one; otherwise find this business's newest
+  // thread for the number; otherwise open a fresh shared thread.
+  if (threadRow && String((threadRow as { business_id?: string }).business_id || businessId) !== businessId) threadRow = null;
+  if (!threadRow) {
+    const own = (threadScan.data || []).filter((r: { business_id?: string }) => String(r.business_id || "") === businessId);
+    for (const row of own) {
+      const payload = (row.payload || {}) as Record<string, unknown>;
+      if (last10(payload["Customer Number"]) === digits) { threadRow = { id: row.id, payload }; break; }
+    }
+  }
+  let threadId = "";
+  let threadPayload: Record<string, unknown> = {};
+  if (threadRow) {
+    threadPayload = { ...(threadRow.payload || {}) };
+    threadId = String(threadPayload["SMS Thread ID"] || "");
+    customerId = customerId || String(threadPayload["Customer ID"] || "");
+  }
+  if (!customerId) {
+    const custScan2 = await sb.from("business_records")
+      .select("record_key,payload")
+      .eq("business_id", businessId)
+      .eq("collection", "customers")
+      .eq("record_status", "active")
+      .limit(1000);
+    for (const row of custScan2.data || []) {
+      const payload = (row.payload || {}) as Record<string, unknown>;
+      if (last10(payload["Phone"]) === digits || last10(payload["Mobile Phone"]) === digits) {
+        customerId = String(payload["Customer ID"] || row.record_key || "");
+        customerName = String(payload["Customer Name"] || "");
+        break;
+      }
+    }
+  }
+  const jobId = String(threadPayload["Job ID"] || "");
+  if (!threadRow) {
+    threadId = `SMS-THREAD-IN-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0")}`;
+    threadPayload = {
+      "SMS Thread ID": threadId,
+      "Business ID": businessId,
+      "Provider": PROVIDER,
+      "Customer Number": from,
+      "Customer ID": customerId,
+      "Job ID": jobId,
+      "Consent Status": "Consented",
+      "Status": "New customer text — Unread",
+      "Last Message Time": nowIso,
+      "Record Version": 1,
+    };
+    const ins = await sb.from("business_records").insert({
+      business_id: businessId, collection: "smsThreads", record_key: threadId,
+      record_status: "active", created_by: actorId, updated_by: actorId, payload: threadPayload,
+    });
+    if (ins.error) return null;
+  } else {
+    threadPayload["Status"] = "New customer text — Unread";
+    threadPayload["Last Message Time"] = nowIso;
+    threadPayload["Record Version"] = (Number(threadPayload["Record Version"]) || 0) + 1;
+    if (customerId && !threadPayload["Customer ID"]) threadPayload["Customer ID"] = customerId;
+    await sb.from("business_records").update({ payload: threadPayload, updated_by: actorId }).eq("id", threadRow.id);
+  }
+
+  const messageId = `SMS-MESSAGE-IN-${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0")}`;
+  const messagePayload = {
+    "SMS Message ID": messageId,
+    "Business ID": businessId,
+    "SMS Thread ID": threadId,
+    "Customer ID": customerId,
+    "Job ID": jobId,
+    "Customer Number": from,
+    "Direction": "Inbound",
+    "Body": bodyText.slice(0, 2000),
+    "Author": customerName || from,
+    "Consent Status": String(threadPayload["Consent Status"] || "Consented"),
+    "Status": "Unread — New",
+    "Created Time": nowIso,
+    "Record Version": 1,
+  };
+  const msgIns = await sb.from("business_records").insert({
+    business_id: businessId, collection: "smsMessages", record_key: messageId,
+    record_status: "active", created_by: actorId, updated_by: actorId, payload: messagePayload,
+  });
+  if (msgIns.error) return null;
+  return { threadId, businessId };
 }
 
 Deno.serve(async (req) => {

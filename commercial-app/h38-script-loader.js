@@ -127,7 +127,7 @@
     // status save with none of that behavior. Load it with Work too; same
     // ?build= URL as PAGE_MESSAGES so the loader dedupes it.
     const PAGE_WORK = [
-      './customer-comms.js?build=20261026-auto-invoice-3',
+      './customer-comms.js?build=20261101-wave3tail10-1',
     ];
     const PAGE_SCHEDULE = [
       './app-08.js?build=20261020-myhank-settings-1',
@@ -140,13 +140,13 @@
     ];
     const PAGE_MESSAGES = [
       './app-08.js?build=20261020-myhank-settings-1',
-      './app-09.js?build=20261013-messages-entry-3',
+      './app-09.js?build=20261101-wave3tail10-1',
       './business-hours.js?build=20261030-r2-business-hours-1',
-      './sms-provider.js?build=20261101-wave3g-sms-queue-fix-1',
+      './sms-provider.js?build=20261101-wave3tail10-1',
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './customer-comms.js?build=20261026-auto-invoice-3',
+      './customer-comms.js?build=20261101-wave3tail10-1',
       './communications-native-receptionist.js?build=20261030-swivl-round2-1',
     ];
     const PAGE_FLEET = [
