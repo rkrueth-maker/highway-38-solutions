@@ -1,27 +1,20 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-02T20:02:37.445Z",
+  "generatedAt": "2026-11-02T20:07:00.218Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/app-05.js",
-    "commercial-app/book.html",
-    "commercial-app/h38-script-loader.js",
-    "commercial-app/lead-sources.js",
-    "commercial-app/version.json",
-    "launch-control/evidence/customer-portal-security-verification.json",
-    "request-flow.js",
-    "start-request.html",
-    "supabase/functions/h38-public-booking/index.ts",
-    "supabase/functions/h38-website-request/index.ts"
+    "commercial-app/version.json"
   ],
-  "fileCount": 12,
+  "fileCount": 5,
   "scopes": {
-    "publicWebsite": true,
+    "publicWebsite": false,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
     "workflowOnly": false,
@@ -31,28 +24,25 @@
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
     "approvedAssets": false,
-    "publicRendering": true,
+    "publicRendering": false,
     "authenticatedRendering": true,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
     "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-business-office.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
     "desktop and mobile authenticated route verification for affected workspaces"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml",
     ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
-  "reusableEvidence": [],
+  "reusableEvidence": [
+    "Public browser and image evidence is not invalidated by this change."
+  ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
     "Use one integrated branch, one pull request, and one authoritative workflow per production target.",
