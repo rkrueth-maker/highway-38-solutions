@@ -218,7 +218,8 @@ async function previewAndQueueSms(opts){
   }
   var result=await window.H38Sms.sendSms({
     to:to,body:body,consentStatus:opts.consentStatus||'Consented',
-    purpose:opts.purpose||'Customer text',category:opts.category||'general'
+    purpose:opts.purpose||'Customer text',category:opts.category||'general',
+    customerId:opts.customerId||'',jobId:opts.jobId||''
   });
   if(typeof toast==='function')toast('Queued for owner approval ('+(result.segments||1)+' segment(s)). Nothing sent yet.');
   return {sent:false,queued:true,threadId:result.threadId};
@@ -237,7 +238,9 @@ async function sendOnMyWay(jobId){
   return previewAndQueueSms({
     to:phone,body:body,purpose:'On My Way text',
     customerLabel:text(customer['Customer Name']||'customer'),
-    category:'transactional'
+    category:'transactional',
+    customerId:text(job['Customer ID']||job.customerId||customer['Customer ID']||''),
+    jobId:text(job['Job ID']||job.jobId||'')
   });
 }
 
@@ -266,7 +269,9 @@ async function askForReview(jobId){
   var result=await previewAndQueueSms({
     to:phone,body:body,purpose:'Review request ('+platform.label+')',
     customerLabel:text(customer['Customer Name']||'customer'),
-    category:'marketing'
+    category:'marketing',
+    customerId:text(job['Customer ID']||job.customerId||customer['Customer ID']||''),
+    jobId:text(job['Job ID']||job.jobId||'')
   });
   if(result.queued){
     var stored=storedReviewProfile();
@@ -291,7 +296,9 @@ async function sendReviewNudge(jobId){
   var result=await previewAndQueueSms({
     to:phone,body:body,purpose:'Review follow-up nudge ('+next.label+')',
     customerLabel:text(customer['Customer Name']||'customer'),
-    category:'marketing'
+    category:'marketing',
+    customerId:text(job['Customer ID']||job.customerId||customer['Customer ID']||''),
+    jobId:text(job['Job ID']||job.jobId||'')
   });
   if(result.queued){
     var record=Object.assign({},job,{
@@ -330,7 +337,9 @@ async function autoSendReviewRequest(jobId){
   var result=await window.H38Sms.sendSms({
     to:phone,body:body,consentStatus:'Consented',
     purpose:'Review request ('+platform.label+')',category:'marketing',
-    preApproved:true,deliverAfter:deliverAfter
+    preApproved:true,deliverAfter:deliverAfter,
+    customerId:text(job['Customer ID']||job.customerId||customer['Customer ID']||''),
+    jobId:text(job['Job ID']||job.jobId||'')
   });
   var stored=storedReviewProfile();
   stored.lastReviewPlatform=platform.key;

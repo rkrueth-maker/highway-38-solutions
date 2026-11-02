@@ -306,11 +306,15 @@
       const messageId=recordId;
       await saveRecord(businessId,'smsThreads',threadId,{
         'SMS Thread ID':threadId,'Business ID':businessId,'Provider':'Provider Neutral',
-        'Customer Number':p.toNumber,'Consent Status':p.consentStatus,'Status':'Draft',
+        'Customer Number':p.toNumber,'Customer ID':text(p.customerId || ''),'Job ID':text(p.jobId || ''),
+        'Queued By':text(p.queuedBy || ''),
+        'Consent Status':p.consentStatus,'Status':'Draft',
         'Last Message Time':operation.localTimestamp || now(),'Record Version':1
       });
       return saveRecord(businessId,'smsMessages',messageId,{
         'SMS Message ID':messageId,'Business ID':businessId,'SMS Thread ID':threadId,
+        'Customer ID':text(p.customerId || ''),'Job ID':text(p.jobId || ''),
+        'Author':text(p.queuedBy || ''),
         'Direction':'Outbound Draft','Customer Number':p.toNumber,'Body':p.body,
         'Consent Status':p.consentStatus,'Status':'Draft — Not Sent',
         'Created Time':operation.localTimestamp || now(),'Record Version':1
