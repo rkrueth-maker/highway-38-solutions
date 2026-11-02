@@ -43,6 +43,11 @@
 .h38-search-results strong,.h38-search-results small{display:block}
 .h38-search-results small{opacity:.7;margin-top:3px}
 .h38-life-portal .stats{margin-bottom:8px}
+.h38-life-photo{display:flex;gap:10px;align-items:flex-start}
+.h38-life-photo-thumb{flex:0 0 64px;width:64px;height:64px;border-radius:8px;overflow:hidden;background:rgba(75,96,115,.1);display:grid;place-items:center}
+.h38-life-photo-thumb img{width:64px;height:64px;object-fit:cover;display:block}
+.h38-life-photo-ph{font-size:22px;opacity:.55}
+.h38-life-photo-body{flex:1;min-width:0}
 .h38-life-receipt-capture{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.55fr) auto;gap:10px;align-items:end;margin:14px 0;padding:10px 12px;border:1px solid rgba(100,115,130,.2);border-radius:var(--radius-sm);background:rgba(75,96,115,.06)}.h38-life-receipt-capture h3,.h38-life-receipt-capture p{margin:0}.h38-life-receipt-capture label{margin:0}
 .h38-life-money input[type=file]{max-width:100%}
 @media(max-width:820px){

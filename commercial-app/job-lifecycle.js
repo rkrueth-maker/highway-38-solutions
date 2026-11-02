@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261101-wave3tail7-clock-1';
+const BUILD='20261101-wave3tail8-photos-1';
 const STAGES=[
   ['INTAKE','Intake'],
   ['SITE_VISIT','Site Visit'],
@@ -471,6 +471,91 @@ async function jobClockOut(){
   mergeTimeEntry(result);
   return result;
 }
+/* Wave 3 tail #8: job photo timeline. Photos already attach through the
+ * shared attachment path (Field page, quote flow, site visits) and land as
+ * documents records + private storage files, but the job record only ever
+ * counted them — there was no feed on the job. This renders the job's
+ * photos as one timestamped timeline on the job record: photos taken on
+ * the job itself, plus the photos from its quotes and site visits (the
+ * quote-time photos the scan found stranded), oldest first, each with its
+ * capture time and who took it. Upload happens right here (phone camera
+ * friendly) through the same handleAttachmentFiles authority. A photo is
+ * client-visible only when the owner shares it (Access Classification
+ * "Customer Available") — the customer portal reads exactly that set for
+ * the customer's own jobs. Markup/annotation does not exist and is NOT
+ * built here. */
+function photoDocTime(row){return val(row,'Capture Time','captureTime','Created Time','createdAt');}
+function photoIsImage(row){
+  const mime=text(val(row,'Mime Type','mimeType')).toLowerCase(),name=text(val(row,'File Name','fileName'));
+  return mime.startsWith('image/')||/\.(?:jpe?g|png|webp|gif|heic|heif)$/i.test(name);
+}
+function photoSharedWithCustomer(row){return /CUSTOMER AVAILABLE|CUSTOMER RELEASED|SHARED/.test(upper(val(row,'Access Classification')));}
+function jobPhotoRows(context){
+  const jid=context.jid;
+  const qids=new Set((context.quotes||[]).map(quoteId).filter(Boolean));
+  const sids=new Set((context.site||[]).map(row=>rid(row,'Capture Session ID','captureSessionId','Site Visit ID','visitId','Session ID','sessionId')).filter(Boolean));
+  const seen=new Set();
+  return rec('documents').filter(row=>{
+    if(!photoIsImage(row))return false;
+    const direct=text(val(row,'Job ID','jobId')),srcId=text(val(row,'Source ID','sourceId'));
+    if(!(direct===jid||srcId===jid||qids.has(srcId)||sids.has(srcId)))return false;
+    const id=rid(row,'Document ID','documentId');
+    if(id){if(seen.has(id))return false;seen.add(id);}
+    return true;
+  }).slice().sort((a,b)=>new Date(photoDocTime(a)||0)-new Date(photoDocTime(b)||0));
+}
+function photoSourceLabel(row,context){
+  const srcId=text(val(row,'Source ID','sourceId'));
+  if(text(val(row,'Job ID','jobId'))===context.jid||srcId===context.jid)return 'Taken on this job';
+  if((context.quotes||[]).some(q=>quoteId(q)===srcId))return 'Quote photo';
+  if((context.site||[]).some(row=>rid(row,'Capture Session ID','captureSessionId','Site Visit ID','visitId','Session ID','sessionId')===srcId))return 'Site visit photo';
+  return text(val(row,'Source Type','sourceType'))||'Job photo';
+}
+function photoAuthorName(row){
+  const by=text(val(row,'Created By','createdBy','Uploaded By','uploadedBy'));
+  if(by){
+    const emp=rec('employees').find(item=>text(val(item,'User ID','userId'))===by||rid(item,'Employee ID','employeeId')===by);
+    if(emp)return text(val(emp,'Display Name','Employee Name'))||'';
+    const user=rec('users').find(item=>rid(item,'User ID','userId')===by);
+    if(user)return text(val(user,'Display Name','Name','Email'))||'';
+  }
+  return '';
+}
+function jobPhotosHtml(context){
+  const rows=jobPhotoRows(context);
+  const list=rows.length?rows.map(row=>{
+    const id=rid(row,'Document ID','documentId'),shared=photoSharedWithCustomer(row),author=photoAuthorName(row);
+    const path=text(val(row,'Storage Path','storagePath')),bucket=text(val(row,'Storage Bucket','storageBucket'))||'business-office-files';
+    return `<div class="row h38-life-photo"><span class="h38-life-photo-thumb">${path?`<img data-life-photo-img data-life-photo-path="${esc(path)}" data-life-photo-bucket="${esc(bucket)}" alt="${esc(val(row,'File Name')||'Job photo')}" loading="lazy" hidden>`:''}<span class="h38-life-photo-ph">📷</span></span><div class="h38-life-photo-body"><div class="row-top"><strong>${esc(val(row,'File Name')||'Job photo')}</strong>${typeof window.pill==='function'?window.pill(shared?'Shared with customer':'Private'):`<span>${shared?'Shared with customer':'Private'}</span>`}</div><small>${esc(dateTimeValue(photoDocTime(row)))} · ${esc(photoSourceLabel(row,context))}${author?` · by ${esc(author)}`:''}</small><div class="row-actions"><button type="button" class="secondary" data-life-photo-share="${esc(id)}">${shared?'Make private':'Share with customer'}</button></div></div></div>`;
+  }).join(''):'<p class="muted small">No photos on this job yet. Add the first one — before, during and after photos land here in time order, and the quote &amp; site-visit photos for this job show here too.</p>';
+  return `<div class="h38-life-photos"><div class="list">${list}</div><div class="actions"><button type="button" id="h38JobPhotoButton">📷 Add photos to this job</button><input id="h38JobPhotoInput" type="file" accept="image/*" capture="environment" multiple hidden></div><p class="muted small">${rows.length} photo${rows.length===1?'':'s'} in time order. Private until you share a photo — shared photos appear in the customer's portal on this job.</p></div>`;
+}
+async function toggleJobPhotoShare(row){
+  if(!row)throw new Error('Photo no longer exists.');
+  const shared=photoSharedWithCustomer(row);
+  const updated={...row,'Access Classification':shared?'Internal':'Customer Available','Updated Time':now(),'Record Version':num(val(row,'Record Version'))+1};
+  delete updated.__localPending;
+  await saveEntity('documents','Document',rid(row,'Document ID','documentId'),updated,['Document ID','documentId']);
+}
+async function uploadJobPhotos(job,files){
+  const list=Array.from(files||[]);
+  if(!list.length)return;
+  const upload=window.handleAttachmentFiles||(typeof handleAttachmentFiles==='function'?handleAttachmentFiles:null);
+  if(!upload)throw new Error('Photo upload is unavailable.');
+  await upload(list,'Job',jobId(job),'Internal',{customerId:customerId(job),jobId:jobId(job)});
+}
+async function hydrateJobPhotoThumbs(){
+  const imgs=Array.from(document.querySelectorAll('[data-life-photo-img]'));
+  if(!imgs.length)return;
+  const client=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();
+  if(!client)return;
+  for(const img of imgs){
+    try{
+      const {data,error}=await client.storage.from(img.dataset.lifePhotoBucket||'business-office-files').createSignedUrl(img.dataset.lifePhotoPath,900);
+      if(!error&&data?.signedUrl){img.src=data.signedUrl;img.hidden=false;img.parentElement?.querySelector('.h38-life-photo-ph')?.remove();}
+    }catch(_){/* a missing preview never blocks the timeline */}
+  }
+}
 function portalHtml(context){
   const jid=context.jid,cid=customerId(context.job);
   const docs=rec('documents').filter(row=>text(val(row,'Job ID'))===jid||(!val(row,'Job ID')&&text(val(row,'Source ID'))===jid));
@@ -495,7 +580,7 @@ function workPanel(){
   if(!jobs.some(row=>jobId(row)===selectedJob))selectedJob=jobId(jobs[0]);
   const job=jobs.find(row=>jobId(row)===selectedJob)||jobs[0],context=lifecycle(job),changes=rec('changeOrders').filter(row=>rowMatchesJob(row,job,false)),plans=rec('recurringPlans').filter(row=>rowMatchesJob(row,job,false));
   const blockers=[...context.blockers,...context.warnings];
-  return `<section class="card h38-life-work"><div class="h38-life-head"><div><span class="h38-life-kicker">JOB LIFECYCLE</span><h2>${esc(val(job,'Project Title')||'Job')}</h2><p>${esc(context.stageLabel)} · ${esc(context.next)}</p></div><div><label for="h38LifecycleJob">Job</label><select id="h38LifecycleJob">${jobOptions(selectedJob)}</select></div></div>${lifecycleProgress(context)}<div class="h38-life-columns"><div><h3>Next action</h3><div class="h38-life-next"><strong>${esc(context.next)}</strong>${blockers.length?`<ul>${blockers.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="good-text">No lifecycle blockers detected.</p>'}${(['INVOICE','CLOSEOUT'].includes(context.stage)&&!context.invoices.length)?`<div class="actions" style="margin-top:8px"><button type="button" data-life-create-invoice="${esc(context.jid)}">Create invoice draft</button></div>`:''}</div><h3>Required checklists</h3>${checklistHtml(context)}</div><div><h3>Job costing</h3>${costingHtml(context.cost)}<h3>Time on this job</h3>${jobClockHtml(context)}<h3>Customer portal staging</h3>${portalHtml(context)}</div></div><div class="h38-life-columns"><div><h3>Change order draft</h3><form id="h38ChangeOrderForm"><label>Title</label><input name="title" placeholder="Additional work"><label>Description</label><textarea name="description" required></textarea><label>Estimated customer amount</label><input name="amount" type="number" step="0.01"><div class="actions"><button>Prepare change order</button></div></form><div class="list">${changes.length?changes.map(row=>{const coStatus=upper(val(row,'Status','status')),signedBy=val(row,'Signed By Name'),coInvoice=val(row,'Invoice ID');return `<div class="row"><div class="row-top"><strong>${esc(val(row,'Title')||'Change')}</strong>${typeof window.pill==='function'?window.pill(val(row,'Status')):`<span>${esc(val(row,'Status'))}</span>`}</div><small>${moneyValue(val(row,'Amount'))} · ${esc(val(row,'Description'))}</small>${signedBy?`<small>✍ Signed by ${esc(signedBy)}${val(row,'Signed At')?` · ${esc(dateTimeValue(val(row,'Signed At')))}`:''}${coInvoice?` · invoice created`:''}</small>`:''}${/DRAFT/.test(coStatus)?`<div class="row-actions"><button type="button" class="secondary" data-send-change="${esc(changeOrderId(row))}">Send to customer portal for signature</button></div>`:''}${/SENT|AWAITING/.test(coStatus)&&!/APPROV/.test(coStatus)?`<small class="muted">Waiting for the customer to sign in the portal.</small>`:''}</div>`;}).join(''):'<p class="muted small">No change orders.</p>'}</div></div><div><h3>Recurring / multi-visit work</h3><form id="h38RecurringForm"><label>Plan name</label><input name="planName" placeholder="${esc(val(job,'Project Title')||'Recurring service')}"><div class="two"><div><label>Every</label><input name="every" type="number" min="1" value="1"></div><div><label>Unit</label><select name="unit"><option>Weeks</option><option>Months</option><option>Days</option><option>Years</option></select></div></div><label>Next visit</label><input name="nextDate" type="date" required><div class="actions"><button>Save recurring plan</button></div></form><div class="list">${plans.length?plans.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Plan Name'))}</strong><button type="button" class="secondary" data-generate-recurring="${esc(rid(row,'Recurring Plan ID','recurringPlanId'))}">Create next visit</button></div><small>Every ${esc(val(row,'Every'))} ${esc(val(row,'Unit'))} · next ${dateOnlyValue(val(row,'Next Visit Date'))}</small></div>`).join(''):'<p class="muted small">No recurring plan.</p>'}</div></div></div></section>`;
+  return `<section class="card h38-life-work"><div class="h38-life-head"><div><span class="h38-life-kicker">JOB LIFECYCLE</span><h2>${esc(val(job,'Project Title')||'Job')}</h2><p>${esc(context.stageLabel)} · ${esc(context.next)}</p></div><div><label for="h38LifecycleJob">Job</label><select id="h38LifecycleJob">${jobOptions(selectedJob)}</select></div></div>${lifecycleProgress(context)}<div class="h38-life-columns"><div><h3>Next action</h3><div class="h38-life-next"><strong>${esc(context.next)}</strong>${blockers.length?`<ul>${blockers.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="good-text">No lifecycle blockers detected.</p>'}${(['INVOICE','CLOSEOUT'].includes(context.stage)&&!context.invoices.length)?`<div class="actions" style="margin-top:8px"><button type="button" data-life-create-invoice="${esc(context.jid)}">Create invoice draft</button></div>`:''}</div><h3>Required checklists</h3>${checklistHtml(context)}</div><div><h3>Job costing</h3>${costingHtml(context.cost)}<h3>Time on this job</h3>${jobClockHtml(context)}<h3>Job photos</h3>${jobPhotosHtml(context)}<h3>Customer portal staging</h3>${portalHtml(context)}</div></div><div class="h38-life-columns"><div><h3>Change order draft</h3><form id="h38ChangeOrderForm"><label>Title</label><input name="title" placeholder="Additional work"><label>Description</label><textarea name="description" required></textarea><label>Estimated customer amount</label><input name="amount" type="number" step="0.01"><div class="actions"><button>Prepare change order</button></div></form><div class="list">${changes.length?changes.map(row=>{const coStatus=upper(val(row,'Status','status')),signedBy=val(row,'Signed By Name'),coInvoice=val(row,'Invoice ID');return `<div class="row"><div class="row-top"><strong>${esc(val(row,'Title')||'Change')}</strong>${typeof window.pill==='function'?window.pill(val(row,'Status')):`<span>${esc(val(row,'Status'))}</span>`}</div><small>${moneyValue(val(row,'Amount'))} · ${esc(val(row,'Description'))}</small>${signedBy?`<small>✍ Signed by ${esc(signedBy)}${val(row,'Signed At')?` · ${esc(dateTimeValue(val(row,'Signed At')))}`:''}${coInvoice?` · invoice created`:''}</small>`:''}${/DRAFT/.test(coStatus)?`<div class="row-actions"><button type="button" class="secondary" data-send-change="${esc(changeOrderId(row))}">Send to customer portal for signature</button></div>`:''}${/SENT|AWAITING/.test(coStatus)&&!/APPROV/.test(coStatus)?`<small class="muted">Waiting for the customer to sign in the portal.</small>`:''}</div>`;}).join(''):'<p class="muted small">No change orders.</p>'}</div></div><div><h3>Recurring / multi-visit work</h3><form id="h38RecurringForm"><label>Plan name</label><input name="planName" placeholder="${esc(val(job,'Project Title')||'Recurring service')}"><div class="two"><div><label>Every</label><input name="every" type="number" min="1" value="1"></div><div><label>Unit</label><select name="unit"><option>Weeks</option><option>Months</option><option>Days</option><option>Years</option></select></div></div><label>Next visit</label><input name="nextDate" type="date" required><div class="actions"><button>Save recurring plan</button></div></form><div class="list">${plans.length?plans.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Plan Name'))}</strong><button type="button" class="secondary" data-generate-recurring="${esc(rid(row,'Recurring Plan ID','recurringPlanId'))}">Create next visit</button></div><small>Every ${esc(val(row,'Every'))} ${esc(val(row,'Unit'))} · next ${dateOnlyValue(val(row,'Next Visit Date'))}</small></div>`).join(''):'<p class="muted small">No recurring plan.</p>'}</div></div></div></section>`;
 }
 function bindWorkPanel(){
   const jobSelect=document.getElementById('h38LifecycleJob');
@@ -536,6 +621,13 @@ function bindWorkPanel(){
   document.querySelectorAll('[data-generate-recurring]').forEach(button=>button.onclick=async()=>{
     try{const plan=rec('recurringPlans').find(row=>rid(row,'Recurring Plan ID','recurringPlanId')===button.dataset.generateRecurring);await generateRecurringVisit(plan);window.toast?.('Next recurring visit created on the schedule.');window.renderWork();}catch(error){window.toast?.(error.message,true);}
   });
+  document.querySelectorAll('[data-life-photo-share]').forEach(button=>button.onclick=async()=>{
+    button.disabled=true;
+    try{const row=rec('documents').find(x=>rid(x,'Document ID','documentId')===button.dataset.lifePhotoShare);await toggleJobPhotoShare(row);window.toast?.(photoSharedWithCustomer(row)?'Photo is private again. It no longer shows in the customer portal.':'Photo shared. The customer sees it in their portal on this job.');window.renderWork();}catch(error){window.toast?.(error.message,true);button.disabled=false;}
+  });
+  const photoButton=document.getElementById('h38JobPhotoButton'),photoInput=document.getElementById('h38JobPhotoInput');
+  if(photoButton&&photoInput){photoButton.onclick=()=>photoInput.click();photoInput.onchange=async()=>{try{const job=rec('jobs').find(row=>jobId(row)===selectedJob);await uploadJobPhotos(job,photoInput.files);photoInput.value='';window.toast?.('Photo(s) saved to this job. They appear in the timeline once synced.');window.renderWork();}catch(error){window.toast?.(error.message||String(error),true);}};}
+  void hydrateJobPhotoThumbs();
   const portal=document.getElementById('h38PreparePortalUpdate');
   if(portal)portal.onclick=async()=>{
     try{const job=rec('jobs').find(row=>jobId(row)===selectedJob);await preparePortalUpdate(lifecycle(job));window.toast?.('Portal update prepared as a draft. Nothing sent.');window.renderWork();}catch(error){window.toast?.(error.message,true);}
@@ -784,7 +876,7 @@ function start(){
     attention,search:searchSnapshot,openSearch,prepareFollowUp:createFollowUp,
     selectedJobId:()=>selectedJob,selectJob:id=>{selectedJob=text(id);syncLifecycleSelect();if(String(app()?.page||'')==='work'&&typeof window.renderWork==='function'){window.renderWork();syncLifecycleSelect();}return selectedJob;},completionBlockers,ensureCompletionChecklist,focusJob,
     authority:{readAutomatic:true,prepareInternalDrafts:true,externalActionsRequireExplicitAuthorization:true},
-    features:{nextAction:true,requiredChecklists:true,completionGates:true,changeOrders:true,jobCosting:true,followUpQueue:true,receiptCapture:true,mileage:true,portalStaging:true,recurringWork:true,globalSearch:true,assistantContext:true,startupStable:true,noLateRenderPage:true},
+    features:{nextAction:true,requiredChecklists:true,completionGates:true,changeOrders:true,jobCosting:true,jobPhotoTimeline:true,followUpQueue:true,receiptCapture:true,mileage:true,portalStaging:true,recurringWork:true,globalSearch:true,assistantContext:true,startupStable:true,noLateRenderPage:true},
     automaticCustomerSending:false,automaticApproval:false,automaticPurchasing:false,automaticPayment:false
   };
   if(app()?.snapshot)decorateCurrentPage();

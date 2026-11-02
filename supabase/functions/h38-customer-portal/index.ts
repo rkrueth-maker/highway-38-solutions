@@ -693,6 +693,59 @@ async function buildSessionBundle(
       };
     });
 
+  // Job photos the owner shared with the customer (Wave 3 tail #8): only
+  // photos on THIS customer's jobs whose Access Classification marks them
+  // customer-visible, returned as short-lived signed URLs in capture-time
+  // order — the client-visible end of the job photo timeline. Internal
+  // photos and other customers' photos never leave the server.
+  const { data: docRows } = await service
+    .from("business_records")
+    .select("record_key,payload,updated_at")
+    .eq("business_id", businessId)
+    .eq("collection", "documents")
+    .eq("record_status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(200);
+  const jobPhotos: JsonObject[] = [];
+  for (const r of docRows || []) {
+    const p = (r.payload || {}) as JsonObject;
+    const classification = clean(pick(p, "Access Classification", "accessClassification"), 60);
+    if (!/CUSTOMER AVAILABLE|CUSTOMER RELEASED|SHARED/i.test(classification)) continue;
+    const mime = clean(pick(p, "Mime Type", "mimeType"), 60).toLowerCase();
+    const fileName = clean(pick(p, "File Name", "fileName"), 160);
+    if (!mime.startsWith("image/") && !/\.(?:jpe?g|png|webp|gif|heic|heif)$/i.test(fileName)) continue;
+    const jobIdField = clean(pick(p, "Job ID", "jobId"), 120);
+    const sourceId = clean(pick(p, "Source ID", "sourceId"), 120);
+    const photoJobId = jobIdField && customerJobIds.has(jobIdField)
+      ? jobIdField
+      : sourceId && customerJobIds.has(sourceId)
+      ? sourceId
+      : "";
+    if (!photoJobId) continue;
+    const path = clean(pick(p, "Storage Path", "storagePath"), 400);
+    if (!path) continue;
+    const bucket = clean(pick(p, "Storage Bucket", "storageBucket"), 80) || "business-office-files";
+    let url = "";
+    try {
+      const signed = await service.storage.from(bucket).createSignedUrl(path, 3600);
+      url = signed.data?.signedUrl || "";
+    } catch {
+      url = "";
+    }
+    if (!url) continue;
+    jobPhotos.push({
+      id: r.record_key,
+      jobId: photoJobId,
+      jobTitle: jobs.find((j) => j.id === photoJobId)?.title || "",
+      fileName,
+      capturedAt: clean(pick(p, "Capture Time", "captureTime", "Created Time", "createdAt"), 40),
+      url,
+    });
+  }
+  jobPhotos.sort((a, b) =>
+    String(a.capturedAt || "").localeCompare(String(b.capturedAt || ""))
+  );
+
   const paymentsState = await onlinePaymentsState(service, businessId);
   const services = await businessServices(service, businessId);
 
@@ -711,6 +764,7 @@ async function buildSessionBundle(
     appointments,
     jobs,
     changeOrders,
+    jobPhotos,
   };
 }
 
