@@ -1,13 +1,13 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-02T20:07:00.218Z",
+  "generatedAt": "2026-11-02T20:18:13.252Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/change-plan/verification-plan.json",
     "artifacts/change-plan/verification-plan.md",
-    "commercial-app/app-05.js",
+    "commercial-app/bundle-pages.js",
     "commercial-app/version.json"
   ],
   "fileCount": 5,
