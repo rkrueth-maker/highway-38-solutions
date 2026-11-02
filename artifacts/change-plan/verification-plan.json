@@ -1,17 +1,15 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-02T04:40:01.854Z",
+  "generatedAt": "2026-11-02T04:43:48.355Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/ai-team-owner-polish.js",
-    "commercial-app/bundle-features.js",
+    "commercial-app/quickbooks-server-bridge.js",
     "commercial-app/service-worker.js",
-    "commercial-app/supabase-final-startup.js",
     "commercial-app/tax-center.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 6,
+  "fileCount": 4,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,
