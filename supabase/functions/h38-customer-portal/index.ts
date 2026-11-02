@@ -387,11 +387,13 @@ function wallToInstant(
 }
 
 function slotLabel(tz: string, instant: Date): string {
+  // ICU builds emit a narrow no-break space (U+202F) before AM/PM;
+  // normalize to a plain space so labels read and compare cleanly.
   return new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     hour: "numeric",
     minute: "2-digit",
-  }).format(instant);
+  }).format(instant).replace(/ /g, " ");
 }
 
 // A stored event time -> an instant. ISO-with-zone parses directly;
