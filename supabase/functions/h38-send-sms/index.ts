@@ -261,7 +261,7 @@ async function recordInboundText(from: string, bodyText: string): Promise<{ thre
     threadId = String(threadPayload["SMS Thread ID"] || "");
     customerId = customerId || String(threadPayload["Customer ID"] || "");
   }
-  if (!customerId) {
+  if (!customerId || !customerName) {
     const custScan2 = await sb.from("business_records")
       .select("record_key,payload")
       .eq("business_id", businessId)
@@ -271,8 +271,8 @@ async function recordInboundText(from: string, bodyText: string): Promise<{ thre
     for (const row of custScan2.data || []) {
       const payload = (row.payload || {}) as Record<string, unknown>;
       if (last10(payload["Phone"]) === digits || last10(payload["Mobile Phone"]) === digits) {
-        customerId = String(payload["Customer ID"] || row.record_key || "");
-        customerName = String(payload["Customer Name"] || "");
+        if (!customerId) customerId = String(payload["Customer ID"] || row.record_key || "");
+        if (!customerName) customerName = String(payload["Customer Name"] || "");
         break;
       }
     }
