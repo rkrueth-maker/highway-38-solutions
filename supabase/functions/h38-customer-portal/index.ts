@@ -43,6 +43,7 @@ const ALLOWED_ORIGINS = new Set([
 
 const MODULE_KEY = "customer_portal";
 const BOOKING_MODULE_KEY = "online_booking";
+const BUSINESS_HOURS_MODULE_KEY = "business_hours";
 const ONLINE_PAYMENTS_MODULE_KEY = "online_payments";
 const SIGNED_DEPOSIT_MODULE_KEY = "signed_deposit_acceptance";
 const DEPOSIT_INVOICE_SOURCE = "Deposit on signed quote acceptance";
@@ -266,6 +267,217 @@ async function onlinePaymentsState(
   const enabled = data?.enabled === true;
   const accountId = clean(config.stripeAccountId, 80);
   return { enabled, ready: enabled && !!accountId && config.chargesEnabled === true, accountId };
+}
+
+// ---- Confirmed-slot booking ------------------------------------------------
+// A business can switch portal booking from request-style (the customer
+// asks, the owner calls back — the long-standing default and still the
+// fallback) to confirmed slots: the customer picks a real open slot
+// inside the business's own hours and is booked on the spot. Bookable
+// windows come from the SAME business_hours settings the Office edits
+// (business_module_settings row "business_hours"; defaults Mon–Fri
+// 08:00–17:00 when unset). Mode + slot length live on the
+// "online_booking" module row's config: { mode: "request"|"confirmed",
+// slotMinutes: 30|60|90|120 }. A confirmed booking writes BOTH a
+// booking_requests record (Status "Confirmed — booked online") and a
+// scheduleEvents record, so it shows on the Office schedule like any
+// other job visit. Slots already covered by a schedule event or another
+// confirmed booking are not offered, and book-slot re-checks at write
+// time so two customers cannot take the same slot.
+
+type BizDay = { closed: boolean; open: string; close: string };
+type BizHours = { timeZone: string; days: Record<string, BizDay> };
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+function hhmmToMin(s: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || "").trim());
+  if (!m) return null;
+  const mins = Number(m[1]) * 60 + Number(m[2]);
+  return mins >= 0 && mins <= 1440 ? mins : null;
+}
+
+function defaultBizHours(tz: string): BizHours {
+  const days: Record<string, BizDay> = {};
+  for (const k of DAY_KEYS) {
+    const weekend = k === "sat" || k === "sun";
+    days[k] = { closed: weekend, open: "08:00", close: "17:00" };
+  }
+  return { timeZone: tz || "America/Chicago", days };
+}
+
+async function loadBizHours(
+  sb: ReturnType<typeof serviceClient>,
+  businessId: string,
+): Promise<BizHours> {
+  const { data: biz } = await sb
+    .from("businesses")
+    .select("timezone")
+    .eq("id", businessId)
+    .maybeSingle();
+  const fallbackTz = clean((biz as JsonObject | null)?.timezone, 60) || "America/Chicago";
+  const { data } = await sb
+    .from("business_module_settings")
+    .select("config")
+    .eq("business_id", businessId)
+    .eq("module_key", BUSINESS_HOURS_MODULE_KEY)
+    .maybeSingle();
+  const cfg = (data?.config || {}) as JsonObject;
+  const out = defaultBizHours(clean(cfg.timeZone, 60) || fallbackTz);
+  const srcDays = (cfg.days || {}) as Record<string, JsonObject>;
+  for (const k of DAY_KEYS) {
+    const d = srcDays[k];
+    if (!d || typeof d !== "object") continue;
+    const open = clean(d.open, 10);
+    const close = clean(d.close, 10);
+    out.days[k] = {
+      closed: d.closed === true,
+      open: hhmmToMin(open) !== null ? open : "08:00",
+      close: hhmmToMin(close) !== null ? close : "17:00",
+    };
+  }
+  return out;
+}
+
+async function bookingSettings(
+  sb: ReturnType<typeof serviceClient>,
+  businessId: string,
+): Promise<{ enabled: boolean; mode: string; slotMinutes: number }> {
+  const { data } = await sb
+    .from("business_module_settings")
+    .select("enabled, config")
+    .eq("business_id", businessId)
+    .eq("module_key", BOOKING_MODULE_KEY)
+    .maybeSingle();
+  const cfg = (data?.config || {}) as JsonObject;
+  const slot = Number(cfg.slotMinutes);
+  return {
+    enabled: data?.enabled === true,
+    mode: cfg.mode === "confirmed" ? "confirmed" : "request",
+    slotMinutes: [30, 60, 90, 120].includes(slot) ? slot : 60,
+  };
+}
+
+// Wall-clock time in a timezone -> the UTC instant. Two-pass: guess UTC,
+// read back the wall parts in the zone, shift by the difference.
+function wallToInstant(
+  tz: string,
+  y: number,
+  mo: number,
+  d: number,
+  hh: number,
+  mm: number,
+): Date {
+  const guess = Date.UTC(y, mo - 1, d, hh, mm);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(guess));
+  const p: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") p[part.type] = Number(part.value);
+  }
+  const readBack = Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second || 0);
+  return new Date(guess + (guess - readBack));
+}
+
+function slotLabel(tz: string, instant: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(instant);
+}
+
+// A stored event time -> an instant. ISO-with-zone parses directly;
+// naive "YYYY-MM-DDTHH:MM" values are wall times in the business zone
+// (the Office stores them that way from its datetime-local form).
+function eventInstant(tz: string, raw: string): number | null {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  if (/([zZ]|[+-]\d{2}:?\d{2})$/.test(s)) {
+    const t = Date.parse(s);
+    return Number.isFinite(t) ? t : null;
+  }
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(s);
+  if (!m) {
+    const t = Date.parse(s);
+    return Number.isFinite(t) ? t : null;
+  }
+  return wallToInstant(tz, Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5])).getTime();
+}
+
+type Slot = { start: string; end: string; label: string; available: boolean };
+
+async function computeSlots(
+  sb: ReturnType<typeof serviceClient>,
+  businessId: string,
+  dateStr: string,
+): Promise<{ timeZone: string; slots: Slot[] }> {
+  const hours = await loadBizHours(sb, businessId);
+  const settings = await bookingSettings(sb, businessId);
+  const tz = hours.timeZone;
+  const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!dm) return { timeZone: tz, slots: [] };
+  const y = Number(dm[1]);
+  const mo = Number(dm[2]);
+  const d = Number(dm[3]);
+  const dow = new Date(Date.UTC(y, mo - 1, d)).getUTCDay();
+  const day = hours.days[DAY_KEYS[dow]];
+  if (!day || day.closed) return { timeZone: tz, slots: [] };
+  const openMin = hhmmToMin(day.open) ?? 480;
+  const closeMin = hhmmToMin(day.close) ?? 1020;
+
+  const busy: Array<[number, number]> = [];
+  const { data: evRows } = await sb
+    .from("business_records")
+    .select("payload")
+    .eq("business_id", businessId)
+    .eq("collection", "scheduleEvents")
+    .eq("record_status", "active")
+    .limit(2000);
+  for (const r of evRows || []) {
+    const p = (r.payload || {}) as JsonObject;
+    const s = eventInstant(tz, String(p["Start Time"] ?? p.startTime ?? ""));
+    if (s === null) continue;
+    const eRaw = String(p["End Time"] ?? p.endTime ?? "");
+    const e = eRaw ? eventInstant(tz, eRaw) : null;
+    busy.push([s, e !== null && e > s ? e : s + settings.slotMinutes * 60000]);
+  }
+  const { data: bkRows } = await sb
+    .from("business_records")
+    .select("payload")
+    .eq("business_id", businessId)
+    .eq("collection", "booking_requests")
+    .eq("record_status", "active")
+    .limit(500);
+  for (const r of bkRows || []) {
+    const p = (r.payload || {}) as JsonObject;
+    if (!/^Confirmed/i.test(String(p["Status"] || ""))) continue;
+    const s = eventInstant(tz, String(p["Slot Start"] || ""));
+    const e = eventInstant(tz, String(p["Slot End"] || ""));
+    if (s !== null) busy.push([s, e !== null && e > s ? e : s + settings.slotMinutes * 60000]);
+  }
+
+  const now = Date.now();
+  const slots: Slot[] = [];
+  for (let m = openMin; m + settings.slotMinutes <= closeMin; m += settings.slotMinutes) {
+    const start = wallToInstant(tz, y, mo, d, Math.floor(m / 60), m % 60);
+    const end = new Date(start.getTime() + settings.slotMinutes * 60000);
+    const taken = busy.some(([bs, be]) => start.getTime() < be && end.getTime() > bs);
+    slots.push({
+      start: start.toISOString(),
+      end: end.toISOString(),
+      label: slotLabel(tz, start),
+      available: start.getTime() > now && !taken,
+    });
+  }
+  return { timeZone: tz, slots };
 }
 
 async function stripeCreateCheckout(
@@ -747,11 +959,13 @@ async function buildSessionBundle(
   );
 
   const paymentsState = await onlinePaymentsState(service, businessId);
+  const bookingCfg = await bookingSettings(service, businessId);
   const services = await businessServices(service, businessId);
 
   return {
     business: { id: businessId, name: business?.display_name || "Highway 38" },
     payments: { onlineEnabled: paymentsState.ready },
+    booking: { enabled: bookingCfg.enabled, mode: bookingCfg.mode, slotMinutes: bookingCfg.slotMinutes },
     signedDeposit: { enabled: signedDeposit.enabled, depositPercent: signedDeposit.depositPercent },
     services,
     customer: {
@@ -1661,6 +1875,123 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
       if (insErr) throw insErr;
       await writeProof(sb, session.businessId, "PORTAL_SERVICE_REQUESTED", "Booking", id, "OK", { service: serviceName });
       return reply(req, 200, { ok: true, bookingId: id, message: "Request received. We will call you to confirm." });
+    }
+
+    // ---- booking-slots: the open confirmed slots for one date ----
+    if (postAction === "booking-slots") {
+      const bookingOn = await moduleEnabled(sb, session.businessId, BOOKING_MODULE_KEY);
+      if (!bookingOn) {
+        return reply(req, 403, { error: "Online booking is not enabled for this business." });
+      }
+      const settings = await bookingSettings(sb, session.businessId);
+      if (settings.mode !== "confirmed") {
+        return reply(req, 409, { error: "This business confirms bookings by phone. Send a service request instead." });
+      }
+      const date = clean(body.date, MAX.date);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return reply(req, 400, { error: "Pick a date." });
+      const result = await computeSlots(sb, session.businessId, date);
+      return reply(req, 200, { ok: true, date, timeZone: result.timeZone, slots: result.slots });
+    }
+
+    // ---- book-slot: take a confirmed slot ----
+    if (postAction === "book-slot") {
+      const bookingOn = await moduleEnabled(sb, session.businessId, BOOKING_MODULE_KEY);
+      if (!bookingOn) {
+        return reply(req, 403, { error: "Online booking is not enabled for this business." });
+      }
+      const settings = await bookingSettings(sb, session.businessId);
+      if (settings.mode !== "confirmed") {
+        return reply(req, 409, { error: "This business confirms bookings by phone. Send a service request instead." });
+      }
+      const serviceName = clean(body.service, MAX.service);
+      const slotStartRaw = clean(body.slotStart || body.slot_start, 60);
+      const notes = clean(body.notes, MAX.notes);
+      if (!serviceName) return reply(req, 400, { error: "Tell us what you need." });
+      const startMs = Date.parse(slotStartRaw);
+      if (!Number.isFinite(startMs)) return reply(req, 400, { error: "Pick a time slot." });
+      // Recompute the day's slots in the business zone and require the
+      // requested start to be one of them, still open (double-booking
+      // guard — the check runs at write time, not just at display time).
+      const hours = await loadBizHours(sb, session.businessId);
+      const dateStr = new Intl.DateTimeFormat("en-CA", {
+        timeZone: hours.timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(startMs));
+      const { slots } = await computeSlots(sb, session.businessId, dateStr);
+      const slot = slots.find((s) => Date.parse(s.start) === startMs);
+      if (!slot) return reply(req, 409, { error: "That time is outside booking hours. Pick another slot." });
+      if (!slot.available) return reply(req, 409, { error: "That time was just taken. Pick another slot." });
+
+      const customer = await customerById(sb, session.businessId, session.customerKey);
+      const customerName = clean(pick(customer?.payload || {}, "Customer Name", "name"), 120);
+      const now = new Date().toISOString();
+      const actorId = await attributionUserId(sb, session.businessId);
+      const id = `BOOK-${now.slice(0, 10).replace(/-/g, "")}-${crypto.getRandomValues(new Uint8Array(3)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "").toUpperCase()}`;
+      const { error: insErr } = await sb.from("business_records").insert({
+        business_id: session.businessId,
+        collection: "booking_requests",
+        record_key: id,
+        record_status: "active",
+        created_by: actorId,
+        updated_by: actorId,
+        payload: {
+          "Booking ID": id,
+          "Customer ID": session.customerKey,
+          "Customer Name": customerName,
+          "Phone": clean(pick(customer?.payload || {}, "Phone", "phone"), 40),
+          "Email": clean(pick(customer?.payload || {}, "Email", "email"), 120),
+          "Service": serviceName,
+          "Preferred Date": dateStr,
+          "Preferred Time": slot.label,
+          "Slot Start": slot.start,
+          "Slot End": slot.end,
+          "Notes": notes,
+          "Status": "Confirmed — booked online",
+          "Source": "Customer portal",
+          "Recorded By": "Customer — self-service portal",
+          "Business ID": session.businessId,
+          "Created Time": now,
+          "Record Version": 1,
+        },
+      });
+      if (insErr) throw insErr;
+      // The booking lands on the Office schedule like any other visit.
+      const eventId = `SCHEDULE-${crypto.randomUUID().toUpperCase()}`;
+      const { error: evErr } = await sb.from("business_records").insert({
+        business_id: session.businessId,
+        collection: "scheduleEvents",
+        record_key: eventId,
+        record_status: "active",
+        created_by: actorId,
+        updated_by: actorId,
+        payload: {
+          "Schedule Event ID": eventId,
+          "Business ID": session.businessId,
+          "Event Type": "Job",
+          "Title": `${serviceName} — ${customerName || "Customer"}`,
+          "Related Record Type": "Booking",
+          "Related Record ID": id,
+          "Customer ID": session.customerKey,
+          "Assigned User ID": "",
+          "Start Time": slot.start,
+          "End Time": slot.end,
+          "Location": "",
+          "Status": "Scheduled",
+          "Notes": notes,
+          "Created Time": now,
+          "Updated Time": now,
+          "Record Version": 1,
+        },
+      });
+      if (evErr) throw evErr;
+      await writeProof(sb, session.businessId, "PORTAL_SLOT_BOOKED", "Booking", id, "OK", { service: serviceName, slotStart: slot.start });
+      return reply(req, 200, {
+        ok: true,
+        bookingId: id,
+        message: `You're booked for ${slot.label} on ${dateStr}. A confirmation is on your portal home page.`,
+      });
     }
 
     return reply(req, 400, { error: "Unknown action." });
