@@ -225,7 +225,12 @@ function mapV2AccountFlags(acct: JsonObject): {
     return status === "currently_due" || status === "past_due";
   });
   const identity = (acct.identity || {}) as JsonObject;
-  const detailsSubmitted = Object.keys(identity).length > 0 && !hasBlockingRequirement;
+  const businessDetails = (identity.business_details || {}) as JsonObject;
+  // Country is set at creation time, so it alone does not prove details
+  // were submitted; a registered name or entity type only appears once
+  // the owner has actually gone through onboarding.
+  const detailsSubmitted = !hasBlockingRequirement &&
+    (!!clean(businessDetails.registered_name, 200) || !!clean(identity.entity_type, 60));
   return {
     chargesEnabled,
     payoutsEnabled: chargesEnabled && !hasBlockingRequirement,
@@ -249,6 +254,10 @@ async function createConnectedAccountV2(
   const displayName = clean((biz as JsonObject | null)?.display_name, 120);
   const created = await stripeV2Request("accounts", {
     ...(displayName ? { display_name: displayName } : {}),
+    // Stripe v2 requires the account country up front (defaults.currency
+    // cannot be set without it). Office businesses are US businesses; the
+    // rest of the identity is collected by Stripe during onboarding.
+    identity: { country: "us" },
     dashboard: "full",
     defaults: {
       currency: "usd",
