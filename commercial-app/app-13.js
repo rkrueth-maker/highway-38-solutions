@@ -87,6 +87,11 @@ delete updated.__localPending;
 await queueOperation('SAVE_ENTITY','Invoice',data.invoiceId,{entity:'invoices',record:updated},{collection:'invoices',record:updated,idKeys:['Invoice ID']},false);
 try{if(window.H38InventoryModule&&window.H38InventoryModule.decrementForInvoice)await window.H38InventoryModule.decrementForInvoice(updated);}catch(invErr){console.warn('Inventory decrement after payment:',invErr);if(typeof toast==='function')toast('Payment recorded, but stock could not be updated. Adjust it on the Inventory page.',true);}
 if(navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);
+/* Wave 3 (g) ADD #4: the review ask also fires on PAYMENT, not only on job
+ * completion. When this payment pays a completed job's invoice in full, run
+ * the same review-ask machinery used at completion (toggle-respecting,
+ * already-asked safe, sends only through the owner-approval SMS queue). */
+if(paidOff&&window.H38CustomerComms&&typeof window.H38CustomerComms.maybeAutoAskReview==='function'){const reviewJobId=v(invoice,'Job ID');const reviewJob=reviewJobId?records('jobs').find(row=>String(v(row,'Job ID'))===String(reviewJobId)):null;if(reviewJob&&/COMPLETE/i.test(String(v(reviewJob,'Status')||''))){try{await window.H38CustomerComms.maybeAutoAskReview(reviewJob);}catch(reviewErr){console.warn('Review ask after payment:',reviewErr);}}}
 form.reset();
 renderMoney();
 const number=v(invoice,'Invoice Number')||data.invoiceId,h38Flow=window.H38Flow;
