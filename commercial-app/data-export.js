@@ -4,7 +4,7 @@
   // record for the current business as one JSON file — "your data, out, in one
   // click, any time." Read-only: pages business_records straight from Supabase
   // with the signed-in user's own session (RLS applies), groups by collection.
-  const BUILD = '20261101-wave3e-1';
+  const BUILD = '20261101-wave3e-2';
   const text = v => String(v == null ? '' : v).trim();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -57,7 +57,8 @@
         if (!collections[name]) collections[name] = [];
         collections[name].push({ recordKey: r.record_key, status: r.record_status, createdAt: r.created_at, updatedAt: r.updated_at, data: r.payload });
       });
-      const name = businessName();
+      const profileRow = rows.find(r => text(r.collection) === 'businessProfile');
+      const name = text(profileRow && profileRow.payload && (profileRow.payload['Business Name'] || profileRow.payload.Name)) || businessName();
       const payload = {
         exportFormat: 'h38-business-data-export-v1',
         exportedAt: new Date().toISOString(),
