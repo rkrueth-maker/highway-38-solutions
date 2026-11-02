@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20260919-search-scope-polish-1';
+const BUILD='20261101-wave3f-checklist-gate-1';
 const STAGES=[
   ['INTAKE','Intake'],
   ['SITE_VISIT','Site Visit'],
@@ -579,12 +579,26 @@ function completionGate(){
     const record=optimistic?.record||payload?.record||payload?.__h38Record?.record||null;
     const type=upper(recordType),status=upper(val(record||{},'Status','status')||payload?.status);
     if((type==='JOB'||/JOB/.test(type))&&/COMPLETE|CLOSED/.test(status)){
-      const existing=rec('jobs').find(row=>jobId(row)===text(recordId))||record;
+      const existingRow=rec('jobs').find(row=>jobId(row)===text(recordId));
+      const existing=existingRow||record;
       if(existing){
-        const quality=requiredChecklist(existing,'Complete').filter(row=>!checklistComplete(row)),close=requiredChecklist(existing,'Closed').filter(row=>!checklistComplete(row)),changes=openChangeOrders(existing);
+        const qualityAll=requiredChecklist(existing,'Complete'),quality=qualityAll.filter(row=>!checklistComplete(row));
+        const closeAll=requiredChecklist(existing,'Closed'),close=closeAll.filter(row=>!checklistComplete(row)),changes=openChangeOrders(existing);
+        /* Wave 3 (f): a job with NO required checklist attached was previously
+         * unguarded — it could be completed outright. For an existing job,
+         * a missing "Completion quality" / "Closeout" checklist now blocks
+         * exactly like an incomplete one; markJobComplete's handler creates
+         * the missing checklist and guides the owner to finish it.
+         * Exempt: recurring service visits (checklist-free by design) and
+         * brand-new job records (creation is data entry, not a transition). */
+        const recurringVisit=existing['Recurring Service Visit']===true||record?.['Recurring Service Visit']===true||upper(existing['Lifecycle Mode'])==='RECURRING SERVICE'||upper(record?.['Lifecycle Mode'])==='RECURRING SERVICE';
+        const missingQuality=!!existingRow&&!recurringVisit&&qualityAll.length===0;
+        const missingClose=!!existingRow&&!recurringVisit&&closeAll.length===0;
         const blockers=[];
         if(/COMPLETE/.test(status)&&quality.length)blockers.push(`${quality.length} required completion checklist(s)`);
+        if(/COMPLETE/.test(status)&&missingQuality)blockers.push(`1 required completion checklist(s)`);
         if(/CLOSED/.test(status)&&close.length)blockers.push(`${close.length} required closeout checklist(s)`);
+        if(/CLOSED/.test(status)&&missingClose)blockers.push(`1 required closeout checklist(s)`);
         if(changes.length)blockers.push(`${changes.length} unresolved change order(s)`);
         if(blockers.length){const gateError=new Error(`Job cannot be marked ${status.toLowerCase()} yet: ${blockers.join(', ')}.`);gateError.h38GateBlock=true;gateError.h38GateBlockers=blockers.slice();throw gateError;}
       }
