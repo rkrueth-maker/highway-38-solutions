@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261101-wave3h-costing-1';
+const BUILD='20261101-wave3tail6-co-1';
 const STAGES=[
   ['INTAKE','Intake'],
   ['SITE_VISIT','Site Visit'],
@@ -170,7 +170,12 @@ function jobCosting(job,quotes){
   const quotedRevenue=num(val(best,'Total','total','Amount','amount'));
   const invoices=invoiceRowsForJob(job);
   const invoiceTotal=invoices.reduce((sum,row)=>sum+num(val(row,'Total','total')),0);
-  const revenue=quotedRevenue||invoiceTotal;
+  /* Wave 3 tail #6: signed change orders add their priced delta to the
+   * job's revenue. When a quote set the revenue baseline, add the signed
+   * change-order total on top; with no quote, the change order's own
+   * invoice is already inside invoiceTotal, so it is not added twice. */
+  const signedChangeTotal=rec('changeOrders').filter(row=>rowMatchesJob(row,job,false)&&/APPROV|ACCEPT/.test(upper(val(row,'Status','status')))&&text(val(row,'Invoice ID','invoiceId'))).reduce((sum,row)=>sum+num(val(row,'Amount','amount')),0);
+  const revenue=quotedRevenue?quotedRevenue+signedChangeTotal:invoiceTotal;
   const expenses=rec('expenses').filter(row=>rowMatchesJob(row,job,false));
   const expenseTotal=expenses.reduce((sum,row)=>sum+num(val(row,'Amount','amount'))+num(val(row,'Tax','tax')),0);
   const times=rec('timeEntries').filter(row=>rowMatchesJob(row,job,false));
@@ -186,7 +191,7 @@ function jobCosting(job,quotes){
    * plus an explicit underwater flag when known costs exceed revenue. */
   const estimate=accepted?num(val(accepted,'Total','total','Amount','amount')):0;
   const underwater=revenue>0&&projectedKnown<0;
-  return {revenue,quotedRevenue,invoiceTotal,estimate,estimateAccepted:!!accepted,actual:invoiceTotal,underwater,expenseTotal,hours,laborCost,laborUnpriced,committed,knownCost,projectedKnown,knownMargin};
+  return {revenue,quotedRevenue,invoiceTotal,estimate,estimateAccepted:!!accepted,actual:invoiceTotal,signedChangeTotal,underwater,expenseTotal,hours,laborCost,laborUnpriced,committed,knownCost,projectedKnown,knownMargin};
 }
 function requiredChecklist(job,requiredBefore){
   return checklistRowsForJob(job).filter(row=>upper(val(row,'Required Before','requiredBefore'))===upper(requiredBefore));
@@ -312,8 +317,19 @@ async function toggleChecklistItem(id,itemId){
 }
 async function createChangeOrder(job,data){
   const id=uid('CHANGE'),quotes=quoteRowsForJob(job),q=latest(quotes.filter(quoteAccepted))||latest(quotes);
-  const record={'Change Order ID':id,'Business ID':app()?.businessId,'Job ID':jobId(job),'Quote ID':q?quoteId(q):'','Title':text(data.title).trim()||'Job change','Description':text(data.description).trim(),'Amount':num(data.amount),'Status':'Draft — Owner Review Required','Customer Approval Required':true,'Created Time':now(),'Updated Time':now(),'Record Version':1};
+  const record={'Change Order ID':id,'Business ID':app()?.businessId,'Job ID':jobId(job),'Customer ID':customerId(job),'Quote ID':q?quoteId(q):'','Title':text(data.title).trim()||'Job change','Description':text(data.description).trim(),'Amount':num(data.amount),'Status':'Draft — Owner Review Required','Customer Approval Required':true,'Created Time':now(),'Updated Time':now(),'Record Version':1};
   await saveEntity('changeOrders','Change Order',id,record,['Change Order ID','changeOrderId']);
+}
+/* Wave 3 tail #6: owner sends a priced change order to the customer portal.
+ * The customer signs it there (typed name, on the exact Record Version);
+ * signing stamps the signature and creates the linked invoice server-side. */
+async function sendChangeOrderToPortal(row){
+  if(!row)throw new Error('Change order no longer exists.');
+  if(!/DRAFT/.test(upper(val(row,'Status','status'))))throw new Error('Only a draft change order can be sent to the portal.');
+  if(!(num(val(row,'Amount','amount'))>0))throw new Error('Give the change order a priced amount before sending it — the customer signs the price.');
+  const updated={...row,'Status':'Sent to Customer — Awaiting Approval','Sent to Portal Time':now(),'Updated Time':now(),'Record Version':num(val(row,'Record Version'))+1};
+  delete updated.__localPending;
+  await saveEntity('changeOrders','Change Order',changeOrderId(updated),updated,['Change Order ID','changeOrderId']);
 }
 async function createFollowUp(item){
   const id=uid('FOLLOWUP'),job=item.jobId?rec('jobs').find(row=>jobId(row)===item.jobId):null;
@@ -363,7 +379,7 @@ function lifecycleProgress(context){
   return `<div class="h38-life-progress" aria-label="Job lifecycle">${STAGES.map(([key,label],i)=>`<span class="${i<index?'done':i===index?'current':''}" title="${esc(label)}">${i+1}</span>`).join('')}</div>`;
 }
 function costingHtml(cost){
-  return `<div class="h38-life-cost-grid"><div><strong>${cost.estimate?moneyValue(cost.estimate):'—'}</strong><span>${cost.estimateAccepted?'Estimated revenue (accepted quote)':'Estimated revenue (no accepted quote)'}</span></div><div><strong>${moneyValue(cost.actual)}</strong><span>Actual billed (invoices)</span></div><div><strong>${moneyValue(cost.knownCost)}</strong><span>Known actual cost</span></div><div><strong>${cost.hours.toFixed(1)}</strong><span>Labor hours</span></div><div><strong>${moneyValue(cost.projectedKnown)}</strong><span>${cost.laborUnpriced?'Known margin before unpriced labor':'Known gross profit'}</span></div><div><strong>${cost.revenue?cost.knownMargin.toFixed(1)+'%':'—'}</strong><span>Known margin</span></div><div><strong>${moneyValue(cost.committed)}</strong><span>Material commitments</span></div></div>${cost.underwater?`<div class="notice warn">⚠ Underwater: known costs exceed revenue by ${moneyValue(-cost.projectedKnown)} on this job.</div>`:''}${cost.laborUnpriced?`<div class="notice warn">Labor hours exist but no labor cost is stored. H38 will not invent a labor rate.</div>`:''}`;
+  return `<div class="h38-life-cost-grid"><div><strong>${cost.estimate?moneyValue(cost.estimate):'—'}</strong><span>${cost.estimateAccepted?'Estimated revenue (accepted quote)':'Estimated revenue (no accepted quote)'}</span></div><div><strong>${moneyValue(cost.actual)}</strong><span>Actual billed (invoices)</span></div><div><strong>${moneyValue(cost.knownCost)}</strong><span>Known actual cost</span></div><div><strong>${cost.hours.toFixed(1)}</strong><span>Labor hours</span></div><div><strong>${moneyValue(cost.projectedKnown)}</strong><span>${cost.laborUnpriced?'Known margin before unpriced labor':'Known gross profit'}</span></div><div><strong>${cost.revenue?cost.knownMargin.toFixed(1)+'%':'—'}</strong><span>Known margin</span></div><div><strong>${moneyValue(cost.committed)}</strong><span>Material commitments</span></div>${cost.signedChangeTotal?`<div><strong>${moneyValue(cost.signedChangeTotal)}</strong><span>Approved change orders (signed in portal)</span></div>`:''}</div>${cost.underwater?`<div class="notice warn">⚠ Underwater: known costs exceed revenue by ${moneyValue(-cost.projectedKnown)} on this job.</div>`:''}${cost.laborUnpriced?`<div class="notice warn">Labor hours exist but no labor cost is stored. H38 will not invent a labor rate.</div>`:''}`;
 }
 function portalHtml(context){
   const jid=context.jid,cid=customerId(context.job);
@@ -389,7 +405,7 @@ function workPanel(){
   if(!jobs.some(row=>jobId(row)===selectedJob))selectedJob=jobId(jobs[0]);
   const job=jobs.find(row=>jobId(row)===selectedJob)||jobs[0],context=lifecycle(job),changes=rec('changeOrders').filter(row=>rowMatchesJob(row,job,false)),plans=rec('recurringPlans').filter(row=>rowMatchesJob(row,job,false));
   const blockers=[...context.blockers,...context.warnings];
-  return `<section class="card h38-life-work"><div class="h38-life-head"><div><span class="h38-life-kicker">JOB LIFECYCLE</span><h2>${esc(val(job,'Project Title')||'Job')}</h2><p>${esc(context.stageLabel)} · ${esc(context.next)}</p></div><div><label for="h38LifecycleJob">Job</label><select id="h38LifecycleJob">${jobOptions(selectedJob)}</select></div></div>${lifecycleProgress(context)}<div class="h38-life-columns"><div><h3>Next action</h3><div class="h38-life-next"><strong>${esc(context.next)}</strong>${blockers.length?`<ul>${blockers.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="good-text">No lifecycle blockers detected.</p>'}${(['INVOICE','CLOSEOUT'].includes(context.stage)&&!context.invoices.length)?`<div class="actions" style="margin-top:8px"><button type="button" data-life-create-invoice="${esc(context.jid)}">Create invoice draft</button></div>`:''}</div><h3>Required checklists</h3>${checklistHtml(context)}</div><div><h3>Job costing</h3>${costingHtml(context.cost)}<h3>Customer portal staging</h3>${portalHtml(context)}</div></div><div class="h38-life-columns"><div><h3>Change order draft</h3><form id="h38ChangeOrderForm"><label>Title</label><input name="title" placeholder="Additional work"><label>Description</label><textarea name="description" required></textarea><label>Estimated customer amount</label><input name="amount" type="number" step="0.01"><div class="actions"><button>Prepare change order</button></div></form><div class="list">${changes.length?changes.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Title')||'Change')}</strong>${typeof window.pill==='function'?window.pill(val(row,'Status')):`<span>${esc(val(row,'Status'))}</span>`}</div><small>${moneyValue(val(row,'Amount'))} · ${esc(val(row,'Description'))}</small></div>`).join(''):'<p class="muted small">No change orders.</p>'}</div></div><div><h3>Recurring / multi-visit work</h3><form id="h38RecurringForm"><label>Plan name</label><input name="planName" placeholder="${esc(val(job,'Project Title')||'Recurring service')}"><div class="two"><div><label>Every</label><input name="every" type="number" min="1" value="1"></div><div><label>Unit</label><select name="unit"><option>Weeks</option><option>Months</option><option>Days</option><option>Years</option></select></div></div><label>Next visit</label><input name="nextDate" type="date" required><div class="actions"><button>Save recurring plan</button></div></form><div class="list">${plans.length?plans.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Plan Name'))}</strong><button type="button" class="secondary" data-generate-recurring="${esc(rid(row,'Recurring Plan ID','recurringPlanId'))}">Create next visit</button></div><small>Every ${esc(val(row,'Every'))} ${esc(val(row,'Unit'))} · next ${dateOnlyValue(val(row,'Next Visit Date'))}</small></div>`).join(''):'<p class="muted small">No recurring plan.</p>'}</div></div></div></section>`;
+  return `<section class="card h38-life-work"><div class="h38-life-head"><div><span class="h38-life-kicker">JOB LIFECYCLE</span><h2>${esc(val(job,'Project Title')||'Job')}</h2><p>${esc(context.stageLabel)} · ${esc(context.next)}</p></div><div><label for="h38LifecycleJob">Job</label><select id="h38LifecycleJob">${jobOptions(selectedJob)}</select></div></div>${lifecycleProgress(context)}<div class="h38-life-columns"><div><h3>Next action</h3><div class="h38-life-next"><strong>${esc(context.next)}</strong>${blockers.length?`<ul>${blockers.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="good-text">No lifecycle blockers detected.</p>'}${(['INVOICE','CLOSEOUT'].includes(context.stage)&&!context.invoices.length)?`<div class="actions" style="margin-top:8px"><button type="button" data-life-create-invoice="${esc(context.jid)}">Create invoice draft</button></div>`:''}</div><h3>Required checklists</h3>${checklistHtml(context)}</div><div><h3>Job costing</h3>${costingHtml(context.cost)}<h3>Customer portal staging</h3>${portalHtml(context)}</div></div><div class="h38-life-columns"><div><h3>Change order draft</h3><form id="h38ChangeOrderForm"><label>Title</label><input name="title" placeholder="Additional work"><label>Description</label><textarea name="description" required></textarea><label>Estimated customer amount</label><input name="amount" type="number" step="0.01"><div class="actions"><button>Prepare change order</button></div></form><div class="list">${changes.length?changes.map(row=>{const coStatus=upper(val(row,'Status','status')),signedBy=val(row,'Signed By Name'),coInvoice=val(row,'Invoice ID');return `<div class="row"><div class="row-top"><strong>${esc(val(row,'Title')||'Change')}</strong>${typeof window.pill==='function'?window.pill(val(row,'Status')):`<span>${esc(val(row,'Status'))}</span>`}</div><small>${moneyValue(val(row,'Amount'))} · ${esc(val(row,'Description'))}</small>${signedBy?`<small>✍ Signed by ${esc(signedBy)}${val(row,'Signed At')?` · ${esc(dateTimeValue(val(row,'Signed At')))}`:''}${coInvoice?` · invoice created`:''}</small>`:''}${/DRAFT/.test(coStatus)?`<div class="row-actions"><button type="button" class="secondary" data-send-change="${esc(changeOrderId(row))}">Send to customer portal for signature</button></div>`:''}${/SENT|AWAITING/.test(coStatus)&&!/APPROV/.test(coStatus)?`<small class="muted">Waiting for the customer to sign in the portal.</small>`:''}</div>`;}).join(''):'<p class="muted small">No change orders.</p>'}</div></div><div><h3>Recurring / multi-visit work</h3><form id="h38RecurringForm"><label>Plan name</label><input name="planName" placeholder="${esc(val(job,'Project Title')||'Recurring service')}"><div class="two"><div><label>Every</label><input name="every" type="number" min="1" value="1"></div><div><label>Unit</label><select name="unit"><option>Weeks</option><option>Months</option><option>Days</option><option>Years</option></select></div></div><label>Next visit</label><input name="nextDate" type="date" required><div class="actions"><button>Save recurring plan</button></div></form><div class="list">${plans.length?plans.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Plan Name'))}</strong><button type="button" class="secondary" data-generate-recurring="${esc(rid(row,'Recurring Plan ID','recurringPlanId'))}">Create next visit</button></div><small>Every ${esc(val(row,'Every'))} ${esc(val(row,'Unit'))} · next ${dateOnlyValue(val(row,'Next Visit Date'))}</small></div>`).join(''):'<p class="muted small">No recurring plan.</p>'}</div></div></div></section>`;
 }
 function bindWorkPanel(){
   const jobSelect=document.getElementById('h38LifecycleJob');
@@ -405,6 +421,9 @@ function bindWorkPanel(){
   });
   document.querySelectorAll('[data-life-check]').forEach(input=>input.onchange=async()=>{
     try{await toggleChecklistItem(input.dataset.lifeCheck,input.dataset.lifeItem);window.renderWork();}catch(error){window.toast?.(error.message,true);}
+  });
+  document.querySelectorAll('[data-send-change]').forEach(button=>button.onclick=async()=>{
+    try{const row=rec('changeOrders').find(x=>changeOrderId(x)===button.dataset.sendChange);await sendChangeOrderToPortal(row);window.toast?.('Change order sent to the customer portal. The customer signs it there; the invoice is created when they sign.');window.renderWork();}catch(error){window.toast?.(error.message,true);}
   });
   const changeForm=document.getElementById('h38ChangeOrderForm');
   if(changeForm)changeForm.onsubmit=async event=>{
