@@ -32642,7 +32642,7 @@ const FEATURE_ID='offline_mode';
 
 // --- Owner Controls toggle (id-guarded push; owner-controls.js is never edited) ---
 if(window.H38OwnerControls&&Array.isArray(window.H38OwnerControls.FEATURES)&&!window.H38OwnerControls.FEATURES.some(f=>f.id===FEATURE_ID)){
-  window.H38OwnerControls.FEATURES.push({id:FEATURE_ID,title:'Offline mode',desc:'Full offline operation: cached business pack, offline queue with auto-sync, sync status.',icon:'📴',default:true,category:'General'});
+  window.H38OwnerControls.FEATURES.push({id:FEATURE_ID,title:'Offline mode',desc:'Work offline in the field: cached business pack, an offline queue that syncs when you are back online, and sync status.',icon:'📴',default:true,category:'General'});
 }
 
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32796,11 +32796,31 @@ async function renderPanel(){
 }
 function refreshPanel(){if($('offlineReadinessPanel'))renderPanel();}
 
+// ---------- queued-work flush watcher (Wave 3 tail #11, 2026-11-01; mirrors offline-mode.js) ----------
+let flushWatchTimer=null,flushLastAttemptAt=0;const flushAttempts={};
+async function flushWatchTick(){
+  if(!enabled()||!isOnline())return;
+  const st=office();if(!st.bridgeReady||!st.businessId)return;
+  const ops=await businessOps();
+  const pending=ops.filter(o=>o.syncStatus==='PENDING'&&String(o.action||'').toUpperCase()!=='RECORD_USAGE_EVENT');
+  if(!pending.length)return;
+  const sig=pending.map(o=>String(o.operationId||o.id)).sort().join(',');
+  if(!sig)return;
+  const nowMs=Date.now();
+  if(nowMs-flushLastAttemptAt<20000)return;
+  flushAttempts[sig]=(flushAttempts[sig]||0)+1;
+  if(flushAttempts[sig]>6)return;
+  flushLastAttemptAt=nowMs;
+  callGlobal('sync',false);
+}
+function startFlushWatcher(){if(flushWatchTimer)return;flushWatchTimer=setInterval(()=>{flushWatchTick().catch(()=>{});},5000);}
+
 // ---------- wiring (installed once; never re-registers) ----------
 if(!window.__h38OfflineModeInstalled){
   window.__h38OfflineModeInstalled=true;
   window.addEventListener('online',()=>{handleOnline();});
   window.addEventListener('h38:sync-pass-complete',event=>{onSyncPassComplete(event&&event.detail);});
+  startFlushWatcher();
 }
 
 window.H38OfflineMode=Object.freeze({
@@ -32808,6 +32828,7 @@ window.H38OfflineMode=Object.freeze({
   isEnabled:enabled,
   renderPanel,refreshPanel,
   syncNow:()=>callGlobal('sync',true),
+  flushWatchTick,
   refreshPack,autoRefreshPack,
   handleOnline,onSyncPassComplete,
   businessOps,cachedCollections,findCachedRecord,describeConflict,payloadFields,

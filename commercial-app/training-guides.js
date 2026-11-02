@@ -119,7 +119,7 @@ var GUIDES = {
     pages: ['today'],
     steps: [
       { selector: '#offlineReadinessCard', title: 'Check readiness', body: 'Before heading out, check this card — it shows what\'s cached for offline use.', action: 'info' },
-      { selector: 'body', title: 'Work normally', body: 'Everything queues locally. Quotes, photos, notes — it all works offline.', action: 'info' },
+      { selector: 'body', title: 'Work normally', body: 'Job work queues locally — notes, checklists, job completion and invoice drafts save on this device and sync when you are back.', action: 'info' },
       { selector: 'body', title: 'Sync when back', body: 'When you\'re back online, everything syncs automatically.', action: 'info' }
     ]
   }

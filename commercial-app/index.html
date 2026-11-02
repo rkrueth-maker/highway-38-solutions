@@ -312,7 +312,7 @@
   <script defer src="./live-customer-navigation-guard-20260910.js?build=20261031-wave1ab-1"></script>
   <script defer src="./kit-link.js?build=20261002-kit-link-1"></script>
   <script defer src="./ai-handoff.js?build=20261002-ai-handoff-1"></script>
-  <script defer src="./offline-mode.js?build=20261012-offline-polish-1"></script>
+  <script defer src="./offline-mode.js?build=20261101-wave3tail11-1"></script>
   <script>
   /* Training guides: on-demand loader (not in startup bundle per performance rules) */
   window.H38TrainingGuidesLoader = {
@@ -320,7 +320,7 @@
       return new Promise(function(resolve, reject){
         if(window.H38TrainingGuides) return resolve(window.H38TrainingGuides);
         var s = document.createElement('script');
-        s.src = './training-guides.js?build=20261004-training-1';
+        s.src = './training-guides.js?build=20261101-wave3tail11-1';
         s.onload = function(){ resolve(window.H38TrainingGuides); };
         s.onerror = function(){ reject(new Error('Training guides failed to load')); };
         document.head.appendChild(s);
