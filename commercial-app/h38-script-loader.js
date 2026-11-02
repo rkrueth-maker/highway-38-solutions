@@ -131,6 +131,7 @@
     ];
     const PAGE_SCHEDULE = [
       './app-08.js?build=20261020-myhank-settings-1',
+      './week-grid.js?build=20261102-weekgrid-1',
       './business-hours.js?build=20261030-r2-business-hours-1',
       './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
