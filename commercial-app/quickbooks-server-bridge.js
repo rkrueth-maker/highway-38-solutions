@@ -77,7 +77,7 @@ function renderQueue(panel,queue){
   if(!queue){target.innerHTML='<p class="h38-platform-note">Sync queue loads after the connection status.</p>';return;}
   const counts=queue.counts||{};
   const failed=(queue.items||[]).filter(item=>item.status==='failed');
-  const rows=failed.slice(0,10).map(item=>`<div class="h38-platform-row"><strong>${esc(item.entityType||'')} · ${esc(item.h38RecordKey||'')}</strong><small>${esc(item.lastError||'Sync failed.')} (attempts: ${Number(item.attempts||0)})</small></div>`).join('');
+  const rows=failed.slice(0,10).map(item=>`<div class="h38-platform-row"><strong>${esc(item.entity_type||item.entityType||'')} · ${esc(item.h38_record_key||item.h38RecordKey||'')}</strong><small>${esc(item.last_error||item.lastError||'Sync failed.')} (attempts: ${Number(item.attempts||0)})</small></div>`).join('');
   target.innerHTML=`<div class="h38-platform-list"><div class="h38-platform-row"><strong>Sync queue</strong><small>${Number(counts.pending||0)} waiting · ${Number(counts.failed||0)} in the error queue · ${Number(counts.synced||0)} synced</small></div>${rows||'<div class="h38-platform-row"><strong>Error queue is clear</strong><small>No failed syncs waiting for review.</small></div>'}</div>`;
 }
 async function loadQueue(panel){
