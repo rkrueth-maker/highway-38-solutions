@@ -295,6 +295,44 @@ function h38ExportPayrollCSV(periodId){
   h38DownloadFile(`payroll-${v(period,'Pay Date')||'export'}.csv`,csv,'text/csv');
   toast('CSV exported for bank / accountant.');
 }
+/* Wave 3 tail #7: time-entries payroll export. The run exports (CSV /
+ * NACHA above) cover finalized pay runs; this exports the underlying time
+ * entries themselves for a date range, one row per entry, sorted by person
+ * then job then start — so the accountant (or the owner checking a job)
+ * can see exactly which job every hour and labor dollar came from,
+ * including the GPS stamp and approval state the clock recorded. */
+function h38ExportTimeEntriesCSV(start,end){
+  const jobs=records('jobs');
+  const rows=records('timeEntries').filter(row=>within(v(row,'Date','Start Time'),start,end));
+  if(!rows.length){toast('No time entries in that range to export.',true);return;}
+  const jobTitleOf=row=>{const job=jobs.find(j=>rowId(j,'Job ID')===String(v(row,'Job ID')||''));return job?v(job,'Project Title')||v(job,'Job Number')||'':'';};
+  rows.sort((a,b)=>String(h38TimeEmployeeName(a)).localeCompare(String(h38TimeEmployeeName(b)))
+    ||String(jobTitleOf(a)).localeCompare(String(jobTitleOf(b)))
+    ||String(v(a,'Start Time','Date')).localeCompare(String(v(b,'Start Time','Date'))));
+  const cell=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+  const gps=(row,latKey,lngKey)=>{const lat=v(row,latKey),lng=v(row,lngKey);return lat!==''&&lat!=null&&lng!==''&&lng!=null?`${lat},${lng}`:'';};
+  const lines=[['Employee','Employee ID','Job ID','Job','Date','Clock In','Clock Out','Hours','Hourly Rate','Labor Cost','Clock In GPS','Clock Out GPS','Location','Approval Status','Source','Time Entry ID'].join(',')];
+  const totals={};
+  rows.forEach(row=>{
+    const name=h38TimeEmployeeName(row);
+    const hours=num(v(row,'Hours','hours','Total Hours'));
+    const labor=num(v(row,'Labor Cost','laborCost'));
+    totals[name]=totals[name]||{hours:0,labor:0};
+    totals[name].hours+=hours;totals[name].labor+=labor;
+    lines.push([name,v(row,'Employee ID'),v(row,'Job ID'),jobTitleOf(row),String(v(row,'Date','Start Time')||'').slice(0,10),
+      v(row,'Start Time'),v(row,'End Time'),hours.toFixed(2),
+      v(row,'Hourly Rate')!==''&&v(row,'Hourly Rate')!=null?num(v(row,'Hourly Rate')).toFixed(2):'',
+      labor?labor.toFixed(2):'',
+      gps(row,'Clock In Lat','Clock In Lng'),gps(row,'Clock Out Lat','Clock Out Lng'),
+      v(row,'Location Status')||'',v(row,'Approval Status')||v(row,'Status')||'',v(row,'Source')||'',
+      rowId(row,'Time Entry ID','id')].map(cell).join(','));
+  });
+  Object.keys(totals).sort().forEach(name=>{
+    lines.push([`${name} — TOTAL`,'','','','','','',totals[name].hours.toFixed(2),'',totals[name].labor?totals[name].labor.toFixed(2):'','','','','',''].map(cell).join(','));
+  });
+  h38DownloadFile(`time-entries-${start||'start'}-to-${end||'end'}.csv`,lines.join('\n'),'text/csv');
+  toast(`Exported ${rows.length} time entries (${start} to ${end}) grouped by person and job.`);
+}
 function h38ExportPayrollNACHA(periodId){
   const period=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===periodId);
   const lines=records('payrollLines').filter(l=>v(l,'Payroll Period ID')===periodId);
@@ -718,7 +756,7 @@ function renderPayrollPrep(){
     ${pending.length?`<button type="button" data-payroll-approveall="1">Approve all ${pending.length}</button>`:''}</div>
     <div class="list" style="margin-top:8px;max-height:320px;overflow:auto">${pending.length?pending.slice(0,100).map(row=>{const id=rowId(row,'Time Entry ID','id');
       return `<div class="row"><div class="row-top"><strong>${esc(h38TimeEmployeeName(row))}</strong>${pill(v(row,'Approval Status')||'Pending','warn')}</div>
-      <small>${esc(dateOnly(v(row,'Date','Start Time')))} · ${num(v(row,'Regular Hours','Hours','Duration Hours')).toFixed(2)} hrs${num(v(row,'Overtime Hours'))?` · ${num(v(row,'Overtime Hours')).toFixed(2)} OT`:''} · ${esc(v(row,'Notes')||'')}</small>
+      <small>${esc(dateOnly(v(row,'Date','Start Time')))} · ${num(v(row,'Regular Hours','Hours','Duration Hours')).toFixed(2)} hrs${num(v(row,'Overtime Hours'))?` · ${num(v(row,'Overtime Hours')).toFixed(2)} OT`:''}${(()=>{const job=records('jobs').find(j=>rowId(j,'Job ID')===String(v(row,'Job ID')||''));return job?` · job: ${esc(v(job,'Project Title')||v(job,'Job Number'))}`:'';})()}${v(row,'Location Status')?` · ${esc(v(row,'Location Status')==='gps'?'📍 GPS-stamped':v(row,'Location Status'))}`:''} · ${esc(v(row,'Notes')||'')}</small>
       <div class="row-actions"><button type="button" class="secondary" data-payroll-approve="${esc(id)}">Approve</button><button type="button" class="secondary" data-payroll-reject="${esc(id)}">Reject</button></div></div>`;}).join(''):empty('No time awaiting approval in this range.')}
     </div>
     <p class="muted small">${approved} entries already approved in range.</p>
@@ -730,6 +768,12 @@ function renderPayrollPrep(){
     <label>Pay date</label><input name="payDate" type="date" required>
     <div class="actions"><button>Preview pay run</button></div></form>
     <div class="notice warn"><strong>Preparation only:</strong> preview first, then confirm. Owner final approval is required before export. No funds are moved.</div>
+  </section>
+
+  <section class="card span6"><h2>Time entries — payroll export</h2>
+    <p class="muted small">Download every time entry in the approval range above as a CSV: one row per entry, grouped by person and job, with clock-in/out times, hours, the labor cost priced from the person's pay rate, the GPS stamp, and the approval state. This is the per-job detail behind a pay run — hand it to your accountant or keep it with the job.</p>
+    <div class="actions"><button type="button" class="secondary" data-payroll-timeexport="1">Export time entries CSV</button></div>
+    <p class="muted small">Uses the From / To range in “1 · Approve time”. Entries clocked on a job carry that job; the Job Lifecycle panel clocks in and out per job.</p>
   </section>
 
   ${previewSection}
@@ -804,6 +848,7 @@ function renderPayrollPrep(){
   bind('[data-payroll-checkreprint]',e=>h38ReprintRecordedCheck(e.target.dataset.payrollCheckreprint));
   bind('[data-payroll-checkvoid]',e=>h38VoidPayrollCheck(e.target.dataset.payrollCheckvoid));
   bind('[data-payroll-checkreissue]',e=>h38ReissuePayrollCheck(e.target.dataset.payrollCheckreissue));
+  bind('[data-payroll-timeexport]',()=>h38ExportTimeEntriesCSV(state.payrollApprovalStart,state.payrollApprovalEnd));
   bind('[data-payroll-csv]',e=>h38ExportPayrollCSV(e.target.dataset.payrollCsv));
   bind('[data-payroll-nacha]',e=>h38ExportPayrollNACHA(e.target.dataset.payrollNacha));
   bind('[data-open-page]',e=>{if(window.openPage)window.openPage(e.target.dataset.openPage);});

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261101-wave3tail6-co-1';
+const BUILD='20261101-wave3tail7-clock-1';
 const STAGES=[
   ['INTAKE','Intake'],
   ['SITE_VISIT','Site Visit'],
@@ -381,6 +381,96 @@ function lifecycleProgress(context){
 function costingHtml(cost){
   return `<div class="h38-life-cost-grid"><div><strong>${cost.estimate?moneyValue(cost.estimate):'—'}</strong><span>${cost.estimateAccepted?'Estimated revenue (accepted quote)':'Estimated revenue (no accepted quote)'}</span></div><div><strong>${moneyValue(cost.actual)}</strong><span>Actual billed (invoices)</span></div><div><strong>${moneyValue(cost.knownCost)}</strong><span>Known actual cost</span></div><div><strong>${cost.hours.toFixed(1)}</strong><span>Labor hours</span></div><div><strong>${moneyValue(cost.projectedKnown)}</strong><span>${cost.laborUnpriced?'Known margin before unpriced labor':'Known gross profit'}</span></div><div><strong>${cost.revenue?cost.knownMargin.toFixed(1)+'%':'—'}</strong><span>Known margin</span></div><div><strong>${moneyValue(cost.committed)}</strong><span>Material commitments</span></div>${cost.signedChangeTotal?`<div><strong>${moneyValue(cost.signedChangeTotal)}</strong><span>Approved change orders (signed in portal)</span></div>`:''}</div>${cost.underwater?`<div class="notice warn">⚠ Underwater: known costs exceed revenue by ${moneyValue(-cost.projectedKnown)} on this job.</div>`:''}${cost.laborUnpriced?`<div class="notice warn">Labor hours exist but no labor cost is stored. H38 will not invent a labor rate.</div>`:''}`;
 }
+/* Wave 3 tail #7: per-job time clock -> payroll. The panel clocks the
+ * signed-in person in/out ON this job through the audited punch-clock RPCs
+ * (business_office_clock_in / clock_out — the same write authority the
+ * Today card and the field view use, now extended server-side to stamp the
+ * GPS snapshot, the linked Employee ID, and Labor Cost from the employee's
+ * Hourly Rate at clock-out). GPS is captured only through the Crew Location
+ * opt-in (H38CrewPhoneLocation.capturePosition never gates: no opt-in or no
+ * fix saves the time and the entry is stamped "manual — no location"). */
+function clockUserIds(){
+  const user=app()?.snapshot?.user||{};
+  return [user.userId,user.id,user.authUserId,user['User ID']].map(text).filter(Boolean);
+}
+function timeEntriesForJob(job){
+  return rec('timeEntries').filter(row=>rowMatchesJob(row,job,false))
+    .slice().sort((a,b)=>new Date(val(b,'Start Time','startTime','Created Time')||0)-new Date(val(a,'Start Time','startTime','Created Time')||0));
+}
+function openTimeEntry(rows){
+  return (rows||rec('timeEntries')).find(row=>!text(val(row,'End Time','endTime')))||null;
+}
+function timeEntryIsMine(row){
+  const ids=clockUserIds();
+  const owner=text(val(row,'User ID','userId','Auth User ID','authUserId'));
+  return !!owner&&ids.includes(owner);
+}
+function timePersonName(row){
+  const empId=text(val(row,'Employee ID','employeeId')),userId=text(val(row,'User ID','userId'));
+  const emp=rec('employees').find(item=>rid(item,'Employee ID','employeeId')===empId)||rec('employees').find(item=>text(val(item,'User ID','userId'))===userId);
+  if(emp)return text(val(emp,'Display Name'))||'Team member';
+  const user=rec('users').find(item=>rid(item,'User ID','userId')===userId);
+  return text(val(user,'Display Name','Name','Email'))||'Team member';
+}
+function timeGpsLabel(row){
+  const lat=val(row,'Clock In Lat'),lng=val(row,'Clock In Lng');
+  if(text(val(row,'Location Status'))==='gps'&&lat!==''&&lng!=='')return `📍 GPS ${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+  return 'Manual — no location';
+}
+function jobClockHtml(context){
+  const rows=timeEntriesForJob(context.job);
+  const mine=openTimeEntry(rec('timeEntries').filter(timeEntryIsMine));
+  const mineHere=mine&&text(val(mine,'Job ID','jobId'))===context.jid?mine:null;
+  const mineJob=mine&&!mineHere?rec('jobs').find(row=>jobId(row)===text(val(mine,'Job ID','jobId'))):null;
+  const totalHours=rows.reduce((sum,row)=>sum+num(val(row,'Hours','hours')),0);
+  const list=rows.length?rows.slice(0,8).map(row=>{
+    const open=!text(val(row,'End Time','endTime'));
+    const labor=num(val(row,'Labor Cost','laborCost'));
+    return `<div class="row"><div class="row-top"><strong>${esc(timePersonName(row))}</strong>${typeof window.pill==='function'?window.pill(open?'Clocked In':(val(row,'Approval Status')||'Recorded')):`<span>${esc(open?'Clocked In':(val(row,'Approval Status')||'Recorded'))}</span>`}</div><small>${esc(dateOnlyValue(val(row,'Date','Start Time')))} · ${esc(dateTimeValue(val(row,'Start Time')))}${open?' · in progress':` → ${esc(dateTimeValue(val(row,'End Time')))} · ${num(val(row,'Hours','hours')).toFixed(2)} hrs`}${labor?` · labor ${moneyValue(labor)}`:''}<br>${esc(timeGpsLabel(row))}</small></div>`;
+  }).join(''):'<p class="muted small">No time clocked on this job yet.</p>';
+  const action=mineHere
+    ?`<div class="actions"><button type="button" data-life-clock-out="1">Clock out of this job</button></div><p class="muted small">You clocked in ${esc(dateTimeValue(val(mineHere,'Start Time')))} · ${esc(timeGpsLabel(mineHere))}. Clocking out stamps the end time, your hours, and labor cost from your pay rate on file.</p>`
+    :mine
+      ?`<p class="muted small">You are clocked in${mineJob?` on <strong>${esc(val(mineJob,'Project Title')||'another job')}</strong>`:''} since ${esc(dateTimeValue(val(mine,'Start Time')))}. Clock out there first — the clock runs one job at a time.</p>`
+      :`<div class="actions"><button type="button" data-life-clock-in="1">Clock in on this job</button></div><p class="muted small">Stamps the start time and, when location sharing is on for your phone, the GPS position. The entry lands on this job and in Payroll for approval; your pay rate on your employee record prices the labor here.</p>`;
+  return `<div class="h38-life-clock">${action}<div class="list">${list}</div>${rows.length?`<p class="muted small">${totalHours.toFixed(2)} total hours on this job · approve time and export it from the Payroll page.</p>`:''}</div>`;
+}
+async function captureClockPosition(){
+  try{
+    if(window.H38CrewPhoneLocation&&typeof window.H38CrewPhoneLocation.capturePosition==='function'){
+      const pos=await window.H38CrewPhoneLocation.capturePosition();
+      if(pos&&!pos.manual&&Number.isFinite(Number(pos.lat))&&Number.isFinite(Number(pos.lng)))return {lat:Number(pos.lat),lng:Number(pos.lng),accuracy:pos.accuracy===''||pos.accuracy==null?null:Number(pos.accuracy)};
+    }
+  }catch(_){/* GPS never gates the clock */}
+  return {lat:null,lng:null,accuracy:null};
+}
+async function clockRpc(name,args){
+  const client=window.H38_SUPABASE_SHARED_CLIENT?.ensure?.();
+  if(!client)throw new Error('Secure Business Office connection is not ready.');
+  const {data,error}=await client.rpc(name,args);
+  if(error)throw error;
+  return data;
+}
+function mergeTimeEntry(row){
+  if(!row||typeof row!=='object')return;
+  const snap=app()?.snapshot;if(!snap)return;
+  if(!Array.isArray(snap.timeEntries))snap.timeEntries=[];
+  const key=text(row['Time Entry ID']);
+  const index=key?snap.timeEntries.findIndex(item=>text(val(item,'Time Entry ID','timeEntryId'))===key):-1;
+  if(index>=0)snap.timeEntries[index]={...snap.timeEntries[index],...row};else snap.timeEntries.push(row);
+}
+async function jobClockIn(job){
+  const pos=await captureClockPosition();
+  const result=await clockRpc('business_office_clock_in',{p_business_id:app()?.businessId,p_job_id:jobId(job),p_task_id:null,p_notes:null,p_lat:pos.lat,p_lng:pos.lng,p_accuracy:pos.accuracy});
+  mergeTimeEntry(result);
+  return result;
+}
+async function jobClockOut(){
+  const pos=await captureClockPosition();
+  const result=await clockRpc('business_office_clock_out',{p_business_id:app()?.businessId,p_notes:null,p_lat:pos.lat,p_lng:pos.lng,p_accuracy:pos.accuracy});
+  mergeTimeEntry(result);
+  return result;
+}
 function portalHtml(context){
   const jid=context.jid,cid=customerId(context.job);
   const docs=rec('documents').filter(row=>text(val(row,'Job ID'))===jid||(!val(row,'Job ID')&&text(val(row,'Source ID'))===jid));
@@ -405,7 +495,7 @@ function workPanel(){
   if(!jobs.some(row=>jobId(row)===selectedJob))selectedJob=jobId(jobs[0]);
   const job=jobs.find(row=>jobId(row)===selectedJob)||jobs[0],context=lifecycle(job),changes=rec('changeOrders').filter(row=>rowMatchesJob(row,job,false)),plans=rec('recurringPlans').filter(row=>rowMatchesJob(row,job,false));
   const blockers=[...context.blockers,...context.warnings];
-  return `<section class="card h38-life-work"><div class="h38-life-head"><div><span class="h38-life-kicker">JOB LIFECYCLE</span><h2>${esc(val(job,'Project Title')||'Job')}</h2><p>${esc(context.stageLabel)} · ${esc(context.next)}</p></div><div><label for="h38LifecycleJob">Job</label><select id="h38LifecycleJob">${jobOptions(selectedJob)}</select></div></div>${lifecycleProgress(context)}<div class="h38-life-columns"><div><h3>Next action</h3><div class="h38-life-next"><strong>${esc(context.next)}</strong>${blockers.length?`<ul>${blockers.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="good-text">No lifecycle blockers detected.</p>'}${(['INVOICE','CLOSEOUT'].includes(context.stage)&&!context.invoices.length)?`<div class="actions" style="margin-top:8px"><button type="button" data-life-create-invoice="${esc(context.jid)}">Create invoice draft</button></div>`:''}</div><h3>Required checklists</h3>${checklistHtml(context)}</div><div><h3>Job costing</h3>${costingHtml(context.cost)}<h3>Customer portal staging</h3>${portalHtml(context)}</div></div><div class="h38-life-columns"><div><h3>Change order draft</h3><form id="h38ChangeOrderForm"><label>Title</label><input name="title" placeholder="Additional work"><label>Description</label><textarea name="description" required></textarea><label>Estimated customer amount</label><input name="amount" type="number" step="0.01"><div class="actions"><button>Prepare change order</button></div></form><div class="list">${changes.length?changes.map(row=>{const coStatus=upper(val(row,'Status','status')),signedBy=val(row,'Signed By Name'),coInvoice=val(row,'Invoice ID');return `<div class="row"><div class="row-top"><strong>${esc(val(row,'Title')||'Change')}</strong>${typeof window.pill==='function'?window.pill(val(row,'Status')):`<span>${esc(val(row,'Status'))}</span>`}</div><small>${moneyValue(val(row,'Amount'))} · ${esc(val(row,'Description'))}</small>${signedBy?`<small>✍ Signed by ${esc(signedBy)}${val(row,'Signed At')?` · ${esc(dateTimeValue(val(row,'Signed At')))}`:''}${coInvoice?` · invoice created`:''}</small>`:''}${/DRAFT/.test(coStatus)?`<div class="row-actions"><button type="button" class="secondary" data-send-change="${esc(changeOrderId(row))}">Send to customer portal for signature</button></div>`:''}${/SENT|AWAITING/.test(coStatus)&&!/APPROV/.test(coStatus)?`<small class="muted">Waiting for the customer to sign in the portal.</small>`:''}</div>`;}).join(''):'<p class="muted small">No change orders.</p>'}</div></div><div><h3>Recurring / multi-visit work</h3><form id="h38RecurringForm"><label>Plan name</label><input name="planName" placeholder="${esc(val(job,'Project Title')||'Recurring service')}"><div class="two"><div><label>Every</label><input name="every" type="number" min="1" value="1"></div><div><label>Unit</label><select name="unit"><option>Weeks</option><option>Months</option><option>Days</option><option>Years</option></select></div></div><label>Next visit</label><input name="nextDate" type="date" required><div class="actions"><button>Save recurring plan</button></div></form><div class="list">${plans.length?plans.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Plan Name'))}</strong><button type="button" class="secondary" data-generate-recurring="${esc(rid(row,'Recurring Plan ID','recurringPlanId'))}">Create next visit</button></div><small>Every ${esc(val(row,'Every'))} ${esc(val(row,'Unit'))} · next ${dateOnlyValue(val(row,'Next Visit Date'))}</small></div>`).join(''):'<p class="muted small">No recurring plan.</p>'}</div></div></div></section>`;
+  return `<section class="card h38-life-work"><div class="h38-life-head"><div><span class="h38-life-kicker">JOB LIFECYCLE</span><h2>${esc(val(job,'Project Title')||'Job')}</h2><p>${esc(context.stageLabel)} · ${esc(context.next)}</p></div><div><label for="h38LifecycleJob">Job</label><select id="h38LifecycleJob">${jobOptions(selectedJob)}</select></div></div>${lifecycleProgress(context)}<div class="h38-life-columns"><div><h3>Next action</h3><div class="h38-life-next"><strong>${esc(context.next)}</strong>${blockers.length?`<ul>${blockers.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="good-text">No lifecycle blockers detected.</p>'}${(['INVOICE','CLOSEOUT'].includes(context.stage)&&!context.invoices.length)?`<div class="actions" style="margin-top:8px"><button type="button" data-life-create-invoice="${esc(context.jid)}">Create invoice draft</button></div>`:''}</div><h3>Required checklists</h3>${checklistHtml(context)}</div><div><h3>Job costing</h3>${costingHtml(context.cost)}<h3>Time on this job</h3>${jobClockHtml(context)}<h3>Customer portal staging</h3>${portalHtml(context)}</div></div><div class="h38-life-columns"><div><h3>Change order draft</h3><form id="h38ChangeOrderForm"><label>Title</label><input name="title" placeholder="Additional work"><label>Description</label><textarea name="description" required></textarea><label>Estimated customer amount</label><input name="amount" type="number" step="0.01"><div class="actions"><button>Prepare change order</button></div></form><div class="list">${changes.length?changes.map(row=>{const coStatus=upper(val(row,'Status','status')),signedBy=val(row,'Signed By Name'),coInvoice=val(row,'Invoice ID');return `<div class="row"><div class="row-top"><strong>${esc(val(row,'Title')||'Change')}</strong>${typeof window.pill==='function'?window.pill(val(row,'Status')):`<span>${esc(val(row,'Status'))}</span>`}</div><small>${moneyValue(val(row,'Amount'))} · ${esc(val(row,'Description'))}</small>${signedBy?`<small>✍ Signed by ${esc(signedBy)}${val(row,'Signed At')?` · ${esc(dateTimeValue(val(row,'Signed At')))}`:''}${coInvoice?` · invoice created`:''}</small>`:''}${/DRAFT/.test(coStatus)?`<div class="row-actions"><button type="button" class="secondary" data-send-change="${esc(changeOrderId(row))}">Send to customer portal for signature</button></div>`:''}${/SENT|AWAITING/.test(coStatus)&&!/APPROV/.test(coStatus)?`<small class="muted">Waiting for the customer to sign in the portal.</small>`:''}</div>`;}).join(''):'<p class="muted small">No change orders.</p>'}</div></div><div><h3>Recurring / multi-visit work</h3><form id="h38RecurringForm"><label>Plan name</label><input name="planName" placeholder="${esc(val(job,'Project Title')||'Recurring service')}"><div class="two"><div><label>Every</label><input name="every" type="number" min="1" value="1"></div><div><label>Unit</label><select name="unit"><option>Weeks</option><option>Months</option><option>Days</option><option>Years</option></select></div></div><label>Next visit</label><input name="nextDate" type="date" required><div class="actions"><button>Save recurring plan</button></div></form><div class="list">${plans.length?plans.map(row=>`<div class="row"><div class="row-top"><strong>${esc(val(row,'Plan Name'))}</strong><button type="button" class="secondary" data-generate-recurring="${esc(rid(row,'Recurring Plan ID','recurringPlanId'))}">Create next visit</button></div><small>Every ${esc(val(row,'Every'))} ${esc(val(row,'Unit'))} · next ${dateOnlyValue(val(row,'Next Visit Date'))}</small></div>`).join(''):'<p class="muted small">No recurring plan.</p>'}</div></div></div></section>`;
 }
 function bindWorkPanel(){
   const jobSelect=document.getElementById('h38LifecycleJob');
@@ -424,6 +514,14 @@ function bindWorkPanel(){
   });
   document.querySelectorAll('[data-send-change]').forEach(button=>button.onclick=async()=>{
     try{const row=rec('changeOrders').find(x=>changeOrderId(x)===button.dataset.sendChange);await sendChangeOrderToPortal(row);window.toast?.('Change order sent to the customer portal. The customer signs it there; the invoice is created when they sign.');window.renderWork();}catch(error){window.toast?.(error.message,true);}
+  });
+  document.querySelectorAll('[data-life-clock-in]').forEach(button=>button.onclick=async()=>{
+    button.disabled=true;
+    try{const job=rec('jobs').find(row=>jobId(row)===selectedJob);await jobClockIn(job);window.toast?.('Clocked in on this job. The entry is on the job and in Payroll for approval.');window.renderWork();}catch(error){window.toast?.(error.message,true);button.disabled=false;}
+  });
+  document.querySelectorAll('[data-life-clock-out]').forEach(button=>button.onclick=async()=>{
+    button.disabled=true;
+    try{await jobClockOut();window.toast?.('Clocked out. Hours and labor cost are on the job; approve the time in Payroll.');window.renderWork();}catch(error){window.toast?.(error.message,true);button.disabled=false;}
   });
   const changeForm=document.getElementById('h38ChangeOrderForm');
   if(changeForm)changeForm.onsubmit=async event=>{
