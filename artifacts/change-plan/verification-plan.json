@@ -1,15 +1,16 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-02T02:58:47.558Z",
+  "generatedAt": "2026-11-02T03:08:54.920Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/h38-script-loader.js",
+    "commercial-app/bundle-features.js",
+    "commercial-app/job-lifecycle.js",
     "commercial-app/service-worker.js",
-    "commercial-app/sms-provider.js",
+    "commercial-app/supabase-no-legacy-office.js",
     "commercial-app/version.json"
   ],
-  "fileCount": 4,
+  "fileCount": 5,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,

@@ -1,6 +1,6 @@
 # Scope-aware verification plan
 
-- Files changed: 4
+- Files changed: 5
 - Scopes: authenticatedApp
 - Deployment workflows: .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
