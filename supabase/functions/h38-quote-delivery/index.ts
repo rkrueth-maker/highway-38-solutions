@@ -312,6 +312,17 @@ async function writeFailure(service: ReturnType<typeof serviceClient>, businessI
     });
   } catch (_) {}
 }
+async function portalModuleEnabled(service: ReturnType<typeof serviceClient>, businessId: string): Promise<boolean> {
+  const { data, error } = await service
+    .from("business_module_settings")
+    .select("enabled")
+    .eq("business_id", businessId)
+    .eq("module_key", "customer_portal")
+    .maybeSingle();
+  if (error) throw error;
+  return data?.enabled === true;
+}
+
 async function deliverQuote(request: Request, body: JsonObject): Promise<Response> {
   const service = serviceClient();
   const businessId = clean(body.businessId, 80);
@@ -330,6 +341,8 @@ async function deliverQuote(request: Request, body: JsonObject): Promise<Respons
     if (businessError) throw businessError;
     if (!business || business.status !== "active") throw new Error("The active business could not be verified.");
     if (!ENABLED_BUSINESS_KEYS.has(business.business_key)) throw new Error("Secure customer quote delivery is not enabled for this business.");
+    const portalEnabled = await portalModuleEnabled(service, businessId);
+    Object.assign(context, { portalEnabled });
 
     const { data: quoteRow, error: quoteError } = await service.from("business_records").select("id,record_key,payload,record_status,updated_at").eq("business_id", businessId).eq("collection", "quotes").eq("record_key", quoteId).eq("record_status", "active").maybeSingle();
     if (quoteError) throw quoteError;
@@ -513,6 +526,7 @@ async function deliverQuote(request: Request, body: JsonObject): Promise<Respons
         emailMode: delivery.mode,
         ownerReviewConfirmed: true,
         quoteLocked: true,
+        portalEnabled,
         automaticApproval: false,
         automaticFinancialAction: false,
       },
@@ -521,12 +535,15 @@ async function deliverQuote(request: Request, body: JsonObject): Promise<Respons
 
     return reply(request, 200, {
       status: "PASS",
-      message: `Quote ${quoteNumber} was locked, published to the secure customer portal and sent to ${customerEmail}.`,
+      message: portalEnabled
+        ? `Quote ${quoteNumber} was locked, published to the secure customer portal and sent to ${customerEmail}.`
+        : `Quote ${quoteNumber} was locked and sent to ${customerEmail}. Warning: the Customer Portal is OFF for this business, so the customer cannot open or sign it from the portal link. Turn it on in Settings → Owner Controls to enable portal access.`,
       quoteId,
       quoteNumber,
       revision,
       customerEmail,
       portalQuoteId,
+      portalEnabled,
       portalUrl: redirectTo,
       pdfStoragePath: pdfPath,
       emailMode: delivery.mode,
