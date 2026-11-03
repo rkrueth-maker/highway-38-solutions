@@ -13,13 +13,12 @@ const context={window:{}};vm.createContext(context);vm.runInContext(pricingData,
 /* Canonical pricing after the single-tier restructure (pricing-data.js
    version 2026-10-11-single-tier; MEMORY: $99/mo founding / $149/mo standard,
    single tier only): one software offer (AI Runs Your Backend, $149/mo,
-   $99/mo founding), one quoted service offer (Custom Scope), and the
-   separate $299 Business Snapshot diagnostic. Retired multi-offer pins
+   $99/mo founding), one quoted service offer (Custom Scope). Retired multi-offer pins
    (quote-builder $59 / business-office $249 / configured-system $7,500
    implementation) no longer exist in source and must not be re-asserted. */
 check('pricing data source loads',source&&source.version==='2026-10-11-single-tier');
 check('exactly one software offer in single-tier pricing',source&&source.offers.filter(item=>item.classification==='software').length===1);
-check('Business Snapshot is separate diagnostic',source&&source.offers.filter(item=>item.classification==='diagnostic').length===1&&source.offers.find(item=>item.id==='business-snapshot').oneTime===299);
+check('Business Snapshot offer retired 2026-11-02 (not a current offer)',source&&!source.offers.some(item=>item.id==='business-snapshot')&&!source.offers.some(item=>item.classification==='diagnostic'));
 check('approved software prices',source&&source.offers.find(item=>item.id==='ai-backend').monthly===149&&source.offers.find(item=>item.id==='ai-backend').foundingLabel.includes('$99/mo'));
 check('custom scope is quoted per project, not a priced package',configured&&configured.classification==='service'&&configured.priceLabel==='Quoted per project'&&configured.monthly==null);
 check('retired managed support offers removed',source&&Array.isArray(source.support)&&source.support.length===0);
@@ -33,7 +32,7 @@ check('old public pricing packages removed',!/(Project Snapshot|Plan & Quote|Com
 check('request uses current pricing data',request.includes('pricing-data.js?v=20260914-current-direction')&&request.includes('id="offer"')&&!request.includes('catalog-data.js'));
 check('request removed legacy product and bundle selectors',!request.includes('id="product"')&&!request.includes('id="bundle"')&&!request.includes('known service, bundle'));
 check('request summary records selected approved offer',requestOptions.includes('Selected offer:')&&requestFlow.includes("catalogId:offer.toUpperCase()"));
-check('request options resolve current single-tier offers',requestOptions.includes("'ai-backend'")&&requestOptions.includes("'custom-scope'")&&requestOptions.includes("'business-snapshot'"));
+check('request options resolve current single-tier offers',requestOptions.includes("'ai-backend'")&&requestOptions.includes("'custom-scope'")&&!requestOptions.includes("'business-snapshot'"));
 check('cabin card promises the complete quote package',(samples.includes('Open Plans &amp; All Quotes')||samples.includes('Open Plans & All Quotes')||samples.includes('Open Plans &amp; 21 Quotes')||samples.includes('Open Plans & 21 Quotes'))&&samples.includes('cabin-project-complete.html'));
 check('cabin card opens complete package',samples.includes('href="cabin-project-complete.html"'));
 check('cabin page includes Open All 21 control',cabin.includes('Open All 21 Quotes')&&cabin.includes('openAllTop'));
