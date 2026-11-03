@@ -6805,7 +6805,7 @@ window.H38_SMART_UPLOAD_AI=Object.freeze({
   function loadErpFoundation() {
     if (window.H38_ERP_FOUNDATION || document.querySelector('script[data-h38-erp-foundation]')) return;
     const script = document.createElement('script');
-    script.src = './erp-foundation.js?build=20260903-erp-time-uptake-learning-1';
+    script.src = './erp-foundation.js?build=20261102-e2e-clockout-photo-1';
     script.async = false;
     script.dataset.h38ErpFoundation = '1';
     document.head.appendChild(script);
@@ -18925,27 +18925,33 @@ function quotePage(){return text(window.state?.page).trim().toLowerCase()==='quo
 function quoteRow(){const id=text(window.state?.quote?.quoteId);return typeof window.records==='function'?records('quotes').find(row=>text(window.rowId(row,'Quote ID','quoteId'))===id)||{}:{};}
 function customerRow(customerId){return typeof window.records==='function'?records('customers').find(row=>text(window.rowId(row,'Customer ID','customerId'))===text(customerId))||{}:{};}
 function quoteLines(row){const rows=val(row,'lines','Lines','Quote Lines')||window.state?.quote?.lines;return Array.isArray(rows)?rows:[];}
+function quoteTiers(row){const rows=val(row,'tiers','Tiers')||window.state?.quote?.tiers;return Array.isArray(rows)?rows:[];}
+function tierTotal(tier){return (Array.isArray(tier?.items)?tier.items:[]).reduce((sum,line)=>sum+numValue(val(line,'Quantity','quantity'))*numValue(val(line,'Unit Price','unitPrice','rate')),0);}
+function isTiered(row){return text(val(row,'Tier Mode','tierMode'))==='Good-Better-Best'&&quoteTiers(row).length===3;}
+function hasLines(details){return details.tiered?details.tiers.every(tier=>(tier.items||[]).length>0):details.lines.length>0;}
 function quoteTotal(row){const recorded=numValue(val(row,'Total','total'));if(recorded>0)return recorded;return quoteLines(row).reduce((sum,line)=>sum+numValue(val(line,'Quantity','quantity'))*numValue(val(line,'Unit Price','unitPrice','rate')),0)+numValue(val(row,'Tax','tax'));}
 function status(row){return text(val(row,'Status','status')).trim();}
+function portalModuleOn(){try{const rows=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];const row=rows.find(r=>text(r.moduleKey||r.module_key)==='customer_portal');return row?row.enabled===true:false;}catch(_){return false;}}
 function currentDetails(){
  const row=quoteRow(),quoteId=text(window.state?.quote?.quoteId||window.rowId?.(row,'Quote ID','quoteId'));
  const customerId=text(val(row,'Customer ID','customerId')||window.state?.quote?.customerId);
  const customer=customerRow(customerId);
- return{row,quoteId,customerId,customer,customerName:text(val(customer,'Customer Name','Name','customerName','name')||window.customerName?.(customerId)||'Customer'),customerEmail:text(val(customer,'Email','email')).trim().toLowerCase(),quoteNumber:text(val(row,'Quote Number','quoteNumber')||window.state?.quote?.quoteNumber||quoteId),title:text(val(row,'Project Title','projectTitle')||window.state?.quote?.projectTitle||'Project Quote'),revision:Math.max(1,Math.trunc(numValue(val(row,'Revision','revision')||window.state?.quote?.revision||1))),total:quoteTotal(row),status:status(row),lines:quoteLines(row)};
+ const tiers=quoteTiers(row),tiered=isTiered(row);
+ return{row,quoteId,customerId,customer,tiered,tiers:tiers.map(tier=>({name:text(val(tier,'name','Name'))||'Option',items:Array.isArray(tier.items)?tier.items:[],total:tierTotal(tier)})),customerName:text(val(customer,'Customer Name','Name','customerName','name')||window.customerName?.(customerId)||'Customer'),customerEmail:text(val(customer,'Email','email')).trim().toLowerCase(),quoteNumber:(window.H38_HUMAN_NUMBERS?window.H38_HUMAN_NUMBERS.quoteNumber(row):'')||text(val(row,'Quote Number','quoteNumber')||window.state?.quote?.quoteNumber||''),title:text(val(row,'Project Title','projectTitle')||window.state?.quote?.projectTitle||'Project Quote'),revision:Math.max(1,Math.trunc(numValue(val(row,'Revision','revision')||window.state?.quote?.revision||1))),total:quoteTotal(row),status:status(row),portalOn:portalModuleOn(),lines:quoteLines(row)};
 }
 function ensureStatus(){let node=document.getElementById('h38QuoteDeliveryStatus');if(node)return node;const tools=document.querySelector('.page-tools');if(!tools||!quotePage())return null;node=document.createElement('div');node.id='h38QuoteDeliveryStatus';node.className='notice';node.hidden=true;node.setAttribute('role','status');node.setAttribute('aria-live','polite');tools.insertAdjacentElement('afterend',node);return node;}
 function clearPageArtifacts(){document.getElementById('h38ApproveSendQuoteButton')?.remove();document.getElementById('h38QuoteDeliveryStatus')?.remove();}
 function show(message,error){const node=ensureStatus();if(node){node.hidden=false;node.className=`notice${error?' warn':''}`;node.textContent=text(message);}if(typeof window.toast==='function')toast(message,Boolean(error));}
-function ensureDialog(){let dialog=document.getElementById('h38QuoteDeliveryDialog');if(dialog)return dialog;dialog=document.createElement('dialog');dialog.id='h38QuoteDeliveryDialog';dialog.className='quote-delivery-dialog';dialog.innerHTML='<form method="dialog"><h2>Approve & Send Quote</h2><div id="h38QuoteDeliverySummary"></div><label class="quote-send-confirm"><input id="h38QuoteDeliveryConfirm" type="checkbox"> <span>I reviewed the customer, scope, measurements, quantities, pricing, terms and total. Send this exact revision.</span></label><div class="notice warn"><strong>This is an external action.</strong> The exact revision will be locked, a PDF will be published to the private customer portal, and Supabase will send a secure invitation or sign-in email. No payment is charged and work does not start automatically.</div><div class="actions"><button id="h38CancelQuoteDelivery" value="cancel" class="secondary">Cancel</button><button id="h38ConfirmQuoteDelivery" type="button" disabled>Confirm Send</button></div></form>';document.body.appendChild(dialog);dialog.querySelector('#h38QuoteDeliveryConfirm').onchange=event=>{dialog.querySelector('#h38ConfirmQuoteDelivery').disabled=!event.target.checked;};dialog.querySelector('#h38ConfirmQuoteDelivery').onclick=()=>void deliver();return dialog;}
-function validate(details){if(!details.quoteId)throw new Error('Save the quote before sending.');if(!editable.has(details.status.toUpperCase()))throw new Error(`${details.status||'This quote'} is locked. Create a revision instead of sending over the existing copy.`);if(details.customerId==='GENERIC-QUOTE-CUSTOMER'||val(details.customer,'Internal Only','internalOnly')===true)throw new Error('Choose a real customer before sending. Generic Quote Customer is internal only.');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.customerEmail))throw new Error('Add a valid email address to the selected customer before sending.');if(!details.lines.length)throw new Error('Add at least one reviewed quote line before sending.');if(details.total<=0)throw new Error('The quote total must be greater than zero before sending.');}
-function summary(details){return `<div class="quote-send-summary"><div><span>Customer</span><strong>${esc(details.customerName)}</strong></div><div><span>Email</span><strong>${esc(details.customerEmail)}</strong></div><div><span>Quote</span><strong>${esc(details.quoteNumber)} · Revision ${esc(details.revision)}</strong></div><div><span>Project</span><strong>${esc(details.title)}</strong></div><div><span>Total</span><strong>${money(details.total)}</strong></div><div><span>Delivery</span><strong>Secure portal email + locked PDF</strong></div></div>`;}
-async function openDialog(){try{if(running)return;if(document.getElementById('quoteTitle')&&typeof window.saveQuote==='function'){show('Saving the final reviewed draft before confirmation…',false);await window.saveQuote();if(typeof window.sync==='function')await window.sync(false);}const details=currentDetails();validate(details);const dialog=ensureDialog();dialog.dataset.quoteId=details.quoteId;dialog.dataset.expectedRevision=String(details.revision);dialog.dataset.expectedTotal=String(details.total);dialog.querySelector('#h38QuoteDeliverySummary').innerHTML=summary(details);dialog.querySelector('#h38QuoteDeliveryConfirm').checked=false;dialog.querySelector('#h38ConfirmQuoteDelivery').disabled=true;dialog.showModal();}catch(error){show(error.message||String(error),true);}}
+function ensureDialog(){let dialog=document.getElementById('h38QuoteDeliveryDialog');if(dialog)return dialog;dialog=document.createElement('dialog');dialog.id='h38QuoteDeliveryDialog';dialog.className='quote-delivery-dialog';dialog.innerHTML='<form method="dialog"><h2>Approve & Send Quote</h2><div id="h38QuoteDeliverySummary"></div><label class="quote-send-confirm"><input id="h38QuoteDeliveryConfirm" type="checkbox"> <span>I reviewed the customer, scope, measurements, quantities, pricing, terms and total. Send this exact revision.</span></label><div class="notice warn" id="h38QuoteDeliveryPortalNote"><strong>This is an external action.</strong> The exact revision will be locked, a PDF will be published to the private customer portal, and Supabase will send a secure invitation or sign-in email. No payment is charged and work does not start automatically.</div><div class="actions"><button id="h38CancelQuoteDelivery" value="cancel" class="secondary">Cancel</button><button id="h38ConfirmQuoteDelivery" type="button" disabled>Confirm Send</button></div></form>';document.body.appendChild(dialog);dialog.querySelector('#h38QuoteDeliveryConfirm').onchange=event=>{dialog.querySelector('#h38ConfirmQuoteDelivery').disabled=!event.target.checked;};dialog.querySelector('#h38ConfirmQuoteDelivery').onclick=()=>void deliver();return dialog;}
+function validate(details){if(!details.quoteId)throw new Error('Save the quote before sending.');if(!editable.has(details.status.toUpperCase()))throw new Error(`${details.status||'This quote'} is locked. Create a revision instead of sending over the existing copy.`);if(details.customerId==='GENERIC-QUOTE-CUSTOMER'||val(details.customer,'Internal Only','internalOnly')===true)throw new Error('Choose a real customer before sending. Generic Quote Customer is internal only.');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.customerEmail))throw new Error('Add a valid email address to the selected customer before sending.');if(!hasLines(details))throw new Error(details.tiered?'Every Good / Better / Best option needs at least one reviewed line before sending.':'Add at least one reviewed quote line before sending.');if(details.total<=0)throw new Error('The quote total must be greater than zero before sending.');}
+function summary(details){if(details.tiered)return `<div class="quote-send-summary"><div><span>Customer</span><strong>${esc(details.customerName)}</strong></div><div><span>Email</span><strong>${esc(details.customerEmail)}</strong></div><div><span>Quote</span><strong>${esc(details.quoteNumber)} · Revision ${esc(details.revision)}</strong></div><div><span>Project</span><strong>${esc(details.title)}</strong></div>${details.tiers.map(tier=>`<div><span>${esc(tier.name)} option</span><strong>${money(tier.total)}</strong></div>`).join('')}<div><span>Total</span><strong>${money(details.total)}</strong></div><div><span>Options</span><strong>Customer picks one in the portal; the quote total updates to their choice.</strong></div><div><span>Delivery</span><strong>${details.portalOn?'Secure portal email + locked PDF':'Email + locked PDF — Customer Portal is OFF for this business'}</strong></div></div>`;return `<div class="quote-send-summary"><div><span>Customer</span><strong>${esc(details.customerName)}</strong></div><div><span>Email</span><strong>${esc(details.customerEmail)}</strong></div><div><span>Quote</span><strong>${esc(details.quoteNumber)} · Revision ${esc(details.revision)}</strong></div><div><span>Project</span><strong>${esc(details.title)}</strong></div><div><span>Total</span><strong>${money(details.total)}</strong></div><div><span>Delivery</span><strong>${details.portalOn?'Secure portal email + locked PDF':'Email + locked PDF — Customer Portal is OFF for this business'}</strong></div></div>`;}
+async function openDialog(){try{if(running)return;if(document.getElementById('quoteTitle')&&typeof window.saveQuote==='function'){show('Saving the final reviewed draft before confirmation…',false);await window.saveQuote();if(typeof window.sync==='function')await window.sync(false);}const details=currentDetails();validate(details);const dialog=ensureDialog();dialog.dataset.quoteId=details.quoteId;dialog.dataset.expectedRevision=String(details.revision);dialog.dataset.expectedTotal=String(details.total);dialog.querySelector('#h38QuoteDeliverySummary').innerHTML=summary(details);const portalNote=dialog.querySelector('#h38QuoteDeliveryPortalNote');if(portalNote&&!details.portalOn)portalNote.innerHTML='<strong>This is an external action — and the Customer Portal is OFF for this business.</strong> The exact revision will be locked and emailed with its PDF, but the customer cannot open or sign it from the portal link while the portal is off. Turn on the Customer Portal in Settings → Owner Controls first if the customer should review and sign in the portal. No payment is charged and work does not start automatically.';dialog.querySelector('#h38QuoteDeliveryConfirm').checked=false;dialog.querySelector('#h38ConfirmQuoteDelivery').disabled=true;dialog.showModal();}catch(error){show(error.message||String(error),true);}}
 async function invoke(details){const api=client(),sessionResult=await api.auth.getSession();if(sessionResult.error)throw sessionResult.error;const token=sessionResult.data.session?.access_token;if(!token)throw new Error('Sign in again before sending the quote.');const response=await fetch(`${cfg.url}/functions/v1/h38-quote-delivery`,{method:'POST',headers:{authorization:`Bearer ${token}`,apikey:cfg.publishableKey,'content-type':'application/json','x-client-info':'h38-quote-delivery-client-v1'},body:JSON.stringify({action:'deliverQuote',businessId:window.state?.businessId||'',quoteId:details.quoteId,expectedRevision:details.revision,expectedTotal:details.total,confirmOwnerReview:true})});let payload={};try{payload=await response.json();}catch(ignore){}if(!response.ok||payload.status!=='PASS')throw new Error(payload.message||`Quote delivery failed (${response.status}).`);return payload;}
 async function deliver(){if(running)return;const dialog=ensureDialog(),button=dialog.querySelector('#h38ConfirmQuoteDelivery');running=true;button.disabled=true;button.textContent='Sending securely…';const details={...currentDetails(),quoteId:dialog.dataset.quoteId,revision:numValue(dialog.dataset.expectedRevision),total:numValue(dialog.dataset.expectedTotal)};dialog.close();show('Locking the reviewed revision, creating the customer PDF and sending secure access…',false);try{const result=await invoke(details);show(result.message||`Quote ${details.quoteNumber} sent securely to ${details.customerEmail}.`,false);if(typeof window.loadBusiness==='function')await window.loadBusiness(window.state.businessId,true);if(typeof window.renderQuotes==='function')window.renderQuotes();}catch(error){show(`${error.message||String(error)} Nothing else was sent automatically.`,true);}finally{running=false;button.disabled=false;button.textContent='Confirm Send';}}
 function addButton(){
- if(!quotePage()){clearPageArtifacts();return;}
+ if(!quotePage()||!document.getElementById('quoteTitle')){clearPageArtifacts();return;}
  const tools=document.querySelector('.page-tools');if(!tools)return;
- const details=currentDetails();let button=document.getElementById('h38ApproveSendQuoteButton');if(!button){button=document.createElement('button');button.id='h38ApproveSendQuoteButton';button.type='button';tools.appendChild(button);}const stateName=details.status.toUpperCase();if(stateName==='PRESENTED'){button.textContent='✓ Quote Presented';button.disabled=true;button.className='secondary';}else if(['ACCEPTED','CONVERTED','VOIDED','REJECTED','EXPIRED','CANCELLED'].includes(stateName)){button.textContent=`${details.status||'Quote'} — Locked`;button.disabled=true;button.className='secondary';}else{button.textContent='Approve & Send Quote';button.disabled=!details.quoteId||!details.lines.length;button.className='';button.onclick=()=>void openDialog();}ensureStatus();
+ const details=currentDetails();let button=document.getElementById('h38ApproveSendQuoteButton');if(!button){button=document.createElement('button');button.id='h38ApproveSendQuoteButton';button.type='button';tools.appendChild(button);}const stateName=details.status.toUpperCase();if(stateName==='PRESENTED'){button.textContent='✓ Quote Presented';button.disabled=true;button.className='secondary';}else if(['ACCEPTED','CONVERTED','VOIDED','REJECTED','EXPIRED','CANCELLED'].includes(stateName)){button.textContent=`${details.status||'Quote'} — Locked`;button.disabled=true;button.className='secondary';}else{button.textContent='Approve & Send Quote';button.disabled=!details.quoteId||!hasLines(details);button.className='';button.onclick=()=>void openDialog();}ensureStatus();
 }
 const baseRender=window.renderQuotes;if(typeof baseRender==='function')window.renderQuotes=function(){baseRender();addButton();};
 const basePreview=window.renderQuotePreview;if(typeof basePreview==='function')window.renderQuotePreview=function(){basePreview();addButton();};
@@ -19834,7 +19840,7 @@ window.H38_MANUAL_IMAGE_CONTROLS=Object.freeze({enabled:true,build:BUILD,manualS
     }
     if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
       const script = document.createElement('script');
-      script.src = './job-lifecycle.js?build=20261101-wave3tail10-1';
+      script.src = './job-lifecycle.js?build=20261102-e2e-clockout-photo-1';
       script.dataset.h38JobLifecycle = '1';
       document.body.appendChild(script);
     }
@@ -23320,19 +23326,21 @@ window.H38_NORTHERN_BOUNCIE_FLEET=Object.freeze({enabled:true,build:BUILD,provid
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261008-inventory-module-1';
+const BUILD='20261025-toggles-server-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
 
 // Feature toggles - granular on/off controls
 const FEATURE_TOGGLES=[
-  {id:'clockout_photos',title:'Photos for clock out',desc:'Require photos when staff clock out of a job.',icon:'📸',default:true,category:'Time Tracking'},
+  {id:'clockout_photos',title:'Photos for clock out',desc:'Ask staff for a photo when they clock out of a job. If they skip it, they must confirm, and the exception is noted on the time entry.',icon:'📸',default:true,category:'Time Tracking'},
   {id:'clockout_notes',title:'Notes for clock out',desc:'Require notes when staff clock out.',icon:'📝',default:false,category:'Time Tracking'},
   {id:'job_photos',title:'Job photos required',desc:'Require photos to be attached to jobs.',icon:'📷',default:false,category:'Jobs'},
   {id:'customer_signatures',title:'Customer signatures',desc:'Require customer signature on completed work.',icon:'✍️',default:false,category:'Jobs'},
   {id:'quote_approval',title:'Quote approval workflow',desc:'Require owner approval before quotes can be sent.',icon:'✅',default:true,category:'Quotes'},
+  {id:'signed_deposit_acceptance',title:'Signed quote acceptance + deposit',desc:'Customers accept a quote — and approve priced change orders on their jobs — in the portal by typing their name as a signature. The signature and time are stored on the exact quote version they signed, and the Office creates ONE deposit invoice automatically — the default percent below of the quote total (a quote can carry its own percent). Deposits are recorded by hand in Money (Venmo, Cash App, check or cash), like any other payment. Nothing charges itself. Off by default.',icon:'🖋️',default:false,category:'Quotes'},
   {id:'auto_reminders',title:'Auto payment reminders',desc:'Automatically send payment reminders for overdue invoices.',icon:'🔔',default:false,category:'Money'},
+  {id:'auto_invoice_on_complete',title:'Invoice draft when a job is done',desc:'When a job is marked complete, the Office drafts its invoice for you — priced from the job\'s quote where it has one, or at $0 with a note if the job had no price — and all you do is review it and tap send in Money. Nothing is ever sent automatically. On by default; turn this off to prepare invoices by hand like before.',icon:'🧾',default:true,category:'Money'},
   {id:'payroll_check_printing',title:'Payroll check printing',desc:'Print paychecks on check stock from your own bank, straight from a finalized pay run. The Office prints the date, employee, amounts and pay stub only — the MICR line and account numbers stay on your bank stock. Off by default.',icon:'🖨️',default:false,category:'Money'},
   {id:'gps_tracking',title:'GPS location tracking',desc:'Track staff location during work hours.',icon:'📍',default:false,category:'Fleet'},
   {id:'ai_suggestions',title:'AI suggestions',desc:'Show AI-powered suggestions throughout the app.',icon:'🤖',default:true,category:'AI'},
@@ -23407,11 +23415,37 @@ const MODULES=[
   {id:'messages',title:'Messages',icon:'',desc:'Customer communications'},
 ];
 
+function serverToggles(){
+  // The server-side FeatureToggles record (business_records) for this
+  // business — the copy that follows the business across devices.
+  try{
+    const rows=(window.state&&window.state.snapshot&&window.state.snapshot.FeatureToggles)||[];
+    const mine=rows.filter(r=>text(r['Business ID']||r.businessId)===businessId());
+    const row=mine.sort((a,b)=>text(b['Updated Time']||b.updatedAt).localeCompare(text(a['Updated Time']||a.updatedAt)))[0];
+    if(row){
+      const t=row.Toggles||row.toggles;
+      if(t&&typeof t==='object') return t;
+    }
+  }catch(e){}
+  return null;
+}
+
 function getToggles(){
+  let local=null;
   try{
     const raw=localStorage.getItem('h38-feature-toggles-'+businessId());
-    if(raw) return JSON.parse(raw);
+    if(raw) local=JSON.parse(raw);
   }catch(e){}
+  const server=serverToggles();
+  if(local||server){
+    // Server wins per key: an owner's choice saved on any device is the
+    // business's setting everywhere. Local values remain as the fallback
+    // for keys the server record has never carried.
+    const out={};
+    if(local) Object.assign(out,local);
+    if(server) Object.assign(out,server);
+    return out;
+  }
   const defaults={};
   FEATURE_TOGGLES.forEach(f=>defaults[f.id]=f.default);
   return defaults;
@@ -23436,10 +23470,18 @@ function getModuleVisibility(){
 }
 
 function saveToggles(toggles){
-  localStorage.setItem('h38-feature-toggles-'+businessId(),JSON.stringify(toggles));
-  // Queue for sync
+  try{localStorage.setItem('h38-feature-toggles-'+businessId(),JSON.stringify(toggles));}catch(e){}
+  // Persist server-side per business (business_records FeatureToggles) so
+  // the setting follows the business across devices and browsers. The
+  // optimistic record is what the sync layer actually writes; without it
+  // this op never mapped to a server record and the toggles lived and
+  // died in one device's localStorage — the root cause of the Oct 2026
+  // mileage-arming failure (the phone toggle never reached the server,
+  // so the native runner never armed).
   if(typeof queueOperation==='function'){
-    queueOperation('SAVE_FEATURE_TOGGLES','FeatureToggles',businessId(),{toggles,updatedAt:new Date().toISOString()}).catch(()=>{});
+    const stamp=new Date().toISOString();
+    queueOperation('SAVE_FEATURE_TOGGLES','FeatureToggles',businessId(),{toggles,updatedAt:stamp},
+      {collection:'FeatureToggles',record:{'Business ID':businessId(),'Toggles':toggles,'Updated Time':stamp,'Record Version':1},idKeys:['Business ID']}).catch(()=>{});
   }
 }
 
@@ -23453,13 +23495,11 @@ function saveModuleVisibility(visibility){
 }
 
 function applyModuleVisibility(visibility){
-  // Hide nav items for disabled modules
-  MODULES.forEach(m=>{
-    const navItem=document.querySelector(`[data-nav="${m.id}"]`);
-    if(navItem){
-      navItem.style.display=visibility[m.id]===false?'none':'';
-    }
-  });
+  /* WS4 B12 (spec §7.2 R1/R2): retired. Nav items for OFF modules are
+   * not rendered at all — both nav authorities filter with
+   * window.H38ModuleVisible — so there is nothing to hide after the fact.
+   * Applying visibility now means asking the nav to re-render. */
+  try{if(typeof window.renderNav==='function')window.renderNav();}catch(e){}
 }
 
 function isFeatureEnabled(featureId){
@@ -23472,6 +23512,31 @@ function isModuleVisible(moduleId){
   const visibility=getModuleVisibility();
   return visibility[moduleId]!==false;
 }
+
+/* WS4 nav-scaling predicate (spec §7.2 R1, helper only — the nav
+ * authorities wire it in a later phase). A page is module-visible unless
+ * (a) Owner Controls module visibility hides it, or (b) a server
+ * business_module_settings row for it exists and is not enabled.
+ * Capabilities stay with allowedPages() in the nav renderers; this
+ * predicate covers the moduleSettings + visibility inputs only. */
+const PAGE_SERVER_MODULE_KEYS={inventory:'inventory_enabled',machineShop:'machine_shop',machine_shop:'machine_shop',repairGuide:'repair_guide',vendors:'recommended_vendors',ownerChat:'owner_chat'};
+function h38ModuleVisible(pageKey){
+  const key=text(pageKey);
+  if(!key) return true;
+  const visibilityId={work:'jobs',people:'team'}[key]||key;
+  if(MODULES.some(m=>m.id===visibilityId)&&!isModuleVisible(visibilityId)) return false;
+  const serverKey=PAGE_SERVER_MODULE_KEYS[key]||key;
+  const candidates=[serverKey,serverKey+'_enabled'];
+  try{
+    const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+    for(const candidate of candidates){
+      const row=list.find(r=>text(r.moduleKey||r.module_key)===candidate);
+      if(row) return row.enabled===true;
+    }
+  }catch(e){}
+  return true;
+}
+window.H38ModuleVisible=h38ModuleVisible;
 
 // ---- Machine Shop: server-backed tenant setting ----
 // Stored in business_module_settings (module_key='machine_shop', enabled).
@@ -23581,6 +23646,124 @@ function bindLeadResponder(){
       if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
     }
   };
+}
+
+// Signed quote acceptance + deposit (server-side mirror — CANONICAL toggle
+// shape). Stored in business_module_settings (module_key
+// 'signed_deposit_acceptance', enabled boolean, config {depositPercent}).
+// The h38-customer-portal edge function reads ONLY this row before it lets
+// a customer sign a quote, so the owner's intent is enforced even when the
+// portal is opened on another device. Missing row or enabled!==true means
+// OFF — the default for every tenant — and the portal keeps the plain
+// approve flow. The business's default deposit percent lives in
+// config.depositPercent (50 when never set); a quote's own "Deposit
+// Percent" wins over it at signing time. The local feature toggle is kept
+// in sync only as a display fallback.
+const SIGNED_DEPOSIT_KEY='signed_deposit_acceptance';
+const SIGNED_DEPOSIT_DEFAULT_PERCENT=50;
+function signedDepositSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===SIGNED_DEPOSIT_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isSignedDepositEnabled(){
+  const row=signedDepositSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('signed_deposit_acceptance');
+}
+function signedDepositPercent(){
+  const row=signedDepositSettingRow();
+  const raw=row&&row.config?row.config.depositPercent:undefined;
+  const n=Number(raw);
+  return raw!==undefined&&raw!==null&&Number.isFinite(n)?Math.min(100,Math.max(0,n)):SIGNED_DEPOSIT_DEFAULT_PERCENT;
+}
+// Owner/admin only. Mirrors the toggle + default percent to
+// business_module_settings and keeps the local toggle in sync. Throws when
+// the server write fails.
+async function setSignedDepositEnabled(enabled,percent){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can change this setting.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const pctRaw=(typeof percent==='string'&&percent.trim()==='')?NaN:Number(percent);
+  const pct=Number.isFinite(pctRaw)?Math.min(100,Math.max(0,pctRaw)):signedDepositPercent();
+  const cfg={depositPercent:pct,updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:SIGNED_DEPOSIT_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===SIGNED_DEPOSIT_KEY);
+    const snap={moduleKey:SIGNED_DEPOSIT_KEY,module_key:SIGNED_DEPOSIT_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['signed_deposit_acceptance']=!!enabled;
+  saveToggles(toggles);
+}
+// Default-percent editor rendered under the signed-acceptance toggle card.
+function bindSignedDeposit(){
+  const checkbox=document.querySelector('[data-toggle="signed_deposit_acceptance"]');
+  if(!checkbox) return;
+  const card=checkbox.closest('article')||checkbox.closest('.row');
+  if(!card||card.querySelector('[data-deposit-percent]')) return;
+  const box=document.createElement('div');
+  box.dataset.depositPercent='1';
+  box.innerHTML=`<label style="display:block;margin-top:8px"><small>Default deposit — percent of the quote total collected on signing:</small><span style="display:flex;gap:6px;align-items:center;margin-top:4px"><input data-deposit-percent-input type="number" min="0" max="100" step="1" value="${signedDepositPercent()}" style="width:90px"> %</span></label><button type="button" class="secondary" data-deposit-percent-save>Save percent</button>`;
+  card.appendChild(box);
+  box.querySelector('[data-deposit-percent-save]').onclick=async()=>{
+    try{
+      await setSignedDepositEnabled(isSignedDepositEnabled(),box.querySelector('[data-deposit-percent-input]').value);
+      if(typeof toast==='function') toast('Default deposit percent saved.');
+    }catch(e){
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }
+  };
+}
+
+// Auto-send review requests (server-side mirror — CANONICAL toggle shape).
+// Stored in business_module_settings (module_key='auto_send_review_requests',
+// enabled boolean) — the same shape as the other server-enforced toggles.
+// The h38-review-scheduler edge function (pg_cron, every 10 minutes) reads
+// THIS row and nothing else before it claims a due review request, so the
+// owner's intent is enforced even when the Office is closed. Missing row or
+// enabled!==true means OFF. The local feature toggle is kept in sync only
+// as a display fallback for a browser that has not loaded the snapshot yet.
+const AUTO_SEND_REVIEW_KEY='auto_send_review_requests';
+function autoSendReviewSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===AUTO_SEND_REVIEW_KEY)||null;
+}
+// Server snapshot wins when present; otherwise fall back to the local toggle.
+function isAutoSendReviewEnabled(){
+  const row=autoSendReviewSettingRow();
+  if(row) return row.enabled===true;
+  return isFeatureEnabled('auto_send_review_requests');
+}
+// Owner/admin only. Mirrors the toggle to business_module_settings and keeps
+// the local toggle in sync. Throws when the server write fails.
+async function setAutoSendReviewEnabled(enabled){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can turn Auto-send review requests on or off.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const cfg={updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:AUTO_SEND_REVIEW_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===AUTO_SEND_REVIEW_KEY);
+    const snap={moduleKey:AUTO_SEND_REVIEW_KEY,module_key:AUTO_SEND_REVIEW_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  const toggles=getToggles();
+  toggles['auto_send_review_requests']=!!enabled;
+  saveToggles(toggles);
 }
 
 // Owner notifications (server-side mirror — CANONICAL toggle shape).
@@ -24051,7 +24234,11 @@ function bindCustomerPortal(){
 function renderOwnerControls(){
   const toggles=getToggles();
   const visibility=getModuleVisibility();
-  
+  /* WS4 B10: rendering change only. The checked state, data-toggle /
+   * data-module ids, storage keys, defaults and server writes below are
+   * byte-identical in behavior to the previous list rendering — the same
+   * inputs are emitted, now as cards in the .h38-addon-grid. */
+  const featureOn=f=>(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='signed_deposit_acceptance'?isSignedDepositEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='auto_send_review_requests'?isAutoSendReviewEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):isFeatureEnabled(f.id));
   const categories={};
   FEATURE_TOGGLES.forEach(f=>{
     if(!categories[f.category]) categories[f.category]=[];
@@ -24059,21 +24246,22 @@ function renderOwnerControls(){
   });
 
   const toggleSections=Object.entries(categories).map(([cat,features])=>`
-    <section class="card span6">
+    <section class="card span12">
       <h2>${esc(cat)}</h2>
-      <div class="list">
-        ${features.map(f=>`
-          <div class="row">
+      <div class="h38-addon-grid">
+        ${features.map(f=>{const on=!!featureOn(f);return `
+          <article class="card h38-addon-card">
             <div class="row-top">
               <strong>${f.icon} ${esc(f.title)}</strong>
-              <label class="switch">
-                <input type="checkbox" data-toggle="${f.id}" ${(f.id==='repair_guide_enabled'?isRepairGuideEnabled():f.id==='recommended_vendors_enabled'?isRecommendedVendorsEnabled():f.id==='inventory_enabled'?isInventoryEnabled():f.id==='online_payments_enabled'?isOnlinePaymentsEnabled():f.id==='ai_lead_responder'?isLeadResponderEnabled():f.id==='owner_notify_customer'?isOwnerNotifyEnabled('customer'):f.id==='owner_notify_review'?isOwnerNotifyEnabled('review'):f.id==='owner_notify_push'?isOwnerNotifyEnabled('push'):toggles[f.id])?'checked':''}>
-                <span class="slider"></span>
-              </label>
+              <span class="pill ${on?'good':''}">${on?'On':'Off'}</span>
             </div>
-            <small>${esc(f.desc)}</small>
-          </div>
-        `).join('')}
+            <p class="muted small">${esc(f.desc)}</p>
+            <label class="switch">
+              <input type="checkbox" data-toggle="${f.id}" ${on?'checked':''}>
+              <span class="slider"></span>
+            </label>
+          </article>
+        `;}).join('')}
       </div>
     </section>
   `).join('');
@@ -24082,40 +24270,100 @@ function renderOwnerControls(){
     <section class="card span12">
       <h2>Module Visibility</h2>
       <p class="muted small">Turn off modules you don't use. Hidden modules won't appear in navigation.</p>
-      <div class="list">
+      <div class="h38-addon-grid">
         ${MODULES.map(m=>`
-          <div class="row owner-controls-module-row">
+          <article class="card h38-addon-card owner-controls-module-row">
             <div class="row-top">
               <strong>${m.icon?m.icon+' ':''}${esc(m.title)}</strong>
-              <label class="switch">
-                <input type="checkbox" data-module="${m.id}" ${visibility[m.id]!==false?'checked':''}>
-                <span class="slider"></span>
-              </label>
+              <span class="pill ${visibility[m.id]!==false?'good':''}">${visibility[m.id]!==false?'On':'Off'}</span>
             </div>
-            <small>${esc(m.desc)}</small>
-          </div>
+            <p class="muted small">${esc(m.desc)}</p>
+            <label class="switch">
+              <input type="checkbox" data-module="${m.id}" ${visibility[m.id]!==false?'checked':''}>
+              <span class="slider"></span>
+            </label>
+          </article>
         `).join('')}
+      </div>
+    </section>
+  `;
+
+  const setupDetails=(html,label)=>html?`<details class="h38-addon-setup"><summary>Set up — ${esc(label)}</summary>${html}</details>`:'';
+  const serverModuleOn=key=>{try{const row=((window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[]).find(r=>text(r.moduleKey||r.module_key)===key);return row?row.enabled===true:false;}catch(e){return false;}};
+  const integrationCards=`
+    <section class="card span12">
+      <h2>Integrations</h2>
+      <div class="h38-addon-grid">
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>QuickBooks (tax)</strong><span class="pill">Set up in Accounting</span></div>
+          <p class="muted small">Connect QuickBooks for tax time. Your books stay in the Office.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">The QuickBooks card lives in Accounting, beside your bills, with its connection state.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="accounting">Open Accounting</button></div></details>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>AI receptionist</strong><span class="pill ${serverModuleOn('ai_receptionist')?'good':''}">${serverModuleOn('ai_receptionist')?'On':'Off'}</span></div>
+          <p class="muted small">Hank answers and drafts follow-ups for review. Nothing sends without your approval.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Receptionist setup and testing live in Messages, on the Receptionist tab.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="messages">Open Messages</button></div></details>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Phone &amp; texting</strong><span class="pill ${serverModuleOn('sms_sender')?'good':''}">${serverModuleOn('sms_sender')?'On':'Off'}</span></div>
+          <p class="muted small">Your own carrier account and number for customer texts. Setup is $99 one-time, free for the founding 10.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Texting setup lives in Messages, on the Customer texts tab, with consent and STOP rules.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="messages">Open Messages</button></div></details>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Online booking</strong></div>
+          <p class="muted small">Customers request service online; requests land on Today and in Customers as new work.</p>
+          <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Booking requests arrive as intake — review them on Today or in Customers. The AI lead responder toggle above drafts follow-ups when booking is on.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="today">Open Today</button></div></details>
+        </article>
+      </div>
+    </section>
+  `;
+
+  const comingSoonCards=`
+    <section class="card span12">
+      <h2>Coming soon</h2>
+      <div class="h38-addon-grid">
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Tap to Pay</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">Take a card payment by tapping a card to your phone.</p>
+          <p class="muted small">Customers can pay online through your Stripe account, or record a manual payment.</p>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Bill pay</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">Pay vendor bills from the Office.</p>
+          <p class="muted small">Prepare and approve bills in Accounting today.</p>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Rentals</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">Rent equipment by the day or week, take deposits, and sell — all in the same books.</p>
+        </article>
+        <article class="card h38-addon-card">
+          <div class="row-top"><strong>Crew phone tracking</strong><span class="pill">Coming soon</span></div>
+          <p class="muted small">See crew phones on the map without a separate vehicle device.</p>
+          <p class="muted small">Connect Bouncie for live vehicle positions today.</p>
+        </article>
       </div>
     </section>
   `;
 
   return `
     <div class="grid">
-      <section class="card span12">
-        <p class="muted">Turn features on/off and control which modules appear in your Office. Changes apply immediately.</p>
-      </section>
-      ${renderMachineShopCard()}
-      ${renderCustomerPortalCard()}
-      ${renderOnlinePaymentsCard()}
+      ${setupDetails(renderMachineShopCard(),'Machine Shop')}
+      ${setupDetails(renderCustomerPortalCard(),'Customer portal')}
+      ${setupDetails(renderOnlinePaymentsCard(),'Online payments (Stripe)')}
       ${renderRepairWarningsCard()}
       ${toggleSections}
       ${moduleSection}
+      ${integrationCards}
+      ${comingSoonCards}
     </div>
   `;
 }
 
+
 function bindOwnerControls(){
+  document.querySelectorAll('[data-h38-addon-open]').forEach(btn=>{if(btn.dataset.h38Bound)return;btn.dataset.h38Bound='1';btn.onclick=()=>{if(typeof window.openPage==='function')window.openPage(btn.dataset.h38AddonOpen);};});
   bindLeadResponder();
+  bindSignedDeposit();
   bindMachineShop();
   bindCustomerPortal();
   bindOnlinePayments();
@@ -24188,6 +24436,27 @@ function bindOwnerControls(){
         }
         return;
       }
+      // Auto-send review requests is server-backed: the h38-review-scheduler
+      // edge function reads ONLY the mirrored business_module_settings row
+      // before claiming due review texts. Revert locally if the write fails.
+      if(id==='auto_send_review_requests'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON auto-send review requests? When a job is marked complete, the Office will automatically text the customer your review-request message — no per-job prompt. It uses your template, send delay and review links from Settings, and still respects quiet hours (9pm–8am), consent and STOP.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setAutoSendReviewEnabled(want);
+          if(typeof toast==='function') toast('Auto-send review requests '+(want?'turned ON.':'turned OFF.'));
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
       // Owner notification switches are server-backed: the h38-owner-notify
       // edge function reads ONLY the mirrored business_module_settings row
       // (module_key 'owner_notifications') before producing alerts.
@@ -24219,6 +24488,28 @@ function bindOwnerControls(){
         try{
           await setLeadResponderEnabled(want,leadResponderTemplate());
           if(typeof toast==='function') toast('AI lead responder '+(want?'turned ON. Hank will draft follow-ups for new bookings.':'turned OFF.'));
+        }catch(e){
+          checkbox.checked=!want;
+          if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+        }finally{
+          checkbox.disabled=false;
+        }
+        return;
+      }
+      // Signed quote acceptance is server-backed: the customer portal edge
+      // function reads ONLY the mirrored business_module_settings row
+      // before it lets a customer sign or creates the deposit invoice.
+      // Revert locally if the write fails.
+      if(id==='signed_deposit_acceptance'){
+        const want=checkbox.checked;
+        if(want){
+          const ok=window.confirm('Turn ON signed quote acceptance? Customers will accept quotes in the portal by typing their name as a signature, and the Office will create a deposit invoice automatically (your default percent of the quote total, or the quote\'s own percent when it has one). Deposits are still recorded by hand — nothing charges itself.');
+          if(!ok){checkbox.checked=false;return;}
+        }
+        checkbox.disabled=true;
+        try{
+          await setSignedDepositEnabled(want,signedDepositPercent());
+          if(typeof toast==='function') toast('Signed quote acceptance '+(want?'turned ON.':'turned OFF.'));
         }catch(e){
           checkbox.checked=!want;
           if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
@@ -24283,11 +24574,17 @@ window.H38OwnerControls={
   isInventoryEnabled:isInventoryEnabled,
   setInventoryEnabled:setInventoryEnabled,
   setLeadResponderEnabled:setLeadResponderEnabled,
+  isLeadResponderEnabled:isLeadResponderEnabled,
+  isAutoSendReviewEnabled:isAutoSendReviewEnabled,
+  setAutoSendReviewEnabled:setAutoSendReviewEnabled,
+  isSignedDepositEnabled:isSignedDepositEnabled,
+  setSignedDepositEnabled:setSignedDepositEnabled,
+  signedDepositPercent:signedDepositPercent,
   isOwnerNotifyEnabled:isOwnerNotifyEnabled,
   setOwnerNotifyEnabled:setOwnerNotifyEnabled,
   ownerNotifyResolved:ownerNotifyResolved,
-  isLeadResponderEnabled:isLeadResponderEnabled,
   isModuleVisible:isModuleVisible,
+  H38ModuleVisible:h38ModuleVisible,
   isMachineShopEnabled:isMachineShopEnabled,
   setMachineShop:setMachineShop,
   isCustomerPortalEnabled:isCustomerPortalEnabled,
@@ -24301,6 +24598,31 @@ window.H38OwnerControls={
   MODULES:MODULES,
   BUILD
 };
+
+// One-shot migration (2026-10-25): if this business has toggles saved in
+// this device's localStorage but no server FeatureToggles record yet,
+// push the local values up — owner/admin only, once per page load, and
+// only after the snapshot has hydrated (moduleSettings present), so an
+// existing server record is never overwritten by a stale local copy.
+let featureToggleSeedDone=false;
+function seedFeatureTogglesToServer(){
+  if(featureToggleSeedDone)return;
+  const bid=businessId();
+  if(!bid)return;
+  const snapshot=window.state&&window.state.snapshot;
+  if(!snapshot||!Array.isArray(snapshot.moduleSettings))return;
+  const user=snapshot.user;
+  const role=text(user&&(user.roleName||user.role)).toLowerCase();
+  if(role!=='owner'&&role!=='administrator')return;
+  if(serverToggles()){featureToggleSeedDone=true;return;}
+  let raw=null;
+  try{raw=localStorage.getItem('h38-feature-toggles-'+bid);}catch(e){}
+  if(!raw)return;
+  featureToggleSeedDone=true;
+  saveToggles(getToggles());
+}
+window.addEventListener('h38:business-snapshot-updated',()=>{try{seedFeatureTogglesToServer();}catch(e){}});
+setTimeout(()=>{try{seedFeatureTogglesToServer();}catch(e){}},4000);
 
 // Auto-apply on load
 if(document.readyState==='loading'){
@@ -27032,7 +27354,7 @@ window.H38InventoryModule={
 // Flow:
 //   1. Trigger (or UI) calls H38SmsTemplates.compose(template, recordData),
 //      then H38Sms.sendSms({to, body, category, ...}).
-//   2. This module validates: gateway toggle ON, provider connected, E.164 number,
+//   2. This module validates: provider connected, E.164 number,
 //      explicit customer consent (blocks Opted Out / Unknown), category preference,
 //      segment limits, quiet hours (sets Deliver After).
 //   3. It writes an smsThreads row with Status 'Queued — Owner Approval Required'
@@ -27379,11 +27701,12 @@ function smsSegmentCount(body){
 }
 
 // ---- The seam: validate + queue for owner approval. Never sends directly. ----
+// The sms_gateway toggle gates actual SENDS, not queueing: it is enforced in
+// the one immediate-send branch below (phone bridge) and at send time in
+// sms-approval-runtime.js. Queueing with the gateway off is deliberate —
+// e.g. review asks must queue when their own auto-send toggle is on.
 async function sendSms(opts){
   opts=opts||{};
-  if(!smsGatewayEnabled()){
-    throw new Error('SMS sending is OFF. Enable it in Settings → Owner Controls → SMS sending (gateway).');
-  }
   var cfg=smsProviderConfig();
   var to=normalizeE164(opts.to);
   var body=String(opts.body==null?'':opts.body).trim();
@@ -27436,6 +27759,11 @@ async function sendSms(opts){
   // Immediate send — used for explicit testing only (opts.via or opts.immediate).
   // Trigger/UI drafts always take the queue-for-approval path below instead.
   if(usePhoneBridge){
+    // The phone-bridge branch is a real immediate send, so the gateway
+    // toggle is enforced here (it no longer gates queueing above).
+    if(!smsGatewayEnabled()){
+      throw new Error('SMS sending is OFF. Enable it in Settings → Owner Controls → SMS sending (gateway).');
+    }
     sendViaPhoneBridge(to,body); // throws when unavailable or too long
     var pbThreadId=opts.threadId||newId('SMS-THREAD');
     var pbPurpose=String(opts.purpose||'Customer text');
@@ -27459,7 +27787,7 @@ async function sendSms(opts){
   if(segments>MAX_SEGMENTS){
     throw new Error('Message is too long ('+segments+' segments). Keep it under '+MAX_SEGMENTS+' segments.');
   }
-  var deliverAfter=text(opts.deliverAfter)||(deliveryAllowed(new Date())?'':nextDeliveryTime().toISOString());
+  var deliverAfter=String(opts.deliverAfter||'')||(deliveryAllowed(new Date())?'':nextDeliveryTime().toISOString());
   // Pre-approved sends: the owner pre-approved this message category by enabling
   // its auto-send toggle (e.g. auto review requests). The thread skips the
   // per-message approval queue; consent, STOP, quiet-hours and category rules
@@ -27937,6 +28265,14 @@ async function sendThreadNow(thread){
     await saveThreadStatus(thread,'Approved — Queued to Send',{});
     return {sent:false,queued:true,offline:true};
   }
+  // Gateway gate at send time (queueing is never gated): while SMS sending
+  // is OFF, hold the thread exactly as queued — deliberately no 'Failed'
+  // status — so it can still be sent later from the same queue entry.
+  try{
+    if(window.H38Sms&&typeof window.H38Sms.smsGatewayEnabled==='function'&&!window.H38Sms.smsGatewayEnabled()){
+      return {sent:false,blocked:'gateway-off',error:'SMS sending is OFF. Enable it in Settings → Owner Controls → SMS sending (gateway).'};
+    }
+  }catch(e){}
   try{
     var r=await authedFetch('h38-send-sms',{
       to:to,body:body,businessId:bizId(),threadId:threadId,

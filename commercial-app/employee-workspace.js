@@ -28,7 +28,36 @@ function mergeSnapshot(collection,row,keys){
   window.dispatchEvent(new CustomEvent('h38:business-snapshot-updated',{detail:{source:'employee-workspace',collection}}));
 }
 async function clockInToTask(task){if(!isStaff())throw new Error('Staff sign-in is required.');const taskId=text(task?.['Task ID']||task?.taskId),jobId=text(task?.['Job ID']||task?.jobId);const result=await rpc('business_office_clock_in',{p_business_id:businessId(),p_job_id:jobId||null,p_task_id:taskId||null,p_notes:null});workspaceCache=null;mergeSnapshot('timeEntries',result,['Time Entry ID','timeEntryId']);toast(taskId?'Clocked in to assigned task.':'Clocked in.');return result;}
-async function clockOut(){if(!isStaff())throw new Error('Staff sign-in is required.');const result=await rpc('business_office_clock_out',{p_business_id:businessId(),p_notes:null});workspaceCache=null;mergeSnapshot('timeEntries',result,['Time Entry ID','timeEntryId']);toast('Clocked out.');return result;}
+function clockOutPhotoRequired(){try{return !!(window.H38OwnerControls&&typeof window.H38OwnerControls.isEnabled==='function'&&window.H38OwnerControls.isEnabled('clockout_photos'));}catch(_){return false;}}
+function openTimeEntry(){const snap=state().snapshot||{};let rows=Array.isArray(snap.timeEntries)?snap.timeEntries:[];if(!rows.length){try{if(typeof window.records==='function')rows=window.records('timeEntries')||[];}catch(_){}}const userId=text(snap.user?.userId||snap.user?.id);const open=rows.filter(row=>{if(!row)return false;if(!text(row['Start Time']||row.startTime))return false;if(text(row['End Time']||row.endTime))return false;const rowUser=text(row['User ID']||row.userId);if(userId&&rowUser&&rowUser!==userId)return false;return true;});return open.length?open[open.length-1]:null;}
+async function confirmClockOut(message){try{if(window.H38Flow&&typeof window.H38Flow.confirm==='function')return !!(await window.H38Flow.confirm({message}));}catch(_){}try{return !!window.confirm(message);}catch(_){return false;}}
+function pickClockOutPhoto(){return new Promise(resolve=>{let settled=false;const done=value=>{if(settled)return;settled=true;resolve(value);};try{const input=document.createElement('input');input.type='file';input.accept='image/*';input.capture='environment';input.onchange=()=>done(input.files&&input.files.length?input.files:null);input.oncancel=()=>done(null);window.addEventListener('focus',()=>setTimeout(()=>{if(!input.files||!input.files.length)done(null);},800),{once:true});input.click();}catch(_){done(null);}});}
+// Owner Controls 'clockout_photos' gate, shared by every clock-out path
+// (this module's clockOut and erp-foundation's clock('out')). Returns
+// {notes:null} when no note is needed (toggle off, or photo captured),
+// {notes:'Clock-out photo not captured (owner setting on)'} when the user
+// explicitly confirms clocking out without a photo — the exception lands in
+// the RPC notes so it is auditable in payroll — or {abort:true} when the
+// user will not confirm, in which case clock-out must not proceed.
+async function ensureClockOutPhoto(){
+  if(!clockOutPhotoRequired())return{notes:null};
+  const entry=openTimeEntry();
+  const jobId=text(entry?.['Job ID']||entry?.jobId);
+  if(entry&&jobId){
+    const want=await confirmClockOut('Photos for clock out is on for this business. Take a photo for this clock-out?');
+    if(want){
+      const files=await pickClockOutPhoto();
+      if(files&&files.length&&typeof window.handleAttachmentFiles==='function'){
+        await window.handleAttachmentFiles(files,'Job',jobId,'Internal',{});
+        return{notes:null};
+      }
+    }
+  }
+  const anyway=await confirmClockOut('No clock-out photo was captured. Clock out anyway? The exception will be noted on the time entry.');
+  if(!anyway)return{abort:true};
+  return{notes:'Clock-out photo not captured (owner setting on)'};
+}
+async function clockOut(notes){if(!isStaff())throw new Error('Staff sign-in is required.');let finalNotes=typeof notes==='string'?notes:null;if(finalNotes===null){const gate=await ensureClockOutPhoto();if(gate&&gate.abort){toast('Clock-out cancelled — no photo captured.',true);return null;}finalNotes=gate?gate.notes:null;}const result=await rpc('business_office_clock_out',{p_business_id:businessId(),p_notes:finalNotes});workspaceCache=null;mergeSnapshot('timeEntries',result,['Time Entry ID','timeEntryId']);toast('Clocked out.');return result;}
 async function timeTransition(action,note=''){
   if(!isStaff())throw new Error('Staff sign-in is required.');
   const bounded=text(action).toUpperCase();
@@ -106,6 +135,7 @@ window.H38_EMPLOYEE_WORKSPACE=Object.freeze({
   refresh:()=>loadWorkspace(true),
   clockInToTask,
   clockOut,
+  ensureClockOutPhoto,
   timeTransition,
   reportIssue,
   updateAssignedTask,

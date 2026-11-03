@@ -229,7 +229,7 @@
   function loadErpFoundation() {
     if (window.H38_ERP_FOUNDATION || document.querySelector('script[data-h38-erp-foundation]')) return;
     const script = document.createElement('script');
-    script.src = './erp-foundation.js?build=20261030-laptop-phase1-1';
+    script.src = './erp-foundation.js?build=20261102-e2e-clockout-photo-1';
     script.async = false;
     script.dataset.h38ErpFoundation = '1';
     document.head.appendChild(script);

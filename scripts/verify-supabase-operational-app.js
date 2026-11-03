@@ -176,7 +176,7 @@ for(const needle of [
 ])includes(quoteLearningHook,needle,`Hidden quote-learning hook is missing ${needle}`);
 
 const runtimeGlobals=read('commercial-app/supabase-runtime-globals.js');
-includes(runtimeGlobals,"script.src = './erp-foundation.js?build=20260903-erp-time-uptake-learning-1'",'Supabase runtime must load the ERP foundation without a second app shell.');
+includes(runtimeGlobals,"script.src = './erp-foundation.js?build=20261102-e2e-clockout-photo-1'",'Supabase runtime must load the ERP foundation without a second app shell.');
 includes(runtimeGlobals,'loadErpFoundation();','ERP foundation loader must run after Office globals are exposed.');
 
 const data=read('commercial-app/supabase-data.js');

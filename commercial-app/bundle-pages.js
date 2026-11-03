@@ -906,7 +906,7 @@ const H38_PARITY_REQUIREMENTS={
   customers:['viewCustomers','manageWork','manageQuotes'],work:['manageWork','viewAssignedWork','manageAssignedWork'],quotes:['manageQuotes','manageWork'],measure:['manageField','manageQuotes','captureEvidence'],schedule:['manageSchedule','manageWork','viewAssignedWork'],messages:['manageCommunications'],field:['manageField','viewAssignedWork','captureEvidence'],inventory:['manageInventory','useInventory'],fleet:['manageAssets','useAssets','manageMaintenance'],money:['manageFinancial','viewFinancial'],memberships:['manageFinancial','viewFinancial'],accounting:['manageFinancial','viewFinancial'],payroll:['manageFinancial'],tax:['manageFinancial'],people:['manageUsers'],documents:['manageWork','manageQuotes','manageField','captureEvidence'],social:['manageSocial'],controls:['manageSettings'],reports:['manageFinancial','viewFinancial','manageSettings'],settings:['manageSettings','manageUsers'],onboarding:['manageSettings','manageUsers'],setupChecklist:['manageSettings','manageUsers']
 };
 
-const H38_TEAM_ACCESS_COMPANION_BUILD='20260910-office-access-1';
+const H38_TEAM_ACCESS_COMPANION_BUILD='20261102-e2e-clockout-photo-1';
 let h38TeamAccessCompanionPromise=null;
 function h38LoadTeamAccessCompanion(){
   if(!can('manageUsers'))return Promise.resolve(false);
