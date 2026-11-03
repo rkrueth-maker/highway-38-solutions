@@ -680,13 +680,15 @@ async function validateSessionToken(
   return null;
 }
 
-function portalUrl(request: Request, businessId: string, token: string): string {
-  const origin = requestOrigin(request) || "https://rkrueth-maker.github.io";
-  // Portal page is served alongside the Office app.
-  const base = origin.includes("github.io")
-    ? `${origin}/highway-38-solutions/commercial-app/customer-portal.html`
-    : `${origin}/commercial-app/customer-portal.html`;
-  return `${base}?business=${encodeURIComponent(businessId)}&token=${encodeURIComponent(token)}`;
+// Minted portal links always use the canonical domain. The caller's Origin
+// is never used: server-side calls carry none, and owner sessions on the
+// GitHub Pages mirror used to mint mirror links. Tokens are validated
+// server-side by SHA-256 hash, so links minted before this change keep
+// working. H38_PORTAL_BASE_URL overrides only for a deliberate rebrand.
+const PORTAL_BASE_URL = Deno.env.get("H38_PORTAL_BASE_URL") || "https://highway38solutions.com/commercial-app/customer-portal.html";
+
+function portalUrl(_request: Request, businessId: string, token: string): string {
+  return `${PORTAL_BASE_URL}?business=${encodeURIComponent(businessId)}&token=${encodeURIComponent(token)}`;
 }
 
 // The business's own services, from the `services` collection the Office
