@@ -12,7 +12,7 @@
 // Flow:
 //   1. Trigger (or UI) calls H38SmsTemplates.compose(template, recordData),
 //      then H38Sms.sendSms({to, body, category, ...}).
-//   2. This module validates: gateway toggle ON, provider connected, E.164 number,
+//   2. This module validates: provider connected, E.164 number,
 //      explicit customer consent (blocks Opted Out / Unknown), category preference,
 //      segment limits, quiet hours (sets Deliver After).
 //   3. It writes an smsThreads row with Status 'Queued — Owner Approval Required'
@@ -359,11 +359,12 @@ function smsSegmentCount(body){
 }
 
 // ---- The seam: validate + queue for owner approval. Never sends directly. ----
+// The sms_gateway toggle gates actual SENDS, not queueing: it is enforced in
+// the one immediate-send branch below (phone bridge) and at send time in
+// sms-approval-runtime.js. Queueing with the gateway off is deliberate —
+// e.g. review asks must queue when their own auto-send toggle is on.
 async function sendSms(opts){
   opts=opts||{};
-  if(!smsGatewayEnabled()){
-    throw new Error('SMS sending is OFF. Enable it in Settings → Owner Controls → SMS sending (gateway).');
-  }
   var cfg=smsProviderConfig();
   var to=normalizeE164(opts.to);
   var body=String(opts.body==null?'':opts.body).trim();
@@ -416,6 +417,11 @@ async function sendSms(opts){
   // Immediate send — used for explicit testing only (opts.via or opts.immediate).
   // Trigger/UI drafts always take the queue-for-approval path below instead.
   if(usePhoneBridge){
+    // The phone-bridge branch is a real immediate send, so the gateway
+    // toggle is enforced here (it no longer gates queueing above).
+    if(!smsGatewayEnabled()){
+      throw new Error('SMS sending is OFF. Enable it in Settings → Owner Controls → SMS sending (gateway).');
+    }
     sendViaPhoneBridge(to,body); // throws when unavailable or too long
     var pbThreadId=opts.threadId||newId('SMS-THREAD');
     var pbPurpose=String(opts.purpose||'Customer text');

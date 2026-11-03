@@ -96,6 +96,14 @@ async function sendThreadNow(thread){
     await saveThreadStatus(thread,'Approved — Queued to Send',{});
     return {sent:false,queued:true,offline:true};
   }
+  // Gateway gate at send time (queueing is never gated): while SMS sending
+  // is OFF, hold the thread exactly as queued — deliberately no 'Failed'
+  // status — so it can still be sent later from the same queue entry.
+  try{
+    if(window.H38Sms&&typeof window.H38Sms.smsGatewayEnabled==='function'&&!window.H38Sms.smsGatewayEnabled()){
+      return {sent:false,blocked:'gateway-off',error:'SMS sending is OFF. Enable it in Settings → Owner Controls → SMS sending (gateway).'};
+    }
+  }catch(e){}
   try{
     var r=await authedFetch('h38-send-sms',{
       to:to,body:body,businessId:bizId(),threadId:threadId,

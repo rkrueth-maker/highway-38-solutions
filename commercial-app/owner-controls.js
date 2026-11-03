@@ -9,7 +9,7 @@ const businessId=()=>text(window.state?.businessId);
 
 // Feature toggles - granular on/off controls
 const FEATURE_TOGGLES=[
-  {id:'clockout_photos',title:'Photos for clock out',desc:'Require photos when staff clock out of a job.',icon:'📸',default:true,category:'Time Tracking'},
+  {id:'clockout_photos',title:'Photos for clock out',desc:'Ask staff for a photo when they clock out of a job. If they skip it, they must confirm, and the exception is noted on the time entry.',icon:'📸',default:true,category:'Time Tracking'},
   {id:'clockout_notes',title:'Notes for clock out',desc:'Require notes when staff clock out.',icon:'📝',default:false,category:'Time Tracking'},
   {id:'job_photos',title:'Job photos required',desc:'Require photos to be attached to jobs.',icon:'📷',default:false,category:'Jobs'},
   {id:'customer_signatures',title:'Customer signatures',desc:'Require customer signature on completed work.',icon:'✍️',default:false,category:'Jobs'},
