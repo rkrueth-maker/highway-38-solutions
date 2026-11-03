@@ -35706,6 +35706,22 @@ window.H38VoiceCommands={
   function billingHistoryOf(mid){return records('invoices').filter(r=>String(v(r,'Membership ID'))===String(mid)).sort((a,b)=>String(v(b,'Created Time')).localeCompare(String(v(a,'Created Time'))));}
   function membershipInvoicesAwaiting(){return records('invoices').filter(r=>String(v(r,'Invoice Type'))==='Membership Billing'&&String(v(r,'Status')).toUpperCase()==='DRAFT');}
 
+  /* Enroll dropdown lists EVERY customer on the business. It must not reuse
+   * optionRows(): that helper drops rows tripping the global isTestRecord
+   * heuristic (name/status containing the word TEST, LOCAL-/TEST- ids), which
+   * silently made normal customers un-enrollable (E2E Flow 10 finding,
+   * 2026-11-02). enrollMembership() itself never applied that filter — only
+   * this dropdown did. Dedupe by Customer ID only. */
+  function enrollCustomerOptions(rows){
+    const seen=new Set();
+    const clean=(rows||[]).filter(row=>{
+      const id=String(rowId(row,'Customer ID','customerId'));
+      if(!id||seen.has(id))return false;
+      seen.add(id);return true;
+    });
+    return `<option value="">Select customer</option>`+clean.map(row=>`<option value="${esc(rowId(row,'Customer ID','customerId'))}">${esc(v(row,'Customer Name','name'))}</option>`).join('');
+  }
+
   /* ---------- math ---------- */
   function freqMonths(freq){return FREQ_MONTHS[freq]||1;}
   function monthlyEquivalent(price,freq){return num(price)/freqMonths(freq);}
@@ -36110,7 +36126,7 @@ window.H38VoiceCommands={
       `<div class="actions"><button>Save plan</button></div></form>${serverSafeguard()}</section>`+
 
     `<section class="card span4"><h2>Enroll member</h2><form id="enrollForm">`+
-      `<label>Customer</label><select name="customerId">${optionRows(customers,['Customer ID','customerId'],row=>v(row,'Customer Name','name'),'Select customer')}</select>`+
+      `<label>Customer</label><select name="customerId">${enrollCustomerOptions(customers)}</select>`+
       `<label>Plan</label><select name="planId">${plansOpts}</select>`+
       `<div class="two"><div><label>Start date</label><input name="startDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>`+
       `<div><label>Billing day (1–28)</label><input name="billingDay" type="number" min="1" max="28" value="1"></div></div>`+
