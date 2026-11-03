@@ -19840,7 +19840,7 @@ window.H38_MANUAL_IMAGE_CONTROLS=Object.freeze({enabled:true,build:BUILD,manualS
     }
     if (!window.H38_JOB_LIFECYCLE && !document.querySelector('script[data-h38-job-lifecycle]')) {
       const script = document.createElement('script');
-      script.src = './job-lifecycle.js?build=20261101-wave3tail10-1';
+      script.src = './job-lifecycle.js?build=20261102-e2e-clockout-photo-1';
       script.dataset.h38JobLifecycle = '1';
       document.body.appendChild(script);
     }

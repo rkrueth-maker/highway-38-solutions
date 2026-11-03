@@ -466,8 +466,15 @@ async function jobClockIn(job){
   return result;
 }
 async function jobClockOut(){
+  let notes=null;
+  const gate=window.H38_EMPLOYEE_WORKSPACE?.ensureClockOutPhoto;
+  if(typeof gate==='function'){
+    const gateResult=await gate();
+    if(gateResult&&gateResult.abort)return null;
+    notes=gateResult?gateResult.notes:null;
+  }
   const pos=await captureClockPosition();
-  const result=await clockRpc('business_office_clock_out',{p_business_id:app()?.businessId,p_notes:null,p_lat:pos.lat,p_lng:pos.lng,p_accuracy:pos.accuracy});
+  const result=await clockRpc('business_office_clock_out',{p_business_id:app()?.businessId,p_notes:notes,p_lat:pos.lat,p_lng:pos.lng,p_accuracy:pos.accuracy});
   mergeTimeEntry(result);
   return result;
 }
@@ -613,7 +620,7 @@ function bindWorkPanel(){
   });
   document.querySelectorAll('[data-life-clock-out]').forEach(button=>button.onclick=async()=>{
     button.disabled=true;
-    try{await jobClockOut();window.toast?.('Clocked out. Hours and labor cost are on the job; approve the time in Payroll.');window.renderWork();}catch(error){window.toast?.(error.message,true);button.disabled=false;}
+    try{const out=await jobClockOut();if(out===null){window.toast?.('Clock-out cancelled — no photo captured.',true);button.disabled=false;return;}window.toast?.('Clocked out. Hours and labor cost are on the job; approve the time in Payroll.');window.renderWork();}catch(error){window.toast?.(error.message,true);button.disabled=false;}
   });
   const changeForm=document.getElementById('h38ChangeOrderForm');
   if(changeForm)changeForm.onsubmit=async event=>{
