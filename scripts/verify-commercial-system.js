@@ -42,7 +42,7 @@ check('What We Do does not restore fixed-price product cards',!solutions.include
 const pricing=read('pricing.html');
 check('pricing page has final single-tier structure',(pricing.match(/class="bib-price-card(?:\s|")/g)||[]).length===1&&pricing.includes('$149')&&pricing.includes('lock in $99/mo for life')&&!pricing.includes('Starting at $499'));
 const pricingData=read('pricing-data.js');
-check('pricing preserves Snapshot and approval boundaries',!pricing.includes('Business Snapshot')&&pricingData.includes('Business Snapshot')&&pricingData.includes('$299 one-time')&&pricing.includes('approved by you before it goes out'));
+check('pricing preserves approval boundaries and retired Snapshot stays out',!pricing.includes('Business Snapshot')&&!pricingData.includes('Business Snapshot')&&pricing.includes('approved by you before it goes out'));
 check('pricing marks the AI backend plan as the featured offer',pricing.includes('Most capable')&&pricingData.includes("badge:'Most Popular'")&&pricingData.includes("id:'ai-backend'"));
 check('pricing explains implementation value without changing prices',pricing.includes('One small custom feature per quarter included')&&pricing.includes('business-in-a-box.html')&&pricing.includes('$149'));
 const samples=read('sample-library-now.html');
