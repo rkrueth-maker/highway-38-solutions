@@ -214,7 +214,10 @@ async function previewAndQueueSms(opts){
   var ok=window.confirm('Send this text to '+label+' ('+to+')?\n\n'+body+'\n\nIt will be queued for owner approval. Nothing is sent until approved.');
   if(!ok)return {sent:false,cancelled:true};
   if(!window.H38Sms||typeof window.H38Sms.sendSms!=='function'){
-    throw new Error('SMS module is still loading. Try again in a moment.');
+    // The SMS module registers with the Messages page group; load it on
+    // demand so a cold Jobs-only session can still queue the message.
+    var smsModuleReady=await ensureSmsModuleLoaded();
+    if(!smsModuleReady)throw new Error('SMS module is still loading. Try again in a moment.');
   }
   var result=await window.H38Sms.sendSms({
     to:to,body:body,consentStatus:opts.consentStatus||'Consented',

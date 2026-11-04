@@ -1,6 +1,6 @@
 {
-  "status": "PASS",
-  "generatedAt": "2026-10-28T07:05:32.588Z",
+  "status": "HOLD",
+  "generatedAt": "2026-11-04T12:18:20.155Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -16,8 +16,8 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 266,
-  "failed": 0,
+  "passed": 265,
+  "failed": 1,
   "warnings": [],
   "passes": [
     {
@@ -666,7 +666,7 @@
     },
     {
       "name": "start-request.html loads canonical shell once",
-      "detail": "pricing-data.js, platform-states.js, assets/js/h38-site-v2.js, assets/js/h38-request-options.js, request-flow.js"
+      "detail": "platform-states.js, assets/js/h38-site-v2.js, request-flow.js"
     },
     {
       "name": "start-request.html has empty shared header host",
@@ -678,15 +678,11 @@
     },
     {
       "name": "start-request.html excludes legacy global runtimes",
-      "detail": "pricing-data.js, platform-states.js, assets/js/h38-site-v2.js, assets/js/h38-request-options.js, request-flow.js"
+      "detail": "platform-states.js, assets/js/h38-site-v2.js, request-flow.js"
     },
     {
       "name": "start-request.html canonical URL",
       "detail": "https://highway38solutions.com/start-request.html"
-    },
-    {
-      "name": "request page uses focused startup scripts",
-      "detail": "pricing-data.js, platform-states.js, assets/js/h38-site-v2.js, assets/js/h38-request-options.js, request-flow.js"
     },
     {
       "name": "request page keeps secure intake endpoint",
@@ -933,7 +929,7 @@
       "detail": ""
     },
     {
-      "name": "final pricing source exposes one diagnostic",
+      "name": "final pricing source retired the Business Snapshot diagnostic 2026-11-02",
       "detail": ""
     },
     {
@@ -950,7 +946,7 @@
     },
     {
       "name": "request controller JavaScript budget",
-      "detail": "6370 bytes"
+      "detail": "6233 bytes"
     },
     {
       "name": "secure request flow owns one submit handler",
@@ -966,7 +962,7 @@
     },
     {
       "name": "secure request flow JavaScript budget",
-      "detail": "10315 bytes"
+      "detail": "11944 bytes"
     },
     {
       "name": "catalog.html retired route exists",
@@ -1085,5 +1081,10 @@
       "detail": ""
     }
   ],
-  "failures": []
+  "failures": [
+    {
+      "name": "request page uses focused startup scripts",
+      "detail": "platform-states.js, assets/js/h38-site-v2.js, request-flow.js"
+    }
+  ]
 }
