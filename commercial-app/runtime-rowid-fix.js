@@ -58,7 +58,6 @@ function hideLegacySiteVisitChrome(app){
   if(!app)return;
   document.getElementById('h38MeetingVisitDock')?.remove();
   document.querySelectorAll('.h38-meeting-visit-dock').forEach(node=>node.remove());
-  app.querySelectorAll('.field-bottom-nav,.field-next').forEach(node=>{node.hidden=true;node.setAttribute('aria-hidden','true');});
   const main=app.querySelector('.field-visit-main');
   if(main)main.style.paddingBottom='24px';
   app.querySelectorAll('nav,[class*="stepper"],[class*="progress"],[data-field-step-nav],[data-field-progress]').forEach(node=>{
@@ -119,7 +118,6 @@ function installSiteVisitCleanAuthority(){
     style.id='h38SiteVisitCleanFlowStyle';
     style.textContent=`
       #h38MeetingVisitDock,.h38-meeting-visit-dock{display:none!important}
-      #h38FieldVisitApp .field-bottom-nav,#h38FieldVisitApp .field-next{display:none!important}
       #h38FieldVisitApp .field-visit-main{padding-bottom:24px!important}
       #h38FieldVisitApp .field-walkthrough-stage.optional strong{letter-spacing:0}
     `;

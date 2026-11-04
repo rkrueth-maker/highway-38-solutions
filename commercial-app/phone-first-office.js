@@ -213,6 +213,9 @@ function ensureSignOut(){
 }
 function ensureSiteStepper(){
   const app=document.getElementById('h38FieldVisitApp');if(!mobile()||!fieldOpen()||!app){document.getElementById('h38SiteStepper')?.remove();return;}
+  // The base renderer's bottom tab nav is the real in-visit stepper; the
+  // decorative text-inferred pills are never built inside the field view.
+  document.getElementById('h38SiteStepper')?.remove();return;
   const stageSource=app.cloneNode(true);stageSource.querySelector('#h38SiteStepper')?.remove();const u=upper(stageSource.textContent);let step=1;if(/BUILD QUOTE|QUOTE READY|QUOTE BUILDER|QUOTE HANDOFF/.test(u))step=4;else if(/MEASUREMENT|TARGETED PHOTO|DETAILS|CAPTURE REMAINING/.test(u))step=3;else if(/WALKTHROUGH|RECORDING|STOP & USE VIDEO|TAKE PHOTO/.test(u))step=2;
   let bar=document.getElementById('h38SiteStepper');if(bar?.dataset.step===String(step))return;bar?.remove();bar=document.createElement('div');bar.id='h38SiteStepper';bar.className='h38-site-stepper';bar.dataset.step=String(step);['Conversation','Walkthrough','Details','Quote'].forEach((label,i)=>{const n=i+1,s=document.createElement('span');s.textContent=`${n} ${label}`;if(n<step)s.className='done';if(n===step)s.className='current';bar.appendChild(s);});(app.querySelector('.field-visit-main')||app).prepend(bar);
 }
