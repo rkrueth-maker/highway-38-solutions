@@ -111,7 +111,7 @@
       // customers-first session (verified by browser probe). It stays in
       // FIELD_AND_MEASURE as well; the loader dedupes repeat loads.
       './site-visit-top-action.js?build=20261011-e2e-lifecycle-fixes-1',
-      './customer-readiness-polish.js?build=20261031-schedtruth-2',
+      './customer-readiness-polish.js?build=20261103-bouncefix-1',
     ];
     const PAGE_MEETINGS = [
       './conversation-meeting-assistant.js?build=20260913-meeting-report-documents-1',
@@ -456,6 +456,27 @@
       // openPage(state.page) several times while it settles, and those calls
       // must re-target the page the user actually chose, not the previous one.
       try { if (window.state) window.state.page = page; } catch (e) {}
+      // 2026-11-03 startup bounce fix: a re-assertion of the route the app
+      // is already on (the boot sequence fires openPage(state.page) at
+      // every snapshot milestone) renders IMMEDIATELY with the renderers
+      // already loaded. Deferring the landing page's first render until
+      // its whole script group arrived let event-driven modules paint a
+      // rival first composition into the still-visible welcome shell; the
+      // canonical render then replaced it wholesale and the screen
+      // teleported (~780px on the H38 owner surface). Core renderers are
+      // static scripts and degrade gracefully when a group module is
+      // absent — reserved frames/slots hold their space — and when the
+      // group lands, the same route is re-asserted once so group-dependent
+      // pieces complete inside the same composition. A genuine navigation
+      // to a different, not-yet-loaded page keeps the deferred path below:
+      // the current workspace stays visible while its group loads.
+      if (window.state && window.state.page === page) {
+        const immediate = original.apply(this, arguments);
+        loadPageScripts(page)
+          .catch(err => { try { console.error('[H38 lazy load] page scripts failed for', page, err); } catch (e) {} })
+          .then(() => { if (seq === navSeq && window.state && window.state.page === page) return original.call(this, page, track); });
+        return immediate;
+      }
       return loadPageScripts(page)
         .catch(err => { try { console.error('[H38 lazy load] page scripts failed for', page, err); } catch (e) {} })
         .then(() => { if (seq === navSeq) return original.call(this, page, track); });

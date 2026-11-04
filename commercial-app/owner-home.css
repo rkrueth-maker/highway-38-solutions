@@ -827,8 +827,12 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
   animation: h38-first-slot-pulse 1.6s ease-in-out infinite;
 }
 .h38-home-frame--time { min-height: 113px; }
-.h38-home-frame--ready { min-height: 720px; }
-.h38-home-frame--access { min-height: 76px; }
+/* 2026-11-03 startup bounce fix: reservations now cover the tallest
+ * measured fills on the H38 tenant (ready card 720-784px, access card
+ * 144px vs the old 76px budget), so a landing card fits its reservation
+ * instead of growing the frame and shoving everything below it. */
+.h38-home-frame--ready { min-height: 800px; }
+.h38-home-frame--access { min-height: 150px; }
 .h38-home-frame.is-filled {
   background: none;
   animation: none;
@@ -847,6 +851,26 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
     overflow: hidden;
     animation: none;
     background: none;
+  }
+  /* 2026-11-03 startup bounce fix: the ready frame is first-screen
+   * content on the phone too (2026-10-28 parity rule below), so it
+   * reserves its height from first paint like the desktop does. At
+   * height:0 the frame's fill landed seconds after the home painted
+   * and expanded it 0 -> ~740-780px in the flow, teleporting everything
+   * below it — the largest single startup jump measured on the H38
+   * owner surface. The time and access frames stay collapsed here:
+   * they are toggle territory and their fillers do not run on phone. */
+  .h38-home-frame--ready {
+    height: auto;
+    min-height: 800px;
+    overflow: visible;
+    background: linear-gradient(100deg, rgba(23, 42, 63, .05), rgba(23, 42, 63, .11), rgba(23, 42, 63, .05));
+    background-size: 200% 100%;
+    animation: h38-first-slot-pulse 1.6s ease-in-out infinite;
+  }
+  .h38-home-frame--ready.is-filled {
+    background: none;
+    animation: none;
   }
   /* Phone/desktop parity (2026-10-28): the customer-ready workspace
    * (Next Action / Up Next / Today's Work) is the day's booked work —
