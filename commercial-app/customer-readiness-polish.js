@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const BUILD='20261026-nobounce-1';
+const BUILD='20261103-bouncefix-1';
 let installed=false,layoutOrderQueued=false,customerTab='overview';
 const text=v=>String(v==null?'':v).trim();
 const statusText=v=>{const t=text(v).replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):'';};
@@ -243,6 +243,12 @@ function install(){
   window.addEventListener('h38:business-snapshot-updated',()=>{if(office().page==='today')enhanceToday();if(office().page==='customers'){enhanceCustomer360();queueCustomerLayout();}});
   setInterval(()=>{ensureQuickCreate();enhanceVisitDock();},900);
   if(office().page==='today')setTimeout(enhanceToday,0);if(office().page==='customers')setTimeout(enhanceCustomer360,0);
+  // 2026-11-03 startup bounce fix: owner-home.js calls enhanceToday()
+  // synchronously inside its own render task (the platform-stack
+  // pattern), so the ready frame's first painted height is its final
+  // height instead of growing ~740-780px when this module's event-driven
+  // fill landed seconds later.
+  window.H38_CUSTOMER_READINESS=Object.freeze({build:BUILD,enhanceToday});
   window.H38_CUSTOMER_READINESS_POLISH=Object.freeze({build:BUILD,customerFirst:true,universalNew:true,todayCommandCenter:true,customerSummary:true,customer360PinnedTop:true,customer360Only:true,legacyCustomerCardsRemoved:true,siteVisitSummary:true,assistantPromptExamples:true,ownerControlPreserved:true,automaticApproval:false,automaticCustomerSending:false,automaticPurchase:false,automaticPayment:false,automaticScheduling:false});
   window.dispatchEvent(new CustomEvent('h38:customer-readiness-polish-ready',{detail:{build:BUILD}}));return true;
 }
