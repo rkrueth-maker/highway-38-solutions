@@ -314,8 +314,19 @@
     explicitAuditLoads+=1;
     const result={proofLog:(proofResult.data||[]).map(mapProof),errorLog:(errorResult.data||[]).map(mapError)};
     if(window.state?.snapshot&&String(window.state?.businessId||'')===id){
-      window.state.snapshot.proofLog=result.proofLog;
-      window.state.snapshot.errorLog=result.errorLog;
+      // Merge with the snapshot instead of replacing it: the snapshot also
+      // carries the business_records approvals/proof/error rows the app
+      // itself writes, and a wholesale replace would hide them again (the
+      // Controls-reads-zero defect). Relational rows win on an ID clash.
+      const mergeAudit=(fresh,current,idKey)=>{
+        const seen=new Set();const out=[];
+        (fresh||[]).forEach(row=>{if(!row)return;const k=String(row[idKey]||'');if(k)seen.add(k);out.push(row);});
+        (current||[]).forEach(row=>{if(!row||typeof row!=='object')return;const k=String(row[idKey]||'');if(k&&seen.has(k))return;if(k)seen.add(k);out.push(row);});
+        return out;
+      };
+      window.state.snapshot.proofLog=mergeAudit(result.proofLog,window.state.snapshot.proofLog,'Proof ID');
+      window.state.snapshot.errorLog=mergeAudit(result.errorLog,window.state.snapshot.errorLog,'Error ID');
+      window.state.snapshot.errorLogs=window.state.snapshot.errorLog;
     }
     window.dispatchEvent(new CustomEvent('h38:audit-history-loaded',{detail:{businessId:id,proofCount:result.proofLog.length,errorCount:result.errorLog.length}}));
     return result;

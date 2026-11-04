@@ -168,7 +168,7 @@
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules, approvalRecordRows, proofRecordRows, errorRecordRows] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
@@ -249,14 +249,21 @@
       optionalQuery(db.from('business_approvals').select('*').eq('business_id',businessId).order('requested_at',{ascending:false}).limit(250), []),
       optionalQuery(db.from('business_proof_log').select('*').eq('business_id',businessId).order('created_at',{ascending:false}).limit(500), []),
       optionalQuery(db.from('business_error_log').select('*').eq('business_id',businessId).order('created_at',{ascending:false}).limit(250), []),
-      optionalQuery(db.from('business_module_settings').select('module_key,enabled,config').eq('business_id',businessId).order('module_key'), [])
+      optionalQuery(db.from('business_module_settings').select('module_key,enabled,config').eq('business_id',businessId).order('module_key'), []),
+      // Controls collections, explicit paged fetch (same cap-crowding
+      // reason as the fleet collections above): approvals / proofLog /
+      // errorLogs written as business_records must reach the snapshot even
+      // on churn-heavy tenants, or the Controls page reads zero.
+      fetchCollectionRows(db, businessId, 'approvals'),
+      fetchCollectionRows(db, businessId, 'proofLog'),
+      fetchCollectionRows(db, businessId, 'errorLogs')
     ]);
 
     // A row can arrive twice (broad query + an explicit collection fetch).
     // business_records identity is (collection, record_key): merge each once
     // so overlapping fetches never double-count a payment or expense.
     const mergedRecordKeys = new Set();
-    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows].forEach(row => {
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows,...approvalRecordRows,...proofRecordRows,...errorRecordRows].forEach(row => {
       const collection = row.collection;
       const recordKey = text(row.record_key);
       if (recordKey) {
@@ -309,22 +316,41 @@
       'Approval Status': row.approval_status,
       'Updated Time': row.updated_at
     }));
-    snapshot.approvals = approvals.map(row => ({
+    // Readers of approvals / proofLog / errorLog (the Controls page above
+    // all) must see BOTH stores: the relational audit tables AND the
+    // business_records collections the app itself writes (Controls forms,
+    // parity saves, seeds). These assignments previously REPLACED the
+    // business_records rows merged into the snapshot above with the
+    // relational rows alone, so on any tenant whose audit tables are empty
+    // the Controls page read zero while the records existed. Union the two
+    // sources, the relational row winning on an ID clash.
+    function unionSnapshotRows(primary, extra, idKey) {
+      const seen = new Set();
+      const out = [];
+      (primary || []).forEach(row => { if (!row) return; const id = text(row[idKey]); if (id) seen.add(id); out.push(row); });
+      (extra || []).forEach(row => { if (!row || typeof row !== 'object') return; const id = text(row[idKey]); if (id && seen.has(id)) return; if (id) seen.add(id); out.push(row); });
+      return out;
+    }
+    const relationalApprovals = approvals.map(row => ({
       'Approval ID':row.id,'Entity Type':row.entity_type,'Entity ID':row.entity_id || '',
       'Action Type':row.action_type,'Status':row.status,'Requested By':row.requested_by || '',
       'Reviewed By':row.reviewed_by || '','Requested Time':row.requested_at,'Reviewed Time':row.reviewed_at || '',
       'Notes':row.notes || '','External Action Allowed':row.external_action_allowed === true
     }));
-    snapshot.proofLog = proofRows.map(row => ({
+    snapshot.approvals = unionSnapshotRows(relationalApprovals, snapshot.approvals, 'Approval ID');
+    const relationalProof = proofRows.map(row => ({
       'Proof ID':row.id,'Action Type':row.action_type,'Entity Type':row.entity_type || '',
       'Entity ID':row.entity_id || '','Result':row.result,'Details':row.details || {},
       'External Action Occurred':row.external_action_occurred === true,'Created Time':row.created_at
     }));
-    snapshot.errorLog = errorRows.map(row => ({
+    snapshot.proofLog = unionSnapshotRows(relationalProof, (snapshot.proofLog || []).map(row => (row && !row['Action Type'] && row['Event']) ? Object.assign({}, row, {'Action Type': row['Event']}) : row), 'Proof ID');
+    const relationalErrors = errorRows.map(row => ({
       'Error ID':row.id,'Source':row.source,'Error Code':row.error_code || '',
       'Message':row.message,'Severity':row.severity,'Status':row.status,
       'Context':row.context || {},'Created Time':row.created_at
     }));
+    snapshot.errorLog = unionSnapshotRows(relationalErrors, snapshot.errorLogs, 'Error ID');
+    snapshot.errorLogs = snapshot.errorLog;
     snapshot.moduleSettings = modules.map(row => ({moduleKey:row.module_key,enabled:row.enabled,config:row.config || {}}));
     snapshot.modules = modules.filter(row => row.enabled).map(row => row.module_key);
     snapshot.fullRefreshPending = false;
@@ -771,7 +797,6 @@
     if (typeof original !== 'function') return;
     const wrapped = function () { const result=original.apply(this,arguments);enhancer();return result; };
     window[name]=wrapped;
-    try { eval(`${name}=wrapped`); } catch (ignore) {}
   }
 
   // NOTE: work/field nav labels are owned by owner-customer-workflow-polish.js

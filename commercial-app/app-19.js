@@ -948,6 +948,19 @@ function renderControls(){
   if(window.H38Flow)window.H38Flow.bindScreenHeader($('mainContent'),h38ControlsHead);
   bindForm('approvalForm',async(data,form)=>{const id=newId('APPROVAL'),record={'Approval ID':id,'Business ID':state.businessId,'Area':requireValue(data.area,'Area is required.'),'Record Type':data.recordType,'Record ID':data.recordId,'Request':requireValue(data.request,'Request is required.'),'Requested By':state.snapshot.user.userId,'Requested Time':now(),'Decision':'','Status':'Open','Created Time':now(),'Updated Time':now(),'Record Version':1};await saveParity('approvals','Approval',id,record,'approvals',['Approval ID']);form.reset();await sync(false);toast('Approval request saved. Nothing was approved automatically.');renderControls();});
   bindForm('backupForm',async(data,form)=>{const id=newId('BACKUP'),record={'Backup ID':id,'Business ID':state.businessId,'Backup Type':data.backupType,'Scope':data.scope,'Status':'Requested — Owner Review','Requested By':state.snapshot.user.userId,'Requested Time':now(),'Notes':data.notes,'Record Version':1};await saveParity('backups','Backup',id,record,'backups',['Backup ID']);form.reset();await sync(false);toast('Backup request recorded for owner review.');renderControls();});
+  // Proof/error events are written to the dedicated audit tables, whose
+  // startup reads are intentionally suppressed by the traffic guard; the
+  // lazy audit loader is the sanctioned path. Request it once per business
+  // and repaint when it lands, so real proof/error events surface next to
+  // the business_records rows instead of the page reading zero.
+  const auditBusiness=String(state.businessId||'');
+  if(auditBusiness&&window.__h38ControlsAuditFor!==auditBusiness){
+    window.__h38ControlsAuditFor=auditBusiness;
+    const guard=window.H38_SUPABASE_TRAFFIC_GUARD;
+    if(guard&&typeof guard.loadAuditHistory==='function'){
+      guard.loadAuditHistory(auditBusiness).then(()=>{if(String(state.businessId||'')===auditBusiness&&document.getElementById('approvalForm'))renderControls();}).catch(()=>{});
+    }
+  }
 }
 
 function renderReports(){

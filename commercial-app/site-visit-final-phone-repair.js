@@ -42,7 +42,7 @@ function moveDeleteToMore(app){
 function normalizeSiteVisit(){
   const app=document.getElementById('h38FieldVisitApp');if(!app||!visit())return;
   document.getElementById('h38MeetingVisitDock')?.remove();
-  app.querySelectorAll('.h38-meeting-visit-dock,.field-device-card,.field-capture-counts,[data-field-after-walkthrough],.field-compact-help,.field-bottom-nav,.field-next').forEach(node=>node.remove());
+  app.querySelectorAll('.h38-meeting-visit-dock,.field-device-card,.field-capture-counts,[data-field-after-walkthrough],.field-compact-help').forEach(node=>node.remove());
   const head=app.querySelector('.field-panel.active .field-step-head')||app.querySelector('.field-step-head');
   if(head){setText(head.querySelector('span'),'Visit');setText(head.querySelector('h1'),'Site Visit');setText(head.querySelector('p'),'Talk with the customer if useful. Add a photo, video, or measurement only when it helps. Finish when you have what you need.');}
   const stage=app.querySelector('[data-field-walkthrough-stage]');
@@ -56,7 +56,7 @@ function normalizeSiteVisit(){
 function scheduleNormalize(){if(normalizeQueued)return;normalizeQueued=true;requestAnimationFrame(()=>{normalizeQueued=false;normalizeSiteVisit();normalizeQuickSheet();normalizeActivity();});}
 function installStyle(){if(document.getElementById('h38SiteVisitFinalPhoneRepairStyle'))return;const style=document.createElement('style');style.id='h38SiteVisitFinalPhoneRepairStyle';style.textContent=`
 #h38MeetingVisitDock,.h38-meeting-visit-dock{display:none!important}
-#h38FieldVisitApp .field-device-card,#h38FieldVisitApp .field-capture-counts,#h38FieldVisitApp [data-field-after-walkthrough],#h38FieldVisitApp .field-compact-help,#h38FieldVisitApp .field-bottom-nav,#h38FieldVisitApp .field-next{display:none!important}
+#h38FieldVisitApp .field-device-card,#h38FieldVisitApp .field-capture-counts,#h38FieldVisitApp [data-field-after-walkthrough],#h38FieldVisitApp .field-compact-help{display:none!important}
 #h38FieldVisitApp .field-visit-main{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important}
 #h38FieldVisitApp .field-simple-finish,#h38FieldVisitApp [data-field-walkthrough-stage]{margin-right:64px}
 .field-site-visit-more{position:relative;margin-left:auto}.field-site-visit-more>summary{list-style:none;display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(0,0,0,.15);border-radius:10px;font-size:24px;cursor:pointer}.field-site-visit-more>summary::-webkit-details-marker{display:none}.field-site-visit-more>div{position:absolute;right:0;top:48px;z-index:20;min-width:190px;padding:8px;background:#fff;border:1px solid rgba(0,0,0,.16);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18)}.field-site-visit-delete-action{width:100%!important;min-height:44px!important;white-space:nowrap!important;font-size:15px!important}
