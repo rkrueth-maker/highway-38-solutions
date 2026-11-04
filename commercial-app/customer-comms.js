@@ -317,6 +317,38 @@ async function sendReviewNudge(jobId){
 // When the owner enables "Auto-send review requests", this whole message
 // category is pre-approved: no per-job confirm. Consent, STOP, quiet hours,
 // and SMS category preferences are still enforced by H38Sms.sendSms.
+// The SMS module (window.H38Sms) registers only when the Messages page
+// group loads. The automatic ask must load that group on demand instead
+// of failing in a cold Jobs-only session; if the module truly cannot
+// load, the ask defers to a bounded in-session retry — it never writes a
+// "Failed" thread and never surfaces a "still loading" error for an
+// automatic step.
+async function ensureSmsModuleLoaded(){
+  if(window.H38Sms&&typeof window.H38Sms.sendSms==='function')return true;
+  try{
+    if(window.H38ScriptLoader&&typeof window.H38ScriptLoader.loadPageScripts==='function'){
+      await window.H38ScriptLoader.loadPageScripts('messages');
+    }
+  }catch(e){ if(typeof console!=='undefined'&&console.warn)console.warn('Review request: message tools could not be loaded yet.',e); }
+  return !!(window.H38Sms&&typeof window.H38Sms.sendSms==='function');
+}
+var reviewAskRetryState={};
+function scheduleReviewAskRetry(jobId){
+  var jid=String(jobId||'');if(!jid)return;
+  var delays=[20000,60000,120000];
+  var entry=reviewAskRetryState[jid]||(reviewAskRetryState[jid]={attempts:0,timer:null});
+  if(entry.timer)return;
+  if(entry.attempts>=delays.length){delete reviewAskRetryState[jid];return;}
+  entry.timer=setTimeout(async function(){
+    entry.timer=null;entry.attempts+=1;
+    try{
+      var job=records('jobs').find(function(x){return String(x['Job ID']||x.jobId||'')===jid;});
+      if(!job||text(job['Review Asked']||job.reviewAsked)){delete reviewAskRetryState[jid];return;}
+      var outcome=await maybeAutoAskReview(job);
+      if(!(outcome&&outcome.deferred))delete reviewAskRetryState[jid];
+    }catch(e){ delete reviewAskRetryState[jid]; }
+  },delays[entry.attempts]);
+}
 async function autoSendReviewRequest(jobId){
   var job=getJob(jobId);
   if(!job)throw new Error('Job not found.');
@@ -332,7 +364,8 @@ async function autoSendReviewRequest(jobId){
   var delayKey=getReviewDelay();
   var deliverAfter=reviewDeliverAfter(delayKey);
   if(!window.H38Sms||typeof window.H38Sms.sendSms!=='function'){
-    throw new Error('SMS module is still loading. Try again in a moment.');
+    var smsModuleReady=await ensureSmsModuleLoaded();
+    if(!smsModuleReady)return {deferred:true,reason:'sms-module-unavailable'};
   }
   var result=await window.H38Sms.sendSms({
     to:phone,body:body,consentStatus:'Consented',
@@ -423,7 +456,11 @@ async function maybeAutoAskReview(job){
   // Auto-send wins when enabled: no per-job prompt, pre-approved category send.
   if(commsFeatureEnabled('auto_send_review_requests')){
     var jid=job['Job ID']||job.jobId;
-    try{ return await autoSendReviewRequest(jid); }
+    try{
+      var autoOutcome=await autoSendReviewRequest(jid);
+      if(autoOutcome&&autoOutcome.deferred)scheduleReviewAskRetry(jid);
+      return autoOutcome;
+    }
     catch(e){
       if(typeof toast==='function')toast('Auto review request: '+(e.message||e),true);
       return {failed:String(e.message||e)};
