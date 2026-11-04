@@ -19,21 +19,45 @@ const H38_PARITY_REQUIREMENTS={
 
 const H38_TEAM_ACCESS_COMPANION_BUILD='20261102-e2e-clockout-photo-1';
 let h38TeamAccessCompanionPromise=null;
-function h38LoadTeamAccessCompanion(){
-  if(!can('manageUsers'))return Promise.resolve(false);
-  if(window.H38_EMPLOYEE_WORKSPACE?.ensureTeamSection){window.H38_EMPLOYEE_WORKSPACE.ensureTeamSection();return Promise.resolve(true);}
-  if(h38TeamAccessCompanionPromise)return h38TeamAccessCompanionPromise;
-  h38TeamAccessCompanionPromise=new Promise((resolve,reject)=>{
+let h38EmployeeWorkspaceScriptPromise=null;
+/* Single loader for the employee-workspace companion script, shared by
+ * the People page's Team Access mount and by the clock-out photo gate
+ * (window.H38EnsureClockOutGate below). The script itself is inert data +
+ * functions; every action it exposes stays behind the same server-side
+ * RPC authorization as before. */
+function h38LoadEmployeeWorkspaceScript(){
+  if(window.H38_EMPLOYEE_WORKSPACE?.ensureClockOutPhoto)return Promise.resolve(true);
+  if(h38EmployeeWorkspaceScriptPromise)return h38EmployeeWorkspaceScriptPromise;
+  h38EmployeeWorkspaceScriptPromise=new Promise((resolve,reject)=>{
     const script=document.createElement('script');
     script.src=`./employee-workspace.js?build=${H38_TEAM_ACCESS_COMPANION_BUILD}`;
     script.async=true;
     script.dataset.h38TeamAccessLoader='true';
-    script.onload=()=>{window.H38_EMPLOYEE_WORKSPACE?.ensureTeamSection?.();resolve(true);};
+    script.onload=()=>resolve(true);
     script.onerror=()=>reject(new Error('Team Access could not be opened. Refresh and try again.'));
     document.head.appendChild(script);
-  }).catch(error=>{h38TeamAccessCompanionPromise=null;throw error;});
+  }).catch(error=>{h38EmployeeWorkspaceScriptPromise=null;throw error;});
+  return h38EmployeeWorkspaceScriptPromise;
+}
+function h38LoadTeamAccessCompanion(){
+  if(!can('manageUsers'))return Promise.resolve(false);
+  if(window.H38_EMPLOYEE_WORKSPACE?.ensureTeamSection){window.H38_EMPLOYEE_WORKSPACE.ensureTeamSection();return Promise.resolve(true);}
+  if(h38TeamAccessCompanionPromise)return h38TeamAccessCompanionPromise;
+  h38TeamAccessCompanionPromise=h38LoadEmployeeWorkspaceScript()
+    .then(()=>{window.H38_EMPLOYEE_WORKSPACE?.ensureTeamSection?.();return true;})
+    .catch(error=>{h38TeamAccessCompanionPromise=null;throw error;});
   return h38TeamAccessCompanionPromise;
 }
+/* Clock-out funnels (job page, Today time card) must run the
+ * employee-workspace photo gate even in a session that never opened the
+ * People page: load the companion on demand and hand back the gate, or
+ * null when it truly cannot load so the caller can fail safe instead of
+ * silently skipping the gate. */
+window.H38EnsureClockOutGate=async function(){
+  if(typeof window.H38_EMPLOYEE_WORKSPACE?.ensureClockOutPhoto==='function')return window.H38_EMPLOYEE_WORKSPACE.ensureClockOutPhoto;
+  try{await h38LoadEmployeeWorkspaceScript();}catch(_){return null;}
+  return typeof window.H38_EMPLOYEE_WORKSPACE?.ensureClockOutPhoto==='function'?window.H38_EMPLOYEE_WORKSPACE.ensureClockOutPhoto:null;
+};
 
 allowedPages=function(){return SHELL_PAGES[state.shell].filter(page=>!H38_PARITY_REQUIREMENTS[page]||H38_PARITY_REQUIREMENTS[page].some(can));};
 renderNav=function(){const pages=allowedPages();$('mainNav').innerHTML=pages.map(key=>{const d=PAGE_DEFS[key]||[''];const icon=d.length>1?d[0]:'';const label=d.length>1?d[1]:d[0];return `<button type="button" data-page="${key}" class="${key===state.page?'active':''}">${icon?`<span class="nav-icon">${icon}</span>`:''}<span>${label}</span></button>`;}).join('');$('mainNav').querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>openPage(button.dataset.page));};

@@ -465,13 +465,21 @@ async function jobClockIn(job){
   mergeTimeEntry(result);
   return result;
 }
+function clockOutPhotoSettingOn(){try{return !!(window.H38OwnerControls&&typeof window.H38OwnerControls.isEnabled==='function'&&window.H38OwnerControls.isEnabled('clockout_photos'));}catch(_){return false;}}
 async function jobClockOut(){
   let notes=null;
-  const gate=window.H38_EMPLOYEE_WORKSPACE?.ensureClockOutPhoto;
+  let gate=window.H38_EMPLOYEE_WORKSPACE?.ensureClockOutPhoto;
+  if(typeof gate!=='function'&&typeof window.H38EnsureClockOutGate==='function'){
+    try{gate=await window.H38EnsureClockOutGate();}catch(_){gate=null;}
+  }
   if(typeof gate==='function'){
     const gateResult=await gate();
     if(gateResult&&gateResult.abort)return null;
     notes=gateResult?gateResult.notes:null;
+  }else if(clockOutPhotoSettingOn()){
+    // The photo gate is ON for this business but its module could not be
+    // loaded: fail safe — never close the entry silently without the check.
+    throw new Error('Clock-out paused — the photo check could not load. Check your connection and try again.');
   }
   const pos=await captureClockPosition();
   const result=await clockRpc('business_office_clock_out',{p_business_id:app()?.businessId,p_notes:notes,p_lat:pos.lat,p_lng:pos.lng,p_accuracy:pos.accuracy});

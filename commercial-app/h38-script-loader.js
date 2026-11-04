@@ -127,7 +127,7 @@
     // status save with none of that behavior. Load it with Work too; same
     // ?build= URL as PAGE_MESSAGES so the loader dedupes it.
     const PAGE_WORK = [
-      './customer-comms.js?build=20261101-wave3tail10-1',
+      './customer-comms.js?build=20261104-gatefix-1',
       './photo-markup.js?build=20261102-markup-1',
     ];
     const PAGE_SCHEDULE = [
@@ -142,13 +142,13 @@
     ];
     const PAGE_MESSAGES = [
       './app-08.js?build=20261020-myhank-settings-1',
-      './app-09.js?build=20261101-wave3tail10-1',
+      './app-09.js?build=20261104-gatefix-1',
       './business-hours.js?build=20261030-r2-business-hours-1',
-      './sms-provider.js?build=20261101-wave3tail10-1',
+      './sms-provider.js?build=20261104-gatefix-1',
       './sms-triggers.js?build=20261004-sms-kit-1',
       './sms-approval-runtime.js?build=20261011-sms-approval-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './customer-comms.js?build=20261101-wave3tail10-1',
+      './customer-comms.js?build=20261104-gatefix-1',
       './communications-native-receptionist.js?build=20261030-swivl-round2-1',
     ];
     const PAGE_FLEET = [
@@ -178,12 +178,12 @@
       // drafts, plan-visit refill, renewal alerts) runs from Today, the
       // landing workspace. Same ?build= URL as PAGE_MONEY so the loader
       // dedupes it; the module is inert until a business snapshot exists.
-      './membership-engine.js?build=20261101-wave3tail9-engine-2',
+      './membership-engine.js?build=20261104-gatefix-1',
     ];
     const PAGE_MONEY = [
       './price-history.js?build=20261004-price-history-1',
       './email-send-runtime.js?build=20261011-email-send-1',
-      './membership-engine.js?build=20261101-wave3tail9-engine-2',
+      './membership-engine.js?build=20261104-gatefix-1',
       './card-vault.js?build=20261005-cardvault-1',
       // Tally cold-mount fix (2026-10-20): money-agent's brief reads its
       // books state from the accounting workspace or, failing that, this
