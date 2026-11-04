@@ -19,7 +19,7 @@
 (function(){
   'use strict';
 
-  const ENGINE_BUILD='20261101-wave3tail9-engine-2';
+  const ENGINE_BUILD='20261104-gatefix-1';
   const RENEWAL_ALERT_DAYS=30;
   const FREQ_MONTHS={Monthly:1,Quarterly:3,Annual:12};
   const FREQ_LABEL={Monthly:'per month',Quarterly:'per quarter',Annual:'per year'};
@@ -244,6 +244,52 @@
     await saveEntity('memberships','Membership',mid,updated,['Membership ID']);
     return created;
   }
+  /* ---------- auto-billing idempotency (2026-11-04 fix) ----------
+   * The engine's auto-run can fire while this session's snapshot is still
+   * hydrating, or against a membership row that is one save behind the
+   * server (a prior session already drafted + advanced it). The local
+   * invoiceForPeriod check inside billMembership cannot see either case,
+   * which produced two Draft invoices for one membership + period when
+   * the app was opened in two successive sessions. The auto path therefore
+   * claims the membership+period in-session, checks for an existing
+   * non-void Draft locally, and verifies against the server's
+   * business_records (the rows the snapshot is built from) before
+   * drafting. The manual "Prepare billing drafts" path (generateBilling)
+   * is unchanged. */
+  const autoBillingClaims=new Set();
+  function billingStatusVoid(row){const s=String(v(row,'Status')||'').trim().toLowerCase();return s==='void'||s==='voided';}
+  function existingBillingDraft(mid,period){
+    return records('invoices').find(r=>String(v(r,'Membership ID'))===String(mid)&&String(v(r,'Billing Period')||'').slice(0,10)===period&&String(v(r,'Status')||'').trim().toLowerCase()==='draft'&&!billingStatusVoid(r))||null;
+  }
+  async function serverBillingState(mid){
+    try{
+      const shared=window.H38_SUPABASE_SHARED_CLIENT;
+      const client=shared&&typeof shared.ensure==='function'?shared.ensure():null;
+      if(!client||typeof client.from!=='function')return null;
+      const inv=await client.from('business_records').select('payload').eq('business_id',state.businessId).eq('collection','invoices').contains('payload',{'Membership ID':mid}).limit(50);
+      if(!inv||inv.error||!Array.isArray(inv.data))return null;
+      const mem=await client.from('business_records').select('payload').eq('business_id',state.businessId).eq('collection','memberships').eq('record_key',mid).limit(1);
+      if(!mem||mem.error||!Array.isArray(mem.data))return null;
+      return{invoices:inv.data.map(r=>(r&&r.payload)||{}),membership:mem.data.length?(mem.data[0].payload||{}):null};
+    }catch(_){return null;}
+  }
+  async function billMembershipAuto(m){
+    const mid=String(v(m,'Membership ID')||''),period=String(v(m,'Next Billing Date')||'').slice(0,10);
+    if(!mid||!period)return billMembership(m);
+    const claimKey=mid+'|'+period;
+    if(autoBillingClaims.has(claimKey))return false;
+    if(existingBillingDraft(mid,period))return false;
+    autoBillingClaims.add(claimKey);
+    try{
+      const server=await serverBillingState(mid);
+      if(server){
+        const serverPeriod=server.membership?String(v(server.membership,'Next Billing Date')||'').slice(0,10):'';
+        if(serverPeriod&&serverPeriod!==period)return false;
+        if(server.invoices.some(r=>String(v(r,'Billing Period')||'').slice(0,10)===period&&!billingStatusVoid(r)))return false;
+      }
+      return await billMembership(m);
+    }catch(error){autoBillingClaims.delete(claimKey);throw error;}
+  }
   async function generateBilling(){
     const due=dueMemberships();
     if(!due.length){toast('No membership billing is due.');return{created:0};}
@@ -313,7 +359,7 @@
     engineRunning=true;
     try{
       let billed=0,visits=0;
-      for(const m of dueMemberships()){if(await billMembership(m))billed++;}
+      for(const m of dueMemberships()){if(await billMembershipAuto(m))billed++;}
       for(const m of activeMemberships()){visits+=await refillVisits(m);}
       if((billed||visits)&&navigator.onLine&&state.bridgeReady&&typeof sync==='function')await sync(false);
       engineDoneKey=key;
