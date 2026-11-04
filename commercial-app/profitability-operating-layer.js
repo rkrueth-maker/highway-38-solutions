@@ -339,7 +339,7 @@ async function decorateToday(){
 function wrapRenderer(name,decorator,marker){
   const original=window[name];if(typeof original!=='function'||original[marker])return;
   const wrapped=function(){const result=original.apply(this,arguments);Promise.resolve().then(()=>decorator()).catch(error=>console.warn(`[H38 profitability ${name}]`,error?.message||error));return result;};
-  wrapped[marker]=true;window[name]=wrapped;try{eval(`${name}=window.${name}`);}catch(_){}
+  wrapped[marker]=true;window[name]=wrapped;
 }
 function install(){
   injectStyles();

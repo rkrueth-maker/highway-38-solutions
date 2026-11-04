@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20261104-gatefix-1';
+const CACHE_NAME='h38-business-office-20261104-gatefix-2';
 
 const PREVIOUS_FIELD_MODE_CACHE_NAME='h38-business-office-20260918-0145';
 const PREVIOUS_ERP_CACHE_NAME='h38-business-office-20260903-2110';
@@ -37,7 +37,23 @@ function freshLiveRequest(request,file){
   const freshUrl=new URL(request.url);freshUrl.searchParams.set('h38sw',CACHE_NAME);
   return new Request(freshUrl.toString(),request);
 }
-self.addEventListener('install',event=>{event.waitUntil((async()=>{const cache=await caches.open(CACHE_NAME);/* Precache MUST NOT be one atomic addAll over the raw SHELL list: a single duplicate or unfetchable entry rejects the whole batch and the install fails, leaving every client without a working worker (the 2026-10-13 stuck-client root cause: SHELL carried duplicate './job-lifecycle.css', './personal-assistant.css' and './office-polish.css' entries). Dedupe and cache entries independently so one bad entry degrades offline coverage for that file only. */const urls=[...new Set(SHELL)];await Promise.all(urls.map(async url=>{try{await cache.add(url);}catch(error){console.warn('H38 SW precache skip:',url);}}));await self.skipWaiting();})());});
+// A script body is cached only after it parses clean. A body truncated
+// mid-function or mid-try (the 2026-11-04 "missing } after function body" /
+// "missing } after try block" pageerrors that repeated on every load in
+// long-lived profiles) fails the parse and is never stored, so a poisoned
+// cache entry can never be re-served. Parse-only: new Function compiles the
+// body but never executes it.
+async function cacheVerified(cache,key,response){
+  if(!response||!response.ok)return;
+  const url=typeof key==='string'?key:((key&&key.url)||'');
+  if(!(/\.js($|\?)/.test(url)||url===SUPABASE_CDN)){cache.put(key,response.clone()).catch(()=>{});return;}
+  try{
+    const body=await response.clone().text();
+    new Function(body);
+    await cache.put(key,new Response(body,{status:response.status,statusText:response.statusText,headers:response.headers}));
+  }catch(error){/* truncated or unparseable script body: it is still served from the network response, it is just never cached */}
+}
+self.addEventListener('install',event=>{event.waitUntil((async()=>{const cache=await caches.open(CACHE_NAME);/* Precache MUST NOT be one atomic addAll over the raw SHELL list: a single duplicate or unfetchable entry rejects the whole batch and the install fails, leaving every client without a working worker (the 2026-10-13 stuck-client root cause: SHELL carried duplicate './job-lifecycle.css', './personal-assistant.css' and './office-polish.css' entries). Dedupe and cache entries independently so one bad entry degrades offline coverage for that file only. */const urls=[...new Set(SHELL)];await Promise.all(urls.map(async url=>{try{const r=await fetch(url,{cache:'no-store'});await cacheVerified(cache,url,r);}catch(error){console.warn('H38 SW precache skip:',url);}}));await self.skipWaiting();})());});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('h38-business-office-')&&key!==CACHE_NAME).map(key=>caches.delete(key)));await self.clients.claim();})());});
 self.addEventListener('fetch',event=>{
   const request=event.request;if(request.method!=='GET')return;const url=new URL(request.url),sameOrigin=url.origin===self.location.origin,isSupabaseClient=request.url===SUPABASE_CDN;if(!sameOrigin&&!isSupabaseClient)return;
@@ -45,8 +61,8 @@ self.addEventListener('fetch',event=>{
   const file=url.pathname.split('/').pop()||'index.html';
   if(sameOrigin&&(url.pathname.endsWith('/assets/highway38-logo.png')||url.pathname.endsWith('/assets/highway38-logo-256.webp'))){event.respondWith((async()=>{const cached=await caches.match(request);if(cached)return cached;const response=await fetch(request);if(response&&response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{});}return response;})());return;}
 
-  if(sameOrigin&&(request.mode==='navigate'||LIVE_FIRST.has(file))){event.respondWith((async()=>{try{const networkRequest=freshLiveRequest(request,file),response=await fetch(networkRequest,{cache:'no-store'}),cache=await caches.open(CACHE_NAME);cache.put(request.mode==='navigate'?'./index.html':request,response.clone()).catch(()=>{});return response;}catch(error){return(await caches.match(request.mode==='navigate'?'./index.html':request,{ignoreSearch:true}))||Response.error();}})());return;}
-  event.respondWith((async()=>{const cached=await caches.match(request,{ignoreSearch:true});if(cached)return cached;try{const response=await fetch(request,{cache:'no-store'});if(response&&response.ok){const cache=await caches.open(CACHE_NAME);cache.put(request,response.clone()).catch(()=>{});}return response;}catch(error){return Response.error();}})());
+  if(sameOrigin&&(request.mode==='navigate'||LIVE_FIRST.has(file)||file.endsWith('.js'))){event.respondWith((async()=>{try{const networkRequest=freshLiveRequest(request,file),response=await fetch(networkRequest,{cache:'no-store'}),cache=await caches.open(CACHE_NAME);cacheVerified(cache,request.mode==='navigate'?'./index.html':request,response).catch(()=>{});return response;}catch(error){return(await caches.match(request.mode==='navigate'?'./index.html':request,{ignoreSearch:true}))||Response.error();}})());return;}
+  event.respondWith((async()=>{const cached=await caches.match(request,{ignoreSearch:true});if(cached)return cached;try{const response=await fetch(request,{cache:'no-store'});if(response&&response.ok){const cache=await caches.open(CACHE_NAME);await cacheVerified(cache,request,response);}return response;}catch(error){return Response.error();}})());
 });
 self.addEventListener('notificationclick',event=>{
   if(event.notification?.data?.assistant){
