@@ -736,7 +736,39 @@
   }
   function firstSlotExpected(key) {
     try {
-      if (key === 'mileage') return !!(window.H38Mileage && typeof window.H38Mileage.enabled === 'function' && window.H38Mileage.enabled());
+      if (key === 'mileage') {
+        /* 2026-11-03 startup bounce fix: this used to require the
+         * mileage module (window.H38Mileage) to already be in the page —
+         * the same loader race the platform frame below was fixed for.
+         * mileage.js loads with the Today script group, so on the new
+         * immediate first render the slot was skipped, then appeared at
+         * its reserved 403px on the next render and shoved everything
+         * below it down. Decide from the same DATA mileage.js enabled()
+         * reads, all of it present at render: the snapshot's
+         * mileage_tracking module row, and the mileage_tracking_enabled
+         * feature toggle (server FeatureToggles win over this device's
+         * localStorage copy, per owner-controls getToggles(); default
+         * ON per mileage.js FEATURE_DEF). If the card still never comes,
+         * the render's backstop releases the empty reservation. */
+        const mods = (state.snapshot && state.snapshot.moduleSettings) || [];
+        const pilot = mods.some(row => String((row && (row.moduleKey || row.module_key)) || '').trim() === 'mileage_tracking' && row.enabled === true);
+        if (!pilot) return false;
+        let toggle;
+        try {
+          const rows = (state.snapshot && state.snapshot.FeatureToggles) || [];
+          const bid = String(state.businessId || '');
+          const mine = rows.filter(row => String((row && (row['Business ID'] || row.businessId)) || '').trim() === bid);
+          mine.sort((a, b) => String((b && (b['Updated Time'] || b.updatedAt)) || '').localeCompare(String((a && (a['Updated Time'] || a.updatedAt)) || '')));
+          const server = mine[0] && (mine[0].Toggles || mine[0].toggles);
+          if (server && typeof server === 'object' && server.mileage_tracking_enabled !== undefined) toggle = server.mileage_tracking_enabled;
+          if (toggle === undefined) {
+            const raw = localStorage.getItem('h38-feature-toggles-' + bid);
+            const local = raw ? JSON.parse(raw) : null;
+            if (local && local.mileage_tracking_enabled !== undefined) toggle = local.mileage_tracking_enabled;
+          }
+        } catch (e) { /* toggle unreadable: fall through to the default */ }
+        return toggle === undefined ? true : toggle === true;
+      }
       if (key === 'phoneToday') return !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
       if (key === 'profitability') {
         if (typeof window.can === 'function') return !!(window.can('manageFinancial') || window.can('viewFinancial') || window.can('manageSettings'));
@@ -765,7 +797,7 @@
   }
   const platformFillState = { cards: {}, lockQueued: false };
   window.H38FirstScreen = Object.freeze({
-    build: '20261103-bouncefix-1',
+    build: '20261103-bouncefix-2',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved frame. The frame's reserved height does
      * NOT change: the card replaces the skeleton inside the same box, so
@@ -1207,6 +1239,16 @@
         } catch (e) { /* frame already gone with a re-render */ }
       }, 8000);
     }
+    if (mileageSlotHtml) {
+      /* Same backstop pattern as the platform frame below: if the
+       * mileage card never comes (module load failure, toggle changed),
+       * collapse the empty reservation instead of leaving a permanent
+       * hole. A filled slot never collapses — release() refuses — so
+       * this can only settle an empty frame in a degraded load. */
+      setTimeout(() => {
+        try { window.H38FirstScreen.release('mileage'); } catch (e) { /* slot already gone with a re-render */ }
+      }, 6000);
+    }
     if (platformSlotHtml) {
       setTimeout(() => {
         try {
@@ -1304,7 +1346,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261103-bouncefix-1',
+    build: '20261103-bouncefix-2',
     detectBusinessType: detectBusinessType
   });
 
