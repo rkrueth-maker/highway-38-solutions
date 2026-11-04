@@ -765,7 +765,7 @@
   }
   const platformFillState = { cards: {}, lockQueued: false };
   window.H38FirstScreen = Object.freeze({
-    build: '20261026-nobounce-4',
+    build: '20261103-bouncefix-1',
     slotId: function (key) { return FIRST_SLOT_IDS[key] || ''; },
     /* Move node into its reserved frame. The frame's reserved height does
      * NOT change: the card replaces the skeleton inside the same box, so
@@ -1187,12 +1187,25 @@
     if (trioFramesHtml) {
       setTimeout(() => {
         try {
-          ['h38TimeFrame', 'h38ReadyFrame', 'h38AccessFrame'].forEach(id => {
+          ['h38TimeFrame', 'h38AccessFrame'].forEach(id => {
             const frame = document.getElementById(id);
             if (frame && !frame.classList.contains('is-filled')) frame.classList.add('is-released');
           });
         } catch (e) { /* frames already gone with a re-render */ }
       }, 4000);
+      /* 2026-11-03 startup bounce fix: the ready workspace is core Today
+       * content whose module arrives through the background preload chain;
+       * on a cold profile it can land after the generic 4s grace, and the
+       * old single timer collapsed its tall reservation first — the whole
+       * screen rode up by the frame's height (~720px measured on desktop),
+       * then back down when the card landed. The ready frame gets a longer
+       * grace, in line with the platform frame's 6s backstop. */
+      setTimeout(() => {
+        try {
+          const frame = document.getElementById('h38ReadyFrame');
+          if (frame && !frame.classList.contains('is-filled')) frame.classList.add('is-released');
+        } catch (e) { /* frame already gone with a re-render */ }
+      }, 8000);
     }
     if (platformSlotHtml) {
       setTimeout(() => {
@@ -1232,6 +1245,21 @@
         if (window.H38_PLATFORM_DEEPEN && typeof window.H38_PLATFORM_DEEPEN.renderToday === 'function') window.H38_PLATFORM_DEEPEN.renderToday();
       }
     } catch (e) { console.warn('[H38 platform stack]', e && e.message ? e.message : e); }
+
+    /* ---- Customer-ready workspace (Next Action / Up Next / Today's
+     * Work): same treatment as the platform stack. When
+     * customer-readiness-polish.js has already loaded (it rides the
+     * loader's background preload chain), fill the ready frame NOW,
+     * inside this render task, so the frame's first painted height is
+     * its final height. Before this, the module filled the frame from
+     * later snapshot events — on the phone the frame was 0px tall until
+     * then, so everything below jumped by the card's full height
+     * (~740-780px) when it landed. When the module has not loaded yet,
+     * the reserved frame height holds the space and the module's
+     * event-driven fill remains the refresh path. ---- */
+    try {
+      if (window.H38_CUSTOMER_READINESS && typeof window.H38_CUSTOMER_READINESS.enhanceToday === 'function') window.H38_CUSTOMER_READINESS.enhanceToday();
+    } catch (e) { console.warn('[H38 customer ready]', e && e.message ? e.message : e); }
 
     /* ---- Wire buttons (the Today block now sits above .h38-owner-home, so
      * wire every owner-home action button under #mainContent) ---- */
@@ -1276,7 +1304,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261026-nobounce-4',
+    build: '20261103-bouncefix-1',
     detectBusinessType: detectBusinessType
   });
 

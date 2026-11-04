@@ -22763,7 +22763,7 @@ let tries=0,timer=setInterval(()=>{if(install()||++tries>80)clearInterval(timer)
 (function(){
 'use strict';
 const BUILD='20260911-desktop-navigation-final-authority-8-late-auth-paint';
-const PROFITABILITY_BUILD='20260901-profitability-operating-layer-1';
+const PROFITABILITY_BUILD='20261103-bouncefix-1';
 const OFFICE_ACCESS_BUILD='20260910-office-access-completion-2-live';
 const ACCOUNT_IDENTITY_BUILD='20260910-office-account-identity-1';
 const PROFITABILITY_INPUT_IDS=Object.freeze(['h38ProfitTargetMargin','h38ProfitLaborBurden','h38ProfitOverhead']);

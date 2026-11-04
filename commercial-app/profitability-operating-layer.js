@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const BUILD='20261013-startup-dedupe-1';
+const BUILD='20261103-bouncefix-1';
 const DEFAULTS=Object.freeze({targetMarginPct:32,laborBurdenPct:30,overheadPct:10});
 const HEALTH_DIMENSIONS=Object.freeze(['Profit','Sales','Operations','Team','Cash','Systems']);
 const COMPLETE_JOB_RE=/\b(complet(?:e|ed)|closed|done|invoiced|paid)\b/i;
@@ -305,9 +305,19 @@ async function decorateReports(){
   const head=main.querySelector('.page-head')||main.firstElementChild;if(!head)return;
   head.insertAdjacentHTML('afterend',healthMarkup(health)+backCostMarkup(backCosts,settings)+leaksMarkup(leaks)+planMarkup(plan));
 }
+let todayDecorateInFlight=false;
 async function decorateToday(){
   if(!canSeeFinancial())return;injectStyles();const main=document.getElementById('mainContent');if(!main||main.querySelector('#h38ProfitabilityToday'))return;
+  // 2026-11-03 startup bounce fix: the wrapped renderToday and the
+  // snapshot-updated listener can both call in during fire-up; both used
+  // to pass the existence check above before either inserted, then both
+  // inserted after the price-book await — the duplicate card grew the
+  // reserved slot ~+144px until the dedupe sweeper removed it again.
+  // One in-flight call at a time, plus a post-await recheck.
+  if(todayDecorateInFlight)return;todayDecorateInFlight=true;
+  try{
   const settings=readSettings(),book=await getPriceBook(),backCosts=buildBackCosts(settings),health=healthModel(backCosts,book,settings),leaks=leaksModel(backCosts,health,book,settings);
+  if(document.getElementById('h38ProfitabilityToday'))return;
   const card=`<section id="h38ProfitabilityToday" class="h38-profit-mini"><div class="row-top"><div><span class="h38-profit-kicker">PROFITABILITY</span> <strong>${health.overall==null?'Build the evidence loop':`${health.overall.toFixed(0)}/100 business health`}</strong></div><span class="pill ${statusClass(health.overall)}">${statusLabel(health.overall)}</span></div><small>${safe(leaks[0]?.title||'No major recorded profit leak detected.')}</small><div class="actions"><button type="button" id="h38OpenProfitabilityReport" class="secondary">Open profitability report</button></div></section>`;
   // Opening-bounce fix: fill the reserved first-screen slot when the Today
   // workspace painted one, so the late price-book read cannot insert this
@@ -324,6 +334,7 @@ async function decorateToday(){
     const grid=main.querySelector('.grid');if(grid)grid.insertAdjacentHTML('beforebegin',card);else (main.querySelector('.page-head')||main.firstElementChild)?.insertAdjacentHTML('afterend',card);
   }
   document.getElementById('h38OpenProfitabilityReport')?.addEventListener('click',()=>{try{if(typeof window.openPage==='function')window.openPage('reports');}catch(_){}});
+  } finally { todayDecorateInFlight=false; }
 }
 function wrapRenderer(name,decorator,marker){
   const original=window[name];if(typeof original!=='function'||original[marker])return;
