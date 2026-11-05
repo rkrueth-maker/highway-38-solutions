@@ -39,6 +39,7 @@ for(const marker of [
   'priceBookImport:true',
   'What should this column be used for?',
   'What should this sheet be used as?',
+  'field (this sheet)',
   'Import Column Dispositions',
   'automaticCustomerSending:false',
   'automaticPayments:false',
@@ -72,7 +73,8 @@ requireText(importer,'stagedRuns.delete(g.id)','applied run retirement');
 // index.html tag; it ships in the H38ScriptLoader 'customers' group with
 // the same cache-busted ?build= param, so the production-loader pin moves
 // to the loader and the stale-build bans apply to both shipping surfaces.
-requireText(loader,'customer-import-intelligence.js?build=20261105-smart-import-column-ask-1','production cache-busted loader');
+requireText(loader,'customer-import-intelligence.js?build=20261105-smart-import-column-ask-2','production cache-busted loader');
+forbid(loader,'customer-import-intelligence.js?build=20261105-smart-import-column-ask-1','superseded smart-import loader pin');
 forbid(loader,'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1','superseded smart-import loader pin');
 forbid(index,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','stale smart-import loader');
 forbid(index,'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1','stale smart-import loader');
