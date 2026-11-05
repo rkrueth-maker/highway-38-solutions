@@ -61,6 +61,14 @@ verify_jwt = false
 [functions.h38-site-analytics]
 verify_jwt = false
 
+# Self-serve 30-day trial signup. Anonymous access is intentional: visitors
+# have no H38 login yet. The function creates the auth account (or verifies
+# the caller's Google sign-in JWT itself), enforces one trial per email, and
+# provisions through public.provision_trial_business (service role only),
+# which stamps trial_start / trial_end server-side. No card data anywhere.
+[functions.h38-trial-signup]
+verify_jwt = false
+
 # Recommended Vendors directory + partner application intake. Anonymous
 # access is intentional for the public list and the application form; the
 # member directory, the per-business on/off gate, and Ricky's application
