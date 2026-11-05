@@ -1,6 +1,6 @@
 'use strict';
 
-const H38_SUPABASE_STARTUP_BUILD='20261027-session-keep-1';
+const H38_SUPABASE_STARTUP_BUILD='20261105-blinkfix-1';
 const h38LegacyInit=init;
 const h38LegacySetFastBusinessId=setFastBusinessId;
 const h38LegacyPersistBusinessSelection=persistBusinessSelection;
@@ -19,6 +19,56 @@ function h38AuthUserId(){return window.H38DB?.getUserScope?.()||'';}
 function h38SnapshotAuthoritative(snapshot){
   return !!snapshot?.user&&!!snapshot?.business&&snapshot.fullRefreshPending!==true&&snapshot.startupMode!=='SUPABASE_AUTH_FOUNDATION';
 }
+/* Blink fix (2026-11-05, build 20261105-blinkfix-1): every full snapshot
+ * application used to end in openPage() — a wholesale teardown and rebuild
+ * of the painted page — even when the incoming snapshot's paint-relevant
+ * content was identical to what was already applied (duplicate bridge
+ * deliveries, background sync refreshes). Post-render modules then had to
+ * re-attach in later tasks, so the WORKING FOR card visibly blanked for
+ * ~0.3–1.3s and the Today schedule rail repainted mid-frame on a plain
+ * cold open (proven by burst capture, 3/3 sessions, 2026-11-05).
+ * This fingerprint identifies a snapshot by everything a paint can show:
+ * business/user identity plus, per collection, the row count and each
+ * row's identity + Record Version + last-updated stamp. Rows carrying
+ * none of those fall back to a shallow scalar signature, so the unknown
+ * case still repaints. Any difference repaints; only a proven-identical
+ * snapshot skips the repaint (the data itself is still applied first —
+ * the server snapshot always wins). */
+function h38SnapshotPaintFingerprint(snapshot){
+  if(!snapshot||typeof snapshot!=='object')return '';
+  let h=2166136261>>>0;
+  const mix=value=>{const s=String(value==null?'':value);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}h^=0x9e3779b9;h=Math.imul(h,16777619);};
+  mix(snapshot.business?.businessId||'');
+  mix(snapshot.business?.businessName||'');
+  mix(snapshot.business?.businessKey||'');
+  mix(snapshot.user?.userId||snapshot.user?.id||'');
+  mix(snapshot.user?.roleName||'');
+  mix(snapshot.user?.displayName||snapshot.user?.name||'');
+  const meta=new Set(['business','user','businesses','id','cachedAt','authorizationCheckedAt','fullRefreshPending','startupMode','version','schemaVersion']);
+  const keys=Object.keys(snapshot).filter(key=>!meta.has(key)&&Array.isArray(snapshot[key])).sort();
+  for(const key of keys){
+    const collectionRows=snapshot[key];
+    mix(key);
+    mix(collectionRows.length);
+    for(const row of collectionRows){
+      if(!row||typeof row!=='object'){mix(row);continue;}
+      const rid=row['Business Record ID']??row.recordKey??row.id??'';
+      const version=row['Record Version']??row.recordVersion??row.version??'';
+      const updated=row['Updated Time']??row['Updated At']??row.updated_at??row.updatedAt??row['Last Modified']??'';
+      mix(rid);mix(version);mix(updated);
+      if(rid===''&&version===''&&updated===''){
+        const rowKeys=Object.keys(row).sort();
+        for(const rowKey of rowKeys){const value=row[rowKey];if(value==null||typeof value!=='object')mix(rowKey+'='+value);}
+      }
+    }
+  }
+  return (h>>>0).toString(36);
+}
+window.H38_SNAPSHOT_PAINT=Object.freeze({
+  build:'20261105-blinkfix-1',
+  fingerprint:h38SnapshotPaintFingerprint,
+  samePaintData:(a,b)=>!!a&&!!b&&h38SnapshotPaintFingerprint(a)===h38SnapshotPaintFingerprint(b)
+});
 function h38MarkAuthoritativeStartupReady(source){
   if(!h38SnapshotAuthoritative(state?.snapshot))return false;
   const root=document?.documentElement;
@@ -280,8 +330,21 @@ handleFullSnapshot=async function(snapshot,businessId){
     const id=String(businessId||snapshot?.business?.businessId||'');
     if(!id||id!==state.businessId)return;
     const firstAuthoritativeOpen=!state.snapshot;
+    const previousSnapshot=state.snapshot;
     saveStartupSnapshot(snapshot,id);
     $('businessStatus').textContent=`${snapshot.business.businessName} · ${snapshot.user.roleName} · Office online`;
+    /* Blink fix (2026-11-05): the incoming snapshot is now applied
+     * (state.snapshot replaced, listeners notified — the server data
+     * wins). When its paint fingerprint matches the snapshot that was
+     * already applied for this business, the painted page already shows
+     * exactly this data: skip the teardown repaint entirely instead of
+     * blanking the Today composition for a no-change refresh. A first
+     * open, a business switch, or any content difference still paints. */
+    if(!firstAuthoritativeOpen&&previousSnapshot&&previousSnapshot.business?.businessId===id&&h38SnapshotPaintFingerprint(previousSnapshot)===h38SnapshotPaintFingerprint(snapshot)){
+      await updatePending().catch(()=>{});
+      h38MarkAuthoritativeStartupReady('full-snapshot-unchanged');
+      return;
+    }
     openPage(state.page,false);
     await updatePending().catch(()=>{});
     h38MarkAuthoritativeStartupReady('full-snapshot');
@@ -385,5 +448,7 @@ window.H38_OFFICE_STARTUP=Object.freeze({
   nativeRevealWaitsForAuthoritativeSnapshot:true,
   authFoundationNeverPaints:true,
   operationalSnapshotRequired:true,
-  postLoginHydrationSinglePaint:true
+  postLoginHydrationSinglePaint:true,
+  snapshotPaintFingerprintGate:true,
+  syncPostRenderFlush:true
 });
