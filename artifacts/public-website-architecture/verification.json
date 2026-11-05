@@ -1,6 +1,6 @@
 {
   "status": "HOLD",
-  "generatedAt": "2026-11-05T15:25:59.577Z",
+  "generatedAt": "2026-11-05T15:44:50.280Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -16,7 +16,7 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 275,
+  "passed": 285,
   "failed": 1,
   "warnings": [],
   "passes": [
@@ -931,6 +931,46 @@
     {
       "name": "tips.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "trial-signup.html exists",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js, https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2, trial-signup.js"
+    },
+    {
+      "name": "trial-signup.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js, https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2, trial-signup.js"
+    },
+    {
+      "name": "trial-signup.html canonical URL",
+      "detail": "https://highway38solutions.com/trial-signup.html"
+    },
+    {
+      "name": "trial signup page uses shell, auth client and page controller scripts",
+      "detail": "assets/js/h38-site-v2.js, https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2, trial-signup.js"
     },
     {
       "name": "What We Do names all five core capabilities",

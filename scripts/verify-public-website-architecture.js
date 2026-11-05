@@ -81,6 +81,9 @@ for(const route of customerPages){
   }else if(page==='free-tools.html'){
     const allowed=[canonicalJs,'free-tools-gate.js'];
     check('free tools page uses shell and download gate scripts',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
+  }else if(page==='trial-signup.html'){
+    const allowed=[canonicalJs,'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2','trial-signup.js'];
+    check('trial signup page uses shell, auth client and page controller scripts',scripts.every(src=>allowed.includes(src))&&scripts.length===allowed.length,scripts.join(', '));
   }else check(`${page} public script budget`,scripts.length===1,scripts.join(', '));
   if(styles.length>7)warn(`${page} stylesheet count`,`${styles.length} stylesheets`);
 }
