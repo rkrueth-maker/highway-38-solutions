@@ -1,4 +1,4 @@
-const CACHE_NAME='h38-business-office-20261104-gatefix-2';
+const CACHE_NAME='h38-business-office-20261105-trial-1';
 
 const PREVIOUS_FIELD_MODE_CACHE_NAME='h38-business-office-20260918-0145';
 const PREVIOUS_ERP_CACHE_NAME='h38-business-office-20260903-2110';
@@ -19,7 +19,7 @@ const SHELL=[
   './styles.css','./ai-drawer.css','./quote-delivery.css','./print-safe.css','./site-scanner.css','./field-visit.css','./field-visit-guidance.css','./auth-autofill.css','./job-lifecycle.css','./personal-assistant.css','./office-polish.css','./flow-tightening.css','./owner-flow-polish.css','./conversation-meeting-assistant.css','./example-data-manager.css','./customer-readiness-polish.css','./smart-upload.css','./customer-workspace-documents.css',
   './db.js','./bridge.js','./supabase-config.js','./supabase-single-client.js','./supabase-auth.js','./supabase-invite-activation.js',
   './auth-session-guard.js','./supabase-session-recovery.js','./auth-cache-guard.js','./startup-fix.js','./supabase-startup.js',
-  './supabase-runtime-globals.js','./erp-foundation.js','./employee-workspace.js','./mobile-field-view.js','./owner-phone-mode-authority.js','./desktop-navigation-core.js','./desktop-navigation-authority.js','./office-access-completion.js','./office-account-identity.js','./startup-site-visit-stability.js','./supabase-data.js','./supabase-client-branding.js',
+  './supabase-runtime-globals.js','./erp-foundation.js','./employee-workspace.js','./mobile-field-view.js','./owner-phone-mode-authority.js','./desktop-navigation-core.js','./desktop-navigation-authority.js','./office-access-completion.js','./office-account-identity.js','./startup-site-visit-stability.js','./supabase-data.js','./trial-state.js','./supabase-client-branding.js',
   './supabase-operation-coverage.js','./example-data-manager.js','./example-data-full-office.js','./assistant-command-bus.js','./assistant-command-bus-input.js','./assistant-command-runtime.js','./supabase-ai-fallback.js','./supabase-storage-provider.js',
   './supabase-client-installer.js','./supabase-portal-hydration.js','./supabase-final-startup.js',
   './supabase-client-quote-branding.js','./quote-ai-draft-persistence.js','./supabase-quote-ai.js','./supabase-quote-ai-auth-fix.js','./quote-mobile-stabilization.js',
