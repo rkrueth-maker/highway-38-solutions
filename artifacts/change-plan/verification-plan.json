@@ -1,9 +1,11 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T18:45:22.923Z",
+  "generatedAt": "2026-11-05T18:58:37.668Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/app-02.js",
     "commercial-app/index.html",
     "commercial-app/owner-customer-workflow-polish.js",
@@ -12,7 +14,7 @@
     "commercial-app/version.json",
     "commercial-app/workbench-panes.js"
   ],
-  "fileCount": 7,
+  "fileCount": 9,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": true,
