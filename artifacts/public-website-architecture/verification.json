@@ -1,6 +1,6 @@
 {
   "status": "HOLD",
-  "generatedAt": "2026-11-04T12:18:20.155Z",
+  "generatedAt": "2026-11-05T00:48:03.801Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -16,7 +16,7 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 265,
+  "passed": 275,
   "failed": 1,
   "warnings": [],
   "passes": [
@@ -78,7 +78,7 @@
     },
     {
       "name": "canonical shell JavaScript budget",
-      "detail": "13486 bytes"
+      "detail": "13521 bytes"
     },
     {
       "name": "canonical shell CSS budget",
@@ -287,6 +287,46 @@
     {
       "name": "free tools page uses shell and download gate scripts",
       "detail": "assets/js/h38-site-v2.js, free-tools-gate.js"
+    },
+    {
+      "name": "samples.html exists",
+      "detail": ""
+    },
+    {
+      "name": "samples.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "samples.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "samples.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "samples.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "samples.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "samples.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "samples.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "samples.html canonical URL",
+      "detail": "https://highway38solutions.com/samples.html"
+    },
+    {
+      "name": "samples.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
     },
     {
       "name": "project-services.html exists",

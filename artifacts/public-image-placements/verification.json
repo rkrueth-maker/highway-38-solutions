@@ -1,12 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-10-28T04:36:50.967Z",
+  "generatedAt": "2026-11-05T00:48:03.500Z",
   "policyVersion": "2026-07-24-direct-raster-visual-gate-v3",
   "approvedLogoLocked": true,
   "contentImageSourcesLocked": true,
   "runtimeImageSourceChangesAllowed": false,
   "directProjectImagesRequired": true,
-  "passed": 234,
+  "passed": 264,
   "failed": 0,
   "passes": [
     {
@@ -47,39 +47,39 @@
     },
     {
       "name": "index.html demo-proof-1 exact source",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+      "detail": "assets/office-screenshots/office-today.png"
     },
     {
       "name": "index.html demo-proof-1 exact alt",
-      "detail": "Three-bedroom cabin plan sheet"
+      "detail": "Screenshot of the H38 Business Office Today screen in the live demo, showing open invoices, quotes awaiting an answer, and the jobs scheduled for today"
     },
     {
-      "name": "assets/demo-workthroughs/cabin-plan-sheet.png exists",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+      "name": "assets/office-screenshots/office-today.png exists",
+      "detail": "assets/office-screenshots/office-today.png"
     },
     {
       "name": "index.html demo-proof-2 exact source",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
+      "detail": "assets/office-screenshots/office-quote.png"
     },
     {
       "name": "index.html demo-proof-2 exact alt",
-      "detail": "Completed kitchen remodel example"
+      "detail": "Screenshot of a customer quote preview in the H38 Business Office live demo, showing the scope and Good, Better, and Best options"
     },
     {
-      "name": "assets/demo-workthroughs/kitchen-remodel-v2.webp exists",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
+      "name": "assets/office-screenshots/office-quote.png exists",
+      "detail": "assets/office-screenshots/office-quote.png"
     },
     {
       "name": "index.html demo-proof-3 exact source",
-      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+      "detail": "assets/office-screenshots/office-schedule.png"
     },
     {
       "name": "index.html demo-proof-3 exact alt",
-      "detail": "Project planning documents"
+      "detail": "Screenshot of the H38 Business Office Schedule page in the live demo, showing service requests, routes and dispatch, and the 7-day work board"
     },
     {
-      "name": "assets/approved-website-images/10-project-planning-documents.jpg exists",
-      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
+      "name": "assets/office-screenshots/office-schedule.png exists",
+      "detail": "assets/office-screenshots/office-schedule.png"
     },
     {
       "name": "index.html preserves assets/demo-workthroughs/cabin-exterior-render.png occurrence count",
@@ -90,15 +90,15 @@
       "detail": "1/1"
     },
     {
-      "name": "index.html preserves assets/demo-workthroughs/cabin-plan-sheet.png occurrence count",
+      "name": "index.html preserves assets/office-screenshots/office-today.png occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "index.html preserves assets/demo-workthroughs/kitchen-remodel-v2.webp occurrence count",
+      "name": "index.html preserves assets/office-screenshots/office-quote.png occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "index.html preserves assets/approved-website-images/10-project-planning-documents.jpg occurrence count",
+      "name": "index.html preserves assets/office-screenshots/office-schedule.png occurrence count",
       "detail": "1/1"
     },
     {
@@ -236,6 +236,126 @@
     {
       "name": "pricing.html images have alt text",
       "detail": "1 images"
+    },
+    {
+      "name": "samples.html exists",
+      "detail": ""
+    },
+    {
+      "name": "samples.html sample-snow-plowing exact source",
+      "detail": "assets/sample-websites/snowshield-plowing.jpg"
+    },
+    {
+      "name": "samples.html sample-snow-plowing exact alt",
+      "detail": "Screenshot of the SnowShield Plowing sample website home page"
+    },
+    {
+      "name": "assets/sample-websites/snowshield-plowing.jpg exists",
+      "detail": "assets/sample-websites/snowshield-plowing.jpg"
+    },
+    {
+      "name": "samples.html sample-hvac exact source",
+      "detail": "assets/sample-websites/climatepro-hvac.jpg"
+    },
+    {
+      "name": "samples.html sample-hvac exact alt",
+      "detail": "Screenshot of the ClimatePro HVAC sample website home page"
+    },
+    {
+      "name": "assets/sample-websites/climatepro-hvac.jpg exists",
+      "detail": "assets/sample-websites/climatepro-hvac.jpg"
+    },
+    {
+      "name": "samples.html sample-plumbing exact source",
+      "detail": "assets/sample-websites/flowright-plumbing.jpg"
+    },
+    {
+      "name": "samples.html sample-plumbing exact alt",
+      "detail": "Screenshot of the FlowRight Plumbing sample website home page"
+    },
+    {
+      "name": "assets/sample-websites/flowright-plumbing.jpg exists",
+      "detail": "assets/sample-websites/flowright-plumbing.jpg"
+    },
+    {
+      "name": "samples.html sample-lawn-care exact source",
+      "detail": "assets/sample-websites/greenstripe-mowing.jpg"
+    },
+    {
+      "name": "samples.html sample-lawn-care exact alt",
+      "detail": "Screenshot of the GreenStripe Mowing sample website home page"
+    },
+    {
+      "name": "assets/sample-websites/greenstripe-mowing.jpg exists",
+      "detail": "assets/sample-websites/greenstripe-mowing.jpg"
+    },
+    {
+      "name": "samples.html sample-electrical exact source",
+      "detail": "assets/sample-websites/voltedge-electric.jpg"
+    },
+    {
+      "name": "samples.html sample-electrical exact alt",
+      "detail": "Screenshot of the VoltEdge Electric sample website home page"
+    },
+    {
+      "name": "assets/sample-websites/voltedge-electric.jpg exists",
+      "detail": "assets/sample-websites/voltedge-electric.jpg"
+    },
+    {
+      "name": "samples.html sample-landscaping exact source",
+      "detail": "assets/sample-websites/northwood-landscape.jpg"
+    },
+    {
+      "name": "samples.html sample-landscaping exact alt",
+      "detail": "Screenshot of the Northwood Landscape sample website home page"
+    },
+    {
+      "name": "assets/sample-websites/northwood-landscape.jpg exists",
+      "detail": "assets/sample-websites/northwood-landscape.jpg"
+    },
+    {
+      "name": "samples.html real-client-northern-lakes exact source",
+      "detail": "assets/sample-websites/northern-lakes.jpg"
+    },
+    {
+      "name": "samples.html real-client-northern-lakes exact alt",
+      "detail": "Screenshot of the Northern Lakes Property Services website home page — a real Highway 38 client site"
+    },
+    {
+      "name": "assets/sample-websites/northern-lakes.jpg exists",
+      "detail": "assets/sample-websites/northern-lakes.jpg"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/snowshield-plowing.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/climatepro-hvac.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/flowright-plumbing.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/greenstripe-mowing.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/voltedge-electric.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/northwood-landscape.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html preserves assets/sample-websites/northern-lakes.jpg occurrence count",
+      "detail": "1/1"
+    },
+    {
+      "name": "samples.html images have alt text",
+      "detail": "7 images"
     },
     {
       "name": "about.html exists",

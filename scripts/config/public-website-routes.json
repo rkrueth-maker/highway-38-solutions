@@ -38,6 +38,13 @@
    "visibility": "public"
   },
   {
+   "path": "samples.html",
+   "label": "Website Samples",
+   "canonical": "https://highway38solutions.com/samples.html",
+   "shell": "canonical",
+   "visibility": "public"
+  },
+  {
    "path": "project-services.html",
    "label": "Project Services",
    "canonical": "https://rkrueth-maker.github.io/highway-38-solutions/project-services.html",

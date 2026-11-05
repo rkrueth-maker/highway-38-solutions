@@ -1,16 +1,33 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T00:30:10.813Z",
+  "generatedAt": "2026-11-05T00:48:02.987Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "commercial-app/owner-customer-workflow-polish.js",
-    "commercial-app/version.json"
+    "assets/js/h38-site-v2.js",
+    "assets/sample-websites/climatepro-hvac.jpg",
+    "assets/sample-websites/flowright-plumbing.jpg",
+    "assets/sample-websites/greenstripe-mowing.jpg",
+    "assets/sample-websites/northern-lakes.jpg",
+    "assets/sample-websites/northwood-landscape.jpg",
+    "assets/sample-websites/snowshield-plowing.jpg",
+    "assets/sample-websites/voltedge-electric.jpg",
+    "sample-sites/climatepro-hvac/index.html",
+    "sample-sites/flowright-plumbing/index.html",
+    "sample-sites/greenstripe-mowing/index.html",
+    "sample-sites/northwood-landscape/index.html",
+    "sample-sites/sample-site.css",
+    "sample-sites/snowshield-plowing/index.html",
+    "sample-sites/voltedge-electric/index.html",
+    "samples.html",
+    "scripts/config/approved-public-image-placements.json",
+    "scripts/config/public-website-routes.json",
+    "sitemap.xml"
   ],
-  "fileCount": 2,
+  "fileCount": 19,
   "scopes": {
-    "publicWebsite": false,
-    "authenticatedApp": true,
+    "publicWebsite": true,
+    "authenticatedApp": false,
     "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": false,
@@ -20,25 +37,28 @@
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
-    "approvedAssets": false,
-    "publicRendering": false,
-    "authenticatedRendering": true,
+    "approvedAssets": true,
+    "publicRendering": true,
+    "authenticatedRendering": false,
     "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js"
+    "node scripts/verify-public-website-architecture.js",
+    "node scripts/verify-public-ecosystem-tools.js",
+    "python3 scripts/verify-public-images.py",
+    "node scripts/verify-public-image-placements.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile authenticated route verification for affected workspaces"
+    "desktop and mobile public browser verification for affected routes",
+    "rendered pixel and direct-image verification"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
+    ".github/workflows/pages-branch-fallback.yml"
   ],
   "reusableEvidence": [
-    "Public browser and image evidence is not invalidated by this change."
+    "Authenticated browser and data-coverage evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",

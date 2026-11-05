@@ -1,0 +1,57 @@
+/* Shared stylesheet for Highway 38 sample business websites.
+   Each sample site sets its own --accent in a small inline style block. */
+*{box-sizing:border-box}
+:root{--ink:#16232e;--muted:#5a6b78;--line:#dde5ea;--bg:#f6f8f9;--accent:#1f6b47;--accent-dark:#14492f}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.55}
+a{color:var(--accent-dark)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.topbar{background:var(--accent-dark);color:#fff}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:10px;padding-bottom:10px;flex-wrap:wrap}
+.brand{font-weight:900;font-size:1.25rem;letter-spacing:.02em;color:#fff;text-decoration:none}
+.topbar .phone{color:#fff;font-weight:800;text-decoration:none;white-space:nowrap}
+.btn{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:800;text-decoration:none;border:2px solid transparent}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.light{background:#fff;color:var(--accent-dark)}
+.btn.ghost{border-color:#fff;color:#fff}
+nav.mainnav{background:#fff;border-bottom:1px solid var(--line)}
+nav.mainnav .wrap{display:flex;gap:22px;padding-top:10px;padding-bottom:10px;flex-wrap:wrap}
+nav.mainnav a{color:var(--ink);text-decoration:none;font-weight:700}
+.hero{background:linear-gradient(150deg,var(--accent-dark),var(--accent));color:#fff;padding:64px 0 56px}
+.hero h1{font-size:2.5rem;line-height:1.12;margin:0 0 14px;max-width:16em}
+.hero p{font-size:1.13rem;max-width:38em;margin:0 0 24px;color:#eef4f1}
+.hero .actions{display:flex;gap:12px;flex-wrap:wrap}
+.hero .area{margin-top:18px;font-weight:700;color:#d7e6de}
+section{padding:52px 0}
+section.alt{background:var(--bg)}
+h2{font-size:1.7rem;margin:0 0 8px}
+.lede{color:var(--muted);max-width:44em;margin:0 0 26px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}
+.card h3{margin:0 0 6px;font-size:1.08rem}
+.card p{margin:0;color:var(--muted)}
+.why{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.why div{border-left:4px solid var(--accent);padding:2px 0 2px 14px}
+.why strong{display:block;font-size:1.05rem;margin-bottom:2px}
+.why span{color:var(--muted)}
+.review{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}
+.review .stars{color:var(--accent);font-weight:900;letter-spacing:.15em}
+.review p{margin:8px 0;color:var(--ink)}
+.review footer{color:var(--muted);font-weight:700}
+form.lead{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:720px}
+form.lead label{font-weight:700;display:block}
+form.lead input,form.lead select,form.lead textarea{width:100%;margin-top:5px;padding:11px 12px;border:1px solid #b9c6cd;border-radius:9px;font:inherit}
+form.lead .full{grid-column:1/-1}
+form.lead button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:13px 24px;font:inherit;font-weight:800;cursor:pointer}
+.form-note{grid-column:1/-1;color:var(--muted);margin:0}
+.form-done{grid-column:1/-1;background:#eaf4ee;border:1px solid var(--accent);border-radius:10px;padding:12px 14px;font-weight:700}
+footer.site{background:var(--ink);color:#c8d4dc;padding:34px 0}
+footer.site a{color:#fff}
+footer.site .fine{font-size:.88rem;color:#8fa1ad;max-width:52em}
+@media(max-width:760px){
+  .grid,.why{grid-template-columns:1fr}
+  form.lead{grid-template-columns:1fr}
+  .hero h1{font-size:2rem}
+  .hero{padding:44px 0 40px}
+  section{padding:38px 0}
+}

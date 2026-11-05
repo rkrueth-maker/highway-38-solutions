@@ -100,6 +100,15 @@
    "newPlacement": "assets/office-screenshots/office-today.png; assets/office-screenshots/office-quote.png; assets/office-screenshots/office-schedule.png",
    "reason": "Owner-directed honest-scan fix C6 (2026-10-31): the section promises the software but showed construction imagery - a placement clearly unrelated to the section. Replaced with real screenshots taken from the live demo Office (Today, customer quote preview, Schedule) with populated sample data and no demo labels or test artifacts in frame. Old binaries are untouched and remain for their other approved placements.",
    "binaryPolicy": "New screenshot binaries added under assets/office-screenshots/; no approved binary was modified, moved, or deleted."
+ },
+ {
+  "date": "2026-11-04",
+  "page": "samples.html",
+  "section": "new Website Samples gallery page — trade sample cards",
+  "oldPlacement": "none (page did not exist)",
+  "newPlacement": "seven screenshots under assets/sample-websites/: six sample trade sites built for this page plus the live Northern Lakes Property Services home page",
+  "reason": "Owner-directed new samples page (Rick approved 2026-11-04): a prospect picks their trade and opens the actual sample website; thumbnails are real screenshots of those exact sites, never stock or generated stand-ins",
+  "binaryPolicy": "New screenshot binaries added under assets/sample-websites/; no approved binary was modified, moved, or deleted."
  }
  ],
  "pages": {
@@ -169,6 +178,43 @@
     "role": "hero",
     "src": "assets/demo-workthroughs/cabin-plan-sheet.png",
     "alt": "Detailed project planning and quote example"
+   }
+  ],
+  "samples.html": [
+   {
+    "role": "sample-snow-plowing",
+    "src": "assets/sample-websites/snowshield-plowing.jpg",
+    "alt": "Screenshot of the SnowShield Plowing sample website home page"
+   },
+   {
+    "role": "sample-hvac",
+    "src": "assets/sample-websites/climatepro-hvac.jpg",
+    "alt": "Screenshot of the ClimatePro HVAC sample website home page"
+   },
+   {
+    "role": "sample-plumbing",
+    "src": "assets/sample-websites/flowright-plumbing.jpg",
+    "alt": "Screenshot of the FlowRight Plumbing sample website home page"
+   },
+   {
+    "role": "sample-lawn-care",
+    "src": "assets/sample-websites/greenstripe-mowing.jpg",
+    "alt": "Screenshot of the GreenStripe Mowing sample website home page"
+   },
+   {
+    "role": "sample-electrical",
+    "src": "assets/sample-websites/voltedge-electric.jpg",
+    "alt": "Screenshot of the VoltEdge Electric sample website home page"
+   },
+   {
+    "role": "sample-landscaping",
+    "src": "assets/sample-websites/northwood-landscape.jpg",
+    "alt": "Screenshot of the Northwood Landscape sample website home page"
+   },
+   {
+    "role": "real-client-northern-lakes",
+    "src": "assets/sample-websites/northern-lakes.jpg",
+    "alt": "Screenshot of the Northern Lakes Property Services website home page — a real Highway 38 client site"
    }
   ],
   "about.html": [
