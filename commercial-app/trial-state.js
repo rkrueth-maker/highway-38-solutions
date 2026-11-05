@@ -113,7 +113,10 @@
     try { queueOperation = guarded; } catch (ignore) {}
   }
 
+  let loadInFlight = false;
   async function loadTrialState() {
+    if (loadInFlight || trialState) return;
+    loadInFlight = true;
     try {
       const { data: sessionData } = await client().auth.getSession();
       if (!sessionData || !sessionData.session) return;
@@ -128,6 +131,8 @@
     } catch (ignore) {
       // Trial state is an enhancement layer; the server enforces expiry
       // regardless of whether this check could run.
+    } finally {
+      loadInFlight = false;
     }
   }
 
@@ -136,7 +141,15 @@
   } else {
     loadTrialState();
   }
+  // The Office signs in without a page reload, so a session that appears
+  // after this script first ran must trigger the same load.
+  try {
+    client().auth.onAuthStateChange((_event, session) => {
+      if (session) loadTrialState();
+    });
+  } catch (ignore) {}
   window.addEventListener('h38:business-snapshot-updated', () => {
     if (trialState && trialState.isTrial) renderBanner();
+    else loadTrialState();
   });
 })();
