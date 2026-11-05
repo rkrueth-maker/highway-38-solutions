@@ -38,6 +38,11 @@
   function bannerHtml() {
     if (!trialState || !trialState.isTrial || trialState.converted) return '';
     const days = Number(trialState.daysLeft || 0);
+    // The trial AI allowance (250 actions for the trial) pauses AI — never
+    // the rest of the Office — and the note says exactly what unpauses it.
+    const aiNote = trialState.aiExhausted
+      ? ' <strong>Trial AI allowance used — it resets in full when you keep the Office.</strong>'
+      : '';
     if (trialState.expired) {
       return '<strong>Trial ended.</strong> <span>Your Office is read-only — your data is here and exportable free, any time.</span>'
         + keepButtonHtml('Keep the Office to pick up where you left off');
@@ -45,9 +50,9 @@
     if (days <= 7) {
       return '<strong>Your trial ends in ' + days + (days === 1 ? ' day' : ' days') + '.</strong>'
         + ' <span>Keep the Office and nothing stops — your customers, jobs and quotes stay right where they are.</span>'
-        + keepButtonHtml('Keep the Office');
+        + keepButtonHtml('Keep the Office') + aiNote;
     }
-    return '<span>Free trial — ' + days + ' days left.</span>' + keepButtonHtml('Keep the Office');
+    return '<span>Free trial — ' + days + ' days left.</span>' + keepButtonHtml('Keep the Office') + aiNote;
   }
 
   function keepButtonHtml(label) {
@@ -141,6 +146,25 @@
   } else {
     loadTrialState();
   }
+  // Refresh after the first load too: the AI allowance can be used up
+  // mid-session, and the banner note should appear without a reload.
+  let refreshInFlight = false;
+  async function refreshTrialState() {
+    if (refreshInFlight || !trialState || !trialState.isTrial) return;
+    refreshInFlight = true;
+    try {
+      const { data, error } = await client().rpc('my_trial_state');
+      if (!error && data && data.isTrial) {
+        trialState = data;
+        window.H38Trial = { state: trialState, requestKeepOffice };
+        renderBanner();
+      }
+    } catch (ignore) {
+    } finally {
+      refreshInFlight = false;
+    }
+  }
+
   // The Office signs in without a page reload, so a session that appears
   // after this script first ran must trigger the same load.
   try {
@@ -149,7 +173,7 @@
     });
   } catch (ignore) {}
   window.addEventListener('h38:business-snapshot-updated', () => {
-    if (trialState && trialState.isTrial) renderBanner();
+    if (trialState && trialState.isTrial) { renderBanner(); refreshTrialState(); }
     else loadTrialState();
   });
 })();
