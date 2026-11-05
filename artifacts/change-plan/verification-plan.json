@@ -1,7 +1,7 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T07:43:17.225Z",
-  "base": "main",
+  "generatedAt": "2026-11-05T15:25:49.057Z",
+  "base": null,
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
@@ -9,28 +9,10 @@
     "artifacts/change-plan/verification-plan.md",
     "artifacts/public-image-placements/verification.json",
     "artifacts/public-website-architecture/verification.json",
-    "assets/js/h38-site-v2.js",
-    "assets/sample-websites/climatepro-hvac.jpg",
-    "assets/sample-websites/flowright-plumbing.jpg",
-    "assets/sample-websites/greenstripe-mowing.jpg",
-    "assets/sample-websites/northern-lakes.jpg",
-    "assets/sample-websites/northwood-landscape.jpg",
-    "assets/sample-websites/snowshield-plowing.jpg",
-    "assets/sample-websites/voltedge-electric.jpg",
-    "launch-control/evidence/public-ecosystem-tools.json",
-    "sample-sites/climatepro-hvac/index.html",
-    "sample-sites/flowright-plumbing/index.html",
-    "sample-sites/greenstripe-mowing/index.html",
-    "sample-sites/northwood-landscape/index.html",
-    "sample-sites/sample-site.css",
-    "sample-sites/snowshield-plowing/index.html",
-    "sample-sites/voltedge-electric/index.html",
-    "samples.html",
-    "scripts/config/approved-public-image-placements.json",
-    "scripts/config/public-website-routes.json",
-    "sitemap.xml"
+    "google7a62581eeab4bc4a.html",
+    "launch-control/evidence/public-ecosystem-tools.json"
   ],
-  "fileCount": 25,
+  "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
@@ -43,7 +25,7 @@
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
-    "approvedAssets": true,
+    "approvedAssets": false,
     "publicRendering": true,
     "authenticatedRendering": false,
     "externalActionBoundary": false,
@@ -52,13 +34,10 @@
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "python3 scripts/verify-public-images.py",
-    "node scripts/verify-public-image-placements.js"
+    "node scripts/verify-public-ecosystem-tools.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "rendered pixel and direct-image verification"
+    "desktop and mobile public browser verification for affected routes"
   ],
   "deploymentWorkflows": [
     ".github/workflows/pages-branch-fallback.yml"
