@@ -1,9 +1,14 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T00:48:02.987Z",
-  "base": "origin/main",
+  "generatedAt": "2026-11-05T07:43:17.225Z",
+  "base": "main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "artifacts/public-image-placements/verification.json",
+    "artifacts/public-website-architecture/verification.json",
     "assets/js/h38-site-v2.js",
     "assets/sample-websites/climatepro-hvac.jpg",
     "assets/sample-websites/flowright-plumbing.jpg",
@@ -12,6 +17,7 @@
     "assets/sample-websites/northwood-landscape.jpg",
     "assets/sample-websites/snowshield-plowing.jpg",
     "assets/sample-websites/voltedge-electric.jpg",
+    "launch-control/evidence/public-ecosystem-tools.json",
     "sample-sites/climatepro-hvac/index.html",
     "sample-sites/flowright-plumbing/index.html",
     "sample-sites/greenstripe-mowing/index.html",
@@ -24,7 +30,7 @@
     "scripts/config/public-website-routes.json",
     "sitemap.xml"
   ],
-  "fileCount": 19,
+  "fileCount": 25,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
