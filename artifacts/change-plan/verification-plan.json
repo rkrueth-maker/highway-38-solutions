@@ -1,90 +1,50 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T16:21:10.884Z",
+  "generatedAt": "2026-11-05T16:22:17.562Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
-    "artifacts/change-plan/verification-plan.json",
-    "artifacts/change-plan/verification-plan.md",
-    "artifacts/public-image-placements/verification.json",
     "artifacts/public-website-architecture/verification.json",
-    "assets/sample-websites/climatepro-hvac-hero.jpg",
-    "assets/sample-websites/flowright-plumbing-hero.jpg",
-    "assets/sample-websites/greenstripe-mowing-hero.jpg",
-    "assets/sample-websites/northwood-landscape-hero.jpg",
-    "assets/sample-websites/snowshield-plowing-hero.jpg",
-    "assets/sample-websites/voltedge-electric-hero.jpg",
-    "launch-control/evidence/public-ecosystem-tools.json",
-    "sample-sites/climatepro-hvac/img/hero.jpg",
-    "sample-sites/climatepro-hvac/img/work-1.jpg",
-    "sample-sites/climatepro-hvac/img/work-2.jpg",
-    "sample-sites/climatepro-hvac/img/work-3.jpg",
-    "sample-sites/climatepro-hvac/index.html",
-    "sample-sites/flowright-plumbing/img/hero.jpg",
-    "sample-sites/flowright-plumbing/img/work-1.jpg",
-    "sample-sites/flowright-plumbing/img/work-2.jpg",
-    "sample-sites/flowright-plumbing/img/work-3.jpg",
-    "sample-sites/flowright-plumbing/index.html",
-    "sample-sites/greenstripe-mowing/img/hero.jpg",
-    "sample-sites/greenstripe-mowing/img/work-1.jpg",
-    "sample-sites/greenstripe-mowing/img/work-2.jpg",
-    "sample-sites/greenstripe-mowing/img/work-3.jpg",
-    "sample-sites/greenstripe-mowing/index.html",
-    "sample-sites/northwood-landscape/img/hero.jpg",
-    "sample-sites/northwood-landscape/img/work-1.jpg",
-    "sample-sites/northwood-landscape/img/work-2.jpg",
-    "sample-sites/northwood-landscape/img/work-3.jpg",
-    "sample-sites/northwood-landscape/index.html",
-    "sample-sites/sample-site.css",
-    "sample-sites/snowshield-plowing/img/hero.jpg",
-    "sample-sites/snowshield-plowing/img/work-1.jpg",
-    "sample-sites/snowshield-plowing/img/work-2.jpg",
-    "sample-sites/snowshield-plowing/img/work-3.jpg",
-    "sample-sites/snowshield-plowing/index.html",
-    "sample-sites/voltedge-electric/img/hero.jpg",
-    "sample-sites/voltedge-electric/img/work-1.jpg",
-    "sample-sites/voltedge-electric/img/work-2.jpg",
-    "sample-sites/voltedge-electric/img/work-3.jpg",
-    "sample-sites/voltedge-electric/index.html",
-    "samples.html",
-    "scripts/config/approved-public-image-placements.json"
+    "commercial-app/customer-import-intelligence.js",
+    "commercial-app/h38-script-loader.js",
+    "scripts/verify-universal-smart-import.js",
+    "supabase/migrations/20261105173000_smart_import_price_book_collection.sql"
   ],
-  "fileCount": 45,
+  "fileCount": 6,
   "scopes": {
-    "publicWebsite": true,
-    "authenticatedApp": false,
-    "customerPortal": false,
+    "publicWebsite": false,
+    "authenticatedApp": true,
+    "customerPortal": true,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
   "risk": {
     "productionWorkflow": false,
     "schemaOrDataOwner": false,
-    "approvedAssets": true,
-    "publicRendering": true,
-    "authenticatedRendering": false,
+    "approvedAssets": false,
+    "publicRendering": false,
+    "authenticatedRendering": true,
     "externalActionBoundary": false,
-    "longRunningData": false
+    "longRunningData": true
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
-    "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js",
-    "python3 scripts/verify-public-images.py",
-    "node scripts/verify-public-image-placements.js"
+    "node scripts/verify-unified-app-architecture.js",
+    "node scripts/verify-business-office.js",
+    "node scripts/verify-customer-portal-security.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes",
-    "rendered pixel and direct-image verification"
+    "desktop and mobile authenticated route verification for affected workspaces",
+    "resumable small-batch generation with cursor and exact final counts"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
-    "Authenticated browser and data-coverage evidence is not invalidated by this change."
+    "Public browser and image evidence is not invalidated by this change."
   ],
   "executionRules": [
     "Run fast checks before expensive or live checks.",
