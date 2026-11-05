@@ -1,21 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T16:22:17.562Z",
+  "generatedAt": "2026-11-05T16:29:50.840Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
-    "artifacts/change-governance/verification.json",
-    "artifacts/public-website-architecture/verification.json",
     "commercial-app/customer-import-intelligence.js",
     "commercial-app/h38-script-loader.js",
-    "scripts/verify-universal-smart-import.js",
-    "supabase/migrations/20261105173000_smart_import_price_book_collection.sql"
+    "scripts/verify-universal-smart-import.js"
   ],
-  "fileCount": 6,
+  "fileCount": 3,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,
-    "customerPortal": true,
+    "customerPortal": false,
     "sharedArchitecture": false,
     "performanceReliability": true,
     "workflowOnly": false,
@@ -33,8 +30,7 @@
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-unified-app-architecture.js",
-    "node scripts/verify-business-office.js",
-    "node scripts/verify-customer-portal-security.js"
+    "node scripts/verify-business-office.js"
   ],
   "expensiveChecks": [
     "desktop and mobile authenticated route verification for affected workspaces",
