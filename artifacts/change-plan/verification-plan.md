@@ -1,6 +1,6 @@
 # Scope-aware verification plan
 
-- Files changed: 12
+- Files changed: 2
 - Scopes: authenticatedApp
 - Deployment workflows: .github/workflows/deploy-owner-portal-hard-rule-production.yml
 
@@ -8,7 +8,6 @@
 - `node scripts/verify-change-governance.js`
 - `node scripts/verify-unified-app-architecture.js`
 - `node scripts/verify-business-office.js`
-- `node scripts/verify-h38-office-access.js`
 
 ## Expensive or live checks
 - desktop and mobile authenticated route verification for affected workspaces
