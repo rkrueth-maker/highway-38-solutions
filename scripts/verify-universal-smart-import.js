@@ -13,6 +13,7 @@ const index=read('commercial-app/index.html');
 const loader=read('commercial-app/h38-script-loader.js');
 const erp=read('commercial-app/erp-foundation.js');
 const stage=read('supabase/migrations/20260903230000_erp_time_uptake_learning_foundation.sql');
+const priceStage=read('supabase/migrations/20261105173000_smart_import_price_book_collection.sql');
 const universalAudit=read('supabase/migrations/20260914075000_universal_smart_import_proof_log.sql');
 
 new Function(importer);
@@ -32,6 +33,13 @@ for(const marker of [
   'ownerApprovalRequired:true',
   'preservesExistingNonblankValues:true',
   'preservesGenericDataUptake:true',
+  'columnInventory:true',
+  'columnAsk:true',
+  'columnDispositions:true',
+  'priceBookImport:true',
+  'What should this column be used for?',
+  'What should this sheet be used as?',
+  'Import Column Dispositions',
   'automaticCustomerSending:false',
   'automaticPayments:false',
   'automaticScheduling:false',
@@ -47,6 +55,7 @@ for(const marker of [
   "timeEntries:{label:'Historical time'",
   "expenses:{label:'Expenses'",
   "payments:{label:'Payments'",
+  "priceBook:{label:'Price book items'",
   'historicalRecords'
 ])requireText(importer,marker,`entity support ${marker}`);
 
@@ -63,7 +72,8 @@ requireText(importer,'stagedRuns.delete(g.id)','applied run retirement');
 // index.html tag; it ships in the H38ScriptLoader 'customers' group with
 // the same cache-busted ?build= param, so the production-loader pin moves
 // to the loader and the stale-build bans apply to both shipping surfaces.
-requireText(loader,'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1','production cache-busted loader');
+requireText(loader,'customer-import-intelligence.js?build=20261105-smart-import-column-ask-1','production cache-busted loader');
+forbid(loader,'customer-import-intelligence.js?build=20261010-customer-onboarding-redesign-1','superseded smart-import loader pin');
 forbid(index,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','stale smart-import loader');
 forbid(index,'customer-import-intelligence.js?build=20260914-smart-spreadsheet-import-1','stale smart-import loader');
 forbid(loader,'customer-import-intelligence.js?build=20260914-universal-smart-import-1','stale smart-import loader');
@@ -77,6 +87,8 @@ forbid(importer,"host.dataset.h38SmartImport='1';host.innerHTML=smartHtml();",'l
 
 for(const collection of ['customers','contacts','properties','jobs','workOrders','tasks','quotes','timeEntries','expenses','invoices','payments','documents','historicalRecords'])
   requireText(stage,`'${collection}'`,`backend import collection ${collection}`);
+requireText(priceStage,"'priceBook'",'price-book staging collection');
+requireText(priceStage,"array['owner','administrator']",'price-book staging owner/admin boundary');
 requireText(stage,"array['owner','administrator']",'owner/admin staging boundary');
 requireText(stage,'jsonb_array_length(p_rows)>5000','bounded import batch');
 
@@ -92,7 +104,7 @@ console.log(JSON.stringify({
   status:'PASS',
   build:'20260914-universal-smart-import-1',
   formats:['csv','json','xls','xlsx'],
-  entities:['customers','properties','jobs','quotes','invoices','timeEntries','expenses','payments','historicalRecords'],
+  entities:['customers','properties','jobs','quotes','invoices','timeEntries','expenses','payments','priceBook','historicalRecords'],
   analysisWrites:false,
   separateStagingRuns:true,
   ownerApprovalRequired:true,
