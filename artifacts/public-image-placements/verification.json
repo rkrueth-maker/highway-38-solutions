@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T15:44:50.692Z",
+  "generatedAt": "2026-11-05T16:11:20.989Z",
   "policyVersion": "2026-07-24-direct-raster-visual-gate-v3",
   "approvedLogoLocked": true,
   "contentImageSourcesLocked": true,
@@ -243,75 +243,75 @@
     },
     {
       "name": "samples.html sample-snow-plowing exact source",
-      "detail": "assets/sample-websites/snowshield-plowing.jpg"
+      "detail": "assets/sample-websites/snowshield-plowing-hero.jpg"
     },
     {
       "name": "samples.html sample-snow-plowing exact alt",
-      "detail": "Screenshot of the SnowShield Plowing sample website home page"
+      "detail": "Yellow plow truck with a red blade clearing a snowy residential street"
     },
     {
-      "name": "assets/sample-websites/snowshield-plowing.jpg exists",
-      "detail": "assets/sample-websites/snowshield-plowing.jpg"
+      "name": "assets/sample-websites/snowshield-plowing-hero.jpg exists",
+      "detail": "assets/sample-websites/snowshield-plowing-hero.jpg"
     },
     {
       "name": "samples.html sample-hvac exact source",
-      "detail": "assets/sample-websites/climatepro-hvac.jpg"
+      "detail": "assets/sample-websites/climatepro-hvac-hero.jpg"
     },
     {
       "name": "samples.html sample-hvac exact alt",
-      "detail": "Screenshot of the ClimatePro HVAC sample website home page"
+      "detail": "HVAC technician inspecting an outdoor air conditioning unit"
     },
     {
-      "name": "assets/sample-websites/climatepro-hvac.jpg exists",
-      "detail": "assets/sample-websites/climatepro-hvac.jpg"
+      "name": "assets/sample-websites/climatepro-hvac-hero.jpg exists",
+      "detail": "assets/sample-websites/climatepro-hvac-hero.jpg"
     },
     {
       "name": "samples.html sample-plumbing exact source",
-      "detail": "assets/sample-websites/flowright-plumbing.jpg"
+      "detail": "assets/sample-websites/flowright-plumbing-hero.jpg"
     },
     {
       "name": "samples.html sample-plumbing exact alt",
-      "detail": "Screenshot of the FlowRight Plumbing sample website home page"
+      "detail": "Plumber leveling exposed copper pipes during a job"
     },
     {
-      "name": "assets/sample-websites/flowright-plumbing.jpg exists",
-      "detail": "assets/sample-websites/flowright-plumbing.jpg"
+      "name": "assets/sample-websites/flowright-plumbing-hero.jpg exists",
+      "detail": "assets/sample-websites/flowright-plumbing-hero.jpg"
     },
     {
       "name": "samples.html sample-lawn-care exact source",
-      "detail": "assets/sample-websites/greenstripe-mowing.jpg"
+      "detail": "assets/sample-websites/greenstripe-mowing-hero.jpg"
     },
     {
       "name": "samples.html sample-lawn-care exact alt",
-      "detail": "Screenshot of the GreenStripe Mowing sample website home page"
+      "detail": "Zero-turn mower cutting a lawn with clippings flying"
     },
     {
-      "name": "assets/sample-websites/greenstripe-mowing.jpg exists",
-      "detail": "assets/sample-websites/greenstripe-mowing.jpg"
+      "name": "assets/sample-websites/greenstripe-mowing-hero.jpg exists",
+      "detail": "assets/sample-websites/greenstripe-mowing-hero.jpg"
     },
     {
       "name": "samples.html sample-electrical exact source",
-      "detail": "assets/sample-websites/voltedge-electric.jpg"
+      "detail": "assets/sample-websites/voltedge-electric-hero.jpg"
     },
     {
       "name": "samples.html sample-electrical exact alt",
-      "detail": "Screenshot of the VoltEdge Electric sample website home page"
+      "detail": "Electrician working inside an open electrical panel"
     },
     {
-      "name": "assets/sample-websites/voltedge-electric.jpg exists",
-      "detail": "assets/sample-websites/voltedge-electric.jpg"
+      "name": "assets/sample-websites/voltedge-electric-hero.jpg exists",
+      "detail": "assets/sample-websites/voltedge-electric-hero.jpg"
     },
     {
       "name": "samples.html sample-landscaping exact source",
-      "detail": "assets/sample-websites/northwood-landscape.jpg"
+      "detail": "assets/sample-websites/northwood-landscape-hero.jpg"
     },
     {
       "name": "samples.html sample-landscaping exact alt",
-      "detail": "Screenshot of the Northwood Landscape sample website home page"
+      "detail": "Finished flagstone patio with stone benches in a landscaped backyard"
     },
     {
-      "name": "assets/sample-websites/northwood-landscape.jpg exists",
-      "detail": "assets/sample-websites/northwood-landscape.jpg"
+      "name": "assets/sample-websites/northwood-landscape-hero.jpg exists",
+      "detail": "assets/sample-websites/northwood-landscape-hero.jpg"
     },
     {
       "name": "samples.html real-client-northern-lakes exact source",
@@ -326,27 +326,27 @@
       "detail": "assets/sample-websites/northern-lakes.jpg"
     },
     {
-      "name": "samples.html preserves assets/sample-websites/snowshield-plowing.jpg occurrence count",
+      "name": "samples.html preserves assets/sample-websites/snowshield-plowing-hero.jpg occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "samples.html preserves assets/sample-websites/climatepro-hvac.jpg occurrence count",
+      "name": "samples.html preserves assets/sample-websites/climatepro-hvac-hero.jpg occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "samples.html preserves assets/sample-websites/flowright-plumbing.jpg occurrence count",
+      "name": "samples.html preserves assets/sample-websites/flowright-plumbing-hero.jpg occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "samples.html preserves assets/sample-websites/greenstripe-mowing.jpg occurrence count",
+      "name": "samples.html preserves assets/sample-websites/greenstripe-mowing-hero.jpg occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "samples.html preserves assets/sample-websites/voltedge-electric.jpg occurrence count",
+      "name": "samples.html preserves assets/sample-websites/voltedge-electric-hero.jpg occurrence count",
       "detail": "1/1"
     },
     {
-      "name": "samples.html preserves assets/sample-websites/northwood-landscape.jpg occurrence count",
+      "name": "samples.html preserves assets/sample-websites/northwood-landscape-hero.jpg occurrence count",
       "detail": "1/1"
     },
     {
