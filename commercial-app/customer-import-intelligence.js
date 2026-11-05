@@ -113,7 +113,7 @@ function columnDispositions(group){
     const choice=choices[col.name]||'',auto=autoFieldFor(group,col);
     if(choice==='ignore')return{...col,disposition:'owner-ignored',detail:'Ignored by owner',choice};
     if(choice==='note')return{...col,disposition:'owner-assigned',detail:'Note on each record',choice};
-    if(choice.startsWith('field:')){const parts=choice.split(':'),target=parts[1],field=parts.slice(2).join(':'),label=ASK_TARGETS.find(t=>t.target===target)?.label||target;return{...col,disposition:'owner-assigned',detail:`${label} · ${field}`,choice};}
+    if(choice.startsWith('field:')){const parts=choice.split(':'),target=parts[1],field=parts.slice(2).join(':'),label=ASK_TARGETS.find(t=>t.target===target)?.label||ENTITY[target]?.label||target;return{...col,disposition:'owner-assigned',detail:`${label} · ${field}`,choice};}
     if(group.type==='historicalRecords')return{...col,disposition:'auto-mapped',detail:'Kept as a history field',choice:''};
     if(auto)return{...col,disposition:'auto-mapped',detail:`${ENTITY[group.type].label} · ${auto}`,choice:''};
     return{...col,disposition:'unassigned',detail:'Needs your answer',choice:''};
@@ -181,8 +181,11 @@ function columnsHtml(group){
   return `<div class="h38-universal-columns"><strong>Columns — every column is accounted for</strong>${disps.map(d=>{
     const auto=autoFieldFor(group,d);
     const firstLabel=group.type==='historicalRecords'?'Kept as a history field':auto?`Automatic — ${ENTITY[group.type].label} · ${auto}`:'What should this column be used for?';
+    const groupsForAsk=[];
+    if(group.type!=='historicalRecords')groupsForAsk.push({target:group.type,label:`${ENTITY[group.type].label} field (this sheet)`,fields:Object.keys(ENTITY[group.type].aliases)});
+    for(const t of ASK_TARGETS)if(t.target!==group.type)groupsForAsk.push(t);
     const opts=[`<option value=""${!d.choice?' selected':''}>${esc(firstLabel)}</option>`,
-      ...ASK_TARGETS.map(t=>`<optgroup label="${t.label}">${t.fields.map(f=>{const v=`field:${t.target}:${f}`;return `<option value="${v}"${d.choice===v?' selected':''}>${f}</option>`;}).join('')}</optgroup>`),
+      ...groupsForAsk.map(t=>`<optgroup label="${t.label}">${t.fields.map(f=>{const v=`field:${t.target}:${f}`;return `<option value="${v}"${d.choice===v?' selected':''}>${f}</option>`;}).join('')}</optgroup>`),
       `<option value="note"${d.choice==='note'?' selected':''}>Attach as a note on each record</option>`,
       `<option value="ignore"${d.choice==='ignore'?' selected':''}>Ignore this column</option>`].join('');
     return `<div class="h38-universal-col"><div><strong>${esc(d.name)}</strong> <span class="h38-erp-muted">${esc(d.type)} · ${d.nonblank} of ${d.total} filled</span>${d.samples.length?`<br/><span class="h38-erp-muted">e.g. ${esc(d.samples.join(' · '))}</span>`:''}</div><div><span class="h38-universal-disp${d.disposition==='unassigned'?' unassigned':''}">${esc(d.disposition)}${d.disposition!=='unassigned'?` · ${esc(d.detail)}`:''}</span> <select data-h38-col-ask="${group.id}" data-h38-col-name="${esc(d.name)}" aria-label="What should the ${esc(d.name)} column be used for?">${opts}</select></div></div>`;
