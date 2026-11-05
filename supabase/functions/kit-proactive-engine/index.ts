@@ -223,6 +223,35 @@ async function aiCapCheck(supabase: any, businessId: string): Promise<void> {
     .maybeSingle();
   const override = !ov.error && ov.data &&
     (ov.data.payload as any)?.enabled === true;
+  const tr = await supabase
+    .from("business_trials")
+    .select("trial_start, status")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (!tr.error && tr.data && tr.data.status !== "converted") {
+    const tu = await supabase
+      .from("ai_usage_log")
+      .select("cost_estimate")
+      .eq("business_id", businessId)
+      .gte("created_at", new Date(tr.data.trial_start).toISOString());
+    if (tu.error) throw new Error(`AI usage check failed: ${tu.error.message}`);
+    const tActions = (tu.data || []).length;
+    const tSpend = (tu.data || []).reduce(
+      (t: number, x: any) => t + Number(x.cost_estimate || 0),
+      0,
+    );
+    if (tActions >= 250 && !override) {
+      throw new Error(
+        "Trial AI allowance used — it resets in full when you keep the Office.",
+      );
+    }
+    if (tSpend >= AI_MONTHLY_CAP_USD && !override) {
+      throw new Error(
+        `AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}).`,
+      );
+    }
+    return;
+  }
   if (actions >= AI_MONTHLY_ACTION_LIMIT && !override) {
     throw new Error(
       "AI action limit reached for this month (5,000). Usage resets on the 1st.",
