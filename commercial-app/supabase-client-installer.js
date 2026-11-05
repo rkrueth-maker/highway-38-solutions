@@ -97,8 +97,8 @@
     const openUrl=tenantUrl(row.businessKey);
     const activationUrl=row.businessKey==='northern-lakes'?NL_OWNER_LOGIN:'';
     return `<div class="row" data-client-business="${escape(row.businessId)}">
-      <div class="row-top"><div><strong>${escape(row.displayName)}</strong><small>${escape(row.businessKey)} · ${escape(row.packageId || 'standard')}</small></div>${statusPill(row.businessStatus)}</div>
-      <small>Owner: ${escape(row.ownerEmail)} · ${escape(ownerStatus)} · Storage: ${escape(row.storageProvider || 'not set')} (${escape(row.storageConnectionStatus || 'unknown')}) · ${Number(row.enabledModuleCount || 0)} modules · ${Number(row.recordCount || 0)} records</small>
+      <div class="row-top"><div><strong>${escape(row.displayName)}</strong><small>${escape(row.businessKey)} · ${escape(row.packageId || 'standard')}</small></div>${statusPill(row.businessStatus)}${row.isTrial?`<span class="pill pending">${row.trialExpired?'TRIAL · ENDED':`TRIAL · ${Number(row.trialDaysLeft || 0)} days left`}</span>`:''}</div>
+      <small>Owner: ${escape(row.ownerEmail)} · ${escape(ownerStatus)} · Storage: ${escape(row.storageProvider || 'not set')} (${escape(row.storageConnectionStatus || 'unknown')}) · ${Number(row.enabledModuleCount || 0)} modules · ${Number(row.recordCount || 0)} records${row.keepOfficeRequestedAt?' · <strong>Keep the Office requested</strong>':''}</small>
       <div class="row-actions">
         <a class="secondary" href="${escape(openUrl)}" target="_self">Open tenant</a>
         ${activationUrl?`<a class="secondary" href="${escape(activationUrl)}" target="_blank" rel="noopener">Owner activation page</a>`:''}

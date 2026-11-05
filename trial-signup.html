@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Start 30 Days Free | Highway 38 Solutions</title><meta name="description" content="Start the full Highway 38 Office free for 30 days. No card required. Founding $99/mo locked for life while spots last, standard $149/mo after the trial."><link rel="canonical" href="https://highway38solutions.com/trial-signup.html"><link rel="icon" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514"><link rel="stylesheet" href="visual-cleanup.css?v=20260723-flow"><link rel="stylesheet" href="assets/css/project-intelligence.css?v=20260721"><style>
+.trial-wrap{max-width:560px;margin:0 auto}
+.trial-form .field{margin-bottom:14px}
+.trial-form label{display:block;font-weight:600;margin-bottom:6px}
+.trial-note{font-size:.95rem;color:var(--muted,#607285)}
+.trial-error{display:none;background:#fdecec;border:1px solid #e5a3a3;color:#7a1f1f;border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.trial-ok{display:none;background:#e9f7ee;border:1px solid #9fd3ae;color:#14532d;border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.trial-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.trial-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--muted,#607285);font-size:.9rem}
+.trial-divider:before,.trial-divider:after{content:"";flex:1;border-top:1px solid #d5dde4}
+</style></head>
+<body data-page="trial-signup"><a class="skip-link" href="#main">Skip to main content</a><header class="pi-nav"></header><main id="main">
+<section class="pi-hero"><div class="pi-hero-copy"><span class="pi-eyebrow">H38 Business Office — free trial</span><h1>Start 30 days free.</h1><p>30 days free. The full Office. No card required.</p><p>Every feature, your whole crew, 5,000 AI actions included — the same Office paying businesses run. When the 30 days end, you choose: keep it, or export everything and walk away. Your data is yours either way.</p><p><strong>Founding rate: $99/mo locked for life while spots last.</strong> Standard is $149/mo.</p></div></section>
+<section class="pi-section"><div class="trial-wrap">
+<form id="trial-form" class="pi-form trial-form" novalidate>
+<div id="trial-error" class="trial-error" role="alert"></div>
+<div id="trial-ok" class="trial-ok" role="status"></div>
+<div class="field"><label for="businessName">Business name</label><input id="businessName" name="businessName" autocomplete="organization" required maxlength="120"></div>
+<div class="field"><label for="ownerName">Your name</label><input id="ownerName" name="ownerName" autocomplete="name" required maxlength="80"></div>
+<div id="password-fields">
+<div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="160"></div>
+<div class="field"><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></div>
+</div>
+<div class="field"><label for="timezone">Timezone</label><select id="timezone" name="timezone">
+<option value="America/New_York">Eastern</option>
+<option value="America/Chicago" selected>Central</option>
+<option value="America/Denver">Mountain</option>
+<option value="America/Phoenix">Arizona</option>
+<option value="America/Los_Angeles">Pacific</option>
+<option value="America/Anchorage">Alaska</option>
+<option value="Pacific/Honolulu">Hawaii</option>
+</select></div>
+<div class="field trial-hp" aria-hidden="true"><label>Website<input id="website" name="website" tabindex="-1" autocomplete="off"></label></div>
+<button id="trial-submit" class="pi-btn primary" type="submit">Start my free trial</button>
+<p class="trial-note">No card required. One trial per email. Already have an account? <a href="sign-in.html">Sign in</a>.</p>
+<div class="trial-divider">or</div>
+<button id="google-start" class="pi-btn secondary" type="button">Start with Google</button>
+<p class="trial-note">With Google you skip the password — we will ask for your business name when you come back, and your trial starts then.</p>
+</form>
+</div></section>
+</main><footer class="pi-footer"></footer><script src="assets/js/h38-site-v2.js?v=2026-10-21-demo-beacon-v1"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="trial-signup.js?v=20261105-trial-1"></script></body></html>
