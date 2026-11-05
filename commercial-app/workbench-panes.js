@@ -40,7 +40,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261031-converge-2';
+  var BUILD = '20261105-blinkfix-1';
 
   /* ---------- convergence (honest-scan C2, 20261031-converge-2) ----------
    * The Workbench panes are THE laptop surface for their records. Where
@@ -1112,6 +1112,14 @@
   window.addEventListener('h38:office-page-rendered', reconcile);
   window.addEventListener('h38:business-snapshot-updated', reconcile);
   window.addEventListener('pageshow', reconcile);
+  /* Blink fix (2026-11-05): also reconcile synchronously inside renderPage
+   * (same task as the repaint) so the Today queue + schedule rail are part
+   * of the first painted frame of the new composition instead of being
+   * rebuilt in a later task, where the rail visibly repainted/garbled on
+   * snapshot swaps. reconcile() is keyed and idempotent; the event-driven
+   * passes above stay as backstop. */
+  window.H38_SYNC_POST_RENDER = window.H38_SYNC_POST_RENDER || [];
+  if (window.H38_SYNC_POST_RENDER.indexOf(reconcile) === -1) window.H38_SYNC_POST_RENDER.push(reconcile);
   try { window.matchMedia('(min-width: 761px)').addEventListener('change', reconcile); } catch (e) {}
   setInterval(function () { if (st() && (st().page === 'customers' || st().page === 'work' || st().page === 'money' || st().page === 'today' || st().page === 'quotes' || st().page === 'settings')) reconcile(); }, 1500);
 
