@@ -52,6 +52,16 @@ async function aiCapCheck(svc: any, businessId: string): Promise<{ spend: number
   const actions = (r.data || []).length;
   const ov = await svc.from("business_records").select("payload").eq("business_id", businessId).eq("collection", "ai_config").eq("record_key", "ai_cap_override").eq("record_status", "active").maybeSingle();
   const override = !ov.error && ov.data && (ov.data.payload as any)?.enabled === true;
+  const tr = await svc.from("business_trials").select("trial_start, status").eq("business_id", businessId).maybeSingle();
+  if (!tr.error && tr.data && tr.data.status !== "converted") {
+    const tu = await svc.from("ai_usage_log").select("cost_estimate").eq("business_id", businessId).gte("created_at", new Date(tr.data.trial_start).toISOString());
+    if (tu.error) throw tu.error;
+    const tSpend = (tu.data || []).reduce((t: number, x: any) => t + Number(x.cost_estimate || 0), 0);
+    const tActions = (tu.data || []).length;
+    if (tActions >= 250 && !override) throw new Error("Trial AI allowance used — it resets in full when you keep the Office.");
+    if (tSpend >= AI_MONTHLY_CAP_USD && !override) throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}). Usage resets on the 1st.`);
+    return { spend: tSpend, alert: false, actions: tActions };
+  }
   if (actions >= AI_MONTHLY_ACTION_LIMIT && !override) throw new Error("AI action limit reached for this month (5,000). Usage resets on the 1st.");
   if (spend >= AI_MONTHLY_CAP_USD && !override) throw new Error(`AI usage cap reached for this month ($${AI_MONTHLY_CAP_USD.toFixed(2)}). Usage resets on the 1st.`);
   if (actions >= AI_ACTION_ALERT_COUNT) await aiUsageAlert75(svc, businessId, actions);
