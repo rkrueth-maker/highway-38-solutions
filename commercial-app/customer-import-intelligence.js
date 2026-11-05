@@ -1,5 +1,13 @@
 (function(){
 'use strict';
+/* Singleton: two app loaders can request this module under different
+ * cache-bust pins (the script loader's customers group and the customer
+ * navigation guard's runtime list). A second execution would attach
+ * duplicate document listeners and double-fire the stage/apply RPCs —
+ * one click staged two runs and the duplicate apply then errored over
+ * the first apply's success message (found in the 2026-11-05 proof).
+ * The first execution wins; later loads are no-ops. */
+if(window.H38_CUSTOMER_IMPORT_INTELLIGENCE)return;
 const BUILD='20260914-universal-smart-import-1';
 const XLSX_URL='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
 const MAX_ROWS=5000;

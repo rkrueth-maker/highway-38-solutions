@@ -98,7 +98,7 @@
       './quote-signed-acceptance.js?build=20261027-signed-deposit-1',
     ];
     const PAGE_CUSTOMERS = [
-      './customer-import-intelligence.js?build=20261105-smart-import-column-ask-2',
+      './customer-import-intelligence.js?build=20261105-smart-import-column-ask-3',
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
       './customer-360-authority.js?build=20261101-wave3-1',
