@@ -1,14 +1,17 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-05T16:29:50.840Z",
+  "generatedAt": "2026-11-05T17:02:14.348Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/customer-import-intelligence.js",
     "commercial-app/h38-script-loader.js",
     "scripts/verify-universal-smart-import.js"
   ],
-  "fileCount": 3,
+  "fileCount": 6,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,
