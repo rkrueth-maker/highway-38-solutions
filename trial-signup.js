@@ -9,15 +9,28 @@
   var SUPABASE_URL = 'https://jqukmwtsgcsaruucnqja.supabase.co';
   var PUBLISHABLE_KEY = 'sb_publishable_XrF41kGmTC2SmSTgPvo5OQ_vqcBd0N1';
   var SIGNUP_ENDPOINT = SUPABASE_URL + '/functions/v1/h38-trial-signup';
-  var client = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
-  });
   var form = document.getElementById('trial-form');
   var errorBox = document.getElementById('trial-error');
   var okBox = document.getElementById('trial-ok');
   var submitBtn = document.getElementById('trial-submit');
   var googleBtn = document.getElementById('google-start');
   var googleSession = null;
+
+  // The auth SDK is an enhancement, not a dependency: if its CDN is
+  // unreachable the password flow still works end to end (the Office asks
+  // for the same password at its own sign-in). Only Google mode needs it.
+  var client = null;
+  try {
+    client = window.supabase.createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
+    });
+  } catch (e) {
+    client = null;
+  }
+  if (!client) {
+    googleBtn.disabled = true;
+    googleBtn.textContent = 'Start with Google (unavailable in this browser)';
+  }
 
   function showError(message) { errorBox.textContent = message; errorBox.style.display = 'block'; okBox.style.display = 'none'; }
   function showOk(message) { okBox.textContent = message; okBox.style.display = 'block'; errorBox.style.display = 'none'; }
@@ -34,7 +47,7 @@
 
   // Coming back from Google: a session exists, so the form becomes the
   // business-details step for that signed-in identity.
-  client.auth.getSession().then(function (result) {
+  if (client) client.auth.getSession().then(function (result) {
     var session = result && result.data && result.data.session;
     if (session && session.user) {
       googleSession = session;
@@ -48,6 +61,7 @@
   });
 
   googleBtn.addEventListener('click', function () {
+    if (!client) return;
     client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href.split('#')[0] } });
   });
 
@@ -98,7 +112,12 @@
     postSignup().then(function (res) {
       if (res.data && res.data.ok) {
         // Sign in on this device so the Office opens already authenticated.
-        client.auth.signInWithPassword({ email: email, password: password }).then(function () { finish(res.data); });
+        // Without the SDK the Office simply asks for the same password.
+        if (client) {
+          client.auth.signInWithPassword({ email: email, password: password }).then(function () { finish(res.data); });
+        } else {
+          finish(res.data);
+        }
       } else {
         fail(res.data);
       }
