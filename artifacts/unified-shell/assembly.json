@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "sourceCommit": "",
-  "projectDir": "/tmp/h38-unified-assembly-b3OFHh",
+  "projectDir": "/tmp/h38-unified-assembly-IC2tap",
   "shell": "Unified_AppShell.gs",
   "publicIntake": "Unified_PublicIntake.gs",
   "entryPoints": [
