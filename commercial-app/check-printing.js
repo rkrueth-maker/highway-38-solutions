@@ -223,10 +223,21 @@
   function businessIdentity() {
     var snap = (window.state && window.state.snapshot) || {};
     var biz = snap.business || {};
-    var profile = recs('businessProfile')[0] || {};
-    var name = biz.businessName || val(profile, 'Business Name') || val(profile, 'Name') || '';
-    var address = String(val(profile, 'Address') || '');
+    // The saved profile (guided setup) hydrates as snapshot.businessProfile[],
+    // not through records('businessProfile'); check both, in that order.
+    var profile = (Array.isArray(snap.businessProfile) && snap.businessProfile[0]) ||
+      recs('businessProfile')[0] || {};
+    var name = biz.businessName || val(profile, 'Business Name', 'businessName') || val(profile, 'Name') || '';
+    var address = String(val(profile, 'Address', 'Business Address') ||
+      val(profile, 'address', 'Street Address') || val(profile, 'streetAddress', 'street') || '');
     var lines = address ? address.split(/\n|,/).map(function (s) { return s.trim(); }).filter(Boolean) : [];
+    if (!lines.length) {
+      var street = String(val(profile, 'Street', 'street') || val(profile, 'Address Line 1', 'addressLine1') || '');
+      var city = String(val(profile, 'City', 'city') || ''), st = String(val(profile, 'State', 'state') || ''),
+        zip = String(val(profile, 'ZIP', 'zip') || val(profile, 'Zip', 'zipCode') || '');
+      var line2 = [city, st].filter(Boolean).join(', ') + (zip ? ' ' + zip : '');
+      lines = [street, line2.trim()].filter(Boolean);
+    }
     return { name: String(name || ''), addressLines: lines };
   }
 
