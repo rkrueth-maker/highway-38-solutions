@@ -1,6 +1,10 @@
 'use strict';
-/* WS3 payroll calc verifier — hand-computed fixtures from
- * spec-ws3-payroll-reports.md §6.3 against payroll-tax-tables-2026.md. */
+/* Payroll calc verifier — hand-computed fixtures. Federal figures are
+ * hand-computed from IRS Publication 15-T (2026), p. 11 (Percentage Method
+ * Tables for Automated Payroll Systems) + Worksheet 1A; Minnesota figures
+ * from the MN Dept. of Revenue 2026 booklet, Computer Formula (p. 34).
+ * Both PDFs were fetched from irs.gov / revenue.state.mn.us and the table
+ * data in payroll-tax-tables-2026.js was transcribed from them. */
 const assert = require('assert');
 const C = require('../commercial-app/payroll-calc.js');
 
@@ -10,7 +14,16 @@ function skip(name, why) { skipped++; console.log('SKIP', name, '—', why); }
 
 const cfg = C.createConfig();
 
-ok('VERSION stamp present', () => assert.equal(C.VERSION, '20261020-payroll-calc-1'));
+ok('VERSION stamp present', () => assert.equal(C.VERSION, '20261106-payroll-calc-2'));
+ok('year tables: 2026 loaded from the year module; 2027 stops hard', () => {
+  assert.ok(C.availableYears().includes(2026));
+  assert.equal(C.tablesForYear(2026).federal.builtInMFJ, 12900);
+  assert.throws(() => C.tablesForYear(2027), /2027 tax tables not loaded/);
+  assert.throws(() => C.configForYear(2027), /2027 tax tables not loaded/);
+  assert.throws(
+    () => C.calculateLine({ grossPay: 1000, payDate: '2027-01-15', employee: { 'Filing Status': 'Single' } }, cfg),
+    /2027 tax tables not loaded/);
+});
 ok('periodsPerYear covers the Pub. 15-T Table 3 set', () => {
   assert.equal(C.periodsPerYear('Weekly'), 52);
   assert.equal(C.periodsPerYear('Biweekly'), 26);
@@ -54,19 +67,43 @@ ok('fixture 4: FICA cap crossing and Additional Medicare', () => {
   assert.equal(c.employerSS, c.ss); // employer mirrors, no Additional match
 });
 
-/* Fixture 5 — MN: SKIPPED/FLAGGED per spec §6.3 until owner confirmation
- * exists. The math is still asserted against a confirmed-config object so a
- * future confirmation only flips the flag, never the numbers:
- * Single, 1 allowance, biweekly $2,000 → 52,000 − 5,300 = 46,700 →
- * 1,782 + 6.8% × 8,690 = 2,372.92/yr → $91.27 */
-skip('fixture 5: MN withholding ships disabled until owner confirmation (spec §4.5/§6.3)',
-  'default config computes $0 with a review flag; confirmed-config math asserted below');
-ok('fixture 5 (math, confirmed config only): MN Single 1 allowance biweekly $2,000 = $91.27', () => {
-  assert.equal(C.stateWithholding({ grossWages: 2000, frequency: 'Biweekly', filingStatus: 'Single', mnAllowances: 1 }, cfg), 0);
-  const line = C.calculateLine({ grossPay: 2000, frequency: 'Biweekly', employee: { 'Filing Status': 'Single' } }, cfg);
-  assert.ok(line.trace.state.reviewFlag.includes('MN withholding is OFF'));
-  const mnCfg = C.createConfig({ minnesota: { enabled: true, confirmed: true } });
-  assert.equal(C.stateWithholding({ grossWages: 2000, frequency: 'Biweekly', filingStatus: 'Single', mnAllowances: 1 }, mnCfg), 91.27);
+/* Fixture 5 — MN is VERIFIED against the official booklet (Computer
+ * Formula, p. 34) and ships enabled. Single, 1 allowance, biweekly $2,000:
+ * 52,000 − 5,300 = 46,700 → 1,782.09 + 6.8% × 8,690 = 2,373.01/yr → $91.27.
+ * (The booklet permits rounding the per-period result to the nearest
+ * dollar; the engine rounds half-up to cents instead — $91.27 here.) */
+ok('fixture 5: MN Single 1 allowance biweekly $2,000 = $91.27 (default config)', () => {
+  assert.equal(C.stateWithholding({ grossWages: 2000, frequency: 'Biweekly', filingStatus: 'Single', mnAllowances: 1 }, cfg), 91.27);
+  const line = C.calculateLine({ grossPay: 2000, frequency: 'Biweekly', employee: { 'Filing Status': 'Single', 'MN Allowances': 1 } }, cfg);
+  assert.equal(line.withholdings.state, 91.27);
+  assert.equal(line.trace.state.reviewFlag, '');
+});
+/* Reference case (MN booklet): Married, 2 allowances, biweekly $3,000:
+ * 78,000 − 10,600 = 67,400 → 2,605.45 + 6.8% × 4,000 = 2,877.45/yr → $110.67 */
+ok('reference MN-2: MN Married 2 allowances biweekly $3,000 = $110.67', () => {
+  assert.equal(C.stateWithholding({ grossWages: 3000, frequency: 'Biweekly', filingStatus: 'Married Filing Jointly', mnAllowances: 2 }, cfg), 110.67);
+});
+/* Reference case (Pub. 15-T Step 2 schedule): MFJ Step-2 checked, biweekly
+ * $4,000, Step 3 credits $2,000/yr: annualized 104,000 − 0 built-in →
+ * 5,800 + 22% × 37,500 = 14,050/yr → tentative 540.38 − credits 76.92 →
+ * $463.46 */
+ok('reference FED-4: MFJ Step-2 biweekly $4,000 with $2,000 Step 3 = $463.46', () => {
+  assert.equal(C.federalWithholding({ grossWages: 4000, frequency: 'Biweekly', filingStatus: 'Married Filing Jointly', step2Checked: true, step3CreditsAnnual: 2000 }, cfg), 463.46);
+});
+/* Reference case (zero withholding): Single biweekly $500 with $4,000
+ * Step 3 credits: 13,000 − 8,600 = 4,400 → 0% bracket → $0. And MN zero:
+ * biweekly $150 → annualized 3,900 < 4,700 first threshold → $0. */
+ok('reference ZERO: zero federal and zero MN withholding cases', () => {
+  assert.equal(C.federalWithholding({ grossWages: 500, frequency: 'Biweekly', filingStatus: 'Single', step3CreditsAnnual: 4000 }, cfg), 0);
+  assert.equal(C.stateWithholding({ grossWages: 150, frequency: 'Biweekly', filingStatus: 'Single', mnAllowances: 0 }, cfg), 0);
+});
+/* Reference case (non-MN work state): state $0 with the unavailable flag;
+ * federal + FICA still calculate. */
+ok('reference STATE: work state WI → state $0 flagged, federal still computes', () => {
+  const line = C.calculateLine({ grossPay: 2000, frequency: 'Biweekly', employee: { 'Filing Status': 'Single', 'Work State': 'WI' } }, cfg);
+  assert.equal(line.withholdings.state, 0);
+  assert.ok(line.trace.state.reviewFlag.includes('unavailable for WI'));
+  assert.ok(line.withholdings.federal > 0 && line.withholdings.ficaSS > 0);
 });
 
 /* Fixture 6 — Rounding: half-up once per component; net identity to the cent */
@@ -98,7 +135,11 @@ ok('fixture 7: employer FUTA/SUTA cap crossing mirrors fixture 4', () => {
   const b = C.employerTaxes({ grossWages: 1500, ytdWagesBefore: 7000 }, empCfg);
   assert.equal(b.futa, 0);
   const off = C.employerTaxes({ grossWages: 1500, ytdWagesBefore: 0 }, cfg);
-  assert.equal(off.futa, 0); assert.equal(off.suta, 0); // disabled by default — never guessed
+  // Default config: FUTA is verified (IRS 0.6% / $7,000) and ON → $9.00.
+  // SUTA has NO default rate — $0 with the "not included" flag, never invented.
+  assert.equal(off.futa, 9.00); assert.equal(off.suta, 0);
+  const line = C.calculateLine({ grossPay: 1500, frequency: 'Biweekly', employee: { 'Filing Status': 'Single' } }, cfg);
+  assert.ok(line.trace.reviewFlags.some(f => f.includes('SUTA not included')));
 });
 
 /* Extra contract checks */
@@ -122,7 +163,7 @@ ok('trace explains every number (annualized wage, bracket row, per-tax math)', (
   const line = C.calculateLine({ grossPay: 2000, frequency: 'Biweekly', employee: { 'Filing Status': 'Single' } }, cfg);
   assert.equal(line.trace.federal.annualizedWages, 52000);
   assert.ok(line.trace.federal.bracketRow);
-  assert.ok(line.trace.reviewFlags.length >= 1); // MN/FUTA/SUTA disabled flags surface
+  assert.ok(line.trace.reviewFlags.length >= 1); // SUTA-not-included flag surfaces
 });
 
 console.log(`\nPayroll calc acceptance complete: ${passed} passed, ${skipped} skipped (flagged).`);

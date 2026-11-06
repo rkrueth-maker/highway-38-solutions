@@ -1,11 +1,14 @@
-/* H38 Payroll Calc — pure withholding math (WS3, 2026-10-20).
- * Implements IRS Pub. 15-T (2026) Percentage Method (Worksheet 1A, automated
- * tables), FICA per IRS Topic 751 / SSA 2026 wage base, and the Minnesota
- * percentage method — all from payroll-tax-tables-2026.md.
- * Federal + FICA ship ENABLED with verified tables. Minnesota and FUTA/SUTA
- * ship DISABLED (UNVERIFIED figures) until the owner confirms the section in
- * Payroll Settings; a disabled section computes 0 with a review flag, never
- * a guessed number.
+/* H38 Payroll Calc — pure withholding math (WS3, 2026-10-20; tax-year
+ * tables externalized 2026-11-06).
+ * Implements IRS Pub. 15-T Percentage Method (Worksheet 1A, automated
+ * tables), FICA, and the Minnesota computer formula. ALL bracket data lives
+ * in year-keyed modules (payroll-tax-tables-<year>.js), verified line by
+ * line against the official IRS / MN DOR publications; the engine selects
+ * the tables by the PAY DATE's year and STOPS ("<year> tax tables not
+ * loaded") when no module exists for that year — never a silent fallback.
+ * Federal + FICA + Minnesota + FUTA ship ENABLED with verified figures.
+ * MN SUTA stays owner-rate-only: no rate exists until the owner enters
+ * their MN DEED rate in Payroll Settings (never invented).
  * Money discipline: integer cents internally; every component is rounded
  * ONCE, half-up to cents, at the line level. Run totals are sums of rounded
  * line values. No DOM, no state, no globals beyond the frozen export.
@@ -16,7 +19,29 @@
   if(root)root.H38_PAYROLL_CALC=Object.freeze(api);
 })(typeof window!=='undefined'?window:null,function(){
   'use strict';
-  const VERSION='20261020-payroll-calc-1';
+  const VERSION='20261106-payroll-calc-2';
+
+  /* ---------- year-keyed tax tables (payroll-tax-tables-<year>.js) ------- */
+  function loadYearTables(){
+    const byYear={};
+    try{
+      const reg=(typeof window!=='undefined'?window:(typeof globalThis!=='undefined'?globalThis:null))?.H38_PAYROLL_TAX_TABLES;
+      if(reg)for(const k of Object.keys(reg))byYear[k]=reg[k];
+    }catch(e){}
+    if(!byYear['2026']){
+      try{const t=require('./payroll-tax-tables-2026.js');if(t&&(t.taxYear||t['2026']))byYear[String(t.taxYear||2026)]=t.taxYear?t:t['2026'];}catch(e){}
+    }
+    return byYear;
+  }
+  const YEAR_TABLES=loadYearTables();
+  const AVAILABLE_YEARS=Object.keys(YEAR_TABLES).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  const DEFAULT_YEAR=AVAILABLE_YEARS.length?AVAILABLE_YEARS[AVAILABLE_YEARS.length-1]:2026;
+  function tablesForYear(year){
+    const y=Number(year);
+    const t=YEAR_TABLES[String(y)];
+    if(!t)throw new Error(y+' tax tables not loaded');
+    return t;
+  }
 
   /* ---------- money helpers (integer cents, round half-up once) ---------- */
   function toCents(v){const n=Number(v||0);if(!Number.isFinite(n))throw new Error('Amount must be a finite number.');const s=n<0?-1:1;return s*Math.floor(Math.abs(n)*100+0.5+1e-9);}
@@ -25,42 +50,56 @@
   function sumCents(values){return (values||[]).reduce((s,x)=>s+toCents(x),0);}
 
   /* ---------- percentage-method tables ----------
-   * Row: [atLeast, butLessThan (null = no cap), baseTax, rateOnExcess, excessOver]
-   * Federal: IRS Pub. 15-T (2026), Annual Percentage Method Tables for
-   * Automated Payroll Systems — VERIFIED (official), accessed 2026-10-20. */
-  const FED_STANDARD={
-    mfj:[[0,19300,0,0,0],[19300,44100,0,0.10,19300],[44100,120100,2480,0.12,44100],[120100,230700,11600,0.22,120100],[230700,422850,35932,0.24,230700],[422850,531750,82048,0.32,422850],[531750,788000,116896,0.35,531750],[788000,null,206583.50,0.37,788000]],
-    single:[[0,7500,0,0,0],[7500,19900,0,0.10,7500],[19900,57900,1240,0.12,19900],[57900,113200,5800,0.22,57900],[113200,209275,17966,0.24,113200],[209275,263725,41024,0.32,209275],[263725,648100,58448,0.35,263725],[648100,null,192979.25,0.37,648100]],
-    hoh:[[0,15550,0,0,0],[15550,33250,0,0.10,15550],[33250,83000,1770,0.12,33250],[83000,121250,7740,0.22,83000],[121250,217300,16155,0.24,121250],[217300,271750,39207,0.32,217300],[271750,656150,56631,0.35,271750],[656150,null,191171.00,0.37,656150]]
-  };
-  const FED_STEP2={
-    mfj:[[0,16100,0,0,0],[16100,28500,0,0.10,16100],[28500,66500,1240,0.12,28500],[66500,121800,5800,0.22,66500],[121800,217875,17966,0.24,121800],[217875,272325,41024,0.32,217875],[272325,400450,58448,0.35,272325],[400450,null,103291.75,0.37,400450]],
-    single:[[0,8050,0,0,0],[8050,14250,0,0.10,8050],[14250,33250,620,0.12,14250],[33250,60900,2900,0.22,33250],[60900,108938,8983,0.24,60900],[108938,136163,20512,0.32,108938],[136163,328350,29224,0.35,136163],[328350,null,96489.63,0.37,328350]],
-    hoh:[[0,12075,0,0,0],[12075,20925,0,0.10,12075],[20925,45800,885,0.12,20925],[45800,64925,3870,0.22,45800],[64925,112950,8077.50,0.24,64925],[112950,140175,19603.50,0.32,112950],[140175,332375,28315.50,0.35,140175],[332375,null,95585.50,0.37,332375]]
-  };
-  /* Minnesota percentage tables 2026 — CORROBORATED (vendor sources only,
-   * UNVERIFIED against the MN Revenue booklet). Disabled until confirmed. */
-  const MN_TABLES={
-    single:[[0,4700,0,0,0],[4700,38010,0,0.0535,4700],[38010,114130,1782,0.068,38010],[114130,207850,6958,0.0785,114130],[207850,null,14315,0.0985,207850]],
-    married:[[0,14700,0,0,0],[14700,63400,0,0.0535,14700],[63400,208180,2605,0.068,63400],[208180,352630,12450,0.0785,208180],[352630,null,23790,0.0985,352630]]
-  };
+   * Row: [atLeast, butLessThan (null = no cap), baseTax, rateOnExcess,
+   * excessOver]. All data comes from the year module
+   * (payroll-tax-tables-<year>.js); the default config is built from the
+   * newest loaded year. Minnesota + FUTA are verified against the official
+   * publications and ship ENABLED; SUTA has no default rate — it exists
+   * only when the owner enters theirs. */
+  function configFromYear(year){
+    const t=tablesForYear(year);
+    return {
+      taxYear:Number(year),
+      federal:{enabled:true,builtInMFJ:t.federal.builtInMFJ,builtInOther:t.federal.builtInOther,
+        pre2020AllowanceValue:t.federal.pre2020AllowanceValue,
+        source:t.federal.source,tables:t.federal.tables},
+      fica:{enabled:true,ssRate:t.fica.ssRate,ssWageBase:t.fica.ssWageBase,
+        medicareRate:t.fica.medicareRate,additionalRate:t.fica.additionalRate,
+        additionalWithholdingThreshold:t.fica.additionalWithholdingThreshold,
+        source:t.fica.source},
+      minnesota:{enabled:true,confirmed:true,allowanceValue:t.minnesota.allowanceValue,
+        source:t.minnesota.source,tables:t.minnesota.tables,
+        paidLeave:clone(t.minnesota.paidLeave||{enabled:false,employeeRate:0,employerRate:0,wageCap:184500})},
+      employer:{futaEnabled:true,futaRate:t.futa.rate,futaWageBase:t.futa.wageBase,
+        sutaEnabled:false,sutaRate:null,sutaWageBase:null,stateOtherRate:0,
+        source:t.futa.source+' SUTA: owner-entered MN DEED rate only (no default).'}
+    };
+  }
+  const DEFAULT_CONFIG=configFromYear(DEFAULT_YEAR);
 
-  const DEFAULT_CONFIG={
-    taxYear:2026,
-    federal:{enabled:true,builtInMFJ:12900,builtInOther:8600,pre2020AllowanceValue:4300,
-      source:'IRS Pub. 15-T (2026), verified 2026-10-20',
-      tables:{standard:FED_STANDARD,step2:FED_STEP2}},
-    fica:{enabled:true,ssRate:0.062,ssWageBase:184500,medicareRate:0.0145,additionalRate:0.009,
-      additionalWithholdingThreshold:200000,
-      source:'IRS Topic 751 + SSA 2026 wage base, verified 2026-10-20'},
-    minnesota:{enabled:false,confirmed:false,allowanceValue:5300,
-      source:'UNVERIFIED — confirm MN Revenue booklet',
-      tables:MN_TABLES,
-      paidLeave:{enabled:false,employeeRate:0,employerRate:0,wageCap:184500}},
-    employer:{futaEnabled:false,futaRate:0.006,futaWageBase:7000,
-      sutaEnabled:false,sutaRate:null,sutaWageBase:null,stateOtherRate:0,
-      source:'UNVERIFIED — owner confirms FUTA/SUTA with CPA / MN DEED'}
-  };
+  /* configForYear(year, base): the year's verified table DATA with the
+   * owner's own toggles/rates from base (a stored-config-shaped object or
+   * an internal config) preserved. Throws "<year> tax tables not loaded"
+   * when the year module is absent — the pay flow must stop, never fall
+   * back to another year's tables. */
+  function configForYear(year,base){
+    const y=Number(year);const t=tablesForYear(y);
+    const cfg=createConfig(base);
+    cfg.taxYear=y;
+    cfg.federal.builtInMFJ=t.federal.builtInMFJ;cfg.federal.builtInOther=t.federal.builtInOther;
+    cfg.federal.pre2020AllowanceValue=t.federal.pre2020AllowanceValue;
+    cfg.federal.source=t.federal.source;cfg.federal.tables=t.federal.tables;
+    cfg.fica.ssRate=t.fica.ssRate;cfg.fica.ssWageBase=t.fica.ssWageBase;
+    cfg.fica.medicareRate=t.fica.medicareRate;cfg.fica.additionalRate=t.fica.additionalRate;
+    cfg.fica.additionalWithholdingThreshold=t.fica.additionalWithholdingThreshold;
+    cfg.fica.source=t.fica.source;
+    cfg.minnesota.allowanceValue=t.minnesota.allowanceValue;
+    cfg.minnesota.source=t.minnesota.source;cfg.minnesota.tables=t.minnesota.tables;
+    // FUTA figures are statutory for the year; the owner's on/off choice in
+    // base is preserved, the rate/base always come from the year module.
+    cfg.employer.futaRate=t.futa.rate;cfg.employer.futaWageBase=t.futa.wageBase;
+    return cfg;
+  }
 
   function isPlain(o){return o&&typeof o==='object'&&!Array.isArray(o);}
   function clone(v){return v==null||typeof v!=='object'?v:Array.isArray(v)?v.map(clone):Object.fromEntries(Object.entries(v).map(([k,x])=>[k,clone(x)]));}
@@ -174,6 +213,7 @@
   function stateWithholding(input,config){
     const cfg=config||createConfig();
     const mn=cfg.minnesota;
+    if(String(input.workState||'MN').toUpperCase()!=='MN')return 0;
     if(!mn.enabled||!mn.confirmed)return 0;
     const periods=periodsPerYear(input.frequency);
     const gross=roundCents(input.grossWages||0);
@@ -187,6 +227,13 @@
   function stateDetail(input,config){
     const cfg=config||createConfig();
     const mn=cfg.minnesota;
+    const workState=String(input.workState||'MN').toUpperCase();
+    if(workState!=='MN'){
+      return {amount:0,enabled:false,workState,
+        trace:{method:'State withholding',enabled:false,workState,
+          source:'Only Minnesota withholding is built in.',
+          reviewFlag:'State withholding is unavailable for '+workState+' — federal and FICA still calculate. If this employee needs state withholding, add an owner-entered state deduction line instead.'}};
+    }
     const enabled=!!(mn.enabled&&mn.confirmed);
     const periods=periodsPerYear(input.frequency);
     const gross=roundCents(input.grossWages||0);
@@ -201,7 +248,7 @@
         allowanceValue:mn.allowanceValue,allowanceDeduction,taxableAnnualWage:taxable,
         bracketRow:row?{atLeast:row[0],butLessThan:row[1],baseTax:row[2],rate:row[3],excessOver:row[4]}:null,
         annualTax,mnAdditionalPerPeriod:roundCents(input.mnAdditionalPerPeriod||0),
-        reviewFlag:enabled?'':'MN withholding is OFF — state computes $0 until the owner confirms the Minnesota tables in Payroll tax tables settings.'}};
+        reviewFlag:enabled?'':'MN withholding is OFF for this business (Payroll tax tables settings) — state computes $0.'}};
   }
 
   /* ---------- Employer taxes ---------- */
@@ -219,14 +266,18 @@
     const stateOther=roundCents(gross*Number(e.stateOtherRate||0));
     return {ss:f.employerSS,medicare:f.employerMedicare,futa,suta,stateOther,
       trace:{futaEnabled:!!e.futaEnabled,sutaEnabled:!!e.sutaEnabled,
-        futaReviewFlag:e.futaEnabled?'':'FUTA is OFF until the owner confirms the rate/base in Payroll tax tables settings.',
-        sutaReviewFlag:e.sutaEnabled?'':'SUTA is OFF until the owner confirms their MN DEED rate/base in Payroll tax tables settings.'}};
+        futaReviewFlag:e.futaEnabled?'':'FUTA is OFF for this business (Payroll tax tables settings) — employer FUTA is not included in this run.',
+        sutaReviewFlag:e.sutaEnabled?'':'SUTA not included — no SUTA rate is set for this business. Enter your MN DEED rate in Payroll tax tables settings to include it.'}};
   }
 
   /* ---------- Full line calculation ---------- */
   function field(source,...names){for(const name of names){if(source&&source[name]!=null&&source[name]!=='')return source[name];}return undefined;}
   function calculateLine(input,config){
-    const cfg=config||createConfig();
+    // Tables are selected by the PAY DATE's year. A pay date whose year has
+    // no loaded tables stops the flow ("<year> tax tables not loaded") —
+    // never a silent fallback to another year.
+    const cfg=input&&input.payDate?configForYear(Number(String(input.payDate).slice(0,4)),config)
+      :(config||createConfig());
     const emp=input.employee||{};
     const gross=roundCents(input.grossPay||0);
     const reimbursements=roundCents(input.reimbursements||0);
@@ -266,6 +317,7 @@
       const fed=federalDetail(fedInput,cfg);fedTrace=fed.trace;
       const fic=fica({grossWages:ficaWages,ytdWagesBefore},cfg);ficaTrace=fic.trace;
       const st=stateDetail({grossWages:incomeTaxWages,frequency,filingStatus:fedInput.filingStatus,
+        workState:field(emp,'workState','Work State')||input.workState||'MN',
         mnAllowances:Number(field(emp,'mnAllowances','MN Allowances')??field(emp,'Withholding Allowances')??0),
         mnAdditionalPerPeriod:Number(field(emp,'mnAdditionalPerPeriod','MN Additional Withholding')||0)},cfg);
       stateTrace=st.trace;if(st.trace.reviewFlag)reviewFlags.push(st.trace.reviewFlag);
@@ -298,5 +350,6 @@
 
   return {VERSION,DEFAULT_CONFIG:defaultConfig(),createConfig,defaultConfig,periodsPerYear,
     federalWithholding,federalDetail,fica,stateWithholding,stateDetail,employerTaxes,calculateLine,
+    configForYear,tablesForYear,availableYears:()=>AVAILABLE_YEARS.slice(),
     roundCents,toCents,fromCents};
 });

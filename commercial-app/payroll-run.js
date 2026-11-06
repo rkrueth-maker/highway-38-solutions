@@ -190,7 +190,12 @@
     if(!preparation||!Array.isArray(preparation.Items))throw new Error('A payrollPreparation result is required to build a run.');
     const CALC=calcMod();
     if(!CALC)throw new Error('Payroll calc module is unavailable.');
-    const cfg=config||CALC.createConfig();
+    // Tables come from the PAY DATE's year. configForYear throws
+    // "<year> tax tables not loaded" when that year's module is absent —
+    // the run stops there rather than falling back to another year.
+    const cfg=(payDate&&typeof CALC.configForYear==='function')
+      ?CALC.configForYear(Number(String(payDate).slice(0,4)),config)
+      :(config||CALC.createConfig());
     const stamp=nowIso||new Date().toISOString();
     const empById=new Map((employees||[]).map(e=>[text(e['Employee ID']||e.id),e]));
     const used=runsContainingEntries(existingRuns,existingLines);
@@ -218,7 +223,7 @@
       const regularPay=money(num(item.regularHours)*rate);
       const overtimePay=money(num(item.overtimeHours)*otRate);
       const contractor=isContractor(employee);
-      const calc=CALC.calculateLine({grossPay:lineGross,reimbursements:money(item.reimbursements||0),frequency,
+      const calc=CALC.calculateLine({grossPay:lineGross,payDate,reimbursements:money(item.reimbursements||0),frequency,
         employee,deductions:employeeDeductions(employee),contractor,
         ytd:{gross:ytdWagesBefore(existingLines,item.employeeId,payDate,runId)}},cfg);
       const wh=calc.withholdings,et=calc.employerTaxes;
@@ -259,6 +264,7 @@
           step3Credits:num(employee['W-4 Step 3 Credits']),step4a:num(employee['W-4 Step 4a Other Income']),
           step4b:num(employee['W-4 Step 4b Deductions']),extraWithholding:num(employee['Extra Withholding']),
           mnAllowances:num(employee['MN Allowances']??employee['Withholding Allowances']),
+          workState:text(employee['Work State'])||'MN',
           mnAdditional:num(employee['MN Additional Withholding']),ytdWagesBefore:ytdBefore,
           w4Path:calc.trace&&calc.trace.federal?calc.trace.federal.path:'contractor'},
         'Calc Trace':calc.trace,

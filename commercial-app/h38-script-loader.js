@@ -219,7 +219,8 @@
       // WS3: payroll calc joins the accounting chain (loaded before the
       // bridge pulls in operations-ui) so Reports/accounting surfaces can
       // share the one withholding module. Loader dedupes repeat loads.
-      './payroll-calc.js?build=20261020-payroll-calc-1',
+      './payroll-tax-tables-2026.js?build=20261106-tax-tables-1',
+      './payroll-calc.js?build=20261106-payroll-calc-2',
       './check-printing.js?build=20261106-check-printing-2',
       './money-agent.js?build=20261022-perperson-1',
     ];
@@ -228,7 +229,8 @@
       // engine → operations (payrollPreparation) → calc → run → presentation.
       './accounting-engine.js?build=20261020-payroll-engine-1',
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
-      './payroll-calc.js?build=20261020-payroll-calc-1',
+      './payroll-tax-tables-2026.js?build=20261106-tax-tables-1',
+      './payroll-calc.js?build=20261106-payroll-calc-2',
       './payroll-run.js?build=20261020-payroll-run-1',
       './check-printing.js?build=20261106-check-printing-2',
       './payroll-workflow.js?build=20261020-payroll-presentation-1',
