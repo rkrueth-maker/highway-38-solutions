@@ -556,9 +556,37 @@ async function h38VoidPayrollCheck(checkId){
   const updated=Object.assign({},check,{'Status':'Void','Voided By':state.snapshot.user.userId,'Voided Time':stamp,
     'Void Reason':reason,'Updated Time':stamp,'Record Version':num(v(check,'Record Version'))+1});
   await h38SavePayrollCheck(updated);
+  // Full-face checks also carry a payroll payment record + a paid stamp on
+  // the pay line — void both so the line can be paid again (audit kept).
+  if(String(v(check,'Print Mode')||'').indexOf('Full-face')===0&&window.H38CheckPrint&&typeof window.H38CheckPrint.voidPaycheck==='function'){
+    try{await window.H38CheckPrint.voidPaycheck(updated);}catch(e){}
+  }
   try{await sync(false);}catch(e){}
   toast(`Check #${v(check,'Check Number')} voided and recorded.`);
   renderPayrollPrep();
+}
+/* Full-face paychecks (blank check-on-top stock): the shared renderer and
+ * the per-bank-account sequence from check-printing.js — the same numbers
+ * vendor bill checks use. Amounts/names always come from the finalized
+ * payroll lines; a line already paid by any check is refused. */
+async function h38PrintPayrollChecksFullFace(periodId){
+  const period=records('payrollPeriods').find(r=>rowId(r,'Payroll Period ID')===periodId);
+  if(!period)return;
+  if(String(v(period,'Approval Status')).toUpperCase()!=='APPROVED'){toast('Only finalized pay runs can print checks.',true);return;}
+  if(!h38CheckPrintingOn()){toast('Payroll check printing is off. Turn it on in Settings → Owner Controls.',true);return;}
+  const CP=window.H38CheckPrint;
+  if(!CP||typeof CP.issuePaychecks!=='function'){toast('Check printing is still loading. Try again in a moment.',true);return;}
+  const lines=records('payrollLines').filter(l=>v(l,'Payroll Period ID')===periodId&&num(v(l,'Net Pay'))>0);
+  if(!lines.length){toast('No pay lines with net pay in this run.',true);return;}
+  const items=[],blocked=[];
+  for(const line of lines){
+    const paid=CP.linePaidByCheck(periodId,rowId(line,'Payroll Line ID'));
+    if(paid){blocked.push(`${v(h38EmployeeForLine(line),'Display Name')||v(line,'Employee ID')} (check #${v(paid,'Check Number')})`);continue;}
+    items.push({line,employee:h38EmployeeForLine(line)});
+  }
+  if(blocked.length)toast(`Already paid by check: ${blocked.join(', ')}. Void that check first if it must be reprinted.`,true);
+  if(!items.length)return;
+  if(await CP.issuePaychecks(period,items))renderPayrollPrep();
 }
 async function h38ReissuePayrollCheck(checkId){
   const old=records('payrollChecks').find(c=>rowId(c,'Payroll Check ID')===checkId);
@@ -817,8 +845,8 @@ function renderPayrollPrep(){
         ${status==='Finalized'?`<button type="button" data-payroll-post="${esc(pid)}">Post to books</button>`:''}
         <button type="button" class="secondary" data-payroll-view="${esc(pid)}">View stubs</button>
         ${finalized?`<button type="button" class="secondary" data-payroll-csv="${esc(pid)}">CSV</button><button type="button" class="secondary" data-payroll-nacha="${esc(pid)}">NACHA</button>`:''}
-        ${finalized?(checkPrintingOn?`<button type="button" data-payroll-checkprint="${esc(pid)}">Print checks</button>`:`<button type="button" disabled title="Turn on Payroll check printing in Settings → Owner Controls">Print checks</button>`):''}
-      </div>${finalized&&!checkPrintingOn?'<small class="muted">Check printing is off — enable <strong>Payroll check printing</strong> in Settings → Owner Controls to print on your bank check stock.</small>':''}</div>`;}).join(''):empty('No pay runs yet. Approve time, then prepare a run.')}
+        ${finalized?(checkPrintingOn?`<button type="button" data-payroll-checkprint="${esc(pid)}">Print checks</button><button type="button" class="secondary" data-payroll-checkprint-full="${esc(pid)}">Print full-face checks</button>`:`<button type="button" disabled title="Turn on Payroll check printing in Settings → Owner Controls">Print checks</button>`):''}
+      </div>${finalized&&!checkPrintingOn?'<small class="muted">Check printing is off — enable <strong>Payroll check printing</strong> in Settings → Owner Controls to print checks.</small>':''}</div>`;}).join(''):empty('No pay runs yet. Approve time, then prepare a run.')}
     </div></section>
 
   ${h38PayrollLiabilitySection(periods,allLines)}
@@ -827,7 +855,7 @@ function renderPayrollPrep(){
   ${stubSection}
 
   <section class="card"><h2>4 · Payroll check register</h2>
-    <p class="muted small">Every printed, reprinted, voided and reissued check is recorded here. Checks print only on <strong>your bank's check stock</strong> — the Office never prints a MICR line, routing or account number, and never moves money.</p>
+    <p class="muted small">Every printed, reprinted, voided and reissued check is recorded here. <strong>Print checks</strong> prints payee, date, amounts and the stub on <strong>your bank's check stock</strong> — the Office never prints a MICR line in that mode. <strong>Print full-face checks</strong> prints the whole check (business, payee, amount in words, and a MICR-style line) on <strong>blank check-on-top stock</strong>, using only the routing/account numbers stored on the bank account — segments not stored print blank. Checks share one number sequence per bank account with vendor bill checks. The Office never moves money.</p>
     ${!checkPrintingOn?'<p class="muted small">Check printing is <strong>off</strong>. Enable <strong>Payroll check printing</strong> in Settings → Owner Controls to print, reprint or reissue. Voiding stays available for your records.</p>':''}
     <div class="list">${checkRegister.length?checkRegister.map(c=>{const cid=rowId(c,'Payroll Check ID');const st=String(v(c,'Status'));
       return `<div class="row"><div class="row-top"><strong>Check #${esc(v(c,'Check Number'))} — ${esc(v(c,'Payee Name'))}</strong>${pill(st,st==='Void'?'bad':'')}</div>
@@ -869,6 +897,7 @@ function renderPayrollPrep(){
   bind('[data-payroll-closestubs]',()=>{state.payrollViewRun=null;state.payrollPrintRun=null;renderPayrollPrep();});
   bind('[data-payroll-print]',e=>h38PrintStubs(e.target.dataset.payrollPrint));
   bind('[data-payroll-checkprint]',e=>h38PrintPayrollChecks(e.target.dataset.payrollCheckprint));
+  bind('[data-payroll-checkprint-full]',e=>h38PrintPayrollChecksFullFace(e.target.dataset.payrollCheckprintFull));
   bind('[data-payroll-checkreprint]',e=>h38ReprintRecordedCheck(e.target.dataset.payrollCheckreprint));
   bind('[data-payroll-checkvoid]',e=>h38VoidPayrollCheck(e.target.dataset.payrollCheckvoid));
   bind('[data-payroll-checkreissue]',e=>h38ReissuePayrollCheck(e.target.dataset.payrollCheckreissue));
