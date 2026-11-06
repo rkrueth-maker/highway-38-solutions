@@ -208,7 +208,7 @@
       // Same ?build= URL as PAGE_CUSTOMERS so the loader dedupes it.
       './customer-profile-money.js?build=20261101-wave3-1',
       './pay-bills.js?build=20261011-phase2-1',
-      './check-printing.js?build=20261106-check-printing-1',
+      './check-printing.js?build=20261106-check-printing-2',
       './overdue-nudge.js?build=20261011-phase3-1',
       './stripe-payments.js?build=20261006-stripepay-1',
     ];
@@ -220,7 +220,7 @@
       // bridge pulls in operations-ui) so Reports/accounting surfaces can
       // share the one withholding module. Loader dedupes repeat loads.
       './payroll-calc.js?build=20261020-payroll-calc-1',
-      './check-printing.js?build=20261106-check-printing-1',
+      './check-printing.js?build=20261106-check-printing-2',
       './money-agent.js?build=20261022-perperson-1',
     ];
     const PAGE_PAYROLL = [
@@ -230,7 +230,7 @@
       './accounting-operations.js?build=20261002-payroll-approved-period-1',
       './payroll-calc.js?build=20261020-payroll-calc-1',
       './payroll-run.js?build=20261020-payroll-run-1',
-      './check-printing.js?build=20261106-check-printing-1',
+      './check-printing.js?build=20261106-check-printing-2',
       './payroll-workflow.js?build=20261020-payroll-presentation-1',
       './money-agent.js?build=20261022-perperson-1',
       './guided-payroll.js?build=20261020-payroll-run-1',
