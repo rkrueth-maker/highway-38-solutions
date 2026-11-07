@@ -56,7 +56,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261107-polish-a1-queueboard-1';
+  var BUILD = '20261107-polish-a4-taps-2';
   var HOST_PAGES = { work: 1, quotes: 1 };
   var MAX_CARDS = 50;
   var boardOpen = false;
