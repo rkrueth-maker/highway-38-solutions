@@ -106,6 +106,7 @@ button.block{width:100%}
         <div class="stat"><b id="statAppts">0</b><span>Upcoming visits</span></div>
       </div></div>
       <div class="card"><h2>Needs your attention</h2><div id="actionList"></div></div>
+      <div class="card"><h2>Know someone who needs us?</h2><p class="muted small" style="margin-bottom:10px">Refer a friend or neighbor — tell us who they are and what they need, and we'll take it from there.</p><button class="secondary block" data-goto="view-book">Refer a friend</button></div>
       <div class="card"><h2>Upcoming visits</h2><div id="apptList"></div></div>
     </div>
 
@@ -152,6 +153,23 @@ button.block{width:100%}
           <p class="note" id="bookNote">We'll call you back to confirm. No payment due until the work is agreed.</p>
         </div>
         <div class="ok" id="bookDone" hidden><h2 id="bookDoneTitle">Request received</h2><p style="margin-top:8px" id="bookDoneText">Thanks — we'll call you shortly to confirm.</p></div>
+      </div>
+      <div class="card" id="referCard"><h2>Refer a friend</h2>
+        <p class="muted small" style="margin-bottom:12px">Know someone who could use our help? Tell us who they are and what they need done. We'll reach out to them ourselves — nothing is sent to them automatically.</p>
+        <div id="refErr" class="err" hidden></div>
+        <div id="refFormWrap">
+          <div class="field"><label for="refName">Their name</label><input id="refName" type="text" maxlength="80" placeholder="e.g. Tom Lindquist"></div>
+          <div class="row">
+            <div class="field"><label for="refPhone">Their phone</label><input id="refPhone" type="tel" maxlength="30" placeholder="(218) 555-0123"></div>
+            <div class="field"><label for="refEmail">Their email</label><input id="refEmail" type="email" maxlength="120" placeholder="them@example.com"></div>
+          </div>
+          <p class="note" style="text-align:left;margin:-4px 0 12px">Phone or email — one is enough.</p>
+          <div class="field"><label for="refNeed">What do they need done?</label><input id="refNeed" type="text" maxlength="300" placeholder="e.g. Snow plowing for the season"></div>
+          <div class="field"><label for="refNotes">Anything else we should know? (optional)</label><textarea id="refNotes" rows="2" maxlength="1000" placeholder="Anything that helps us say hello…"></textarea></div>
+          <button class="block" id="refBtn">Send referral</button>
+          <p class="note">What happens next: the office gets your referral and reaches out to them personally. We don't send them an automatic message.</p>
+        </div>
+        <div class="ok" id="refDone" hidden><h2>Referral sent — thank you!</h2><p style="margin-top:8px" id="refDoneText">We've passed it to the office. They'll reach out to your friend — nothing was sent automatically.</p></div>
       </div>
     </div>
 
@@ -539,6 +557,28 @@ function payInvoice(invoiceId,amount){
     if(r.ok)loadSession(sessionToken);
   });
 }
+
+// ---- Refer a friend ----
+// One referral key per form: a double-tap or a retry after a lost
+// connection re-sends the same key and the server returns the original
+// referral instead of creating a second lead. The key rotates only
+// after a referral lands, so referring a second person still works.
+var referralKey='';
+function newReferralKey(){referralKey='rk'+Date.now().toString(36)+Math.random().toString(36).slice(2,12);return referralKey;}
+newReferralKey();
+$('refBtn').addEventListener('click',function(){
+  var btn=$('refBtn'),err=$('refErr');err.hidden=true;
+  var name=$('refName').value.trim(),phone=$('refPhone').value.trim(),email=$('refEmail').value.trim(),need=$('refNeed').value.trim(),notes=$('refNotes').value.trim();
+  if(!name){err.textContent='Tell us their name.';err.hidden=false;return;}
+  if(!phone&&!email){err.textContent='Add a phone number or an email so we can reach them.';err.hidden=false;return;}
+  if(!need){err.textContent='Tell us what they need done.';err.hidden=false;return;}
+  btn.disabled=true;btn.textContent='Sending…';
+  api('submit-referral',{session_token:sessionToken,referral_key:referralKey,name:name,phone:phone,email:email,need:need,notes:notes}).then(function(r){
+    btn.disabled=false;btn.textContent='Send referral';
+    if(r.ok){$('refFormWrap').hidden=true;if(r.o&&r.o.message)$('refDoneText').textContent=r.o.message;$('refDone').hidden=false;newReferralKey();}
+    else{err.textContent=(r.o&&r.o.error)||'Something went wrong.';err.hidden=false;}
+  }).catch(function(){btn.disabled=false;btn.textContent='Send referral';err.textContent='Could not reach the portal.';err.hidden=false;});
+});
 
 // ---- Book service ----
 $('bDate').addEventListener('change',function(){if(bookingMode==='confirmed')loadSlots();});

@@ -49,6 +49,7 @@ const SIGNED_DEPOSIT_MODULE_KEY = "signed_deposit_acceptance";
 const DEPOSIT_INVOICE_SOURCE = "Deposit on signed quote acceptance";
 const SCHEDULE_INVOICE_SOURCE = "Payment schedule on signed quote acceptance";
 const CHANGE_ORDER_INVOICE_SOURCE = "Change order signed approval";
+const REFERRAL_SOURCE = "Portal referral";
 const DEFAULT_DEPOSIT_PERCENT = 50;
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") || "";
 const TOKEN_COLLECTION = "portal_tokens";
@@ -2093,6 +2094,105 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
       if (insErr) throw insErr;
       await writeProof(sb, session.businessId, "PORTAL_SERVICE_REQUESTED", "Booking", id, "OK", { service: serviceName });
       return reply(req, 200, { ok: true, bookingId: id, message: "Request received. We will call you to confirm." });
+    }
+
+    // ---- submit-referral (session): a customer refers someone ----
+    // The referral lands in the SAME booking_requests collection the
+    // portal's own service requests use, so it is worked from the same
+    // owner surfaces (Schedule → Service Requests inbox, owner home
+    // "Needs you now", and the existing h38-owner-notify scan of new
+    // booking_requests). It is marked Source "Portal referral" with
+    // Lead Source "Referral" and carries the referring customer on the
+    // record ("Referred By Customer ID/Name" — taken from the SESSION,
+    // never from the request body, so a referral cannot be planted into
+    // another tenant or attributed to another customer). The referred
+    // person is not a customer yet, so "Customer ID" stays empty and
+    // their name/contact live on the record for the owner to follow up.
+    // NOTHING is sent to the referred person — no email, SMS, or invite
+    // is created anywhere in this path; the record is owner-only.
+    // Double-submit safe: the portal sends one referral_key per form;
+    // the record key is derived from it, and a repeat returns the
+    // original record instead of creating a second lead.
+    if (postAction === "submit-referral") {
+      const referredName = clean(body.name, MAX.name);
+      const referredPhone = clean(body.phone, MAX.phone);
+      const referredEmail = clean(body.email, MAX.email);
+      const need = clean(body.need, 300);
+      const note = clean(body.notes, MAX.notes);
+      if (!referredName) return reply(req, 400, { error: "Tell us their name." });
+      if (!referredPhone && !referredEmail) {
+        return reply(req, 400, { error: "Add a phone number or an email so we can reach them." });
+      }
+      if (referredEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(referredEmail)) {
+        return reply(req, 400, { error: "That email doesn't look right — check it or leave it blank." });
+      }
+      if (referredPhone && referredPhone.replace(/\D/g, "").length < 7) {
+        return reply(req, 400, { error: "That phone number doesn't look right — check it or leave it blank." });
+      }
+      if (!need) return reply(req, 400, { error: "Tell us what they need done." });
+
+      const keyRaw = clean(body.referral_key, 80).replace(/[^A-Za-z0-9-]/g, "");
+      const now = new Date().toISOString();
+      const id = keyRaw
+        ? `REF-${keyRaw.slice(0, 60)}`
+        : `REF-${now.slice(0, 10).replace(/-/g, "")}-${crypto.getRandomValues(new Uint8Array(3)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "").toUpperCase()}`;
+      const { data: existing } = await sb
+        .from("business_records")
+        .select("record_key")
+        .eq("business_id", session.businessId)
+        .eq("collection", "booking_requests")
+        .eq("record_key", id)
+        .maybeSingle();
+      if (existing?.record_key) {
+        return reply(req, 200, {
+          ok: true,
+          bookingId: id,
+          duplicate: true,
+          message: "Thanks — that referral is already with the office. They'll reach out to them.",
+        });
+      }
+
+      const referrer = await customerById(sb, session.businessId, session.customerKey);
+      const referrerName = clean(pick(referrer?.payload || {}, "Customer Name", "name"), 120);
+      const actorId = await attributionUserId(sb, session.businessId);
+      const { error: insErr } = await sb.from("business_records").insert({
+        business_id: session.businessId,
+        collection: "booking_requests",
+        record_key: id,
+        record_status: "active",
+        created_by: actorId,
+        updated_by: actorId,
+        payload: {
+          "Booking ID": id,
+          "Customer ID": "",
+          "Customer Name": referredName,
+          "Phone": referredPhone,
+          "Email": referredEmail,
+          "Service": need,
+          "Preferred Date": "",
+          "Preferred Time": "",
+          "Notes": note,
+          "Status": "New — needs owner review",
+          "Source": REFERRAL_SOURCE,
+          "Lead Source": "Referral",
+          "Recorded By": "Customer — portal referral",
+          "Referred By Customer ID": session.customerKey,
+          "Referred By Customer Name": referrerName,
+          "Business ID": session.businessId,
+          "Created Time": now,
+          "Record Version": 1,
+        },
+      });
+      if (insErr) throw insErr;
+      await writeProof(sb, session.businessId, "PORTAL_REFERRAL_SUBMITTED", "Booking", id, "OK", {
+        source: REFERRAL_SOURCE,
+        referredByCustomerId: session.customerKey,
+      });
+      return reply(req, 200, {
+        ok: true,
+        bookingId: id,
+        message: "Thanks — we've passed your referral to the office. They'll reach out to them. Nothing was sent automatically.",
+      });
     }
 
     // ---- booking-slots: the open confirmed slots for one date ----
