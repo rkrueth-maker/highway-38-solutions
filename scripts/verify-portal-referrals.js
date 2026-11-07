@@ -57,7 +57,7 @@ check(inbox.includes('Referral</strong>'), 'owner inbox must label referrals dis
 check(inbox.includes("var BUILD = '20261107-gap3-referrals-1';"), 'owner inbox build stamp must be bumped');
 // Wiring: loader pin + version stamp.
 check(loader.includes("'./portal-requests.js?build=20261107-gap3-referrals-1'"), 'loader pin for portal-requests must be bumped');
-check(version.includes('"version": "20261107-gap9-queueboard-1"'), 'version.json stamp must be bumped');
+check(version.includes('"version": "20261107-gap9-queueboard-2"'), 'version.json stamp must be bumped');
 
 if (failures.length) { console.error(failures.map(x => 'FAIL: ' + x).join('\n')); process.exit(1); }
 console.log('Portal referrals contract verified.');
