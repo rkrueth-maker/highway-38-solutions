@@ -64,10 +64,39 @@ function serviceClient() {
   });
 }
 
+// CORS (h38-customer-portal pattern): the Owner Controls card calls this
+// function from the Office origin via the Supabase client, so browser
+// calls need an OPTIONS preflight answer and CORS headers on replies.
+// The pg_cron drain sends no Origin and is unaffected.
+const ALLOWED_ORIGINS = new Set([
+  "https://highway38solutions.com",
+  "https://www.highway38solutions.com",
+  "https://rkrueth-maker.github.io",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
+]);
+
+function corsHeaders(request: Request): HeadersInit {
+  const origin = String(request.headers.get("origin") || "").replace(/\/+$/, "");
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : "https://highway38solutions.com";
+  const requestedHeaders = String(request.headers.get("access-control-request-headers") || "").slice(0, 500);
+  return {
+    "access-control-allow-origin": allowed,
+    "access-control-allow-headers": requestedHeaders || "authorization, apikey, content-type, x-client-info, x-h38-nightly-key",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-max-age": "600",
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "vary": "Origin, Access-Control-Request-Headers",
+  };
+}
+
+let currentRequest: Request | null = null;
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: currentRequest ? corsHeaders(currentRequest) : { "Content-Type": "application/json" },
   });
 }
 
@@ -250,6 +279,8 @@ async function drain(sb: any): Promise<{ claimed: number; delivered: number; fai
 }
 
 Deno.serve(async (req: Request) => {
+  currentRequest = req;
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(req) });
   if (req.method !== "POST") return json({ error: "POST only." }, 405);
   const sb = serviceClient();
   const body = await req.json().catch(() => ({} as any));

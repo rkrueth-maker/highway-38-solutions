@@ -79,6 +79,7 @@ check(fn.includes('activeOwner') && fn.includes('business_memberships'), 'owner 
 check(fn.includes('"deliveries"') && fn.includes('"test"') && fn.includes('"drain"'), 'dispatcher must expose drain, test and deliveries actions');
 check(fn.includes('webhook.test'), 'test action must send a webhook.test event');
 check(!fn.includes('hooks.zapier.com'), 'dispatcher must post only to owner-configured URLs (no hard-coded Zapier endpoint)');
+check(fn.includes('access-control-allow-origin') && fn.includes('req.method === "OPTIONS"'), 'dispatcher must answer CORS preflights so the Owner Controls card can call it from the Office origin');
 
 // ---- Half B: catalog search in the quote builder ----
 check(app06.includes('id="catalogSearch"') && app06.includes('id="catalogResults"'), 'single-price editor must carry the in-editor catalog search');
