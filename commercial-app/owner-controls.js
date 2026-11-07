@@ -1278,11 +1278,6 @@ function renderOwnerControls(){
           <div class="row-top"><strong>Rentals</strong><span class="pill">Coming soon</span></div>
           <p class="muted small">Rent equipment by the day or week, take deposits, and sell — all in the same books.</p>
         </article>
-        <article class="card h38-addon-card">
-          <div class="row-top"><strong>Crew phone tracking</strong><span class="pill">Coming soon</span></div>
-          <p class="muted small">See crew phones on the map without a separate vehicle device.</p>
-          <p class="muted small">Connect Bouncie for live vehicle positions today.</p>
-        </article>
       </div>
     </section>
   `;
