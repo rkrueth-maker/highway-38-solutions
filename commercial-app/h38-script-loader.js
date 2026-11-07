@@ -171,7 +171,7 @@
     const PAGE_TODAY = [
       './kit-activity-feed.js?build=20261011-kit-feed-bold-numbers-1',
       './daily-digest.js?build=20261031-schedtruth-2',
-      './owner-controls.js?build=20261107-gap6-connections-1',
+      './owner-controls.js?build=20261107-polish-a1-webhooks-1',
       './owner-notifications.js?build=20261013-owner-notify-4',
       './today-command-setup.js?build=20261107-gap8-fronthome-2',
       './mileage.js?build=20261031-trippath-1',

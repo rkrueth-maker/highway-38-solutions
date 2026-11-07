@@ -864,6 +864,7 @@ function bindOnlinePayments(){
 // Zapier's app directory would need a Zapier developer account; this
 // direct Catch Hook route needs no developer account and is what ships.
 const OUTGOING_WEBHOOKS_KEY='outgoing_webhooks';
+let webhookDraft=null; // unsaved on-screen endpoint edits (Add/Remove) — nothing is stored until Save
 const WEBHOOK_EVENTS=[
   {id:'customer.created',label:'New customer created'},
   {id:'quote.accepted',label:'Quote accepted (signed)'},
@@ -945,7 +946,7 @@ function readOutgoingWebhooksForm(){
   return {secret:secretEl?secretEl.value:prev.secret,endpoints};
 }
 function renderOutgoingWebhooksCard(){
-  const cfg=outgoingWebhooksConfig();
+  const cfg=webhookDraft||outgoingWebhooksConfig();
   const can=canManageModules();
   const secret=cfg.secret||'(save once to create your signing secret)';
   const endpointHtml=cfg.endpoints.length?cfg.endpoints.map(e=>`
@@ -969,7 +970,7 @@ function renderOutgoingWebhooksCard(){
             <span class="slider"></span>
           </label>
         </div>
-        <small>${can?'Flip the switch, add an endpoint, tick its events, then Save.':'Only an owner or administrator can change this.'}</small>
+        <small>${can?'Add an endpoint, tick its events, then Save \u2014 adding or removing an endpoint is not stored until you save.':'Only an owner or administrator can change this.'}</small>
       </div>
       ${endpointHtml}
       <div class="actions">
@@ -1019,6 +1020,7 @@ function bindOutgoingWebhooks(){
     try{
       const form=readOutgoingWebhooksForm();
       await saveOutgoingWebhooks(want,form);
+      webhookDraft=null;
       if(typeof toast==='function') toast('Outgoing webhooks '+(want?'turned ON.':'turned OFF.'));
       rerenderOutgoingWebhooksCard();
     }catch(e){
@@ -1037,6 +1039,7 @@ function bindOutgoingWebhooks(){
       if(emptyEvents) throw new Error('Tick at least one event for each endpoint, or remove it.');
       const cfgNow=outgoingWebhooksConfig();
       await saveOutgoingWebhooks(cfgNow.enabled,form);
+      webhookDraft=null;
       if(typeof toast==='function') toast('Webhooks saved.');
       rerenderOutgoingWebhooksCard();
     }catch(e){
@@ -1048,8 +1051,9 @@ function bindOutgoingWebhooks(){
     try{
       const form=readOutgoingWebhooksForm();
       form.endpoints.push({id:'ep-'+Math.random().toString(16).slice(2,10),url:'',events:WEBHOOK_EVENTS.map(x=>x.id),enabled:true});
-      const cfgNow=outgoingWebhooksConfig();
-      await saveOutgoingWebhooks(cfgNow.enabled,form);
+      form.enabled=(webhookDraft||outgoingWebhooksConfig()).enabled;
+      webhookDraft=form;
+      if(typeof toast==='function') toast('Endpoint added \u2014 paste its URL, tick its events, then Save webhooks to store it.');
       rerenderOutgoingWebhooksCard();
     }catch(e){
       if(typeof toast==='function') toast('Could not add endpoint: '+(e&&e.message?e.message:e),true);
@@ -1062,9 +1066,9 @@ function bindOutgoingWebhooks(){
       try{
         const form=readOutgoingWebhooksForm();
         form.endpoints=form.endpoints.filter(e=>e.id!==block.dataset.webhookEndpoint);
-        const cfgNow=outgoingWebhooksConfig();
-        await saveOutgoingWebhooks(cfgNow.enabled,form);
-        if(typeof toast==='function') toast('Endpoint removed.');
+        form.enabled=(webhookDraft||outgoingWebhooksConfig()).enabled;
+        webhookDraft=form;
+        if(typeof toast==='function') toast('Endpoint removed on screen \u2014 Save webhooks to store the change.');
         rerenderOutgoingWebhooksCard();
       }catch(e){
         if(typeof toast==='function') toast('Could not remove: '+(e&&e.message?e.message:e),true);
@@ -1080,6 +1084,7 @@ function bindOutgoingWebhooks(){
       form.secret=newWebhookSecret();
       const cfgNow=outgoingWebhooksConfig();
       await saveOutgoingWebhooks(cfgNow.enabled,form);
+      webhookDraft=null;
       if(typeof toast==='function') toast('New signing secret saved.');
       rerenderOutgoingWebhooksCard();
     }catch(e){
@@ -1094,6 +1099,7 @@ function bindOutgoingWebhooks(){
       const form=readOutgoingWebhooksForm();
       const cfgNow=outgoingWebhooksConfig();
       await saveOutgoingWebhooks(cfgNow.enabled,form);
+      webhookDraft=null;
       const data=await invokeWebhooks('test');
       const results=data.results||[];
       const okCount=results.filter(r=>r.ok).length;
