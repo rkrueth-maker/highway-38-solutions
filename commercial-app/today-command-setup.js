@@ -1,4 +1,23 @@
-/* H38 Today: AI command bar + setup checklist — build 20261030-r2-today-1
+/* H38 Today: AI command bar + setup checklist — build 20261107-gap8-fronthome-1
+ *
+ * GAP8 (2026-11-07): the front door (ask box + KPI strip + setup
+ * checklist) is now RENDERED by owner-home.js, synchronously in the
+ * owner home's first paint at the top of Today — a module inserting
+ * it after paint at the top of the screen would shove everything
+ * below it (the opening-bounce defect class). This module remains
+ * the owner of chat ROUTING (openChat, used by the front door's ask
+ * form and chips) and of the refresh path: render() delegates to
+ * H38OwnerHome.refreshFrontDoor() when the owner-home front door is
+ * on screen, and only falls back to its own legacy container when a
+ * Today surface rendered without owner-home. computeSteps() likewise
+ * delegates to the canonical H38OwnerHome.computeSetupSteps(); the
+ * local copy below is the same step set, kept for the fallback path.
+ * The step set itself changed in gap8: logo and AI-answering (optional
+ * add-ons that nagged fully-set-up businesses) are out; first quote,
+ * first job, and the portal/deposit settings reviews are in. A portal
+ * or deposit step completes only when the Owner Controls save has
+ * stamped config.updatedAt — provisioning creates both rows with an
+ * empty config, so existence alone proves nothing.
  *
  * Renders ONLY on Today (page 'today'), below the Needs-you-now /
  * stat-strip zone (inserted just before the existing owner chat entry
@@ -61,7 +80,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261030-r2-today-1';
+  var BUILD = '20261107-gap8-fronthome-1';
   var CONTAINER_ID = 'h38TodayCommandSetup';
   var CHECKLIST_ID = 'h38TodaySetupChecklist';
   var DEFAULT_LOGO_MARK = 'highway38-logo';
@@ -103,13 +122,9 @@
   /* ---------- setup steps (same computation renders + counts) ---------- */
 
   function computeSteps() {
+    if (window.H38OwnerHome && typeof window.H38OwnerHome.computeSetupSteps === 'function') return window.H38OwnerHome.computeSetupSteps();
     var s = st(), snap = (s && s.snapshot) || {};
     var steps = [];
-
-    /* 1. Business profile — guided-setup record (ai-onboarding.js
-     * saves collection 'businessProfile'; Settings shows it the same
-     * way). Complete = a row with a name and at least one contact
-     * field (phone, email or address). Absent collection = unknown. */
     var profiles = snap.businessProfile;
     if (!Array.isArray(profiles)) {
       steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: null });
@@ -119,29 +134,14 @@
         !!(text(value(prof, 'Phone', 'phone')) || text(value(prof, 'Email', 'email')) || text(value(prof, 'Address', 'address')));
       steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: profDone });
     }
-
-    /* 2. Logo — custom brandConfig.logoUrl (supabase-client-branding.js
-     * falls back to the H38 default logo when none is set). A URL that
-     * still points at the default H38 logo is not a business logo. */
-    var brand = (snap.business && snap.business.brandConfig) || {};
-    var logo = text(brand.logoUrl);
-    var logoDone = !!logo && logo.indexOf(DEFAULT_LOGO_MARK) === -1;
-    steps.push({ id: 'logo', title: 'Business logo', detail: 'Your own logo on quotes and the Office', page: 'settings', done: logoDone });
-
-    /* 3. Services & pricing — ≥1 price-book item (records('priceBook'),
-     * the same collection Quote Builder and Inventory read). */
     var priceCount = rows('priceBook').length;
     steps.push({ id: 'services', title: 'Services & pricing', detail: priceCount + (priceCount === 1 ? ' price-book item' : ' price-book items'), page: 'quotes', done: priceCount >= 1 });
-
-    /* 4. Customers — ≥1 real customer (example rows excluded, the
-     * same filter owner-home's attention collectors use). */
     var custCount = rows('customers').filter(function (r) { return !isExample(r); }).length;
     steps.push({ id: 'customers', title: 'Customers', detail: custCount + (custCount === 1 ? ' customer' : ' customers'), page: 'customers', done: custCount >= 1 });
-
-    /* 5. Team — ≥1 member beyond the owner. snapshot.users is the
-     * membership list (supabase-data.js), so the owner counts as one
-     * membership and a second membership is a team member. Absent
-     * collection = unknown. */
+    var quoteCount = rows('quotes').length;
+    steps.push({ id: 'quote', title: 'First quote', detail: quoteCount + (quoteCount === 1 ? ' quote' : ' quotes'), page: 'quotes', done: quoteCount >= 1 });
+    var jobCount = rows('jobs').length;
+    steps.push({ id: 'job', title: 'First job', detail: jobCount + (jobCount === 1 ? ' job' : ' jobs'), page: 'work', done: jobCount >= 1 });
     var users = snap.users;
     if (!Array.isArray(users)) {
       steps.push({ id: 'team', title: 'Team', detail: 'Add someone besides the owner', page: 'people', done: null });
@@ -149,16 +149,14 @@
       var teamCount = Math.max(0, users.length - 1);
       steps.push({ id: 'team', title: 'Team', detail: teamCount + (teamCount === 1 ? ' team member beyond the owner' : ' team members beyond the owner'), page: 'people', done: users.length >= 2 });
     }
-
-    /* 6. AI answering — moduleSettings 'ai_receptionist' enabled
-     * (owner-controls.js serverModuleOn semantics: no row = off). */
     var settings = Array.isArray(snap.moduleSettings) ? snap.moduleSettings : [];
-    var aiRow = null;
-    for (var i = 0; i < settings.length; i++) {
-      if (text(settings[i].moduleKey || settings[i].module_key) === 'ai_receptionist') { aiRow = settings[i]; break; }
-    }
-    steps.push({ id: 'ai', title: 'AI answering', detail: aiRow && aiRow.enabled === true ? 'AI receptionist is on' : 'AI receptionist is off', page: 'settings', done: !!(aiRow && aiRow.enabled === true) });
-
+    function settingRow(key) { for (var i = 0; i < settings.length; i++) { if (text(settings[i].moduleKey || settings[i].module_key) === key) return settings[i]; } return null; }
+    function reviewed(row) { return !!(row && row.config && text(row.config.updatedAt)); }
+    var portalRow = settingRow('customer_portal');
+    steps.push({ id: 'portal', title: 'Customer portal', detail: portalRow ? (reviewed(portalRow) ? 'Settings saved — portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' by your choice' : 'Portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' — review & save the setting') : 'Portal setting not saved yet', page: 'settings', done: reviewed(portalRow) });
+    var depositRow = settingRow('signed_deposit_acceptance');
+    var depositPct = depositRow && depositRow.config && isFinite(Number(depositRow.config.depositPercent)) && depositRow.config.depositPercent !== undefined && depositRow.config.depositPercent !== null ? Number(depositRow.config.depositPercent) : null;
+    steps.push({ id: 'deposit', title: 'Deposit settings', detail: depositRow ? (reviewed(depositRow) ? 'Settings saved' + (depositPct !== null ? ' — default deposit ' + depositPct + '%' : '') : 'Review & save your deposit setting') : 'Deposit setting not saved yet', page: 'settings', done: reviewed(depositRow) });
     return steps;
   }
 
@@ -181,7 +179,7 @@
       '<p class="h38-setup-progress"><strong>' + done + ' of ' + determinable.length + ' set up</strong>' +
       (unknown ? ' · ' + unknown + ' step' + (unknown === 1 ? '' : 's') + ' couldn\'t be confirmed from your records and isn\'t counted' : '') + '</p>' +
       '<div class="h38-setup-list">' + rowsHtml + '</div>' +
-      '<p class="muted small">Tap a step to go where it\'s finished. This card disappears once every step above is set up.</p></section>';
+      '<p class="muted small">Tap a step to go where it\'s finished. This card disappears once every step above is set up — you can find setup again any time in Settings, under \u201cBusiness setup &amp; onboarding\u201d.</p></section>';
     return { html: html, done: done, total: determinable.length, complete: false };
   }
 
@@ -226,6 +224,12 @@
     if (text(s.page) !== 'today') return false;
     var main = document.getElementById('mainContent');
     if (!main) return false;
+    var frontDoor = document.getElementById(CONTAINER_ID);
+    if (frontDoor && frontDoor.classList.contains('h38-front-door') &&
+        window.H38OwnerHome && typeof window.H38OwnerHome.refreshFrontDoor === 'function') {
+      window.H38OwnerHome.refreshFrontDoor();
+      return true;
+    }
     var existing = document.getElementById(CONTAINER_ID);
     if (!existing) {
       var container = document.createElement('div');
