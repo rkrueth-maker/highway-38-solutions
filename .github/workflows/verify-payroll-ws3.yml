@@ -70,19 +70,19 @@ jobs:
       - name: Verify loader pins and stamps moved together
         run: |
           grep -Fq './accounting-engine.js?build=20261020-payroll-engine-1' commercial-app/h38-script-loader.js
-          grep -Fq './accounting-workspace.js?build=20261020-reports-launcher-1' commercial-app/h38-script-loader.js
+          grep -Fq './accounting-workspace.js?build=20261022-perperson-1' commercial-app/h38-script-loader.js
           grep -Fq './accounting-operations.js?build=20261002-payroll-approved-period-1' commercial-app/h38-script-loader.js
-          grep -Fq './payroll-calc.js?build=20261020-payroll-calc-1' commercial-app/h38-script-loader.js
+          grep -Fq './payroll-calc.js?build=20261107-polish-a3-tax-1' commercial-app/h38-script-loader.js
           grep -Fq './payroll-run.js?build=20261020-payroll-run-1' commercial-app/h38-script-loader.js
           grep -Fq './payroll-workflow.js?build=20261020-payroll-presentation-1' commercial-app/h38-script-loader.js
-          grep -Fq './reports-section.js?build=20261020-reports-library-1' commercial-app/h38-script-loader.js
-          grep -Fq './guided-payroll.js?build=20261020-payroll-run-1' commercial-app/index.html
+          grep -Fq './reports-section.js?build=20261101-wave3-1' commercial-app/h38-script-loader.js
+          grep -Fq './guided-payroll.js?build=20261020-payroll-run-1' commercial-app/h38-script-loader.js
           grep -Fq "VERSION='20261020-payroll-engine-1'" commercial-app/accounting-engine.js
-          grep -Fq "VERSION='20261020-payroll-calc-1'" commercial-app/payroll-calc.js
+          grep -Fq "VERSION='20261107-polish-a3-tax-1'" commercial-app/payroll-calc.js
           grep -Fq "BUILD='20261020-payroll-run-1'" commercial-app/payroll-run.js
-          grep -Fq "BUILD='20261020-reports-library-1'" commercial-app/reports-section.js
-          grep -Fq "BUILD='20261020-reports-launcher-1'" commercial-app/accounting-workspace.js
-          grep -Fq 'payroll-calc.js?build=20261020-payroll-calc-1' commercial-app/accounting-posting-bridge.js
+          grep -Fq "BUILD='20261022-perperson-1'" commercial-app/reports-section.js
+          grep -Fq "BUILD='20261022-perperson-1'" commercial-app/accounting-workspace.js
+          grep -Fq 'payroll-calc.js?build=20261107-polish-a3-tax-1' commercial-app/accounting-posting-bridge.js
       - name: Verify legacy estimators and NACHA placeholders are gone
         run: |
           ! grep -Eq 'const H38_TAX|function h38CalculatePaycheck|function h38Estimate|121042882|123456789' commercial-app/payroll-workflow.js
