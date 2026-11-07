@@ -19,7 +19,7 @@
   if(root)root.H38_PAYROLL_CALC=Object.freeze(api);
 })(typeof window!=='undefined'?window:null,function(){
   'use strict';
-  const VERSION='20261106-payroll-calc-2';
+  const VERSION='20261107-polish-a3-tax-1';
 
   /* ---------- year-keyed tax tables (payroll-tax-tables-<year>.js) ------- */
   function loadYearTables(){
@@ -33,15 +33,25 @@
     }
     return byYear;
   }
-  const YEAR_TABLES=loadYearTables();
-  const AVAILABLE_YEARS=Object.keys(YEAR_TABLES).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
-  const DEFAULT_YEAR=AVAILABLE_YEARS.length?AVAILABLE_YEARS[AVAILABLE_YEARS.length-1]:2026;
+  /* Load-order fix (2026-11-07, polish A3): the year tables are looked
+   * up LIVE on every use, never snapshotted at script evaluation, and no
+   * config is built at load time. This module can legitimately evaluate
+   * before payroll-tax-tables-<year>.js registers (the accounting posting
+   * bridge loads it directly; lazy page groups race the background
+   * preload) — the old eager snapshot made evaluation itself throw
+   * "<year> tax tables not loaded" as an uncaught page-load error and
+   * left H38_PAYROLL_CALC unregistered, even though the tables were
+   * present and loaded moments later. The hard stop is unchanged: it
+   * fires when a calculation (or a config build) actually asks for a
+   * year whose tables are absent — never as a load-time side effect. */
   function tablesForYear(year){
     const y=Number(year);
-    const t=YEAR_TABLES[String(y)];
+    const t=loadYearTables()[String(y)];
     if(!t)throw new Error(y+' tax tables not loaded');
     return t;
   }
+  function availableYearsLive(){return Object.keys(loadYearTables()).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);}
+  function defaultYear(){const ys=availableYearsLive();return ys.length?ys[ys.length-1]:2026;}
 
   /* ---------- money helpers (integer cents, round half-up once) ---------- */
   function toCents(v){const n=Number(v||0);if(!Number.isFinite(n))throw new Error('Amount must be a finite number.');const s=n<0?-1:1;return s*Math.floor(Math.abs(n)*100+0.5+1e-9);}
@@ -75,7 +85,12 @@
         source:t.futa.source+' SUTA: owner-entered MN DEED rate only (no default).'}
     };
   }
-  const DEFAULT_CONFIG=configFromYear(DEFAULT_YEAR);
+  let cachedDefaultConfig=null;
+  function getDefaultConfig(){
+    if(cachedDefaultConfig)return cachedDefaultConfig;
+    cachedDefaultConfig=configFromYear(defaultYear());
+    return cachedDefaultConfig;
+  }
 
   /* configForYear(year, base): the year's verified table DATA with the
    * owner's own toggles/rates from base (a stored-config-shaped object or
@@ -122,9 +137,9 @@
       if(o.taxYear||o['Tax Year'])mapped.taxYear=o.taxYear||o['Tax Year'];
       o=mapped;
     }
-    return merge(DEFAULT_CONFIG,o);
+    return merge(getDefaultConfig(),o);
   }
-  function defaultConfig(){return clone(DEFAULT_CONFIG);}
+  function defaultConfig(){return clone(getDefaultConfig());}
 
   function periodsPerYear(frequency){
     const f=String(frequency||'').toLowerCase();
@@ -348,8 +363,10 @@
         federal:fedTrace,fica:ficaTrace,state:stateTrace,employer:employerTrace,reviewFlags}};
   }
 
-  return {VERSION,DEFAULT_CONFIG:defaultConfig(),createConfig,defaultConfig,periodsPerYear,
+  const api={VERSION,createConfig,defaultConfig,periodsPerYear,
     federalWithholding,federalDetail,fica,stateWithholding,stateDetail,employerTaxes,calculateLine,
-    configForYear,tablesForYear,availableYears:()=>AVAILABLE_YEARS.slice(),
+    configForYear,tablesForYear,availableYears:()=>availableYearsLive(),
     roundCents,toCents,fromCents};
+  Object.defineProperty(api,'DEFAULT_CONFIG',{enumerable:true,get:()=>defaultConfig()});
+  return api;
 });
