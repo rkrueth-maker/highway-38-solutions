@@ -1,7 +1,8 @@
 /* ============================================================================
  * H38 Service Requests inbox — work the customer requests that land as
- * booking_requests rows (customer portal "Request service" + public online
- * booking page) from the Schedule page: schedule one onto the calendar with
+ * booking_requests rows (customer portal "Request service", portal
+ * referrals — Source "Portal referral", with the referring customer named
+ * on the row — and the public online booking page) from the Schedule page: schedule one onto the calendar with
  * a date/time the office person picks, or dismiss it.
  * ----------------------------------------------------------------------------
  * Why Schedule: converting a request produces a scheduleEvents entry, and
@@ -44,7 +45,7 @@
 'use strict';
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261026-portal-requests-1';
+var BUILD = '20261107-gap3-referrals-1';
 var w = window;
 
 /* ---------- helpers (same fallbacks as route-planner) ---------- */
@@ -227,6 +228,8 @@ function requestRowHtml(req) {
   var prefTime = text(v(req, 'Preferred Time', 'preferredTime'));
   var notes = text(v(req, 'Notes', 'notes'));
   var source = text(v(req, 'Source', 'source'));
+  var refBy = text(v(req, 'Referred By Customer Name', 'referredByCustomerName'));
+  var isReferral = /^portal referral$/i.test(source) || !!refBy;
   var pillLabel = bucket === 'new' ? 'New' : bucket === 'scheduled' ? 'Scheduled' : 'Dismissed';
   var meta = [];
   if (created) {
@@ -241,6 +244,7 @@ function requestRowHtml(req) {
     '<div class="h38-pr-row-top"><div class="h38-pr-row-body">' +
     '<strong>' + esc(svc) + ' — ' + esc(name) + '</strong>' +
     '<div class="h38-pr-meta">' + meta.join(' · ') + '</div>' +
+    (isReferral ? '<div class="h38-pr-meta"><strong>🤝 Referral</strong>' + (refBy ? ' — referred by ' + esc(refBy) : '') + '. Not a customer yet — this is their contact info; follow up with them directly.</div>' : '') +
     (notes ? '<div class="h38-pr-meta">“' + esc(notes) + '”</div>' : '') +
     '</div><span class="h38-pr-pill ' + bucket + '">' + pillLabel + '</span></div>';
   if (bucket === 'scheduled') {
