@@ -1108,6 +1108,45 @@ async function buildSessionBundle(
   };
 }
 
+// ---- View as Customer preview (gap10, 2026-11-07) -------------------------
+// An owner/admin can render the portal EXACTLY as one of their customers
+// sees it, through this file's own buildSessionBundle — the same builder a
+// real customer session uses, so quotes, jobs, invoices, amounts and
+// statuses cannot drift between preview and reality.
+//
+// Hard rules, enforced HERE (server-side), not by hiding buttons:
+// - Owner authority only: a valid Supabase Auth session + an active
+//   owner/administrator membership for THAT business (activeOwner), plus
+//   the tenant's customer_portal module must be enabled.
+// - The scope is exactly ONE customer of THAT business: the customer row
+//   is loaded with customerById(businessId, customerId), so a customer id
+//   from another tenant (or another business) simply does not exist here.
+// - NO customer session: this path mints nothing, consumes nothing, and
+//   writes nothing — no magic token, no session token, no portal_tokens
+//   row, no proof row. It only reads and returns the bundle.
+// - READ-ONLY: every other portal action that arrives flagged as a
+//   preview (body.preview === true) is refused below with 403 before any
+//   session validation or mutation can run. A preview client carries no
+//   session token at all, so an unflagged mutating call fails the normal
+//   session gate (401) as well — two independent server refusals.
+const PREVIEW_READ_ONLY_ERROR =
+  "Preview is read-only — this is what the customer sees, and nothing here can be sent or changed. Close the preview to make changes in the Office.";
+const PREVIEW_MUTATING_ACTIONS = new Set([
+  "request-link",
+  "create-link",
+  "redeem",
+  "approve-quote",
+  "sign-quote",
+  "sign-change-order",
+  "decline-quote",
+  "pay-invoice",
+  "pay-invoice-checkout",
+  "request-service",
+  "submit-referral",
+  "booking-slots",
+  "book-slot",
+]);
+
 // ---- Main handler ----
 
 export async function handlePortalRequest(req: Request): Promise<Response> {
@@ -1176,6 +1215,44 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
   );
 
   try {
+    // ---- Preview refusal (gap10): a request flagged as a preview may
+    // ONLY load the preview bundle. Every other action — signing,
+    // approving, declining, paying, booking, referring, requesting a
+    // link, minting a link, redeeming a token — is refused here, before
+    // any session check or write can happen. ----
+    if (body.preview === true && postAction !== "preview-session") {
+      return reply(req, 403, { error: PREVIEW_READ_ONLY_ERROR, preview: true, readOnly: true });
+    }
+    if (body.preview === true && PREVIEW_MUTATING_ACTIONS.has(postAction)) {
+      return reply(req, 403, { error: PREVIEW_READ_ONLY_ERROR, preview: true, readOnly: true });
+    }
+
+    // ---- preview-session (owner only, gap10): the bundle a chosen
+    // customer sees, under the owner's own authenticated session. Mints
+    // no token, creates no session, writes no rows. ----
+    if (postAction === "preview-session") {
+      const businessId = clean(body.business_id, 80);
+      const customerId = clean(body.customer_id, 120);
+      if (!UUID_RE.test(businessId) || !customerId) return reply(req, 400, { error: "Invalid request." });
+      const user = await signedInUser(req);
+      await activeOwner(sb, user.id, businessId);
+      if (!(await moduleEnabled(sb, businessId, MODULE_KEY))) {
+        return reply(req, 403, { error: "Enable the customer portal in Owner Controls first." });
+      }
+      const customer = await customerById(sb, businessId, customerId);
+      if (!customer) return reply(req, 404, { error: "Customer not found." });
+      const bundle = await buildSessionBundle(sb, businessId, customer.record_key);
+      const customerName = clean(pick(customer.payload, "Customer Name", "name"), 120);
+      return reply(req, 200, {
+        ok: true,
+        preview: true,
+        readOnly: true,
+        previewCustomer: { id: customer.record_key, name: customerName },
+        sessionToken: null,
+        ...bundle,
+      });
+    }
+
     // ---- request-link (public): customer asks for a magic link ----
     if (postAction === "request-link") {
       const businessId = clean(body.business_id, 80);

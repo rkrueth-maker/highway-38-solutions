@@ -1,0 +1,12 @@
+/* H38 View as Customer entry bar (gap10) — scoped h38-pp-* styles only. */
+.h38-pp-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;background:#fdf6e3;border:1.5px solid #e3c878;border-radius:14px;padding:14px 16px;margin:0 0 14px}
+.h38-pp-text{flex:1 1 260px;display:flex;flex-direction:column;gap:2px}
+.h38-pp-text strong{font-size:16px;color:#5c4300}
+.h38-pp-text span{font-size:13px;color:#6b5a26;line-height:1.45}
+.h38-pp-text .h38-pp-off{font-weight:700;color:#8a3b00}
+.h38-pp-pick{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#5c4300;flex:0 1 260px}
+.h38-pp-pick select{padding:10px;border:1.5px solid #cbd7df;border-radius:10px;font:inherit;font-size:14px;font-weight:500;background:#fff;color:#16262f;min-height:44px}
+.h38-pp-btn{background:#8a5b00;color:#fff;border:0;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;min-height:44px}
+.h38-pp-btn:hover{background:#744c00}
+.h38-pp-btn:disabled{opacity:.55;cursor:not-allowed}
+@media (max-width:640px){.h38-pp-bar{flex-direction:column;align-items:stretch}.h38-pp-pick{flex:1 1 auto}}
