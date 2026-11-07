@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-// H38 Desktop Week Grid (2026-11-02, build 20261107-gap5-onedrag-1).
+// H38 Desktop Week Grid (2026-11-02, build 20261107-gap6-connections-1).
 // Improvement wave WS2: the desktop Schedule gains a week grid — one
 // column per person, seven day cells per column (Mon–Sun), job chips
 // time-ordered inside each day. One drag both reschedules a chip
@@ -24,7 +24,7 @@
 // writes the singular field and, when the record carries the array,
 // mirrors it to match — the two representations can no longer drift
 // apart and leave a job showing under both the old and new person.
-var BUILD='20261107-gap5-onedrag-1';
+var BUILD='20261107-gap6-connections-1';
 var w=typeof window!=='undefined'?window:globalThis;
 function text(x){return String(x==null?'':x).trim();}
 function esc(s){if(typeof w.esc==='function')return w.esc(s);return text(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
