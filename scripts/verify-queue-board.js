@@ -22,7 +22,7 @@ const version = read('commercial-app/version.json');
 check('queue-board.js carries the gap9 build stamp', js.includes("BUILD = '" + STAMP + "'"));
 check('index loads queue-board.js with the stamp', index.includes('./queue-board.js?build=' + STAMP));
 check('index loads queue-board.css with the stamp', index.includes('./queue-board.css?build=' + STAMP));
-check('version.json at gap9 stamp', version.includes('"version": "20261107-polish-a4-fleet-1"')); // stamp pin moved by gap10 (version.json only; gap9 build stamps above unchanged)
+check('version.json at gap9 stamp', version.includes('"version": "20261107-polish-a4-quotes-1"')); // stamp pin moved by gap10 (version.json only; gap9 build stamps above unchanged)
 
 /* Queue definitions: the exact published status mappings */
 check('queue 1 quotes-waiting sent/presented (normalized)', js.includes("key: 'quotes-waiting'") && js.includes("statuses: ['sent', 'presented']"));

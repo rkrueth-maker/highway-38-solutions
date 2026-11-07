@@ -67,7 +67,7 @@
     ];
     const PAGE_QUOTES = [
       './app-07.js?build=20261030-two-layer-6',
-      './app-06.js?build=20261107-polish-a1-quote-1',
+      './app-06.js?build=20261107-polish-a4-quotes-1',
       './app-20.js?build=20261031-kitquote-4',
       './quick-start.js?build=20261013-rescan-fixes-1',
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
