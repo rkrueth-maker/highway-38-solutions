@@ -56,7 +56,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261107-gap9-queueboard-2';
+  var BUILD = '20261107-polish-a1-queueboard-1';
   var HOST_PAGES = { work: 1, quotes: 1 };
   var MAX_CARDS = 50;
   var boardOpen = false;
@@ -71,6 +71,14 @@
     { key: 'in-progress', title: 'In progress', hint: 'Crew is on it now', collection: 'jobs', statuses: ['in progress'] },
     { key: 'waiting-payment', title: 'Waiting on payment', hint: 'Sent invoices with money still owed', collection: 'invoices', statuses: ['sent', 'open', 'partially paid'], needsBalance: true }
   ];
+  /* Plain-language empty states: an empty queue tells the owner what
+   * belongs here, so a quiet board reads as good news, not a blank. */
+  var QUEUE_EMPTY = {
+    'quotes-waiting': 'No quotes are waiting. Quotes you send show up here until the customer answers.',
+    'booked': 'Nothing booked right now. Won jobs that have not started yet show up here.',
+    'in-progress': 'No jobs in progress. Jobs your crew starts show up here.',
+    'waiting-payment': 'Nobody owes you money on a sent invoice right now. Sent invoices with a balance show up here.'
+  };
   function normStatus(row) {
     return text(value(row, 'Status', 'status')).toLowerCase().replace(/_/g, ' ');
   }
@@ -240,7 +248,7 @@
       return '<section class="h38-qb-col" data-qb-queue="' + esc(q.key) + '" aria-label="' + esc(q.title) + '">' +
         '<header class="h38-qb-col-head"><h3>' + esc(q.title) + ' <span class="h38-qb-count" data-qb-count="' + esc(q.key) + '">' + all.length + '</span></h3>' +
         '<p>' + esc(q.hint) + '</p></header>' +
-        '<div class="h38-qb-cards">' + (cards || '<p class="h38-qb-empty">Nothing here right now.</p>') +
+        '<div class="h38-qb-cards">' + (cards || '<p class="h38-qb-empty">' + esc(QUEUE_EMPTY[q.key] || 'Nothing here right now.') + '</p>') +
         (all.length > shown.length ? '<p class="h38-qb-more">+ ' + (all.length - shown.length) + ' more — see the list view for all of them.</p>' : '') +
         '</div></section>';
     }).join('');
