@@ -8,11 +8,16 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // reseller_deals) because the penny ingest function is deployed-only.
 //
 // Actions (POST JSON):
-//   {action:"config"}      -> {vapidPublicKey} (public, no auth)
-//   {action:"get_state", endpoint?} + user JWT -> prefs + device subscription state
+//   {action:"config"}      -> {vapidPublicKey, fcmConfigured} (public, no auth)
+//   {action:"get_state", endpoint?, fcm_token?} + user JWT -> prefs + device state
 //   {action:"subscribe", subscription:{endpoint,keys:{p256dh,auth}}, userAgent?} + user JWT
-//   {action:"set_prefs", penny_alerts, resale_alerts} + user JWT
+//   {action:"set_prefs", penny_alerts, resale_alerts, dg_penny_alerts?, steals_alerts?} + user JWT
 //   {action:"unsubscribe", endpoint} + user JWT
+//   {action:"register_device", fcm_token, platform?, app_version?} + user JWT
+//        -> native (FCM) registration from the Deals Android app; upserts
+//           scout_device_tokens, then runs the same inline catch-up as
+//           subscribe, so a pending batch fires the moment the app registers.
+//   {action:"unregister_device", fcm_token} + user JWT -> deactivates token
 //   {action:"receipt", endpoint, title}  (service worker delivery receipt, no JWT)
 //   {action:"check"} + x-h38-nightly-key header == h38_internal_job_secrets 'scout-push'
 //        -> pg_cron entry point (every 30 min); a subscribe also runs the same
@@ -43,6 +48,14 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const VAPID_PUBLIC_KEY = Deno.env.get("SCOUT_VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE_JWK = Deno.env.get("SCOUT_VAPID_PRIVATE_KEY_JWK") ?? "";
 const VAPID_SUBJECT = Deno.env.get("SCOUT_VAPID_SUBJECT") ?? "mailto:highway38solutions@gmail.com";
+// Native (FCM) channel: the Deals Android app cannot use Web Push (its
+// WebView has no PushManager), so it registers an FCM device token instead
+// (scout_device_tokens) and this dispatcher sends the same alerts through
+// the FCM HTTP v1 API. Configured by the SCOUT_FCM_SERVICE_ACCOUNT_JSON
+// secret (a Firebase service-account key). When the secret is absent the
+// channel is dark: tokens still register and watermarks hold, nothing is
+// sent or silently eaten.
+const FCM_SA_JSON = Deno.env.get("SCOUT_FCM_SERVICE_ACCOUNT_JSON") ?? "";
 const PENNY_URL = "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-penny-web";
 const RESALE_URL = "https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-resale-web";
 const INTERNAL_SECRET_NAME = "scout-push";
@@ -153,6 +166,88 @@ async function sendPush(sub: PushSub, payload: Record<string, unknown>): Promise
   return { status: res.status, body: text.slice(0, 300) };
 }
 
+// ---------- FCM (HTTP v1) — native Android channel ----------
+interface FcmServiceAccount { project_id: string; client_email: string; private_key: string }
+let fcmSaCache: FcmServiceAccount | null | undefined;
+function fcmServiceAccount(): FcmServiceAccount | null {
+  if (fcmSaCache !== undefined) return fcmSaCache;
+  try {
+    const parsed = JSON.parse(FCM_SA_JSON) as FcmServiceAccount;
+    fcmSaCache = parsed?.project_id && parsed?.client_email && parsed?.private_key ? parsed : null;
+  } catch { fcmSaCache = null; }
+  return fcmSaCache;
+}
+function fcmConfigured(): boolean { return fcmServiceAccount() !== null; }
+
+let fcmTokenCache: { token: string; expiresAt: number } | null = null;
+async function fcmAccessToken(): Promise<string> {
+  const sa = fcmServiceAccount();
+  if (!sa) throw new Error("FCM not configured");
+  if (fcmTokenCache && fcmTokenCache.expiresAt > Date.now() + 60_000) return fcmTokenCache.token;
+  const pemBody = sa.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "");
+  const der = b64urlToBytes(pemBody.replace(/\+/g, "-").replace(/\//g, "_"));
+  const key = await crypto.subtle.importKey(
+    "pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
+  );
+  const now = Math.floor(Date.now() / 1000);
+  const header = bytesToB64url(new TextEncoder().encode(JSON.stringify({ typ: "JWT", alg: "RS256" })));
+  const claims = bytesToB64url(new TextEncoder().encode(JSON.stringify({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  })));
+  const signingInput = new TextEncoder().encode(`${header}.${claims}`);
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, signingInput);
+  const assertion = `${header}.${claims}.${bytesToB64url(new Uint8Array(sig))}`;
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }).toString(),
+  });
+  const data = await res.json().catch(() => ({})) as { access_token?: string; expires_in?: number };
+  if (!res.ok || !data.access_token) throw new Error(`FCM OAuth failed: HTTP ${res.status}`);
+  fcmTokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+  };
+  return data.access_token;
+}
+
+interface FcmDevice { id: string; user_id: string; fcm_token: string }
+async function sendFcm(
+  device: FcmDevice,
+  payload: { title: string; body: string; tag: string; url: string; scope: string },
+): Promise<{ status: number; body: string }> {
+  const sa = fcmServiceAccount();
+  if (!sa) throw new Error("FCM not configured");
+  const accessToken = await fcmAccessToken();
+  const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: {
+        token: device.fcm_token,
+        notification: { title: payload.title, body: payload.body },
+        android: {
+          priority: "HIGH",
+          notification: { tag: payload.tag, click_action: "OPEN_H38_DEALS" },
+        },
+        data: { url: payload.url, scope: payload.scope },
+      },
+    }),
+  });
+  const text = await res.text().catch(() => "");
+  return { status: res.status, body: text.slice(0, 300) };
+}
+
 // ---------- auth / household helpers ----------
 async function userFromJwt(req: Request): Promise<{ id: string; email: string } | null> {
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -174,9 +269,18 @@ async function householdIdsForUser(userId: string): Promise<string[]> {
 
 async function getPrefs(userId: string, householdId: string) {
   const { data } = await admin.from("scout_notification_prefs")
-    .select("penny_alerts, resale_alerts, prompt_on_open")
+    .select("penny_alerts, resale_alerts, dg_penny_alerts, steals_alerts, prompt_on_open")
     .eq("user_id", userId).eq("household_id", householdId).maybeSingle();
-  return data ?? { penny_alerts: false, resale_alerts: false, prompt_on_open: false };
+  if (!data) {
+    return { penny_alerts: false, resale_alerts: false, dg_penny_alerts: true, steals_alerts: true, prompt_on_open: false };
+  }
+  // Lane prefs (added with the lane scopes below) default ON: a prefs row
+  // written before the lane columns existed reads null for them pre-backfill.
+  return {
+    ...data,
+    dg_penny_alerts: (data as { dg_penny_alerts?: boolean | null }).dg_penny_alerts ?? true,
+    steals_alerts: (data as { steals_alerts?: boolean | null }).steals_alerts ?? true,
+  };
 }
 
 // ---------- detection + dispatch ----------
@@ -220,18 +324,100 @@ async function resaleBatch(householdId: string, sinceIso: string): Promise<Batch
   return { count: rows.length, topStores, maxTs: rows.length ? String(rows[0].created_at) : null };
 }
 
+// ---------- Lane scopes (Top-5 build) ----------
+// Lane definitions — a lane is a narrower slice of an existing surface, with
+// its own pref toggle and its own per-account watermark (scope names
+// 'penny_dg' / 'steals' in scout_push_state):
+//   penny_dg — Dollar General penny items on the weekly penny list ONLY:
+//     household deal_engine_observations with retailer = 'Dollar General'
+//     AND payload->>'penny_class' = 'weekly_list', first seen after the
+//     watermark. (Remodel / unverified DG penny items do NOT fire this lane.)
+//     Opens the penny view (PENNY_URL), same as the penny scope.
+//   steals — flipper steals in reseller_deals: deals created by a household
+//     member after the watermark that were free (buy_price = 0) OR came from
+//     an auction (source_type = 'auction'). Opens the resale view
+//     (RESALE_URL), same as the resale scope.
+// Both lanes reuse the exact watermark / held-for-no-device / dispatch-log
+// machinery of checkHousehold below; the original penny / resale scopes are
+// unchanged.
+type ScoutScope = "penny" | "resale" | "penny_dg" | "steals";
+const SCOUT_SCOPES: ScoutScope[] = ["penny", "resale", "penny_dg", "steals"];
+
+async function pennyDgBatch(householdId: string, sinceIso: string): Promise<BatchInfo> {
+  const { data } = await admin.from("deal_engine_observations")
+    .select("retailer, first_seen_at")
+    .eq("household_id", householdId)
+    .eq("retailer", "Dollar General")
+    .filter("payload->>penny_class", "eq", "weekly_list")
+    .gt("first_seen_at", sinceIso)
+    .order("first_seen_at", { ascending: false })
+    .limit(500);
+  const rows = data ?? [];
+  return { count: rows.length, topStores: [], maxTs: rows.length ? String(rows[0].first_seen_at) : null };
+}
+
+async function stealsBatch(householdId: string, sinceIso: string): Promise<BatchInfo> {
+  // Same household rule as resaleBatch: reseller_deals belongs to the
+  // household(s) its creator belongs to.
+  const { data: members } = await admin.from("coupon_household_members").select("user_id").eq("household_id", householdId);
+  const memberIds = (members ?? []).map((m: { user_id: string }) => m.user_id);
+  if (!memberIds.length) return { count: 0, topStores: [], maxTs: null };
+  const { data } = await admin.from("reseller_deals")
+    .select("retailer, created_at")
+    .in("created_by", memberIds)
+    .gt("created_at", sinceIso)
+    .or("buy_price.eq.0,source_type.eq.auction")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const rows = data ?? [];
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(String(r.retailer || "a local seller"), (counts.get(String(r.retailer || "a local seller")) ?? 0) + 1);
+  const topStores = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, n]) => `${n} at ${name}`);
+  return { count: rows.length, topStores, maxTs: rows.length ? String(rows[0].created_at) : null };
+}
+
+async function batchForScope(scope: ScoutScope, householdId: string, sinceIso: string): Promise<BatchInfo> {
+  if (scope === "penny") return pennyBatch(householdId, sinceIso);
+  if (scope === "resale") return resaleBatch(householdId, sinceIso);
+  if (scope === "penny_dg") return pennyDgBatch(householdId, sinceIso);
+  return stealsBatch(householdId, sinceIso);
+}
+
+function wantsScope(prefs: Record<string, unknown>, scope: ScoutScope): boolean {
+  if (scope === "penny") return Boolean(prefs.penny_alerts);
+  if (scope === "resale") return Boolean(prefs.resale_alerts);
+  if (scope === "penny_dg") return (prefs.dg_penny_alerts as boolean | null | undefined) ?? true;
+  return (prefs.steals_alerts as boolean | null | undefined) ?? true;
+}
+
+function scopeTag(scope: string): string {
+  if (scope === "resale") return "scout-new-resale";
+  if (scope === "penny_dg") return "scout-new-penny-dg";
+  if (scope === "steals") return "scout-new-steals";
+  return "scout-new-penny";
+}
+
 // Plain-count copy per scope (Rick, 2026-10-13): the notification just says
 // how many new deals there are; the tap opens that scope's Scout view.
-function scopeCopy(scope: "penny" | "resale", batch: BatchInfo): { title: string; body: string; url: string } {
+function scopeCopy(scope: ScoutScope, batch: BatchInfo): { title: string; body: string; url: string } {
   const noun = batch.count === 1 ? "deal" : "deals";
   if (scope === "penny") {
     return { title: "Scout: new penny deals", body: `${batch.count} new penny ${noun}`, url: PENNY_URL };
+  }
+  if (scope === "penny_dg") {
+    const dgNoun = batch.count === 1 ? "penny deal" : "penny deals";
+    return { title: "Scout: new DG penny deals", body: `${batch.count} new Dollar General ${dgNoun}`, url: PENNY_URL };
+  }
+  if (scope === "steals") {
+    const stealNoun = batch.count === 1 ? "steal" : "steals";
+    return { title: "Scout: new flipper steals", body: `${batch.count} new flipper ${stealNoun}`, url: RESALE_URL };
   }
   return { title: "Scout: new resale deals", body: `${batch.count} new resale ${noun}`, url: RESALE_URL };
 }
 
 interface SubRow { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }
 interface DispatchJob { sub: SubRow; title: string; body: string; url: string; scopes: string[]; windowFrom: string }
+interface FcmJob { dev: FcmDevice; title: string; body: string; url: string; scope: string; windowFrom: string }
 
 // Runs detection for one household and dispatches to its eligible accounts.
 // Watermarks are PER ACCOUNT: a batch is only "seen" by an account once a
@@ -242,11 +428,15 @@ interface DispatchJob { sub: SubRow; title: string; body: string; url: string; s
 async function checkHousehold(householdId: string): Promise<Record<string, unknown>> {
   const nowIso = new Date().toISOString();
   const { data: prefRows } = await admin.from("scout_notification_prefs")
-    .select("user_id, penny_alerts, resale_alerts, prompt_on_open").eq("household_id", householdId);
+    .select("user_id, penny_alerts, resale_alerts, dg_penny_alerts, steals_alerts, prompt_on_open").eq("household_id", householdId);
   const { data: subRows } = await admin.from("scout_push_subscriptions")
     .select("id, user_id, endpoint, p256dh, auth")
     .eq("household_id", householdId).eq("active", true);
   const subs = (subRows ?? []) as SubRow[];
+  const { data: devRows } = await admin.from("scout_device_tokens")
+    .select("id, user_id, fcm_token")
+    .eq("household_id", householdId).eq("active", true);
+  const devices = (devRows ?? []) as FcmDevice[];
   const { data: stateRows } = await admin.from("scout_push_state")
     .select("user_id, scope, watermark_at").eq("household_id", householdId);
   const state = new Map<string, string>();
@@ -273,16 +463,20 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
   }
 
   const jobs: DispatchJob[] = [];
+  const fcmJobs: FcmJob[] = [];
   const pendingAdvance = new Map<string, string>();
   const heldForNoDevice: string[] = [];
   let totalNewPenny = 0;
   let totalNewResale = 0;
+  let totalNewPennyDg = 0;
+  let totalNewSteals = 0;
 
   for (const prefs of prefRows ?? []) {
     const userId = prefs.user_id as string;
     const userSubs = subs.filter((s) => s.user_id === userId);
-    for (const scope of ["penny", "resale"] as const) {
-      const wants = scope === "penny" ? prefs.penny_alerts : prefs.resale_alerts;
+    const userDevs = devices.filter((d) => d.user_id === userId);
+    for (const scope of SCOUT_SCOPES) {
+      const wants = wantsScope(prefs as unknown as Record<string, unknown>, scope);
       const wm = await watermarkFor(userId, scope);
       if (!wants) {
         // Alert off: keep the watermark current so a later opt-in does not
@@ -290,13 +484,19 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
         await advance(userId, scope, nowIso);
         continue;
       }
-      const batch = scope === "penny" ? await pennyBatch(householdId, wm) : await resaleBatch(householdId, wm);
+      const batch = await batchForScope(scope, householdId, wm);
       if (!batch.count) continue;
-      if (scope === "penny") totalNewPenny = Math.max(totalNewPenny, batch.count); else totalNewResale = Math.max(totalNewResale, batch.count);
-      if (!userSubs.length) { heldForNoDevice.push(`${userId}:${scope}`); continue; }
+      if (scope === "penny") totalNewPenny = Math.max(totalNewPenny, batch.count);
+      else if (scope === "resale") totalNewResale = Math.max(totalNewResale, batch.count);
+      else if (scope === "penny_dg") totalNewPennyDg = Math.max(totalNewPennyDg, batch.count);
+      else totalNewSteals = Math.max(totalNewSteals, batch.count);
+      if (!userSubs.length && !userDevs.length) { heldForNoDevice.push(`${userId}:${scope}`); continue; }
       const copy = scopeCopy(scope, batch);
       for (const sub of userSubs) {
         jobs.push({ sub, title: copy.title, body: copy.body, url: copy.url, scopes: [scope], windowFrom: wm });
+      }
+      for (const dev of userDevs) {
+        fcmJobs.push({ dev, title: copy.title, body: copy.body, url: copy.url, scope, windowFrom: wm });
       }
       // Remember the batch end per account+scope; the watermark advances
       // after dispatch, and only for jobs the push service actually
@@ -306,46 +506,91 @@ async function checkHousehold(householdId: string): Promise<Record<string, unkno
   }
 
   // One push per scope per device (Rick's plain-count copy: a penny push and
-  // a resale push are separate notifications, each just the count).
-  let sent = 0;
+  // a resale push are separate notifications, each just the count). A batch
+  // counts as handed to an account when ANY of its channels (Web Push or
+  // FCM) got an HTTP answer from its push service; the watermark then
+  // advances for that account+scope. If every send threw (our-side failure)
+  // the watermark holds and the batch is retried on the next run instead.
+  const respondedScopes = new Set<string>();
+  let webSent = 0;
   for (const job of jobs) {
     let responded = false;
     try {
-      const result = await sendPush(job.sub, { title: job.title, body: job.body, url: job.url, tag: job.scopes[0] === "resale" ? "scout-new-resale" : "scout-new-penny" });
+      const result = await sendPush(job.sub, { title: job.title, body: job.body, url: job.url, tag: scopeTag(job.scopes[0]) });
       responded = true;
       if (result.status === 404 || result.status === 410) {
         await admin.from("scout_push_subscriptions").update({ active: false, updated_at: new Date().toISOString() }).eq("id", job.sub.id);
       }
-      if (result.status >= 200 && result.status < 300) sent++;
+      if (result.status >= 200 && result.status < 300) webSent++;
       await admin.from("scout_push_dispatch_log").insert({
-        household_id: householdId, user_id: job.sub.user_id, subscription_id: job.sub.id,
+        household_id: householdId, user_id: job.sub.user_id, subscription_id: job.sub.id, channel: "webpush",
         scopes: job.scopes.join(","), title: job.title, body: job.body,
         window_from: job.windowFrom, window_to: new Date().toISOString(),
         push_status: result.status, result: result.body,
       });
     } catch (err) {
       await admin.from("scout_push_dispatch_log").insert({
-        household_id: householdId, user_id: job.sub.user_id, subscription_id: job.sub.id,
+        household_id: householdId, user_id: job.sub.user_id, subscription_id: job.sub.id, channel: "webpush",
         scopes: job.scopes.join(","), title: job.title, body: job.body,
         push_status: 0, result: String(err).slice(0, 300),
       });
     }
-    // The push service answered (any HTTP status): this account has now been
-    // handed the batch, so its watermark may advance. If our own send threw,
-    // the watermark holds and the batch is retried on the next run instead.
     if (responded) {
-      for (const scope of job.scopes) {
-        const ts = pendingAdvance.get(`${job.sub.user_id}:${scope}`);
-        if (ts) await advance(job.sub.user_id, scope, ts);
-      }
+      for (const scope of job.scopes) respondedScopes.add(`${job.sub.user_id}:${scope}`);
     }
+  }
+
+  // Native (FCM) channel — same copy, same watermark rules. Skipped entirely
+  // while the FCM credential is not configured: devices stay registered,
+  // watermarks hold, and the batch fires later as catch-up.
+  let fcmSent = 0;
+  if (fcmJobs.length && fcmConfigured()) {
+    for (const job of fcmJobs) {
+      let responded = false;
+      try {
+        const result = await sendFcm(job.dev, {
+          title: job.title, body: job.body,
+          tag: scopeTag(job.scope),
+          url: job.url, scope: job.scope,
+        });
+        responded = true;
+        if (result.status === 404 && result.body.includes("UNREGISTERED")) {
+          await admin.from("scout_device_tokens").update({ active: false, updated_at: new Date().toISOString() }).eq("id", job.dev.id);
+        }
+        if (result.status >= 200 && result.status < 300) fcmSent++;
+        await admin.from("scout_push_dispatch_log").insert({
+          household_id: householdId, user_id: job.dev.user_id, subscription_id: null, device_token_id: job.dev.id, channel: "fcm",
+          scopes: job.scope, title: job.title, body: job.body,
+          window_from: job.windowFrom, window_to: new Date().toISOString(),
+          push_status: result.status, result: result.body,
+        });
+      } catch (err) {
+        await admin.from("scout_push_dispatch_log").insert({
+          household_id: householdId, user_id: job.dev.user_id, subscription_id: null, device_token_id: job.dev.id, channel: "fcm",
+          scopes: job.scope, title: job.title, body: job.body,
+          push_status: 0, result: String(err).slice(0, 300),
+        });
+      }
+      if (responded) respondedScopes.add(`${job.dev.user_id}:${job.scope}`);
+    }
+  }
+
+  for (const key of respondedScopes) {
+    const ts = pendingAdvance.get(key);
+    if (!ts) continue;
+    const [userId, scope] = key.split(":");
+    await advance(userId, scope, ts);
   }
 
   return {
     household: householdId,
     newPenny: totalNewPenny,
     newResale: totalNewResale,
-    sent,
+    newPennyDg: totalNewPennyDg,
+    newSteals: totalNewSteals,
+    sent: webSent + fcmSent,
+    webSent,
+    fcmSent,
     heldForNoDevice,
   };
 }
@@ -424,7 +669,11 @@ Deno.serve(async (req) => {
   const action = String(body.action ?? "");
 
   if (action === "config") {
-    return json({ vapidPublicKey: VAPID_PUBLIC_KEY, pushSupported: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_JWK) });
+    return json({
+      vapidPublicKey: VAPID_PUBLIC_KEY,
+      pushSupported: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_JWK),
+      fcmConfigured: fcmConfigured(),
+    });
   }
 
   if (action === "check") {
@@ -519,18 +768,33 @@ Deno.serve(async (req) => {
         .select("id").eq("endpoint", endpoint).eq("user_id", user.id).eq("active", true).maybeSingle();
       deviceSubscribed = Boolean(data);
     }
-    return json({ ok: true, householdId, prefs, deviceSubscribed });
+    // Native channel: deviceRegistered answers "is THIS phone's Deals app
+    // registered for FCM deal alerts" for the app shell's alerts card.
+    const fcmToken = String(body.fcm_token ?? "");
+    let deviceRegistered = false;
+    if (fcmToken) {
+      const { data } = await admin.from("scout_device_tokens")
+        .select("id").eq("fcm_token", fcmToken).eq("user_id", user.id).eq("active", true).maybeSingle();
+      deviceRegistered = Boolean(data);
+    }
+    return json({ ok: true, householdId, prefs, deviceSubscribed, deviceRegistered, fcmConfigured: fcmConfigured() });
   }
 
   if (action === "set_prefs") {
-    const penny = Boolean(body.penny_alerts);
-    const resale = Boolean(body.resale_alerts);
+    // Fields a caller does not send keep their current values (older pages
+    // send only penny/resale; lane-aware pages may send any subset).
+    const current = await getPrefs(user.id, householdId);
+    const penny = body.penny_alerts !== undefined ? Boolean(body.penny_alerts) : Boolean(current.penny_alerts);
+    const resale = body.resale_alerts !== undefined ? Boolean(body.resale_alerts) : Boolean(current.resale_alerts);
+    const dgPenny = body.dg_penny_alerts !== undefined ? Boolean(body.dg_penny_alerts) : Boolean(current.dg_penny_alerts ?? true);
+    const steals = body.steals_alerts !== undefined ? Boolean(body.steals_alerts) : Boolean(current.steals_alerts ?? true);
     await admin.from("scout_notification_prefs").upsert({
       user_id: user.id, household_id: householdId,
       penny_alerts: penny, resale_alerts: resale,
+      dg_penny_alerts: dgPenny, steals_alerts: steals,
       prompt_on_open: false, updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,household_id" });
-    return json({ ok: true, prefs: { penny_alerts: penny, resale_alerts: resale, prompt_on_open: false } });
+    return json({ ok: true, prefs: { penny_alerts: penny, resale_alerts: resale, dg_penny_alerts: dgPenny, steals_alerts: steals, prompt_on_open: false } });
   }
 
   if (action === "subscribe") {
@@ -556,6 +820,35 @@ Deno.serve(async (req) => {
       await admin.from("scout_push_subscriptions")
         .update({ active: false, updated_at: new Date().toISOString() })
         .eq("endpoint", endpoint).eq("user_id", user.id);
+    }
+    return json({ ok: true });
+  }
+
+  // Native (FCM) device registration, called by the Deals Android app
+  // through its JS bridge with the signed-in user's session. The token is
+  // the device binding; the JWT decides whose it is.
+  if (action === "register_device") {
+    const fcmToken = String(body.fcm_token ?? "").trim();
+    if (fcmToken.length < 20 || fcmToken.length > 4096) return json({ error: "Invalid fcm_token" }, 400);
+    await admin.from("scout_device_tokens").upsert({
+      user_id: user.id, household_id: householdId, fcm_token: fcmToken,
+      platform: String(body.platform ?? "android").slice(0, 30),
+      app_version: String(body.app_version ?? "").slice(0, 30),
+      active: true, updated_at: new Date().toISOString(),
+    }, { onConflict: "fcm_token" });
+    // Catch-up, same contract as subscribe: a pending batch for this
+    // account dispatches to the just-registered device right now (over
+    // whichever channels can carry it).
+    const dispatch = await checkHousehold(householdId);
+    return json({ ok: true, fcmConfigured: fcmConfigured(), catchUp: dispatch });
+  }
+
+  if (action === "unregister_device") {
+    const fcmToken = String(body.fcm_token ?? "").trim();
+    if (fcmToken) {
+      await admin.from("scout_device_tokens")
+        .update({ active: false, updated_at: new Date().toISOString() })
+        .eq("fcm_token", fcmToken).eq("user_id", user.id);
     }
     return json({ ok: true });
   }
