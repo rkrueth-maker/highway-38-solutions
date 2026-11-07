@@ -56,7 +56,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261107-gap9-queueboard-1';
+  var BUILD = '20261107-gap9-queueboard-2';
   var HOST_PAGES = { work: 1, quotes: 1 };
   var MAX_CARDS = 50;
   var boardOpen = false;
@@ -173,6 +173,10 @@
     }
     return 0;
   }
+  function statusLabel(row) {
+    var s = text(value(row, 'Status', 'status')).replace(/_/g, ' ');
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+  }
   function cardFor(q, row) {
     var cust = customerName(value(row, 'Customer ID', 'customerId')) || text(value(row, 'Customer Name')) || 'Customer';
     if (q.collection === 'quotes') {
@@ -182,17 +186,18 @@
       var qTitle = text(value(row, 'Project Title', 'projectTitle'));
       if (!qTitle) {
         var scope = text(value(row, 'Scope', 'scope'));
-        if (scope) qTitle = scope.length > 64 ? scope.slice(0, 64).trim() + '…' : scope;
+        if (scope && scope.length > 64) { var cut = scope.slice(0, 64); scope = cut.slice(0, cut.lastIndexOf(' ') > 20 ? cut.lastIndexOf(' ') : 64).trim() + '…'; }
+        if (scope) qTitle = scope;
       }
       return { kind: 'quote', id: qid, title: qTitle || 'Quote', cust: cust,
-        meta: [qn, text(value(row, 'Status'))].filter(Boolean).join(' · '),
-        when: when ? 'Sent ' + when : '', amount: num(value(row, 'Total', 'total')) };
+        meta: [qn, statusLabel(row)].filter(Boolean).join(' · '),
+        when: when, amount: num(value(row, 'Total', 'total')) };
     }
     if (q.collection === 'jobs') {
       var jid = text(value(row, 'Job ID', 'jobId'));
       var jn = humanNumber('jobs', row) || text(value(row, 'Job Number'));
       return { kind: 'job', id: jid, title: text(value(row, 'Project Title', 'projectTitle')) || 'Job', cust: cust,
-        meta: [jn, text(value(row, 'Status'))].filter(Boolean).join(' · '),
+        meta: [jn, statusLabel(row)].filter(Boolean).join(' · '),
         when: jobWhen(row), amount: jobAmount(row) };
     }
     var iid = text(value(row, 'Invoice ID', 'invoiceId'));
@@ -206,8 +211,9 @@
       var j = rows('jobs').filter(function (r) { return text(value(r, 'Job ID', 'jobId')) === invJobId; })[0];
       if (j) jobTitle = text(value(j, 'Project Title', 'projectTitle'));
     }
-    return { kind: 'invoice', id: iid, title: jobTitle || inum, cust: cust,
-      meta: [inum, text(value(row, 'Status'))].filter(Boolean).join(' · '),
+    var invTitle = jobTitle || inum;
+    return { kind: 'invoice', id: iid, title: invTitle, cust: cust,
+      meta: [invTitle === inum ? '' : inum, statusLabel(row)].filter(Boolean).join(' · '),
       when: due ? (overdue ? 'Overdue — due ' : 'Due ') + dateLabel(due) : '', amount: bal, amountLabel: ' owed' };
   }
 
@@ -255,22 +261,37 @@
       b.addEventListener('click', function () { openCard(b.getAttribute('data-qb-kind'), b.getAttribute('data-qb-id')); });
     });
   }
+  var WB_GRID_CLASSES = ['h38-wb-grid-work', 'h38-wb-grid-quotes', 'h38-wb-grid-money', 'h38-wb-grid-today', 'h38-wb-grid-settings'];
   function openBoard() {
     var main = document.getElementById('mainContent');
     if (!main) return;
     boardOpen = true;
     hostPage = (st() && HOST_PAGES[st().page]) ? st().page : 'work';
+    /* On wide screens the workbench lays #mainContent out as a grid
+     * (h38-wb-grid-work / -quotes); a board rendered inside that grid
+     * is squeezed into one column. The board is a full-page view, so
+     * the grid classes come off while it is open — the workbench
+     * re-adds its own class the next time it renders its panes (on
+     * List view / any page render), exactly as it does today. */
+    WB_GRID_CLASSES.forEach(function (c) { main.classList.remove(c); });
     main.innerHTML = boardHtml();
+    /* Sibling panels other modules (re)insert into #mainContent are
+     * hidden by CSS while the board is open (queue-board.css,
+     * #mainContent.h38-qb-active), so insertion order and repaint
+     * timing cannot push the board down the page. The siblings stay in
+     * the DOM untouched; the class comes off when the board closes. */
+    main.classList.add('h38-qb-active');
     bindBoard(main);
     try { main.focus({ preventScroll: true }); } catch (e) {}
+    try { window.scrollTo(0, 0); } catch (e) {}
   }
   function closeBoard() {
-    boardOpen = false;
+    boardOff();
     try { if (typeof window.openPage === 'function') window.openPage(hostPage); } catch (e) {}
   }
   function openCard(kind, id) {
     if (!id) return;
-    boardOpen = false;
+    boardOff();
     if (kind === 'job') {
       try { if (typeof window.openPage === 'function') window.openPage('work'); } catch (e) {}
       setTimeout(function () {
@@ -307,10 +328,12 @@
   /* ---------- page decoration: the view switch on Jobs / Quotes ---------- */
   function decorate() {
     var s = st();
-    if (!s || !HOST_PAGES[s.page]) { if (!boardOpen) return; boardOpen = false; return; }
+    if (!s || !HOST_PAGES[s.page]) { if (!boardOpen) return; boardOff(); return; }
     if (boardOpen) { openBoard(); return; }
     var main = document.getElementById('mainContent');
-    if (!main || main.querySelector('.h38-qb-switch')) return;
+    if (!main) return;
+    main.classList.remove('h38-qb-active');
+    if (main.querySelector('.h38-qb-switch')) return;
     var bar = document.createElement('div');
     bar.innerHTML = switchBar('list');
     var node = bar.firstElementChild;
@@ -321,16 +344,45 @@
     });
   }
   function scheduleDecorate() { setTimeout(decorate, 0); }
+  /* The app re-renders the current page on snapshot/sync passes; other
+   * modules' handlers can repaint the host page over the open board.
+   * Restore it (deferred, so those handlers settle first) whenever it
+   * was open and the user is still on a host page — the same
+   * event-driven + slow idle re-check style as workbench-shell.js. */
+  function restoreIfNeeded() {
+    if (!boardOpen) return;
+    var s = st();
+    if (!s || !HOST_PAGES[s.page]) { boardOff(); return; }
+    if (!document.getElementById('h38QueueBoard')) { openBoard(); return; }
+    var main = document.getElementById('mainContent');
+    if (main) {
+      WB_GRID_CLASSES.forEach(function (c) { main.classList.remove(c); });
+      main.classList.add('h38-qb-active');
+    }
+  }
+  function boardOff() {
+    boardOpen = false;
+    var main = document.getElementById('mainContent');
+    if (main) main.classList.remove('h38-qb-active');
+  }
+  function scheduleRestore() { setTimeout(restoreIfNeeded, 400); setTimeout(restoreIfNeeded, 1400); }
 
   window.addEventListener('h38:office-page-rendered', function (event) {
     var page = event && event.detail && event.detail.page;
-    if (page && !HOST_PAGES[page]) boardOpen = false;
-    scheduleDecorate();
+    if (page && !HOST_PAGES[page]) boardOff();
+    if (boardOpen) scheduleRestore(); else scheduleDecorate();
   });
   window.addEventListener('h38:business-snapshot-updated', function () {
-    if (boardOpen) { var main = document.getElementById('mainContent'); if (main && document.getElementById('h38QueueBoard')) { main.innerHTML = boardHtml(); bindBoard(main); } return; }
+    if (boardOpen) {
+      var main = document.getElementById('mainContent');
+      if (main && document.getElementById('h38QueueBoard')) { main.innerHTML = boardHtml(); bindBoard(main); }
+      scheduleRestore();
+      return;
+    }
     scheduleDecorate();
   });
+  window.addEventListener('h38:sync-pass-complete', function () { if (boardOpen) scheduleRestore(); });
+  setInterval(restoreIfNeeded, 2500);
   window.addEventListener('pageshow', scheduleDecorate);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleDecorate, { once: true });
   else scheduleDecorate();
