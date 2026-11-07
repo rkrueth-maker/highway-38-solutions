@@ -461,6 +461,18 @@
       // Claim the route immediately: the boot sequence re-asserts
       // openPage(state.page) several times while it settles, and those calls
       // must re-target the page the user actually chose, not the previous one.
+      // Polish A3 (2026-11-07): capture the page as it was BEFORE this
+      // claim. The re-assert test below used to read state.page AFTER the
+      // assignment, so it was always true: a genuine first navigation to a
+      // page whose script group had not loaded yet rendered immediately —
+      // a partial composition from whichever renderers were present, or a
+      // loading placeholder — and then re-rendered wholesale when the
+      // group landed ~125–250ms later. On the phone that swap is the
+      // visible white flash. With the pre-claim page captured, a genuine
+      // navigation takes the deferred path (current workspace stays
+      // painted until the group is ready, then exactly one render),
+      // while a true re-assert of the current page still renders at once.
+      const previousPage = window.state ? window.state.page : null;
       try { if (window.state) window.state.page = page; } catch (e) {}
       // 2026-11-03 startup bounce fix: a re-assertion of the route the app
       // is already on (the boot sequence fires openPage(state.page) at
@@ -476,7 +488,7 @@
       // pieces complete inside the same composition. A genuine navigation
       // to a different, not-yet-loaded page keeps the deferred path below:
       // the current workspace stays visible while its group loads.
-      if (window.state && window.state.page === page) {
+      if (window.state && previousPage === page) {
         const immediate = original.apply(this, arguments);
         loadPageScripts(page)
           .catch(err => { try { console.error('[H38 lazy load] page scripts failed for', page, err); } catch (e) {} })
