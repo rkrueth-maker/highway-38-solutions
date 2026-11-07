@@ -1,18 +1,18 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-07T14:16:14.117Z",
+  "generatedAt": "2026-11-05T18:58:37.668Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
+    "commercial-app/app-02.js",
     "commercial-app/index.html",
-    "commercial-app/queue-board.css",
-    "commercial-app/queue-board.js",
+    "commercial-app/owner-customer-workflow-polish.js",
+    "commercial-app/owner-flow-polish.js",
+    "commercial-app/supabase-startup.js",
     "commercial-app/version.json",
-    "scripts/verify-portal-referrals.js",
-    "scripts/verify-queue-board.js",
-    "scripts/verify-quote-payment-schedule.js",
-    "scripts/verify-quote-split-preview.js",
-    "scripts/verify-today-front-door.js"
+    "commercial-app/workbench-panes.js"
   ],
   "fileCount": 9,
   "scopes": {
@@ -20,7 +20,7 @@
     "authenticatedApp": true,
     "customerPortal": false,
     "sharedArchitecture": false,
-    "performanceReliability": true,
+    "performanceReliability": false,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -30,7 +30,7 @@
     "approvedAssets": false,
     "publicRendering": true,
     "authenticatedRendering": true,
-    "externalActionBoundary": true,
+    "externalActionBoundary": false,
     "longRunningData": false
   },
   "fastChecks": [
