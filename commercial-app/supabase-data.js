@@ -103,6 +103,7 @@
       aiRecommendations:['Recommendation ID','recommendationId'], usageLogs:['Usage Log ID','usageLogId'], followUps:['Follow-up ID','followUpId'], communicationLogs:['Communication Log ID','communicationLogId'],
       crewLocationStamps:['Stamp ID','stampId'], crewPositions:['Crew Position ID','crewPositionId'],
       crewPositionHistory:['Crew Position History ID','crewPositionHistoryId'],
+      businessProfile:['Business Profile ID','businessProfileId'],
       mileageDays:['Day ID','dayId'], mileageTrips:['Trip ID','tripId'], mileagePlaces:['Place ID','placeId'], mileageSettings:['Settings ID','settingsId'],
       FeatureToggles:['Business ID','businessId'],
       notifications:['Notification ID','notificationId']
@@ -168,7 +169,7 @@
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules, approvalRecordRows, proofRecordRows, errorRecordRows] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules, approvalRecordRows, proofRecordRows, errorRecordRows, profileRows] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
@@ -256,14 +257,26 @@
       // on churn-heavy tenants, or the Controls page reads zero.
       fetchCollectionRows(db, businessId, 'approvals'),
       fetchCollectionRows(db, businessId, 'proofLog'),
-      fetchCollectionRows(db, businessId, 'errorLogs')
+      fetchCollectionRows(db, businessId, 'errorLogs'),
+      // Same cap, business-profile edition (found 2026-11-07, polish A3):
+      // the saved business profile is a singleton written once by guided
+      // setup, so its updated_at is among the OLDEST on the tenant — on
+      // demo it ranks 2,096th newest of 3,626 active records, far below
+      // the broad query's 1,000-row PostgREST cap. A fresh session's
+      // snapshot therefore carried NO businessProfile at all: printed
+      // checks rendered name-only and Settings showed no stored address,
+      // even though the profile record (with its street address) exists.
+      // Fetch it explicitly, paged, like every other crowd-out-prone
+      // collection above, so the stored address hydrates for every
+      // consumer (checks, Settings, setup checklist, data export).
+      fetchCollectionRows(db, businessId, 'businessProfile')
     ]);
 
     // A row can arrive twice (broad query + an explicit collection fetch).
     // business_records identity is (collection, record_key): merge each once
     // so overlapping fetches never double-count a payment or expense.
     const mergedRecordKeys = new Set();
-    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows,...approvalRecordRows,...proofRecordRows,...errorRecordRows].forEach(row => {
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows,...approvalRecordRows,...proofRecordRows,...errorRecordRows,...profileRows].forEach(row => {
       const collection = row.collection;
       const recordKey = text(row.record_key);
       if (recordKey) {

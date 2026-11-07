@@ -13,7 +13,7 @@ const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const failures = [];
 const check = (name, cond) => { if (!cond) failures.push(name); };
 
-const STAMP = '20261107-gap10-portalpreview-1';
+const STAMP = '20261107-polish-a3-address-1';
 const fn = read('supabase/functions/h38-customer-portal/index.ts');
 const portal = read('commercial-app/customer-portal.html');
 const entry = read('commercial-app/portal-preview.js');
