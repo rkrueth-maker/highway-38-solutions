@@ -138,7 +138,7 @@
       './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
       './route-planner.js?build=20261031-wave1ab-1',
-      './portal-requests.js?build=20261031-wave1ab-1',
+      './portal-requests.js?build=20261107-gap3-referrals-1',
       './route-optimization.js?build=20261004-route-1',
     ];
     const PAGE_MESSAGES = [
