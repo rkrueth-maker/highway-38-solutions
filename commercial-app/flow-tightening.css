@@ -17,7 +17,7 @@ body.h38-flow-tightening{--h38-flow-surface:var(--card-soft,#f8fafc);--h38-flow-
 .h38-job-alert{display:flex;gap:8px;align-items:flex-start;margin-top:11px;padding:9px 11px;border:1px solid #f0e0af;border-radius:10px;background:#fff5d8;color:var(--warn);line-height:1.35}.h38-job-alert strong{white-space:nowrap}.h38-job-alert span{font-size:.82rem}
 .h38-job-command-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-top:12px}
 .h38-job-command-grid button{display:grid;place-items:center;gap:3px;min-height:78px;padding:8px 6px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;color:var(--navy);text-align:center}.h38-job-command-grid button:hover{background:var(--card-soft,#f8fafc);border-color:var(--line-strong,#c8d5de)}.h38-job-command-grid button>span{font-size:1.25rem}.h38-job-command-grid button>strong{font-size:.83rem}.h38-job-command-grid button>small{color:var(--muted);font-size:.66rem;line-height:1.2}
-.h38-change-row .row-actions button{flex:1 1 180px;min-height:40px}
+.h38-change-row .row-actions button{flex:1 1 180px;min-height:44px}
 .h38-flow-daily-log{display:flex;align-items:center;justify-content:space-between;gap:12px}.h38-flow-daily-log>div{display:grid;gap:4px}.h38-flow-daily-log span{color:var(--muted);font-size:.82rem;line-height:1.35}.h38-flow-daily-log button{flex:0 0 auto}
 @media(min-width:761px){
   body.h38-flow-tightening .app-shell{grid-template-columns:176px minmax(0,1fr)}
