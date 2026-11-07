@@ -1,18 +1,30 @@
 (function(){
 'use strict';
-// H38 Desktop Week Grid (2026-11-02, build 20261102-weekgrid-1).
+// H38 Desktop Week Grid (2026-11-02, build 20261107-gap5-onedrag-1).
 // Improvement wave WS2: the desktop Schedule gains a week grid — one
 // column per person, seven day cells per column (Mon–Sun), job chips
-// time-ordered inside each day. Dragging a chip to another day
-// reschedules it (time of day preserved); dragging it to another
-// person's column also reassigns it. Saves go through the exact
-// SAVE_SCHEDULE queueOperation the Schedule page's own assign control
-// uses, so the phone view (same records) shows the change with no
-// reload tricks. Desktop only (min-width 1024px): the phone keeps the
-// existing Schedule list untouched. Nothing here gates the manual
-// workflows — the Upcoming list and the Add-event form below the grid
-// keep working exactly as before.
-var BUILD='20261102-weekgrid-1';
+// time-ordered inside each day. One drag both reschedules a chip
+// (drop on another day; time of day preserved) AND reassigns it
+// (drop in another person's column) in a single drop — one drop is
+// one SAVE_SCHEDULE write carrying both fields, so no partial
+// time-only or assignee-only state can land. Saves go through the
+// exact SAVE_SCHEDULE queueOperation the Schedule page's own assign
+// control uses, so the phone view (same records) shows the change
+// with no reload tricks. Desktop only (min-width 1024px): on the
+// phone the same one-edit move lives in the Dispatch board's
+// "Move / assign" action sheet (assignee + date/time in one sheet).
+// Nothing here gates the manual workflows — the Upcoming list and
+// the Add-event form below the grid keep working exactly as before.
+//
+// Assignee read/write model (gap5, aligned with the dispatch board —
+// field-operations-next boardEvents + field-operations-ui moveEvent):
+// the effective assignee is the canonical singular 'Assigned User ID',
+// falling back to the first entry of the 'Assigned User IDs' array
+// some writers (booking/membership engines) store instead. A move
+// writes the singular field and, when the record carries the array,
+// mirrors it to match — the two representations can no longer drift
+// apart and leave a job showing under both the old and new person.
+var BUILD='20261107-gap5-onedrag-1';
 var w=typeof window!=='undefined'?window:globalThis;
 function text(x){return String(x==null?'':x).trim();}
 function esc(s){if(typeof w.esc==='function')return w.esc(s);return text(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -29,6 +41,13 @@ function activeUsers(){
   var rows=records('users');
   if(typeof w.activeRows==='function'){try{rows=w.activeRows(rows);}catch(_){}}
   return rows.filter(function(r){return v(r,'User ID','userId','id');});
+}
+function assigneeOf(ev){
+  var single=text(v(ev,'Assigned User ID'));
+  if(single)return single;
+  var arr=v(ev,'Assigned User IDs');
+  if(Array.isArray(arr)){for(var i=0;i<arr.length;i++){if(text(arr[i]))return text(arr[i]);}}
+  return '';
 }
 
 var DAY_NAMES=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -74,6 +93,7 @@ function ensureStyle(){
     '.h38-wg-daylabel{font-size:.8em;font-weight:700;opacity:.75;margin-bottom:6px}',
     '.h38-wg-chip{display:block;width:100%;text-align:left;border:1px solid var(--border,#d8d8d8);border-left:4px solid #2f6fed;border-radius:8px;background:#fff;padding:6px 8px;margin-bottom:6px;cursor:grab;font-size:.9em;line-height:1.25}',
     '.h38-wg-chip:active{cursor:grabbing}',
+    '.h38-wg-chip.dragging{opacity:.45}',
     '.h38-wg-chip .t{font-weight:700}',
     '.h38-wg-empty{font-size:.8em;opacity:.45;padding:2px 0}',
     '.h38-wg-hint{font-size:.85em;opacity:.7}'
@@ -85,7 +105,7 @@ function columns(monday){
   var users=activeUsers().map(function(u){return {id:String(v(u,'User ID','userId','id')),name:text(v(u,'Display Name','Email'))||userName(v(u,'User ID','userId','id'))};});
   var seen={};users.forEach(function(u){seen[u.id]=true;});
   weekEvents(monday).forEach(function(x){
-    var a=String(v(x.ev,'Assigned User ID')||'');
+    var a=assigneeOf(x.ev);
     if(a&&!seen[a]){seen[a]=true;users.push({id:a,name:userName(a)});}
   });
   return [{id:'',name:'Unassigned'}].concat(users);
@@ -102,14 +122,14 @@ function gridHTML(){
     '<div class="actions"><button type="button" class="secondary" data-wg-nav="-1">← Prev week</button>'+
     '<button type="button" class="secondary" data-wg-nav="0">This week</button>'+
     '<button type="button" class="secondary" data-wg-nav="1">Next week →</button></div></div>'+
-    '<p class="h38-wg-hint">One column per person. Drag a job to another day to reschedule it, or to another person\u2019s column to reassign it. The phone Schedule shows the same records.</p>'+
+    '<p class="h38-wg-hint">One column per person. One drag does both: drop a job on another day to reschedule it, in another person\u2019s column to reassign it — day and person save together in the one drop. Press Esc mid-drag to cancel (nothing changes). The phone Schedule shows the same records.</p>'+
     '<div class="h38-wg-scroll"><div class="h38-wg-grid" style="grid-template-columns:repeat('+cols.length+',1fr)">';
   cols.forEach(function(col){
     html+='<div class="h38-wg-col"><div class="h38-wg-colhead">'+esc(col.name)+'</div>';
     for(var d=0;d<7;d++){
       var day=new Date(monday);day.setDate(monday.getDate()+d);
       var dayItems=items.filter(function(x){
-        return sameDay(x.start,day)&&String(v(x.ev,'Assigned User ID')||'')===col.id;
+        return sameDay(x.start,day)&&assigneeOf(x.ev)===col.id;
       }).sort(function(a,b){return a.start-b.start;});
       html+='<div class="h38-wg-day'+(sameDay(day,today)?' today':'')+'" data-wg-user="'+esc(col.id)+'" data-wg-date="'+day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0')+'">'+
         '<div class="h38-wg-daylabel">'+DAY_NAMES[d]+' '+MONTHS[day.getMonth()]+' '+day.getDate()+'</div>';
@@ -131,7 +151,9 @@ function gridHTML(){
   return html;
 }
 
+var moveInFlight={};
 async function moveEvent(eventId,targetUser,targetDateStr){
+  if(moveInFlight[eventId])return; // one drop = one write; ignore re-entrant drops
   var ev=records('scheduleEvents').find(function(r){return String(v(r,'Schedule Event ID'))===String(eventId);});
   if(!ev){toast('That event is no longer on the schedule.',true);return;}
   var start=new Date(v(ev,'Start Time'));
@@ -139,20 +161,46 @@ async function moveEvent(eventId,targetUser,targetDateStr){
   var parts=targetDateStr.split('-').map(Number);
   var newStart=new Date(start);
   newStart.setFullYear(parts[0],parts[1]-1,parts[2]);
+  // No-op drop (same day AND same person): write nothing, so a stray
+  // drop can never create a duplicate or partial update.
+  if(sameDay(newStart,start)&&assigneeOf(ev)===targetUser){
+    toast('Already there — nothing changed.');
+    return;
+  }
   var end=new Date(v(ev,'End Time'));
   var updated=Object.assign({},ev);
   updated['Start Time']=newStart.toISOString();
   if(Number.isFinite(end.getTime())){
     updated['End Time']=new Date(end.getTime()+(newStart.getTime()-start.getTime())).toISOString();
   }
-  if(String(v(ev,'Assigned User ID')||'')!==targetUser)updated['Assigned User ID']=targetUser;
+  updated['Assigned User ID']=targetUser;
+  // Mirror the array representation when the record carries one
+  // (field-operations-ui moveEvent precedent) so every other view —
+  // dispatch board, phone list, field projection — reads the same
+  // single assignee after this one write.
+  if(Object.prototype.hasOwnProperty.call(ev,'Assigned User IDs')){
+    updated['Assigned User IDs']=targetUser?[targetUser]:[];
+  }
   updated['Updated Time']=nowIso();
+  moveInFlight[eventId]=true;
   try{
-    await w.queueOperation('SAVE_SCHEDULE','Schedule Event',eventId,{scheduleEventId:eventId,...updated},{collection:'scheduleEvents',record:updated,idKeys:['Schedule Event ID']});
-    toast('Schedule updated.');
+    await w.queueOperation('SAVE_SCHEDULE','Schedule Event',eventId,{
+      scheduleEventId:eventId,
+      relatedRecordId:String(v(ev,'Related Record ID','Job ID')||''),
+      assignedUserId:targetUser,
+      startTime:updated['Start Time'],
+      endTime:updated['End Time'],
+      title:String(v(ev,'Title')||''),
+      location:String(v(ev,'Location')||''),
+      status:String(v(ev,'Status')||'Scheduled'),
+      notes:String(v(ev,'Notes')||'')
+    },{collection:'scheduleEvents',record:updated,idKeys:['Schedule Event ID']});
+    toast('Schedule updated — '+text(v(ev,'Title'))+' moved to '+DAY_NAMES[(newStart.getDay()+6)%7]+' '+MONTHS[newStart.getMonth()]+' '+newStart.getDate()+(targetUser?', '+userName(targetUser):', unassigned')+'.');
     if(typeof w.renderSchedule==='function')w.renderSchedule();
   }catch(e){
     toast((e&&e.message)||String(e),true);
+  }finally{
+    delete moveInFlight[eventId];
   }
 }
 
@@ -167,9 +215,16 @@ function bindGrid(section){
   section.querySelectorAll('.h38-wg-chip').forEach(function(chip){
     chip.addEventListener('dragstart',function(e){
       dragEventId=chip.getAttribute('data-wg-event')||'';
+      chip.classList.add('dragging');
       try{e.dataTransfer.setData('text/plain',dragEventId);e.dataTransfer.effectAllowed='move';}catch(_){}
     });
-    chip.addEventListener('dragend',function(){dragEventId='';});
+    // dragend fires for completed AND cancelled/Escaped drags alike:
+    // it only clears drag state — a cancelled drag writes nothing.
+    chip.addEventListener('dragend',function(){
+      dragEventId='';
+      chip.classList.remove('dragging');
+      section.querySelectorAll('.h38-wg-day.dragover').forEach(function(c){c.classList.remove('dragover');});
+    });
   });
   section.querySelectorAll('.h38-wg-day').forEach(function(cell){
     cell.addEventListener('dragover',function(e){e.preventDefault();cell.classList.add('dragover');try{e.dataTransfer.dropEffect='move';}catch(_){}});
@@ -218,6 +273,6 @@ function wire(){
   window.renderSchedule=wrapped;
 }
 wire();
-if(typeof window!=='undefined')window.H38WeekGrid={mount:mount,BUILD:BUILD};
-if(typeof module!=='undefined'&&module.exports){module.exports={BUILD:BUILD};}
+if(typeof window!=='undefined')window.H38WeekGrid={mount:mount,moveEvent:moveEvent,assigneeOf:assigneeOf,BUILD:BUILD};
+if(typeof module!=='undefined'&&module.exports){module.exports={BUILD:BUILD,assigneeOf:assigneeOf};}
 })();
