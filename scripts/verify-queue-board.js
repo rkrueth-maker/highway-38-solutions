@@ -12,7 +12,7 @@ const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const failures = [];
 const check = (name, cond) => { if (!cond) failures.push(name); };
 
-const STAMP = '20261107-gap9-queueboard-2';
+const STAMP = '20261107-polish-a1-queueboard-1';
 const js = read('commercial-app/queue-board.js');
 const css = read('commercial-app/queue-board.css');
 const index = read('commercial-app/index.html');
