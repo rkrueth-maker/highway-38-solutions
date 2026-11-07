@@ -117,6 +117,7 @@ button.block{width:100%}
         <div id="signErr" class="err" hidden></div>
         <div class="field"><label for="signName">Type your full name to sign</label><input id="signName" type="text" maxlength="80" autocomplete="name" placeholder="Your full name"></div>
         <p class="small" id="signDepositNote" style="margin-bottom:12px"></p>
+        <div id="signSchedule" style="margin-bottom:12px"></div>
         <div class="row"><button class="block" id="signSubmitBtn">Sign &amp; accept</button><button class="secondary block" id="signCancelBtn" type="button">Not yet</button></div>
         <p class="note">Typing your name is your signature. We store it, with the date and time, on this exact quote version.</p>
       </div>
@@ -369,9 +370,10 @@ function renderPortal(){
     }
     var linesHtml=(q.lines||[]).length?'<h3>Line items</h3>'+q.lines.map(function(l){return '<div class="line"><span>'+esc(l.description)+'</span><span>'+esc(l.quantity)+' × '+money(l.unitPrice)+'</span></div>';}).join(''):'';
     var signedHtml=q.signedBy?'<div class="small" style="margin-top:6px">✍️ Signed by <strong>'+esc(q.signedBy)+'</strong>'+(q.signedAt?' · '+esc(fmtDate(q.signedAt)):'')+(Number(q.depositAmount)>0?' · Deposit '+money(q.depositAmount)+' ('+esc(q.depositPercent)+'% of the quote total)':'')+'</div>':'';
+    var scheduleHtml=(q.paymentSchedule&&q.paymentSchedule.length)?'<h3>Payment schedule</h3>'+q.paymentSchedule.map(function(s){return '<div class="line"><span>'+esc(s.label)+' — '+esc(s.triggerLabel||'')+'</span><span>'+money(s.amount)+'</span></div>';}).join(''):'';
     return '<div class="item"><div class="top"><strong>'+esc(q.title||('Quote '+(q.number||'')))+'</strong>'+statusPill(q.status)+'</div>'+
       '<div class="muted small">'+esc(q.number||'')+' · Total '+money(q.total)+'</div>'+signedHtml+
-      (q.scope?'<p class="small" style="margin:8px 0">'+esc(q.scope)+'</p>':'')+tiersHtml+linesHtml+
+      (q.scope?'<p class="small" style="margin:8px 0">'+esc(q.scope)+'</p>':'')+tiersHtml+linesHtml+scheduleHtml+
       (canAct&&!(q.tiers&&q.tiers.length===3)?(sdOn?'<div class="row" style="margin-top:10px"><button class="block" data-sign="'+esc(q.id)+'">Review &amp; sign</button><button class="secondary block" data-decline="'+esc(q.id)+'">Decline</button></div>':'<div class="row" style="margin-top:10px"><button class="block" data-approve="'+esc(q.id)+'">Approve quote</button><button class="secondary block" data-decline="'+esc(q.id)+'">Decline</button></div>'):'')+
       (canAct&&(q.tiers&&q.tiers.length===3)?'<button class="secondary block" data-decline="'+esc(q.id)+'">Decline all options</button>':'')+
     '</div>';
@@ -455,9 +457,15 @@ function openSignPanel(quoteId,tierIndex,quote){
   var pct=Number(quote.depositPercent);
   if(!isFinite(pct))pct=(bundle&&bundle.signedDeposit&&Number(bundle.signedDeposit.depositPercent))||50;
   var deposit=Math.round((total*pct/100)*100)/100;
+  // Payment schedule (gap2): the on-acceptance entry is the deposit; the
+  // server re-resolves the schedule against the accepted total at signing.
+  var sched=(quote.paymentSchedule&&quote.paymentSchedule.length)?quote.paymentSchedule:null;
+  var schedDeposit=sched?sched.filter(function(s){return s.trigger==='acceptance';})[0]:null;
+  if(schedDeposit&&!tier)deposit=Number(schedDeposit.amount)||deposit;
   signCtx={quoteId:quoteId,tierIndex:(typeof tierIndex==='number'?tierIndex:null),revision:quote.revision};
   $('signSummary').textContent='You are accepting '+(quote.title||('Quote '+(quote.number||'')))+(tier?(' — the '+tier.name+' option'):'')+' at '+money(total)+'.';
   $('signDepositNote').textContent=deposit>0?('A deposit of '+money(deposit)+' ('+pct+'% of the quote total) is due on signing. We will contact you about the deposit and scheduling.'):'No deposit is due on signing. We will contact you to schedule the work.';
+  $('signSchedule').innerHTML=sched?('<p class="small" style="margin-bottom:6px"><strong>Payment schedule</strong> — signing creates an invoice for each payment below:</p>'+sched.map(function(s){return '<div class="line"><span>'+esc(s.label)+' — '+esc(s.triggerLabel||'')+'</span><span>'+money(s.amount)+'</span></div>';}).join('')):'';
   $('signErr').hidden=true;
   $('signName').value='';
   $('signPanel').hidden=false;
