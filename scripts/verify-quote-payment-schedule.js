@@ -35,7 +35,7 @@ check(edge.includes('clean(pick(p, "Source", "source"), 80) === SCHEDULE_INVOICE
 check(edge.includes('"Payment Schedule Status"'), 'quote must record the schedule generation status at signing');
 check(edge.includes('paymentSchedule: (() => {'), 'portal bundle must expose the resolved schedule for display');
 // Editor: contained Quotes-group module with reconciling math.
-check(editor.includes("var BUILD = '20261107-gap2-payschedule-1';"), 'editor build stamp missing');
+check(editor.includes("var BUILD = '20261107-polish-a1-quote-1';"), 'editor build stamp missing');
 check(editor.includes("'Payment Schedule'"), 'editor must store the schedule on the quote payload');
 check(editor.includes('left to schedule'), 'editor must show the unallocated remainder while editing');
 check(editor.includes('res.valid && ui.dirty'), 'editor save must be gated on a reconciled schedule');
@@ -43,7 +43,7 @@ check(editor.includes("payload['Deposit Percent']"), 'editor must keep the quote
 check(editor.includes("payload['Revision']"), 'editor must bump the revision when a presented quote schedule changes');
 check(editor.includes('locked to the signed version'), 'signed quotes must show the schedule as locked');
 // Wiring: loader pins + version stamp.
-check(loader.includes("'./quote-payment-schedule.js?build=20261107-gap2-payschedule-1'"), 'loader must load the schedule editor in the Quotes group');
+check(loader.includes("'./quote-payment-schedule.js?build=20261107-polish-a1-quote-1'"), 'loader must load the schedule editor in the Quotes group');
 check(loader.includes("'./quote-signed-acceptance.js?build=20261107-gap2-payschedule-1'"), 'loader pin for the signed-acceptance panel must be bumped');
 check(version.includes('"version": "20261107-polish-a1-webhooks-1"'), 'version.json stamp must be bumped');
 // Portal display.

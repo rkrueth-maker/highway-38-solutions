@@ -45,7 +45,7 @@ check(live.includes('h38-builder-split'), 'desktop split layout class is applied
 check(live.includes('[data-catalog-add]') && live.includes('[data-use-price]'), 'catalog adds (gap6) refresh the preview');
 check(live.includes('[data-qps-save]'), 'payment-schedule saves (gap2) refresh the preview');
 check(live.includes('exact document your customer receives'), 'toolbar copy says the preview is the exact customer document');
-check(live.includes('20261107-gap7-splitbuilder-1'), 'live preview carries the gap7 build stamp');
+check(live.includes('20261107-polish-a1-quote-1'), 'live preview carries the polish-a1 build stamp');
 
 check(pdfSend.includes('H38_QUOTE_DOCUMENT_BUILDER') && pdfSend.includes('builder.buildHtml'), 'effective preview/PDF source delegates to the canonical template');
 check(printSafe.includes("#h38LiveCustomerQuote .quote-document"), 'print-safe source can print the live canonical document');
