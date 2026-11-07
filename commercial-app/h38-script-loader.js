@@ -153,8 +153,8 @@
       './communications-native-receptionist.js?build=20261030-swivl-round2-1',
     ];
     const PAGE_FLEET = [
-      './app-12.js?build=20261020-ws4-remaining-1',
-      './route-manager.js?build=20261026-map-tiles-1',
+      './app-12.js?build=20261107-polish-a4-fleet-1',
+      './route-manager.js?build=20261107-polish-a4-fleet-1',
       './route-planner.js?build=20261031-wave1ab-1',
       './northern-bouncie-fleet.js?build=20261026-bouncie-plumb-1',
       './fleet-providers.js?build=20261026-fleet-providers-6',
@@ -171,7 +171,7 @@
     const PAGE_TODAY = [
       './kit-activity-feed.js?build=20261011-kit-feed-bold-numbers-1',
       './daily-digest.js?build=20261031-schedtruth-2',
-      './owner-controls.js?build=20261107-polish-a1-webhooks-1',
+      './owner-controls.js?build=20261107-polish-a4-fleet-1',
       './owner-notifications.js?build=20261013-owner-notify-4',
       './today-command-setup.js?build=20261107-gap8-fronthome-2',
       './mileage.js?build=20261031-trippath-1',
