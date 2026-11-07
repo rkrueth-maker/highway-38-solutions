@@ -915,10 +915,17 @@ body.h38-auth-authorized #mainContent button.h38-kit-feed-review {
  * fallback container); the definitions are identical. */
 .h38-front-door {
   display: grid;
+  /* One explicit column: without it the grid falls back to implicit
+   * tracks and the global styles.css rule `.card{grid-column:span 12}`
+   * (meant for .grid layouts) makes the ask card span 12 implicit
+   * columns, dropping the KPI strip and the setup slot side by side
+   * in one row where they stretch into towers. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   margin: 0 0 20px;
   max-width: 720px;
 }
+.h38-front-door > * { grid-column: 1 / -1; min-width: 0; }
 @media (min-width: 768px) {
   .h38-front-door { max-width: 680px; margin: 0 auto 20px; width: 100%; }
 }
