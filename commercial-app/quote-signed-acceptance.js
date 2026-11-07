@@ -89,6 +89,17 @@ function depositInvoiceOf(quote) {
   }
   return null;
 }
+function scheduleInvoicesOf(quote) {
+  var ids = v(quote, 'Payment Schedule Invoice IDs', 'paymentScheduleInvoiceIds');
+  if (!Array.isArray(ids) || !ids.length) return [];
+  var invoices = records('invoices');
+  return ids.map(function(id) {
+    for (var i = 0; i < invoices.length; i++) {
+      if (text(v(invoices[i], 'Invoice ID', 'invoiceId')) === text(id)) return invoices[i];
+    }
+    return null;
+  });
+}
 
 /* ---------- render ---------- */
 var ui = { sig: '' };
@@ -101,6 +112,7 @@ function signature() {
     text(v(q, 'Signed By Name', 'signedByName')),
     text(v(q, 'Signed At', 'signedAt')),
     text(v(q, 'Deposit Invoice ID', 'depositInvoiceId')),
+    JSON.stringify(v(q, 'Payment Schedule Invoice IDs', 'paymentScheduleInvoiceIds') || []),
   ].join('|');
 }
 
@@ -122,6 +134,20 @@ function cardHtml(quote) {
   } else if (amount > 0) {
     invLine = '<div class="h38-qsa-meta">Deposit invoice ' + esc(text(v(quote, 'Deposit Invoice ID', 'depositInvoiceId'))) + ' was created on signing.</div>';
   }
+  var sched = scheduleInvoicesOf(quote);
+  var schedLine = '';
+  if (sched.length) {
+    schedLine = '<div class="h38-qsa-meta">Payment schedule invoices created on signing:</div>' + sched.map(function(si) {
+      if (!si) return '';
+      var sNum = text(v(si, 'Invoice Number', 'invoiceNumber')) || text(v(si, 'Invoice ID', 'invoiceId'));
+      var sLabel = text(v(si, 'Schedule Label', 'scheduleLabel')) || 'Scheduled payment';
+      var sDue = text(v(si, 'Due Trigger', 'dueTrigger'));
+      var sAmt = num(v(si, 'Total', 'total'));
+      var sStatus = text(v(si, 'Status', 'status'));
+      return '<div class="h38-qsa-meta">· ' + esc(sLabel) + ' — invoice ' + esc(sNum) + ' — <strong>' + money(sAmt) + '</strong>' +
+        (sDue ? ' · ' + esc(sDue) : '') + (sStatus ? ' · ' + esc(sStatus) : '') + '</div>';
+    }).join('');
+  }
   return '<h2>✍️ Signed acceptance</h2>' +
     '<div class="h38-qsa-meta">Signed by <strong>' + esc(signer) + '</strong>' +
     (signedAt ? ' · ' + esc(fmtWhen(signedAt)) : '') +
@@ -130,7 +156,7 @@ function cardHtml(quote) {
     '</div>' +
     (amount > 0
       ? '<div class="h38-qsa-meta">Deposit: ' + esc(String(pct)) + '% of the quote total = <strong>' + money(amount) + '</strong></div>' + invLine
-      : '<div class="h38-qsa-meta">No deposit was due on this signing.</div>');
+      : '<div class="h38-qsa-meta">No deposit was due on this signing.</div>') + schedLine;
 }
 
 var styleInjected = false;

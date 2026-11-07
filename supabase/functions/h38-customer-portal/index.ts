@@ -47,6 +47,7 @@ const BUSINESS_HOURS_MODULE_KEY = "business_hours";
 const ONLINE_PAYMENTS_MODULE_KEY = "online_payments";
 const SIGNED_DEPOSIT_MODULE_KEY = "signed_deposit_acceptance";
 const DEPOSIT_INVOICE_SOURCE = "Deposit on signed quote acceptance";
+const SCHEDULE_INVOICE_SOURCE = "Payment schedule on signed quote acceptance";
 const CHANGE_ORDER_INVOICE_SOURCE = "Change order signed approval";
 const DEFAULT_DEPOSIT_PERCENT = 50;
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") || "";
@@ -237,6 +238,112 @@ async function signedDepositSettings(
     ? Math.min(100, Math.max(0, rawNum))
     : DEFAULT_DEPOSIT_PERCENT;
   return { enabled: data?.enabled === true, depositPercent };
+}
+
+// ---- Payment schedule on a quote (gap2, 2026-11-07) -----------------------
+// A quote may carry a "Payment Schedule": an owner-defined split of the
+// quote total into scheduled payments, stored on the quote payload as an
+// array of entries:
+//   { label, basis: "percent" | "amount", percent?, amount?,
+//     trigger: "acceptance" | "job_start" | "completion" | "date",
+//     dueDate?: "YYYY-MM-DD" (trigger "date" only) }
+// The entry whose trigger is "acceptance" IS the deposit: at signing it is
+// created through the exact same single-deposit-invoice path as the plain
+// percent flow (same Source, same dedupe), so the proven invariant —
+// exactly ONE deposit invoice per signed quote revision — is untouched.
+// Every remaining entry becomes ONE scheduled Draft invoice at signing
+// (design decision: generate all at acceptance as Drafts with their due
+// trigger/date recorded on the invoice; the Office has no trigger engine,
+// and the deposit + change-order flows already work exactly this way —
+// the office sends and collects each invoice by hand through the normal
+// rails). Generation is keyed to the signed revision, so re-running
+// acceptance can never duplicate, and schedule edits made after signing
+// never retro-generate: only the schedule on the exact version the
+// customer signed is read here.
+// Validity: entries must be well-formed, there must be exactly ONE
+// acceptance entry, every part must be > 0, and the parts must sum to the
+// quote total. Percent parts are rounded to cents; a rounding remainder
+// of at most 5 cents is absorbed by the last entry so the parts always
+// reconcile exactly. Anything else is invalid (the Office schedule editor
+// refuses to save an unreconciled schedule, so this is a backstop).
+type ScheduleEntry = {
+  index: number;
+  label: string;
+  basis: "percent" | "amount";
+  percent: number;
+  amount: number;
+  trigger: string;
+  dueDate: string;
+};
+type ScheduleResolution =
+  | { present: false }
+  | { present: true; valid: false; reason: string }
+  | {
+      present: true;
+      valid: true;
+      entries: ScheduleEntry[];
+      deposit: ScheduleEntry;
+      depositPercent: number;
+    };
+
+const SCHEDULE_TRIGGERS = ["acceptance", "job_start", "completion", "date"];
+function scheduleTriggerLabel(trigger: string, dueDate: string): string {
+  if (trigger === "acceptance") return "Due on acceptance";
+  if (trigger === "job_start") return "Due at job start";
+  if (trigger === "completion") return "Due on completion";
+  if (trigger === "date") return dueDate ? `Due ${dueDate}` : "Due on date";
+  return trigger;
+}
+function resolvePaymentSchedule(q: JsonObject, total: number): ScheduleResolution {
+  const raw = pick(q, "Payment Schedule", "paymentSchedule");
+  if (!Array.isArray(raw) || !raw.length) return { present: false };
+  const entries: ScheduleEntry[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const e = (raw[i] || {}) as JsonObject;
+    const label = clean(pick(e, "label", "Label"), 80);
+    const basis = clean(pick(e, "basis", "Basis"), 20) === "amount" ? "amount" : "percent";
+    const trigger = clean(pick(e, "trigger", "Trigger"), 20);
+    const dueDate = clean(pick(e, "dueDate", "Due Date"), 10);
+    const percent = numberValue(pick(e, "percent", "Percent"));
+    const fixed = numberValue(pick(e, "amount", "Amount"));
+    if (!label) return { present: true, valid: false, reason: "A scheduled payment has no label." };
+    if (!SCHEDULE_TRIGGERS.includes(trigger)) return { present: true, valid: false, reason: `Unknown due trigger "${trigger}".` };
+    if (trigger === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return { present: true, valid: false, reason: `"${label}" needs a due date.` };
+    let amount = 0;
+    if (basis === "percent") {
+      if (!(percent > 0) || percent > 100) return { present: true, valid: false, reason: `"${label}" percent must be between 0 and 100.` };
+      amount = round2(total * percent / 100);
+    } else {
+      if (!(fixed > 0)) return { present: true, valid: false, reason: `"${label}" amount must be more than zero.` };
+      amount = round2(fixed);
+    }
+    entries.push({ index: i, label, basis, percent: basis === "percent" ? percent : 0, amount, trigger, dueDate: trigger === "date" ? dueDate : "" });
+  }
+  const deposits = entries.filter((e) => e.trigger === "acceptance");
+  if (deposits.length !== 1) {
+    return { present: true, valid: false, reason: "The schedule needs exactly one payment due on acceptance (the deposit)." };
+  }
+  if (!(total > 0)) return { present: true, valid: false, reason: "The quote total is zero." };
+  let sum = round2(entries.reduce((s, e) => s + e.amount, 0));
+  const remainder = round2(total - sum);
+  if (remainder !== 0) {
+    if (Math.abs(remainder) <= 0.05) {
+      const last = entries[entries.length - 1];
+      last.amount = round2(last.amount + remainder);
+      sum = round2(entries.reduce((s, e) => s + e.amount, 0));
+    }
+  }
+  if (sum !== round2(total)) {
+    return { present: true, valid: false, reason: `The scheduled payments add up to $${sum.toFixed(2)}, not the quote total $${round2(total).toFixed(2)}.` };
+  }
+  if (entries.some((e) => !(e.amount > 0))) {
+    return { present: true, valid: false, reason: "Every scheduled payment must be more than zero." };
+  }
+  const deposit = deposits[0];
+  const depositPercent = deposit.basis === "percent"
+    ? deposit.percent
+    : round2(deposit.amount / total * 100);
+  return { present: true, valid: true, entries, deposit, depositPercent };
 }
 
 // Per-quote override wins; otherwise the business default applies.
@@ -796,6 +903,20 @@ async function buildSessionBundle(
         depositPercent: quoteDepositPercent(p, signedDeposit.depositPercent),
         depositAmount: numberValue(pick(p, "Deposit Amount", "depositAmount")),
         depositInvoiceId: clean(pick(p, "Deposit Invoice ID", "depositInvoiceId"), 120),
+        // Payment schedule (gap2): resolved against this quote's total for
+        // display only — signing re-resolves against the accepted total.
+        paymentSchedule: (() => {
+          const res = resolvePaymentSchedule(p, numberValue(pick(p, "Total", "total")));
+          if (!res.present || !res.valid) return [];
+          return res.entries.map((e) => ({
+            label: e.label,
+            amount: e.amount,
+            percent: e.basis === "percent" ? e.percent : null,
+            trigger: e.trigger,
+            triggerLabel: scheduleTriggerLabel(e.trigger, e.dueDate),
+            dueDate: e.dueDate,
+          }));
+        })(),
         updatedAt: r.updated_at,
       };
     });
@@ -1402,14 +1523,29 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
         delete updated.__localPending;
       }
       const acceptedTotal = numberValue(pick(updated, "Total", "total"));
-      const pct = quoteDepositPercent(q, settings.depositPercent);
-      const depositAmount = round2(acceptedTotal * pct / 100);
+      // Payment schedule (gap2): when the signed version carries a valid
+      // schedule, its acceptance entry IS the deposit (same invoice path
+      // below — exactly one deposit invoice) and the remaining entries
+      // become scheduled invoices. A present-but-invalid schedule never
+      // blocks signing and never partially generates: the plain deposit
+      // path runs exactly as before and the quote records the invalid
+      // status (the Office editor refuses to save unreconciled schedules,
+      // so this is a backstop, not an expected path).
+      const schedule = resolvePaymentSchedule(q, acceptedTotal);
+      let validSchedule: Extract<ScheduleResolution, { valid: true }> | null = null;
+      if (schedule.present && schedule.valid) validSchedule = schedule;
+      const scheduleValid = validSchedule !== null;
+      const pct = validSchedule ? validSchedule.depositPercent : quoteDepositPercent(q, settings.depositPercent);
+      const depositAmount = validSchedule ? validSchedule.deposit.amount : round2(acceptedTotal * pct / 100);
+      const scheduleRest = validSchedule ? validSchedule.entries.filter((e) => e.trigger !== "acceptance") : [];
+      const scheduleInvalidReason = schedule.present && !schedule.valid ? schedule.reason : "";
       const actorId = await attributionUserId(sb, session.businessId);
       // Dedupe: an existing deposit invoice for this exact quote revision
       // is reused, never duplicated (covers a retry after the invoice was
       // created but the quote write failed, and any double submit).
       let depositInvoiceId = "";
-      if (depositAmount > 0) {
+      let existingInvoices: { record_key: string; payload: JsonObject }[] = [];
+      if (depositAmount > 0 || scheduleRest.length) {
         const { data: invRows, error: invErr } = await sb
           .from("business_records")
           .select("record_key,payload")
@@ -1418,7 +1554,8 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
           .eq("record_status", "active")
           .limit(500);
         if (invErr) throw invErr;
-        const found = (invRows || []).find((r) => {
+        existingInvoices = (invRows || []) as { record_key: string; payload: JsonObject }[];
+        const found = existingInvoices.find((r) => {
           const p = (r.payload || {}) as JsonObject;
           return clean(pick(p, "Quote ID", "quoteId"), 120) === quoteId
             && numberValue(pick(p, "Deposit For Revision", "depositForRevision")) === currentRevision
@@ -1461,6 +1598,7 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
             "Deposit Percent": pct,
             "Deposit For Quote": quoteId,
             "Deposit For Revision": currentRevision,
+            ...(validSchedule ? { "Payment Schedule Label": validSchedule.deposit.label } : {}),
             "Signed By Name": signerName,
             "Signed At": now,
             "Created Time": now,
@@ -1469,6 +1607,71 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
           },
         });
         if (insErr) throw insErr;
+      }
+      // Payment schedule (gap2): the remaining scheduled payments become
+      // Draft invoices NOW, at acceptance, each carrying its due trigger
+      // (and its due date when the trigger is a date). Deduped per entry
+      // on (Quote ID, Source, Schedule For Revision, Schedule Entry
+      // Index) against the rows already fetched above, so a retry after
+      // a partial failure reuses what exists and never duplicates.
+      const scheduleInvoiceIds: string[] = [];
+      if (scheduleValid) {
+        const quoteNumber = clean(pick(q, "Quote Number", "quoteNumber"), 60);
+        for (const entry of scheduleRest) {
+          const existing = existingInvoices.find((r) => {
+            const p = (r.payload || {}) as JsonObject;
+            return clean(pick(p, "Quote ID", "quoteId"), 120) === quoteId
+              && numberValue(pick(p, "Schedule For Revision", "scheduleForRevision")) === currentRevision
+              && numberValue(pick(p, "Schedule Entry Index", "scheduleEntryIndex")) === entry.index
+              && clean(pick(p, "Source", "source"), 80) === SCHEDULE_INVOICE_SOURCE
+              && !/void/i.test(clean(pick(p, "Status", "status"), 40));
+          });
+          if (existing) { scheduleInvoiceIds.push(existing.record_key); continue; }
+          const scheduleInvoiceId = `INVOICE-${crypto.randomUUID().toUpperCase()}`;
+          const triggerText = scheduleTriggerLabel(entry.trigger, entry.dueDate);
+          const { error: schedErr } = await sb.from("business_records").insert({
+            business_id: session.businessId,
+            collection: "invoices",
+            record_key: scheduleInvoiceId,
+            record_status: "active",
+            created_by: actorId,
+            updated_by: actorId,
+            payload: {
+              "Invoice ID": scheduleInvoiceId,
+              "Invoice Number": `LOCAL-${Date.now()}-${entry.index}`,
+              "Business ID": session.businessId,
+              "Customer ID": session.customerKey,
+              "Quote ID": quoteId,
+              "Source": SCHEDULE_INVOICE_SOURCE,
+              "Status": "Draft",
+              "Send Allowed": "No",
+              "Delivery Status": "Not Sent",
+              "Total": entry.amount,
+              "Subtotal": entry.amount,
+              "Tax": 0,
+              "Balance": entry.amount,
+              "Due Date": entry.trigger === "date" ? entry.dueDate : "",
+              "Due Trigger": triggerText,
+              "lines": [{
+                description: `${entry.label} — ${triggerText} · Quote ${quoteNumber || quoteId} (signed acceptance)`,
+                quantity: 1,
+                unit: "each",
+                unitPrice: entry.amount,
+              }],
+              "Schedule For Quote": quoteId,
+              "Schedule For Revision": currentRevision,
+              "Schedule Entry Index": entry.index,
+              "Schedule Label": entry.label,
+              "Signed By Name": signerName,
+              "Signed At": now,
+              "Created Time": now,
+              "Updated Time": now,
+              "Record Version": 1,
+            },
+          });
+          if (schedErr) throw schedErr;
+          scheduleInvoiceIds.push(scheduleInvoiceId);
+        }
       }
       updated["Customer Decision"] = "Accepted — signed";
       updated["Signed By Name"] = signerName;
@@ -1479,6 +1682,13 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
       updated["Deposit Amount"] = depositAmount;
       updated["Deposit Invoice ID"] = depositInvoiceId;
       updated["Deposit Required"] = depositAmount > 0 ? "Yes" : "No";
+      if (schedule.present) {
+        updated["Payment Schedule Status"] = scheduleValid
+          ? "Generated on signed acceptance"
+          : `Invalid at signing — deposit invoice only (${scheduleInvalidReason})`;
+        updated["Payment Schedule Invoice IDs"] = scheduleInvoiceIds;
+        updated["Payment Schedule Signed Revision"] = currentRevision;
+      }
       const { error: upErr } = await sb.from("business_records").update({
         payload: updated,
         updated_at: now,
@@ -1504,19 +1714,23 @@ export async function handlePortalRequest(req: Request): Promise<Response> {
           "Deposit Percent": pct,
           "Deposit Amount": depositAmount,
           "Deposit Invoice ID": depositInvoiceId,
+          "Payment Schedule Invoice IDs": scheduleInvoiceIds,
           "Status": "New — owner converts to job",
           "Business ID": session.businessId,
           "Created Time": now,
           "Record Version": 1,
         },
       });
-      await writeProof(sb, session.businessId, "PORTAL_QUOTE_SIGNED", "Quote", quoteId, "OK", { tier: approvalTierName, tierId: approvalTierId, acceptedTotal, signerName, signedRevision: currentRevision, depositPercent: pct, depositAmount, depositInvoiceId });
+      await writeProof(sb, session.businessId, "PORTAL_QUOTE_SIGNED", "Quote", quoteId, "OK", { tier: approvalTierName, tierId: approvalTierId, acceptedTotal, signerName, signedRevision: currentRevision, depositPercent: pct, depositAmount, depositInvoiceId, paymentSchedule: schedule.present ? (scheduleValid ? "generated" : `invalid: ${scheduleInvalidReason}`) : "none", scheduleInvoiceIds });
       return reply(req, 200, {
         ok: true,
         message: depositAmount > 0
-          ? `Quote signed and accepted. A deposit invoice for $${depositAmount.toFixed(2)} was created — we will contact you about the deposit and scheduling.`
+          ? (scheduleInvoiceIds.length
+            ? `Quote signed and accepted. A deposit invoice for $${depositAmount.toFixed(2)} was created, plus ${scheduleInvoiceIds.length} scheduled payment invoice${scheduleInvoiceIds.length === 1 ? "" : "s"} from your payment schedule — we will contact you about the deposit and scheduling.`
+            : `Quote signed and accepted. A deposit invoice for $${depositAmount.toFixed(2)} was created — we will contact you about the deposit and scheduling.`)
           : "Quote signed and accepted. We will contact you to schedule the work.",
         deposit: { invoiceId: depositInvoiceId, amount: depositAmount, percent: pct },
+        schedule: { invoiceIds: scheduleInvoiceIds, count: scheduleInvoiceIds.length },
       });
     }
 

@@ -95,7 +95,8 @@
       './quote-manual-image-controls.js?build=20260807-1450',
       './price-history.js?build=20261004-price-history-1',
       './trade-packages.js?build=20261005-trade-1',
-      './quote-signed-acceptance.js?build=20261027-signed-deposit-1',
+      './quote-signed-acceptance.js?build=20261107-gap2-payschedule-1',
+      './quote-payment-schedule.js?build=20261107-gap2-payschedule-1',
     ];
     const PAGE_CUSTOMERS = [
       './customer-import-intelligence.js?build=20261107-gap1-switch-import-1',
