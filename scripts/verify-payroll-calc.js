@@ -14,7 +14,7 @@ function skip(name, why) { skipped++; console.log('SKIP', name, '—', why); }
 
 const cfg = C.createConfig();
 
-ok('VERSION stamp present', () => assert.equal(C.VERSION, '20261106-payroll-calc-2'));
+ok('VERSION stamp present', () => assert.equal(C.VERSION, '20261107-polish-a3-tax-1'));
 ok('year tables: 2026 loaded from the year module; 2027 stops hard', () => {
   assert.ok(C.availableYears().includes(2026));
   assert.equal(C.tablesForYear(2026).federal.builtInMFJ, 12900);
