@@ -1,4 +1,4 @@
-/* H38 Today: AI command bar + setup checklist — build 20261107-gap8-fronthome-1
+/* H38 Today: AI command bar + setup checklist — build 20261107-gap8-fronthome-2
  *
  * GAP8 (2026-11-07): the front door (ask box + KPI strip + setup
  * checklist) is now RENDERED by owner-home.js, synchronously in the
@@ -80,7 +80,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261107-gap8-fronthome-1';
+  var BUILD = '20261107-gap8-fronthome-2';
   var CONTAINER_ID = 'h38TodayCommandSetup';
   var CHECKLIST_ID = 'h38TodaySetupChecklist';
   var DEFAULT_LOGO_MARK = 'highway38-logo';

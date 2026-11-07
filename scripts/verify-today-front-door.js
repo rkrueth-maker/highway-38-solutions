@@ -11,7 +11,7 @@ const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const failures = [];
 const check = (name, cond) => { if (!cond) failures.push(name); };
 
-const STAMP = '20261107-gap8-fronthome-1';
+const STAMP = '20261107-gap8-fronthome-2';
 const ownerHome = read('commercial-app/owner-home.js');
 const ownerCss = read('commercial-app/owner-home.css');
 const shim = read('commercial-app/today-command-setup.js');
