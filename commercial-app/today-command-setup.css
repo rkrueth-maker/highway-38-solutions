@@ -1,4 +1,4 @@
-/* H38 Today: AI command bar + setup checklist — build 20261030-r2-today-1 */
+/* H38 Today: AI command bar + setup checklist — build 20261107-gap8-fronthome-1 */
 .h38-today-command-setup { display: grid; gap: 12px; margin: 12px 0; }
 .h38-command-bar-card h2 { margin-top: 0; }
 .h38-command-form { display: flex; gap: 8px; }

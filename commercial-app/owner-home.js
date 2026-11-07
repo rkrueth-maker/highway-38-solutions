@@ -855,6 +855,355 @@
     }
   });
 
+  /* ================= Front door (gap8, 2026-11-07) =================
+   * Item 8 of the competitor-gap build program: a chat-front-door home
+   * screen + persistent setup checklist (Swivl pattern), rendered HERE,
+   * synchronously, inside the owner home's own first paint — not inserted
+   * after paint the way today-command-setup.js used to (a late insertion
+   * at the TOP of Today would shove every painted block below it, the
+   * exact opening-bounce defect class the first-screen frames exist to
+   * kill). Everything below renders from the already-loaded snapshot:
+   * 0 new server reads, 0 new RPCs, no observers, no timers.
+   *
+   * Part A — front door:
+   * - A plain-English question box ("Ask anything") that submits into
+   *   the EXISTING Kit owner chat: today-command-setup.js owns the
+   *   routing (H38_TODAY_COMMAND_SETUP.openChat → H38_OWNER_CHAT.send,
+   *   the ai_handoff_tasks 'owner_chat' pipeline); the answer comes
+   *   back through the existing chat surface on the 'ai' page. No
+   *   second chat, no second AI path. When the routing module has not
+   *   loaded yet, frontAskFallback() opens the chat page and polls for
+   *   its own form — send via the owner chat when it is available,
+   *   otherwise prefill, exactly the legacy fallback behavior.
+   * - A KPI strip computed from snapshot records only (see
+   *   computeFrontDoorKpis for the exact rules; every number is
+   *   reproducible from SQL over the same stores the snapshot merges).
+   *
+   * Part B — persistent setup checklist:
+   * - Steps complete ONLY from real state (computeSetupSteps). The card
+   *   renders on every Today open until every determinable step is
+   *   done, then it does not render at all. Settings keeps its own
+   *   "Business setup & onboarding" section, named in the card footer,
+   *   so a finished business can still find setup again.
+   * - The Oct-30 step list's logo and AI-answering steps are REMOVED:
+   *   both are optional add-ons, not setup. A business with the H38
+   *   default logo and the AI receptionist off by choice is fully set
+   *   up, and the old list nagged exactly those businesses forever
+   *   (verified on Rick's H38 tenant: brandConfig has no custom logo
+   *   and ai_receptionist is off, while every core milestone below is
+   *   genuinely complete). In their place: first quote, first job,
+   *   and the portal/deposit settings reviews the task names.
+   * - A step whose state the snapshot cannot confirm (done === null —
+   *   the businessProfile collection is absent from this snapshot,
+   *   e.g. crowded out of the broad first page on a high-churn tenant)
+   *   is shown as "Check" and excluded from the count, never counted
+   *   as done or as missing. The exclusion is stated on the card.
+   *
+   * Module intake (MODULE_PERFORMANCE_STANDARD): route 'today'
+   * (existing, Today-critical, read-only). Canonical owner: this
+   * renderer (owner-home.js); today-command-setup.js is the routing /
+   * refresh companion and delegates here when this front door exists.
+   * Server owners: none new — snapshot only. Cache: none (TTL 0),
+   * recomputed on each Today render; H38OwnerHome.refreshFrontDoor()
+   * re-renders only the KPI + checklist sub-blocks (never the ask
+   * form, so typed text survives a snapshot refresh). Writes: none.
+   * Failure: any front-door computation is try/caught to an empty
+   * block — the rest of Today renders exactly as before. */
+
+  const FRONT_DOOR_BUILD = '20261107-gap8-fronthome-1';
+
+  function frontRecords(name) {
+    try { const r = records(name); return Array.isArray(r) ? r : []; } catch (e) { return []; }
+  }
+  function frontText(x) { return String(x == null ? '' : x).trim(); }
+  function frontIsExample(row) {
+    const hay = ['Quote Number', 'Job Number', 'Invoice Number', 'Project Title', 'Status']
+      .map(k => v(row, k)).join(' ');
+    return /\bDEMO\b|\bEX-/i.test(hay) || (row && row['Example Data'] === true);
+  }
+  function frontCanFinancial() {
+    try {
+      if (typeof window.can === 'function') return !!(window.can('manageFinancial') || window.can('viewFinancial') || window.can('manageSettings'));
+      const u = (state.snapshot && state.snapshot.user) || {};
+      return !!(u.owner === true || (u.permissions && (u.permissions.all === true || u.permissions.manageFinancial === true || u.permissions.viewFinancial === true || u.permissions.manageSettings === true)));
+    } catch (e) { return false; }
+  }
+  function frontSetupAllowed() {
+    try {
+      const u = (state.snapshot && state.snapshot.user) || {};
+      return u.owner === true || !!(u.permissions && (u.permissions.all === true || u.permissions.manageSettings === true || u.permissions.manageUsers === true));
+    } catch (e) { return false; }
+  }
+  function frontMoney(n) {
+    return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  /* First finite numeric field among keys, else null. A stored 0 is a
+   * real answer (nothing owed on that invoice), not a missing field. */
+  function frontNumField(row, keys) {
+    for (const k of keys) {
+      const raw = row ? row[k] : undefined;
+      if (raw === undefined || raw === null || raw === '') continue;
+      const n = Number(raw);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }
+
+  /* KPI rules (each is a pure function of the snapshot):
+   * - Money owed: invoices whose status is not paid/closed/void/
+   *   cancelled/draft, summed by the first stored balance field
+   *   ('Balance Due' → 'Amount Due' → 'Open Balance' → 'Balance'),
+   *   else Total − Amount Paid, floored at 0 per invoice. This is the
+   *   customer-readiness invoiceBalance rule plus the 'Balance' field
+   *   the portal invoice rows carry (their only balance field).
+   * - Jobs today: scheduleEvents starting today (local), excluding
+   *   cancelled/void/completed — the same rule getTodaySchedule uses.
+   * - Open quotes: quotes in draft/sent/presented state (example rows
+   *   excluded, the attention collectors' filter).
+   * - Jobs done this week: jobs in a complete status whose completion
+   *   stamp ('Completed Time'/'Completed Date', else 'Updated Time')
+   *   falls in this Mon–Sun week (local). */
+  function computeFrontDoorKpis() {
+    const out = { moneyOwed: 0, moneyOwedCount: 0, todayJobs: 0, openQuotes: 0, jobsDoneWeek: 0 };
+    try {
+      frontRecords('invoices').forEach(inv => {
+        const status = String(v(inv, 'Status', 'status') || '').toUpperCase();
+        if (/PAID|CLOSED|VOID|CANCEL|DRAFT/.test(status)) return;
+        let bal = frontNumField(inv, ['Balance Due', 'Amount Due', 'Open Balance', 'Balance']);
+        if (bal === null) {
+          const total = frontNumField(inv, ['Total', 'total', 'Amount', 'amount']) || 0;
+          const paid = frontNumField(inv, ['Amount Paid', 'amountPaid', 'Paid', 'paid']) || 0;
+          bal = Math.max(0, total - paid);
+        }
+        if (bal > 0.005) { out.moneyOwed += bal; out.moneyOwedCount++; }
+      });
+      const now = new Date();
+      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      const startOf = e => v(e, 'Start Time', 'startTime', 'Scheduled Time', 'scheduledAt');
+      out.todayJobs = frontRecords('scheduleEvents').filter(e => {
+        if (/CANCEL|VOID|COMPLETE/.test(String(v(e, 'Status', 'status') || '').toUpperCase())) return false;
+        const d = new Date(startOf(e) || 0);
+        return d >= dayStart && d < dayEnd;
+      }).length;
+      out.openQuotes = frontRecords('quotes').filter(q => {
+        if (frontIsExample(q)) return false;
+        return /DRAFT|SENT|PRESENT/.test(String(v(q, 'Status', 'status') || '').toUpperCase());
+      }).length;
+      const monday = new Date(dayStart.getTime() - ((dayStart.getDay() + 6) % 7) * 24 * 60 * 60 * 1000);
+      const nextMonday = new Date(monday.getTime() + 7 * 24 * 60 * 60 * 1000);
+      out.jobsDoneWeek = frontRecords('jobs').filter(j => {
+        if (!/COMPLETE|COMPLETED/.test(String(v(j, 'Status', 'status') || '').toUpperCase())) return false;
+        const stamp = v(j, 'Completed Time', 'Completed Date', 'completedAt') || v(j, 'Updated Time', 'updatedAt');
+        const d = new Date(stamp || 0);
+        return Number.isFinite(d.getTime()) && d >= monday && d < nextMonday;
+      }).length;
+    } catch (e) { /* KPIs are decoration on real data; Today must render without them */ }
+    return out;
+  }
+
+  function frontKpiTilesHtml(kpis) {
+    const tiles = [];
+    if (frontCanFinancial()) tiles.push({ page: 'money', value: frontMoney(kpis.moneyOwed), label: 'Money owed to you', sub: kpis.moneyOwedCount + (kpis.moneyOwedCount === 1 ? ' open invoice' : ' open invoices') });
+    tiles.push({ page: 'schedule', value: String(kpis.todayJobs), label: 'Jobs today', sub: 'On today\u2019s schedule' });
+    tiles.push({ page: 'quotes', value: String(kpis.openQuotes), label: 'Open quotes', sub: 'Draft, sent or presented' });
+    tiles.push({ page: 'work', value: String(kpis.jobsDoneWeek), label: 'Jobs done this week', sub: 'Completed Mon\u2013Sun' });
+    return tiles.map(t => `
+      <button type="button" class="h38-kpi-tile" data-front-kpi-page="${esc(t.page)}">
+        <strong>${esc(t.value)}</strong><span>${esc(t.label)}</span><small>${esc(t.sub)}</small>
+      </button>`).join('');
+  }
+
+  /* Setup steps: the SAME computation renders the card and counts it.
+   * done: true = genuinely complete from real state; false = provably
+   * not done; null = the snapshot cannot confirm it (excluded from
+   * both the done count and the total, and the card says so). */
+  function computeSetupSteps() {
+    const snap = (state && state.snapshot) || {};
+    const steps = [];
+    /* 1. Business profile — the guided-setup record (ai-onboarding.js
+     * saves collection 'businessProfile'; Settings reads it the same
+     * way). Complete = a row with a name and at least one contact
+     * field. Collection absent from the snapshot = unknown. */
+    const profiles = snap.businessProfile;
+    if (!Array.isArray(profiles)) {
+      steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: null });
+    } else {
+      const prof = profiles[0] || {};
+      const done = !!frontText(v(prof, 'Business Name', 'businessName')) &&
+        !!(frontText(v(prof, 'Phone', 'phone')) || frontText(v(prof, 'Email', 'email')) || frontText(v(prof, 'Address', 'address')));
+      steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: done });
+    }
+    /* 2. Services & pricing — ≥1 price-book item (snapshot.priceBook,
+     * the relational price_book_items the Quote Builder reads). */
+    const priceCount = frontRecords('priceBook').length;
+    steps.push({ id: 'services', title: 'Services & pricing', detail: priceCount + (priceCount === 1 ? ' price-book item' : ' price-book items'), page: 'quotes', done: priceCount >= 1 });
+    /* 3. Customers — ≥1 real customer (example rows excluded). */
+    const custCount = frontRecords('customers').filter(r => !frontIsExample(r)).length;
+    steps.push({ id: 'customers', title: 'Customers', detail: custCount + (custCount === 1 ? ' customer' : ' customers'), page: 'customers', done: custCount >= 1 });
+    /* 4. First quote — ≥1 quote record exists. */
+    const quoteCount = frontRecords('quotes').length;
+    steps.push({ id: 'quote', title: 'First quote', detail: quoteCount + (quoteCount === 1 ? ' quote' : ' quotes'), page: 'quotes', done: quoteCount >= 1 });
+    /* 5. First job — ≥1 job record exists. (Not "a job on the
+     * schedule": scheduleEvents is a separate, legitimately empty
+     * collection for businesses that work from the jobs list — H38
+     * itself has jobs and no schedule events — so the honest setup
+     * milestone is the job record.) */
+    const jobCount = frontRecords('jobs').length;
+    steps.push({ id: 'job', title: 'First job', detail: jobCount + (jobCount === 1 ? ' job' : ' jobs'), page: 'work', done: jobCount >= 1 });
+    /* 6. Team — ≥1 member beyond the owner (snapshot.users is the
+     * membership list). Absent collection = unknown. */
+    const users = snap.users;
+    if (!Array.isArray(users)) {
+      steps.push({ id: 'team', title: 'Team', detail: 'Add someone besides the owner', page: 'people', done: null });
+    } else {
+      const teamCount = Math.max(0, users.length - 1);
+      steps.push({ id: 'team', title: 'Team', detail: teamCount + (teamCount === 1 ? ' team member beyond the owner' : ' team members beyond the owner'), page: 'people', done: users.length >= 2 });
+    }
+    /* 7+8. Portal / deposit settings reviewed — a moduleSettings row
+     * whose config carries updatedAt. Provisioning creates both rows
+     * with an empty config, so mere existence proves nothing; the
+     * updatedAt stamp is written only by the Owner Controls saves
+     * (owner-controls.js setCustomerPortal / setSignedDepositEnabled),
+     * i.e. a person actually reviewed and saved the setting. */
+    const settings = Array.isArray(snap.moduleSettings) ? snap.moduleSettings : [];
+    const settingRow = key => settings.find(r => frontText((r && (r.moduleKey || r.module_key)) || '') === key) || null;
+    const reviewed = row => !!(row && row.config && frontText(row.config.updatedAt));
+    const portalRow = settingRow('customer_portal');
+    steps.push({ id: 'portal', title: 'Customer portal', detail: portalRow ? (reviewed(portalRow) ? 'Settings saved — portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' by your choice' : 'Portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' — review & save the setting') : 'Portal setting not saved yet', page: 'settings', done: reviewed(portalRow) });
+    const depositRow = settingRow('signed_deposit_acceptance');
+    const depositPct = depositRow && depositRow.config && Number.isFinite(Number(depositRow.config.depositPercent)) ? Number(depositRow.config.depositPercent) : null;
+    steps.push({ id: 'deposit', title: 'Deposit settings', detail: depositRow ? (reviewed(depositRow) ? 'Settings saved' + (depositPct !== null ? ' — default deposit ' + depositPct + '%' : '') : 'Review & save your deposit setting') : 'Deposit setting not saved yet', page: 'settings', done: reviewed(depositRow) });
+    return steps;
+  }
+
+  function frontChecklistHtml() {
+    const steps = computeSetupSteps();
+    const determinable = steps.filter(s => s.done !== null);
+    const done = determinable.filter(s => s.done === true).length;
+    if (!determinable.length || done === determinable.length) return '';
+    const rowsHtml = steps.map(step => {
+      const stateName = step.done === null ? 'check' : (step.done ? 'done' : 'todo');
+      const mark = step.done === null ? '?' : (step.done ? '✓' : '○');
+      return `<button type="button" class="h38-setup-step h38-setup-step--${stateName}" data-front-setup-page="${esc(step.page)}">
+        <span class="h38-setup-mark" aria-hidden="true">${mark}</span>
+        <span class="h38-setup-text"><strong>${esc(step.title)}</strong><small>${esc(step.detail)}${step.done === null ? ' — couldn\u2019t confirm from your records' : ''}</small></span>
+        <span class="h38-setup-go" aria-hidden="true">→</span></button>`;
+    }).join('');
+    const unknown = steps.filter(s => s.done === null).length;
+    return `<section class="card h38-setup-card" id="h38TodaySetupChecklist" aria-label="Finish setting up">
+      <h2>🧭 Finish setting up</h2>
+      <p class="h38-setup-progress"><strong>${done} of ${determinable.length} set up</strong>${unknown ? ' · ' + unknown + ' step' + (unknown === 1 ? '' : 's') + ' couldn\u2019t be confirmed from your records and isn\u2019t counted' : ''}</p>
+      <div class="h38-setup-list">${rowsHtml}</div>
+      <p class="muted small">Tap a step to go where it\u2019s finished. This card disappears once every step above is set up — you can find setup again any time in Settings, under \u201cBusiness setup &amp; onboarding\u201d.</p></section>`;
+  }
+
+  function buildFrontDoorHtml() {
+    try {
+      const chatAllowed = (typeof window.H38ModuleVisible !== 'function' || window.H38ModuleVisible('ownerChat') !== false);
+      const askHtml = chatAllowed ? `
+      <section class="card h38-front-ask" aria-label="Ask your Office">
+        <h2>✨ Ask anything</h2>
+        <p class="muted">Ask in plain English and Kit answers from your real records — the answer lands in your saved chat thread, on your phone or at your desk.</p>
+        <form id="h38FrontAskForm" class="h38-command-form">
+          <input type="text" id="h38FrontAskInput" name="question" placeholder="Ask anything — who owes me money? what\u2019s today?" aria-label="Ask Kit a question" autocomplete="off">
+          <button type="submit" class="primary">Ask Kit →</button>
+        </form>
+        <div class="h38-command-chips" role="group" aria-label="Try asking">
+          <button type="button" data-front-chip="Who owes me money?">Who owes me money?</button>
+          <button type="button" data-front-chip="What\u2019s on the schedule today?">What\u2019s on the schedule today?</button>
+          <button type="button" data-front-chip="Who hasn\u2019t answered their quote?">Who hasn\u2019t answered their quote?</button>
+        </div>
+      </section>` : '';
+      const kpis = computeFrontDoorKpis();
+      return `<div id="h38TodayCommandSetup" class="h38-today-command-setup h38-front-door">
+        ${askHtml}
+        <section class="h38-kpi-strip" id="h38FrontKpis" aria-label="Your numbers">${frontKpiTilesHtml(kpis)}</section>
+        <div id="h38TodaySetupSlot">${frontSetupAllowed() ? frontChecklistHtml() : ''}</div>
+      </div>`;
+    } catch (e) { return ''; }
+  }
+
+  /* Chat routing: the routing module (today-command-setup.js, in the
+   * Today page group) owns openChat; use it whenever it is present.
+   * The fallback below only opens the existing chat page and polls for
+   * its own form — it sends through the same H38_OWNER_CHAT API when
+   * that is available, otherwise it prefills the form for the legacy
+   * Ask Hank path. No second chat is built in either path. */
+  function frontAskFallback(question) {
+    openPage('ai');
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries++;
+      const chatApi = window.H38_OWNER_CHAT;
+      if (chatApi && typeof chatApi.send === 'function' && typeof chatApi.handlesWorkspaceChat === 'function' && chatApi.handlesWorkspaceChat()) {
+        clearInterval(timer);
+        chatApi.send(question);
+        return;
+      }
+      const input = document.querySelector('#kwAiForm textarea, #kwAiForm input[name="question"]');
+      if (input) {
+        clearInterval(timer);
+        input.value = question;
+        try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+        if (input.scrollIntoView) input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (tries >= 25) clearInterval(timer);
+    }, 200);
+  }
+  function frontAsk(question) {
+    const q = String(question || '').trim();
+    if (!q) return;
+    const router = window.H38_TODAY_COMMAND_SETUP;
+    if (router && typeof router.openChat === 'function') { router.openChat(q, true); return; }
+    frontAskFallback(q);
+  }
+
+  function bindFrontDoor() {
+    const root = document.getElementById('h38TodayCommandSetup');
+    if (!root || root.dataset.h38FrontBound === '1') return;
+    root.dataset.h38FrontBound = '1';
+    const form = root.querySelector('#h38FrontAskForm');
+    if (form) form.addEventListener('submit', event => {
+      event.preventDefault();
+      const input = root.querySelector('#h38FrontAskInput');
+      frontAsk(input ? input.value : '');
+    });
+    root.querySelectorAll('[data-front-chip]').forEach(btn => {
+      btn.addEventListener('click', () => frontAsk(btn.getAttribute('data-front-chip')));
+    });
+    bindFrontDoorDynamic(root);
+  }
+  /* KPI tiles + checklist steps are the parts refreshFrontDoor()
+   * rewrites, so their binding lives apart from the ask form's. */
+  function bindFrontDoorDynamic(root) {
+    root.querySelectorAll('[data-front-kpi-page]').forEach(btn => {
+      btn.onclick = () => openPage(btn.getAttribute('data-front-kpi-page'));
+    });
+    root.querySelectorAll('[data-front-setup-page]').forEach(btn => {
+      btn.onclick = () => openPage(btn.getAttribute('data-front-setup-page'));
+    });
+  }
+
+  /* Snapshot-refresh path (called by today-command-setup.js on
+   * h38:business-snapshot-updated): rewrite ONLY the KPI strip and the
+   * checklist slot. The ask form — including anything the owner has
+   * typed into it — is never touched. */
+  function refreshFrontDoor() {
+    try {
+      const root = document.getElementById('h38TodayCommandSetup');
+      if (!root || !root.classList.contains('h38-front-door')) return false;
+      const kpiEl = root.querySelector('#h38FrontKpis');
+      if (kpiEl) kpiEl.innerHTML = frontKpiTilesHtml(computeFrontDoorKpis());
+      const slot = root.querySelector('#h38TodaySetupSlot');
+      if (slot) slot.innerHTML = frontSetupAllowed() ? frontChecklistHtml() : '';
+      bindFrontDoorDynamic(root);
+      return true;
+    } catch (e) { return false; }
+  }
+
+
   /* ================= Main renderer ================= */
 
   function renderOwnerHome() {
@@ -1119,6 +1468,10 @@
         </div>
       </section>`;
 
+    /* ---- Front door (gap8): computed from the same snapshot, in
+     * this render — see the Front door section above. ---- */
+    const frontDoorHtml = buildFrontDoorHtml();
+
     /* ---- Kit AI activity feed ("While You Were Away") ----
      * The feed renders into this box right after the home paints (and its
      * module can land after first paint), so the box carries a reserved
@@ -1193,7 +1546,7 @@
     const heroInBody = type === 'service' ? '' : heroHtml;
     const routeInBody = type === 'lawn-snow' ? '' : routeHtml;
     const scheduleInBody = (type === 'service' || type === 'lawn-snow') ? scheduleHtml : '';
-    $('mainContent').innerHTML = headerHtml + trioFramesHtml + todayFirstHtml + mileageSlotHtml + platformSlotHtml + firstSlotsBelow + `
+    $('mainContent').innerHTML = headerHtml + frontDoorHtml + trioFramesHtml + todayFirstHtml + mileageSlotHtml + platformSlotHtml + firstSlotsBelow + `
       <div class="h38-owner-home h38-type-${type}">
         ${qsHero}
         ${quickHtml}
@@ -1335,6 +1688,7 @@
         });
       };
     });
+    bindFrontDoor();
     const routeOpt = document.querySelector('[data-route-opt]');
     if (routeOpt) {
       routeOpt.onclick = () => {
@@ -1346,8 +1700,11 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261103-bouncefix-2',
-    detectBusinessType: detectBusinessType
+    build: '20261107-gap8-fronthome-1',
+    detectBusinessType: detectBusinessType,
+    computeSetupSteps: computeSetupSteps,
+    computeFrontDoorKpis: computeFrontDoorKpis,
+    refreshFrontDoor: refreshFrontDoor
   });
 
 })();
