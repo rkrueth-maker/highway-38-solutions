@@ -23326,7 +23326,7 @@ window.H38_NORTHERN_BOUNCIE_FLEET=Object.freeze({enabled:true,build:BUILD,provid
 'use strict';
 // H38 Owner Controls: feature toggles and module visibility.
 // Owner can turn features on/off and hide modules they don't use.
-const BUILD='20261025-toggles-server-1';
+const BUILD='20261107-gap6-connections-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -24172,6 +24172,266 @@ function bindOnlinePayments(){
   }
 }
 
+// ---- Outgoing webhooks (server-side mirror — CANONICAL config shape) ----
+// "Outgoing webhooks — works with Zapier Catch Hooks and similar tools."
+// Stored in business_module_settings (module_key 'outgoing_webhooks',
+// enabled boolean, config {secret, endpoints:[{id,url,events,enabled}]}).
+// The h38_webhook_enqueue trigger on business_records reads ONLY this row
+// when a real event happens (new customer, signed quote acceptance, job
+// completed, invoice paid) and queues one delivery per subscribed
+// endpoint; the h38-webhooks edge function delivers them server-side with
+// retries — a dead URL never blocks the business action, and the delivery
+// outcome stays visible in the log below. The per-business secret signs
+// every delivery (X-H38-Signature: sha256=<HMAC of the raw body>) — that
+// is how a receiver verifies a delivery really came from us. No row or
+// enabled!==true means OFF, the default for every tenant. A listing in
+// Zapier's app directory would need a Zapier developer account; this
+// direct Catch Hook route needs no developer account and is what ships.
+const OUTGOING_WEBHOOKS_KEY='outgoing_webhooks';
+const WEBHOOK_EVENTS=[
+  {id:'customer.created',label:'New customer created'},
+  {id:'quote.accepted',label:'Quote accepted (signed)'},
+  {id:'job.completed',label:'Job completed'},
+  {id:'invoice.paid',label:'Invoice paid'},
+];
+function outgoingWebhooksSettingRow(){
+  const list=(window.state&&window.state.snapshot&&window.state.snapshot.moduleSettings)||[];
+  return list.find(r=>text(r.moduleKey||r.module_key)===OUTGOING_WEBHOOKS_KEY)||null;
+}
+function newWebhookSecret(){
+  try{
+    const bytes=new Uint8Array(24);crypto.getRandomValues(bytes);
+    return 'h38_'+Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    return 'h38_'+Date.now().toString(16)+Math.random().toString(16).slice(2,18);
+  }
+}
+function outgoingWebhooksConfig(){
+  const row=outgoingWebhooksSettingRow();
+  const cfg=(row&&row.config)||{};
+  const endpoints=(Array.isArray(cfg.endpoints)?cfg.endpoints:[]).filter(e=>e&&typeof e==='object').map(e=>({
+    id:text(e.id)||('ep-'+Math.random().toString(16).slice(2,10)),
+    url:text(e.url),
+    events:(Array.isArray(e.events)?e.events:WEBHOOK_EVENTS.map(x=>x.id)).filter(id=>WEBHOOK_EVENTS.some(x=>x.id===id)),
+    enabled:e.enabled!==false,
+  }));
+  return {enabled:row?row.enabled===true:false,secret:text(cfg.secret),endpoints};
+}
+// Owner/admin only. Mirrors the config to business_module_settings and
+// keeps the in-memory snapshot in sync. Throws when the server write fails.
+async function saveOutgoingWebhooks(enabled,config){
+  const role=text((window.state&&window.state.snapshot&&window.state.snapshot.user&&window.state.snapshot.user.roleName)||'').toLowerCase();
+  if(!['owner','administrator'].includes(role)) throw new Error('Only a business owner or administrator can change webhook settings.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure settings connection is unavailable.');
+  const cfg={secret:text(config&&config.secret)||newWebhookSecret(),
+    endpoints:((config&&config.endpoints)||[]).map(e=>({id:text(e.id)||('ep-'+Math.random().toString(16).slice(2,10)),url:text(e.url).slice(0,500),events:(Array.isArray(e.events)?e.events:[]).filter(id=>WEBHOOK_EVENTS.some(x=>x.id===id)),enabled:e.enabled!==false})),
+    updatedAt:new Date().toISOString()};
+  const row={business_id:bid,module_key:OUTGOING_WEBHOOKS_KEY,enabled:!!enabled,config:cfg,updated_at:new Date().toISOString()};
+  const res=await api.from('business_module_settings').upsert(row,{onConflict:'business_id,module_key'});
+  if(res&&res.error) throw new Error(res.error.message||res.error);
+  if(window.state&&window.state.snapshot){
+    const list=window.state.snapshot.moduleSettings||(window.state.snapshot.moduleSettings=[]);
+    const i=list.findIndex(r=>text(r.moduleKey||r.module_key)===OUTGOING_WEBHOOKS_KEY);
+    const snap={moduleKey:OUTGOING_WEBHOOKS_KEY,module_key:OUTGOING_WEBHOOKS_KEY,enabled:!!enabled,config:cfg};
+    if(i>=0) list[i]=snap; else list.push(snap);
+  }
+  return cfg;
+}
+async function invokeWebhooks(action,extra){
+  const api=window.H38_SUPABASE_SHARED_CLIENT&&window.H38_SUPABASE_SHARED_CLIENT.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  if(!api) throw new Error('Secure connection is unavailable.');
+  const bid=businessId();
+  if(!bid) throw new Error('Open a business first.');
+  const res=await api.functions.invoke('h38-webhooks',{body:Object.assign({action,businessId:bid},extra||{})});
+  if(res.error) throw new Error(res.error.message||String(res.error));
+  const data=res.data||{};
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+// Read the endpoint blocks currently on screen into a config object.
+function readOutgoingWebhooksForm(){
+  const card=document.getElementById('outgoingWebhooksCard');
+  const prev=outgoingWebhooksConfig();
+  const endpoints=[];
+  if(card){
+    card.querySelectorAll('[data-webhook-endpoint]').forEach(block=>{
+      const urlEl=block.querySelector('[data-webhook-url]');
+      const onEl=block.querySelector('[data-webhook-endpoint-on]');
+      const events=[];
+      block.querySelectorAll('[data-webhook-event]').forEach(cb=>{if(cb.checked)events.push(cb.dataset.webhookEvent);});
+      endpoints.push({id:block.dataset.webhookEndpoint,url:urlEl?urlEl.value:'',events,enabled:onEl?onEl.checked:true});
+    });
+  }
+  const secretEl=card?card.querySelector('[data-webhook-secret]'):null;
+  return {secret:secretEl?secretEl.value:prev.secret,endpoints};
+}
+function renderOutgoingWebhooksCard(){
+  const cfg=outgoingWebhooksConfig();
+  const can=canManageModules();
+  const secret=cfg.secret||'(save once to create your signing secret)';
+  const endpointHtml=cfg.endpoints.length?cfg.endpoints.map(e=>`
+      <div class="row" data-webhook-endpoint="${esc(e.id)}">
+        <label>Webhook URL (paste your Zapier Catch Hook URL or any receiver)<input data-webhook-url type="url" value="${esc(e.url)}" placeholder="https://hooks.zapier.com/hooks/catch/..." ${can?'':'disabled'}></label>
+        <div class="row-top"><strong>Send these events</strong>
+          <label class="switch"><input type="checkbox" data-webhook-endpoint-on ${e.enabled?'checked':''} ${can?'':'disabled'}><span class="slider"></span></label>
+        </div>
+        ${WEBHOOK_EVENTS.map(ev=>`<label style="display:block"><input type="checkbox" data-webhook-event="${ev.id}" ${e.events.includes(ev.id)?'checked':''} ${can?'':'disabled'}> ${esc(ev.label)}</label>`).join('')}
+        <div class="actions"><button type="button" class="secondary" data-webhook-remove ${can?'':'disabled'}>Remove this endpoint</button></div>
+      </div>`).join(''):'<p class="muted small">No endpoints yet. Add one below — in Zapier, create a Zap starting with "Webhooks by Zapier → Catch Hook" and paste the URL it gives you.</p>';
+  return `
+    <section class="card span12" id="outgoingWebhooksCard">
+      <h2>🔗 Outgoing webhooks</h2>
+      <p class="muted small"><strong>Outgoing webhooks — works with Zapier Catch Hooks and similar tools.</strong> When something happens in your Office, we send the details as plain JSON to the web addresses you paste in here — from our server, so it works even when the Office is closed. No developer account needed. (A listing inside Zapier's own app directory would need a separate Zapier developer account — this direct route is the one that works today.) If a receiving address is down, we retry up to 3 times and show the outcome in the delivery log — a dead address never blocks the customer, quote, job or payment that caused the event.</p>
+      <div class="row">
+        <div class="row-top">
+          <strong>Outgoing webhooks ${cfg.enabled?'are ON':'are OFF'}</strong>
+          <label class="switch">
+            <input type="checkbox" data-webhook-master ${cfg.enabled?'checked':''} ${can?'':'disabled'}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <small>${can?'Flip the switch, add an endpoint, tick its events, then Save.':'Only an owner or administrator can change this.'}</small>
+      </div>
+      ${endpointHtml}
+      <div class="actions">
+        <button type="button" class="secondary" data-webhook-add ${can?'':'disabled'}>＋ Add endpoint</button>
+        <button type="button" data-webhook-save ${can?'':'disabled'}>Save webhooks</button>
+        <button type="button" class="secondary" data-webhook-test ${can?'':'disabled'}>Send test</button>
+      </div>
+      <div class="row">
+        <label>Signing secret — receivers verify a delivery really came from us by recomputing the HMAC-SHA256 of the raw request body with this secret and comparing it to the X-H38-Signature header we send.<input data-webhook-secret type="text" readonly value="${esc(secret)}"></label>
+        <div class="actions"><button type="button" class="secondary" data-webhook-regen ${can?'':'disabled'}>Regenerate secret</button></div>
+        <small>Regenerating changes the secret everywhere at once — update any receiver that checks signatures.</small>
+      </div>
+      <div class="row">
+        <div class="row-top"><strong>Delivery log</strong><button type="button" class="secondary" data-webhook-log-refresh>Refresh</button></div>
+        <div data-webhook-log><small class="muted">Loading recent deliveries…</small></div>
+      </div>
+    </section>
+  `;
+}
+function rerenderOutgoingWebhooksCard(){
+  const card=document.getElementById('outgoingWebhooksCard');
+  if(!card) return;
+  const tmp=document.createElement('div');
+  tmp.innerHTML=renderOutgoingWebhooksCard();
+  const fresh=tmp.firstElementChild;
+  if(fresh){card.replaceWith(fresh);bindOutgoingWebhooks();}
+}
+async function refreshWebhookLog(){
+  const host=document.querySelector('[data-webhook-log]');
+  if(!host) return;
+  try{
+    const data=await invokeWebhooks('deliveries');
+    const rows=data.deliveries||[];
+    host.innerHTML=rows.length?rows.map(r=>`<div class="row"><div class="row-top"><strong>${esc(r.event_type)}</strong><span class="pill ${r.status==='delivered'?'good':r.status==='failed'?'bad':''}">${esc(r.status)}</span></div><small>${esc(r.endpoint_url)} · attempts ${esc(r.attempts)}${r.last_status_code?` · HTTP ${esc(r.last_status_code)}`:''} · ${esc(r.created_at?new Date(r.created_at).toLocaleString():'')}${r.last_error?` · ${esc(r.last_error)}`:''}</small></div>`).join(''):'<small class="muted">No deliveries yet. Save an endpoint and Send test, or wait for the next real event.</small>';
+  }catch(e){
+    host.innerHTML='<small class="muted">Could not load the delivery log: '+esc(e&&e.message?e.message:e)+'</small>';
+  }
+}
+function bindOutgoingWebhooks(){
+  const card=document.getElementById('outgoingWebhooksCard');
+  if(!card||card.dataset.h38Bound) { if(card) refreshWebhookLog(); return; }
+  card.dataset.h38Bound='1';
+  const master=card.querySelector('[data-webhook-master]');
+  if(master) master.onchange=async()=>{
+    const want=master.checked;
+    master.disabled=true;
+    try{
+      const form=readOutgoingWebhooksForm();
+      await saveOutgoingWebhooks(want,form);
+      if(typeof toast==='function') toast('Outgoing webhooks '+(want?'turned ON.':'turned OFF.'));
+      rerenderOutgoingWebhooksCard();
+    }catch(e){
+      master.checked=!want;
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }finally{ master.disabled=false; }
+  };
+  const saveBtn=card.querySelector('[data-webhook-save]');
+  if(saveBtn) saveBtn.onclick=async()=>{
+    saveBtn.disabled=true;
+    try{
+      const form=readOutgoingWebhooksForm();
+      const bad=form.endpoints.find(e=>e.url&&!/^https:\/\//i.test(e.url));
+      if(bad) throw new Error('Webhook URLs must start with https://');
+      const emptyEvents=form.endpoints.find(e=>e.url&&!e.events.length);
+      if(emptyEvents) throw new Error('Tick at least one event for each endpoint, or remove it.');
+      const cfgNow=outgoingWebhooksConfig();
+      await saveOutgoingWebhooks(cfgNow.enabled,form);
+      if(typeof toast==='function') toast('Webhooks saved.');
+      rerenderOutgoingWebhooksCard();
+    }catch(e){
+      if(typeof toast==='function') toast('Could not save: '+(e&&e.message?e.message:e),true);
+    }finally{ saveBtn.disabled=false; }
+  };
+  const addBtn=card.querySelector('[data-webhook-add]');
+  if(addBtn) addBtn.onclick=async()=>{
+    try{
+      const form=readOutgoingWebhooksForm();
+      form.endpoints.push({id:'ep-'+Math.random().toString(16).slice(2,10),url:'',events:WEBHOOK_EVENTS.map(x=>x.id),enabled:true});
+      const cfgNow=outgoingWebhooksConfig();
+      await saveOutgoingWebhooks(cfgNow.enabled,form);
+      rerenderOutgoingWebhooksCard();
+    }catch(e){
+      if(typeof toast==='function') toast('Could not add endpoint: '+(e&&e.message?e.message:e),true);
+    }
+  };
+  card.querySelectorAll('[data-webhook-remove]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const block=btn.closest('[data-webhook-endpoint]');
+      if(!block) return;
+      try{
+        const form=readOutgoingWebhooksForm();
+        form.endpoints=form.endpoints.filter(e=>e.id!==block.dataset.webhookEndpoint);
+        const cfgNow=outgoingWebhooksConfig();
+        await saveOutgoingWebhooks(cfgNow.enabled,form);
+        if(typeof toast==='function') toast('Endpoint removed.');
+        rerenderOutgoingWebhooksCard();
+      }catch(e){
+        if(typeof toast==='function') toast('Could not remove: '+(e&&e.message?e.message:e),true);
+      }
+    };
+  });
+  const regenBtn=card.querySelector('[data-webhook-regen]');
+  if(regenBtn) regenBtn.onclick=async()=>{
+    if(!window.confirm('Regenerate the signing secret? Receivers that verify signatures must be updated with the new secret, or their checks will fail.')) return;
+    regenBtn.disabled=true;
+    try{
+      const form=readOutgoingWebhooksForm();
+      form.secret=newWebhookSecret();
+      const cfgNow=outgoingWebhooksConfig();
+      await saveOutgoingWebhooks(cfgNow.enabled,form);
+      if(typeof toast==='function') toast('New signing secret saved.');
+      rerenderOutgoingWebhooksCard();
+    }catch(e){
+      if(typeof toast==='function') toast('Could not regenerate: '+(e&&e.message?e.message:e),true);
+    }finally{ regenBtn.disabled=false; }
+  };
+  const testBtn=card.querySelector('[data-webhook-test]');
+  if(testBtn) testBtn.onclick=async()=>{
+    testBtn.disabled=true;
+    try{
+      // Save what's on screen first so the test uses the shown config.
+      const form=readOutgoingWebhooksForm();
+      const cfgNow=outgoingWebhooksConfig();
+      await saveOutgoingWebhooks(cfgNow.enabled,form);
+      const data=await invokeWebhooks('test');
+      const results=data.results||[];
+      const okCount=results.filter(r=>r.ok).length;
+      if(typeof toast==='function') toast(results.length?('Test sent: '+okCount+' of '+results.length+' endpoint(s) answered OK. See the delivery log.'):'No endpoint answered the test.',results.length&&okCount===results.length?false:true);
+      refreshWebhookLog();
+    }catch(e){
+      if(typeof toast==='function') toast('Test failed: '+(e&&e.message?e.message:e),true);
+    }finally{ testBtn.disabled=false; }
+  };
+  const logBtn=card.querySelector('[data-webhook-log-refresh]');
+  if(logBtn) logBtn.onclick=()=>refreshWebhookLog();
+  refreshWebhookLog();
+}
+
 function renderRepairWarningsCard(){
   try{
     if(window.H38FailureChains&&typeof window.H38FailureChains.ownerCard==='function')
@@ -24350,6 +24610,7 @@ function renderOwnerControls(){
       ${setupDetails(renderMachineShopCard(),'Machine Shop')}
       ${setupDetails(renderCustomerPortalCard(),'Customer portal')}
       ${setupDetails(renderOnlinePaymentsCard(),'Online payments (Stripe)')}
+      ${setupDetails(renderOutgoingWebhooksCard(),'Outgoing webhooks')}
       ${renderRepairWarningsCard()}
       ${toggleSections}
       ${moduleSection}
@@ -24367,6 +24628,7 @@ function bindOwnerControls(){
   bindMachineShop();
   bindCustomerPortal();
   bindOnlinePayments();
+  bindOutgoingWebhooks();
   try{if(window.H38FailureChains&&typeof window.H38FailureChains.bindOwnerCard==='function')window.H38FailureChains.bindOwnerCard();}catch(e){}
   document.querySelectorAll('[data-toggle]').forEach(checkbox=>{
     checkbox.onchange=async()=>{
@@ -24589,6 +24851,8 @@ window.H38OwnerControls={
   setMachineShop:setMachineShop,
   isCustomerPortalEnabled:isCustomerPortalEnabled,
   setCustomerPortal:setCustomerPortal,
+  outgoingWebhooksConfig:outgoingWebhooksConfig,
+  saveOutgoingWebhooks:saveOutgoingWebhooks,
   isOnlinePaymentsEnabled:isOnlinePaymentsEnabled,
   isOnlinePaymentsReady:isOnlinePaymentsReady,
   setOnlinePaymentsEnabled:setOnlinePaymentsEnabled,
