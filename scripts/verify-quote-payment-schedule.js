@@ -45,7 +45,7 @@ check(editor.includes('locked to the signed version'), 'signed quotes must show 
 // Wiring: loader pins + version stamp.
 check(loader.includes("'./quote-payment-schedule.js?build=20261107-polish-a1-quote-1'"), 'loader must load the schedule editor in the Quotes group');
 check(loader.includes("'./quote-signed-acceptance.js?build=20261107-gap2-payschedule-1'"), 'loader pin for the signed-acceptance panel must be bumped');
-check(version.includes('"version": "20261107-polish-a4-settings-1"'), 'version.json stamp must be bumped');
+check(version.includes('"version": "20261107-polish-a4-money-1"'), 'version.json stamp must be bumped');
 // Portal display.
 check(portal.includes('signSchedule'), 'portal sign panel must list the payment schedule');
 check(portal.includes('Payment schedule'), 'portal quote card must show the payment schedule');
