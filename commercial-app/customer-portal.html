@@ -65,9 +65,12 @@ button.block{width:100%}
 .slots{display:flex;flex-wrap:wrap;gap:8px}
 .slots button{background:#eef4f8;color:#12303f;border:1px solid #c3d3de;border-radius:999px;padding:10px 14px;font-weight:700;min-height:44px}
 .slots button.sel{background:#0b6aa2;color:#fff;border-color:#0b6aa2}
+.preview-banner{position:sticky;top:0;z-index:50;background:#8a5b00;color:#fff;padding:12px 16px;text-align:center;font-size:15px;font-weight:700;line-height:1.45;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.preview-banner span{display:block;font-weight:500;font-size:13px;opacity:.92}
 </style>
 </head>
 <body>
+<div class="preview-banner" id="previewBanner" hidden>Preview — this is what <span style="display:inline;font-size:15px;font-weight:700;opacity:1" id="previewCustomerName">this customer</span> sees.<span>Nothing here can be sent or changed.</span></div>
 <div class="hero"><h1 id="bizName">Customer Portal</h1><p id="bizSub">Quotes, invoices, and service requests in one place.</p></div>
 <div class="wrap">
 
@@ -200,6 +203,19 @@ var coBrandEl=document.getElementById('h38CoBrand');if(coBrandEl&&businessId!==D
 var magicToken=params.get('token')||'';
 var sessionToken=sessionStorage.getItem('h38-portal-session')||'';
 var bundle=null;
+// ---- View as Customer preview (gap10) ----
+// ?preview=1&business=<id>&customer=<record key>, opened by the owner from
+// the Office. Preview carries NO customer session: no magic token is
+// minted or consumed and no session token exists. The owner's own Office
+// sign-in (same origin) authorizes a preview-session call to the SAME
+// portal edge function, which returns the SAME bundle a real session for
+// this customer returns. Every action attempted in preview is sent to
+// the server flagged preview:true and the server refuses it (403) —
+// read-only is enforced server-side, not by hiding buttons: the page
+// renders exactly what the customer sees, buttons included.
+var previewMode=params.get('preview')==='1';
+var previewCustomerId=params.get('customer')||'';
+if(previewMode){sessionToken='';try{sessionStorage.removeItem('h38-portal-session');}catch(e){}}
 
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -209,8 +225,41 @@ function showLogin(){$('loginCard').hidden=false;$('loginSentCard').hidden=true;
 function api(action,body,method){
   var opts={method:method||'POST',headers:{'Content-Type':'application/json'}};
   if(method==='GET'){return fetch(FN_URL+'?action='+encodeURIComponent(action)+'&token='+encodeURIComponent(magicToken||''),{headers:{}}).then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});});}
-  body=body||{};body.action=action;opts.body=JSON.stringify(body);
+  body=body||{};body.action=action;
+  if(previewMode){body.preview=true;body.session_token='';delete body.sessionToken;}
+  opts.body=JSON.stringify(body);
   return fetch(FN_URL,opts).then(function(r){return r.json().then(function(o){return{ok:r.ok,status:r.status,o:o};});});
+}
+function ownerAccessToken(){
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(!k||k.indexOf('sb-')!==0||k.indexOf('-auth-token')<0)continue;
+      var raw=localStorage.getItem(k);if(!raw)continue;
+      var parsed=JSON.parse(raw);
+      var tok=(parsed&&(parsed.access_token||(parsed.currentSession&&parsed.currentSession.access_token)))||'';
+      if(tok)return tok;
+    }
+  }catch(e){}
+  return '';
+}
+function loadPreview(){
+  $('loginCard').hidden=true;$('loginSentCard').hidden=true;$('loadingCard').hidden=false;$('previewBanner').hidden=false;
+  var tok=ownerAccessToken();
+  if(!tok){showRedeemError('Preview needs your Office sign-in. Sign in to the Office first, then open View as Customer again.');return;}
+  if(!previewCustomerId){showRedeemError('No customer was chosen for this preview.');return;}
+  fetch(FN_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({action:'preview-session',business_id:businessId,customer_id:previewCustomerId})})
+    .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
+    .then(function(r){
+      if(r.ok&&r.o&&r.o.customer){
+        bundle=r.o;window.__h38PortalBundle=r.o;window.__h38PortalPreview=true;window.__h38OnlinePayments=!!(r.o.payments&&r.o.payments.onlineEnabled);window.__h38Booking=(r.o.booking||null);
+        if(r.o.previewCustomer&&r.o.previewCustomer.name)$('previewCustomerName').textContent=r.o.previewCustomer.name;
+        $('previewBanner').hidden=false;
+        renderPortal();
+      }
+      else{showRedeemError((r.o&&r.o.error)||'This preview could not be opened.');}
+    })
+    .catch(function(){showRedeemError('Could not reach the portal. Please try again.');});
 }
 
 // ---- Boot: check tenant gate, then redeem token or resume session ----
@@ -218,7 +267,8 @@ fetch(FN_URL+'?action=status&business_id='+encodeURIComponent(businessId))
   .then(function(r){return r.json().then(function(o){return{ok:r.ok,o:o};});})
   .then(function(r){
     if(!(r.ok&&r.o&&r.o.portalEnabled===true)){showLogin();$('loginCard').hidden=true;$('loginOffCard').hidden=false;return;}
-    if(magicToken){redeem();}
+    if(previewMode){loadPreview();}
+    else if(magicToken){redeem();}
     else if(sessionToken){loadSession(sessionToken);}
     else{showLogin();}
   })
