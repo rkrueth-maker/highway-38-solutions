@@ -1,0 +1,26 @@
+/* H38 Queue Board (gap9) — view switch + board, scoped to .h38-qb-*.
+ * The board is a view option inside the existing Jobs/Quotes pages:
+ * columns on wide screens, one stacked column on phones so every queue
+ * stays reachable by scroll and every card stays a full-width tap
+ * target. No global selectors are touched. */
+.h38-qb-switch { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+.h38-qb-switch-btn { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(127, 140, 160, .45); background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
+.h38-qb-switch-btn.on { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+.h38-qb-board-head h2 { margin: 0 0 4px; }
+.h38-qb-board-head p { margin: 0 0 14px; }
+.h38-qb-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.h38-qb-col { border: 1px solid rgba(127, 140, 160, .35); border-radius: 14px; padding: 10px; background: rgba(127, 140, 160, .06); }
+.h38-qb-col-head h3 { margin: 0 0 2px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.h38-qb-col-head p { margin: 0 0 10px; font-size: .8rem; opacity: .75; }
+.h38-qb-count { display: inline-flex; min-width: 26px; height: 26px; padding: 0 7px; align-items: center; justify-content: center; border-radius: 999px; background: #1f6feb; color: #fff; font-size: .85rem; font-weight: 700; }
+.h38-qb-cards { display: flex; flex-direction: column; gap: 8px; }
+.h38-qb-card { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(127, 140, 160, .4); background: Canvas; color: inherit; font: inherit; cursor: pointer; min-height: 48px; }
+.h38-qb-card:hover, .h38-qb-card:focus-visible { border-color: #1f6feb; outline: 2px solid rgba(31, 111, 235, .35); }
+.h38-qb-card-title { font-weight: 700; line-height: 1.25; }
+.h38-qb-card-cust { font-size: .9rem; }
+.h38-qb-card-meta { font-size: .8rem; opacity: .75; }
+.h38-qb-card-amt { font-weight: 700; margin-top: 2px; }
+.h38-qb-empty { margin: 4px 2px; font-size: .85rem; opacity: .7; }
+.h38-qb-more { margin: 2px; font-size: .8rem; opacity: .75; }
+@media (max-width: 1100px) { .h38-qb-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .h38-qb-cols { grid-template-columns: minmax(0, 1fr); } .h38-qb-switch-btn { flex: 1 1 0; } }
