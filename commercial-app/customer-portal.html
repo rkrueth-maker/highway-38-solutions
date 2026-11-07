@@ -412,8 +412,8 @@ function renderPortal(){
 
   // Action list
   var acts=[];
-  openQuotes.forEach(function(q){acts.push({t:'Review quote: '+q.title+' ('+money(q.total)+')',view:'view-quotes'});});
-  (bundle.changeOrders||[]).filter(function(co){return /sent|awaiting|presented/i.test(co.status)&&!/approved/i.test(co.status);}).forEach(function(co){acts.push({t:'Sign change order: '+co.title+' ('+money(co.amount)+')',view:'view-quotes'});});
+  openQuotes.forEach(function(q){acts.push({t:'Review quote: '+(q.title||('Quote '+(q.number||'')))+' ('+money(q.total)+')',view:'view-quotes'});});
+  (bundle.changeOrders||[]).filter(function(co){return /sent|awaiting|presented/i.test(co.status)&&!/approved/i.test(co.status);}).forEach(function(co){acts.push({t:'Sign change order: '+(co.title||'Change order')+' ('+money(co.amount)+')',view:'view-quotes'});});
   openInvoices.forEach(function(i){acts.push({t:'Pay invoice '+(i.number||'')+' — '+money(i.balance)+' due',view:'view-invoices'});});
   $('actionList').innerHTML=acts.length?acts.map(function(a){
     return '<div class="item"><div class="top"><strong>'+esc(a.t)+'</strong><button class="secondary" data-goto="'+a.view+'">Open</button></div></div>';
