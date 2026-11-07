@@ -67,7 +67,7 @@
     ];
     const PAGE_QUOTES = [
       './app-07.js?build=20261030-two-layer-6',
-      './app-06.js?build=20261107-gap6-connections-1',
+      './app-06.js?build=20261107-polish-a1-quote-1',
       './app-20.js?build=20261031-kitquote-4',
       './quick-start.js?build=20261013-rescan-fixes-1',
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
@@ -96,7 +96,7 @@
       './price-history.js?build=20261004-price-history-1',
       './trade-packages.js?build=20261005-trade-1',
       './quote-signed-acceptance.js?build=20261107-gap2-payschedule-1',
-      './quote-payment-schedule.js?build=20261107-gap2-payschedule-1',
+      './quote-payment-schedule.js?build=20261107-polish-a1-quote-1',
     ];
     const PAGE_CUSTOMERS = [
       './customer-import-intelligence.js?build=20261107-gap1-switch-import-1',

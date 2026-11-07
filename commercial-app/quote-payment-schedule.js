@@ -30,7 +30,7 @@
 'use strict';
 if (typeof window === 'undefined') return;
 
-var BUILD = '20261107-gap2-payschedule-1';
+var BUILD = '20261107-polish-a1-quote-1';
 var w = window;
 
 /* ---------- helpers (same fallbacks as quote-signed-acceptance) ---------- */
@@ -218,7 +218,7 @@ function cardHtml(quote) {
     sumLine = '<div class="h38-qps-meta">Adds up: ' + money(res.sum) + ' of ' + money(total) + ' ✓ — the on-acceptance payment becomes the deposit invoice; the rest become scheduled invoices when the customer signs.</div>';
   } else {
     sumLine = '<div class="h38-qps-meta">Scheduled ' + money(res.sum) + ' of ' + money(total) + ' — <strong>' +
-      (res.remainder > 0 ? money(res.remainder) + ' left to schedule' : money(-res.remainder) + ' over the total') + '</strong>.</div>' +
+      (res.remainder > 0 ? money(res.remainder) + ' left to schedule' : money(-res.remainder) + ' over the total') + '</strong> Adjust the payments above until they add up to the quote total \u2014 Save stays off until they do.</div>' +
       (res.problems.length ? '<div class="h38-qps-meta">' + res.problems.map(esc).join(' ') + '</div>' : '');
   }
   return head + rows +
@@ -242,6 +242,8 @@ function ensureStyle() {
     '.h38-qps-row input[type=number]{flex:0 1 90px}',
     '.h38-qps-row select{flex:1 1 130px}',
     '.h38-qps-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}',
+    '.h38-qps-row input,.h38-qps-row select,.h38-qps-row button{min-height:44px}',
+    '.h38-qps-actions button{min-height:44px}',
   ].join('\n');
   var el = document.createElement('style');
   el.setAttribute('data-h38-quote-payment-schedule', '1');
