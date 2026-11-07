@@ -73,7 +73,7 @@ check('loader pins shim at gap8', loader.includes('./today-command-setup.js?buil
 check('index pins owner-home.js at gap8', index.includes('./owner-home.js?build=' + STAMP));
 check('index pins owner-home.css at gap8', index.includes('./owner-home.css?build=' + STAMP));
 check('index pins today-command-setup.css at gap8', index.includes('./today-command-setup.css?build=' + STAMP));
-check('version.json at gap8', version.includes('"version": "20261107-polish-a1-quote-1"'));
+check('version.json at gap8', version.includes('"version": "20261107-polish-a1-import-1"'));
 check('css has front door styles', ownerCss.includes('.h38-front-ask') && ownerCss.includes('.h38-kpi-strip') && ownerCss.includes('.h38-setup-step'));
 
 console.log(JSON.stringify({ status: failures.length ? 'FAIL' : 'PASS', failed: failures.length, failures }, null, 2));

@@ -99,7 +99,7 @@
       './quote-payment-schedule.js?build=20261107-polish-a1-quote-1',
     ];
     const PAGE_CUSTOMERS = [
-      './customer-import-intelligence.js?build=20261107-gap1-switch-import-1',
+      './customer-import-intelligence.js?build=20261107-polish-a1-import-1',
       './smart-upload.js?build=20260920-final-real-office-1',
       './smart-upload-ai.js?build=20261011-smart-upload-ai-1',
       './customer-360-authority.js?build=20261101-wave3-1',
