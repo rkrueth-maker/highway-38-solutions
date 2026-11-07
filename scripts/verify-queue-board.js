@@ -12,7 +12,7 @@ const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const failures = [];
 const check = (name, cond) => { if (!cond) failures.push(name); };
 
-const STAMP = '20261107-gap9-queueboard-1';
+const STAMP = '20261107-gap9-queueboard-2';
 const js = read('commercial-app/queue-board.js');
 const css = read('commercial-app/queue-board.css');
 const index = read('commercial-app/index.html');
@@ -42,6 +42,8 @@ check('board declares readOnly + drag disabled', js.includes('readOnly: true') &
 check('reads through records() only', js.includes("window.records") && js.includes('function rows(name)') && js.includes('rows(q.collection)'));
 check('hooks the shared page-rendered event', js.includes('h38:office-page-rendered'));
 check('re-renders on snapshot update while open', js.includes('h38:business-snapshot-updated'));
+check('restores the open board after foreign repaints', js.includes('restoreIfNeeded') && js.includes('h38:sync-pass-complete') && js.includes('setInterval(restoreIfNeeded, 2500)'));
+check('board escapes the workbench page grid while open', js.includes('WB_GRID_CLASSES') && js.includes("'h38-wb-grid-work'") && js.includes('classList.remove'));
 
 /* Placement: a view switch on the existing work/quotes pages only */
 check('host pages are work + quotes', js.includes("HOST_PAGES = { work: 1, quotes: 1 }"));
@@ -56,7 +58,8 @@ check('card shows customer, title, meta, amount', js.includes('h38-qb-card-cust'
 
 /* Phone: queues stack to one column */
 check('css stacks queues on small screens', css.includes('@media (max-width: 640px)') && css.includes('grid-template-columns: minmax(0, 1fr)'));
-check('css is scoped to h38-qb classes', !/^\s*(body|main|#mainContent|\.card)\b/m.test(css));
+check('css is scoped to h38-qb classes', !/^\s*(body|main|\.card)\b/m.test(css));
+check('board view class hides sibling panels while open', js.includes("classList.add('h38-qb-active')") && css.includes('#mainContent.h38-qb-active > :not(.h38-qb-switch):not(.h38-qb-board)'));
 
 /* Public handle for verification */
 check('exposes H38_QUEUE_BOARD with counts + queue defs', js.includes('window.H38_QUEUE_BOARD') && js.includes('counts: counts'));

@@ -3,6 +3,10 @@
  * columns on wide screens, one stacked column on phones so every queue
  * stays reachable by scroll and every card stays a full-width tap
  * target. No global selectors are touched. */
+/* While the board is open it is the page's view: sibling panels other
+ * modules insert into #mainContent are hidden (kept in the DOM,
+ * untouched) so the board always sits at the top, full width. */
+#mainContent.h38-qb-active > :not(.h38-qb-switch):not(.h38-qb-board) { display: none !important; }
 .h38-qb-switch { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
 .h38-qb-switch-btn { min-height: 40px; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(127, 140, 160, .45); background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
 .h38-qb-switch-btn.on { background: #1f6feb; border-color: #1f6feb; color: #fff; }
