@@ -11,7 +11,9 @@
  *   5. Bouncie: if connected, live vehicle positions overlay on the route map
  *
  * POSITIONING (do not contradict in UI):
- *   - Live phone tracking is "Coming soon" — never imply it works.
+ *   - Phone tracking SHIPPED (proven 2026-10-31): crew phones check in
+ *     and report positions from the Office app — heartbeat + movement
+ *     updates, not second-by-second live. Never call it "coming soon".
  *   - Routes, check-ins, and proof-of-service are the core offering.
  *   - Bouncie integration is the live vehicle path.
  *
@@ -101,7 +103,7 @@ function isOwner() {
 var FEATURE_DEF = {
   id: FEATURE_ID,
   title: 'Route management',
-  desc: 'Plow/service routes with ordered stops, crew check-ins, and proof of service. Live phone tracking is coming soon — Bouncie vehicles show live when connected.',
+  desc: 'Plow/service routes with ordered stops, crew check-ins, and proof of service. Crew phones check in and report positions from the Office app; Bouncie vehicles show live when connected.',
   icon: '🗺️',
   default: false,
   category: 'Fleet'
@@ -523,8 +525,8 @@ function renderCard(card) {
     (bouncie ? ' 🚚 Live Bouncie vehicles shown on maps.' : '') + '</p></div>';
 
   if (!bouncie) {
-    html += '<div class="h38-coming-soon-note">📍 <strong>Live phone tracking — coming soon.</strong> ' +
-      'Connect a tracking device like Bouncie for live vehicle positions today.</div>';
+    html += '<div class="h38-coming-soon-note">📍 <strong>Crew phones check in from the Office app.</strong> ' +
+      'Turn on Crew Location (Phone) in Owner Controls to see crew stops here. Connect Bouncie for live vehicle positions.</div>';
   }
 
   html += '<div class="h38-route-actions" style="margin-bottom:12px">' +
@@ -905,7 +907,7 @@ function renderRouteDetailBody(overlay, route) {
   if (bouncie) {
     html += '<p class="h38-route-note">🚚 Live Bouncie vehicle positions shown on the map.</p>';
   } else if (isOwner()) {
-    html += '<div class="h38-coming-soon-note">📍 <strong>Live phone tracking — coming soon.</strong> Connect Bouncie for live vehicle positions today.</div>';
+    html += '<div class="h38-coming-soon-note">📍 <strong>Crew phones check in from the Office app</strong> when Crew Location (Phone) is on in Owner Controls. Connect Bouncie for live vehicle positions.</div>';
   }
 
   html += '<div style="margin-top:8px">' + stops.map(function(s, i) {

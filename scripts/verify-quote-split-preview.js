@@ -51,7 +51,7 @@ check(pdfSend.includes('H38_QUOTE_DOCUMENT_BUILDER') && pdfSend.includes('builde
 check(printSafe.includes("#h38LiveCustomerQuote .quote-document"), 'print-safe source can print the live canonical document');
 check(loader.includes('supabase-client-quote-branding.js?build=20261107-gap7-splitbuilder-1'), 'loader pin bumped for the canonical builder');
 check(loader.includes('quote-pdf-send-live-fix.js?build=20261107-gap7-splitbuilder-1'), 'loader pin bumped for the PDF preview source');
-check(version.includes('"version": "20261107-polish-a1-pins-2"'), 'version.json stamp bumped to gap7');
+check(version.includes('"version": "20261107-polish-a4-fleet-1"'), 'version.json stamp bumped to gap7');
 
 if (failures) { console.error(`verify-quote-split-preview: ${failures} failure(s)`); process.exit(1); }
 console.log('verify-quote-split-preview PASS');
