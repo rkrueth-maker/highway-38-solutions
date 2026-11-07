@@ -133,7 +133,7 @@
     ];
     const PAGE_SCHEDULE = [
       './app-08.js?build=20261020-myhank-settings-1',
-      './week-grid.js?build=20261102-weekgrid-1',
+      './week-grid.js?build=20261107-gap5-onedrag-1',
       './business-hours.js?build=20261030-r2-business-hours-1',
       './guided-schedule.js?build=20261030-swivl-round2-1',
       './plow-flow.js?build=20261011-plow-flow-1',
@@ -171,7 +171,7 @@
     const PAGE_TODAY = [
       './kit-activity-feed.js?build=20261011-kit-feed-bold-numbers-1',
       './daily-digest.js?build=20261031-schedtruth-2',
-      './owner-controls.js?build=20261107-gap4-review-default-1',
+      './owner-controls.js?build=20261107-gap5-onedrag-1',
       './owner-notifications.js?build=20261013-owner-notify-4',
       './today-command-setup.js?build=20261030-r2-today-1',
       './mileage.js?build=20261031-trippath-1',
