@@ -64,7 +64,7 @@ body.h38-employee-mode #h38TimeClockCard{display:none!important}
  .card{box-shadow:0 4px 14px rgba(11,36,56,.055)!important}
  .row{overflow-wrap:anywhere}
  .row-actions{gap:6px}
- .row-actions button{min-height:40px}
+ .row-actions button{min-height:44px}
 }
 @media(max-width:360px){
  .topbar .brand strong{font-size:.84rem}
