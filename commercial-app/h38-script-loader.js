@@ -73,7 +73,7 @@
       './h38-first-quote-guide.js?build=20261010-first-quote-guide-1',
       './supabase-client-quote-branding.js?build=20261107-gap7-splitbuilder-1',
       './quote-ai-draft-persistence.js?build=20261031-kitquote-4',
-      './supabase-quote-ai.js?build=20261030-two-layer-1',
+      './supabase-quote-ai.js?build=20261109-photoquote-reliability-1',
       './supabase-quote-ai-auth-fix.js?build=20261031-kitquote-4',
       './estimator-shell.js?build=20261031-wave1ab-1',
       './quote-mobile-stabilization.js?build=20261031-wave1ab-1',
