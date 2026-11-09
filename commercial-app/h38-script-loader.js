@@ -303,6 +303,7 @@
       './inventory-checker.js?build=20261008-inventory-module-2',
       './app-11.js?build=20261020-ws4-pricebook-1',
       './inventory-module.js?build=20261020-ws4-pricebook-1',
+      './price-refresh.js?build=20261109-price-refresh-1',
       './order-inventory.js?build=20261011-phase2-1',
     ];
 
