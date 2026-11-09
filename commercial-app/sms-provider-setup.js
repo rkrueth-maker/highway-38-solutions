@@ -1,4 +1,4 @@
-// H38 SMS provider setup — BUILD 20261004-sms-providers-1
+// H38 SMS provider setup — BUILD 20261109-10dlc-1
 //
 // Provider picker + active-sender selection for Office texting.
 // Ricky's decisions (2026-10-04):
@@ -34,7 +34,7 @@
 // ---------------------------------------------------------------------------
 (function(){
 'use strict';
-var BUILD='20261004-sms-providers-1';
+var BUILD='20261109-10dlc-1';
 
 var SENDER_PHONE='phone-bridge';
 var MODULE_KEY='sms_sender';
@@ -227,6 +227,7 @@ function setupCard(){
         : 'Customer texts go out through '+esc(activeSenderLabel())+'.')
       +'</p>'
       +'<div class="list">'+phoneCard+providerCards+'</div>'
+      +((window.H38SmsRegistration&&window.H38SmsRegistration.registrationCard)?window.H38SmsRegistration.registrationCard():'')
       +'</section>';
   }catch(e){ return ''; }
 }
@@ -259,6 +260,9 @@ function bindSetupUI(){
         });
       };
     });
+    if(window.H38SmsRegistration&&window.H38SmsRegistration.bindRegistrationUI){
+      window.H38SmsRegistration.bindRegistrationUI();
+    }
   }catch(e){}
 }
 

@@ -51,7 +51,7 @@ The server rechecks all of the following immediately before one selected SMS is 
 - Monthly segment and cost limits
 - Provider credentials present in Script Properties
 - Approved sending number present
-- Business texting registration approved
+- Business texting registration approved — the per-business 10DLC state, not just the fleet flag. Since build `20261109-10dlc-1`, registration is filed by **our own** automation (Rick's decision: "our own" — Dial was not bought): the Office collects a registration packet, a rules-based pre-check names every gap before anything is filed, and the `h38-sms-registration` edge function files the brand + campaign inside the **customer's own** Telnyx account with the customer's own stored API key. State lives in `business_records` (`smsRegistration`: `not_started | precheck_failed | filed | in_review | approved | rejected` + carrier reason verbatim) and is polled every 30 minutes until it resolves. `h38-send-sms` refuses a business's sends until ITS state is `approved`, in addition to every check in this list; the default for every business is NOT approved. `H38_SMS_A2P_APPROVED=TRUE` remains the fleet operator override for sends H38 itself performs.
 - Package external-action release enabled
 - Script Property release enabled
 
