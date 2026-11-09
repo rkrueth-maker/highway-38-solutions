@@ -64,7 +64,7 @@ function reviewCard(){
   if(!isOwner()) return '';
   var rows=reviewRows();
   var pending=rows.filter(function(r){ return text(v(r,'Status'))==='pending'; });
-  var decided=rows.filter(function(r){ return text(v(r,'Status'))&&text(v(r,'Status'))!=='pending'; })
+  var decided=rows.filter(function(r){ var st=text(v(r,'Status')); return st==='approved'||st==='confirmed_current'||st==='dismissed'; })
     .sort(function(a,b){ return text(v(b,'Decided At')).localeCompare(text(v(a,'Decided At'))); }).slice(0,5);
   var html='<section class="card span12" id="h38PriceRefreshCard"><h2>🔄 Price refresh — monthly check</h2>'
     +'<p class="muted small">Once a month Hank re-reads the prices on the source pages your researched prices came from. '
