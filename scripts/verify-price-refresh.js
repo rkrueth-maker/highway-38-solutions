@@ -124,10 +124,11 @@ const REVIEW_LABOR={
   ok('inventory render includes the review card', app11.indexOf('H38PriceRefresh.reviewCard')>=0);
   const data=read(path.join(APP,'supabase-data.js'));
   ok('snapshot id keys know priceRefreshReviews', data.indexOf("priceRefreshReviews:['Review ID','reviewId']")>=0);
+  ok('snapshot fetches priceRefreshReviews explicitly (cap-proof)', data.indexOf("fetchCollectionRows(db, businessId, 'priceRefreshReviews')")>=0);
   const ver=JSON.parse(read(path.join(APP,'version.json')));
-  ok('version.json advanced', ver.version==='20261109-price-refresh-1', ver.version);
+  ok('version.json advanced', ver.version==='20261109-price-refresh-2', ver.version);
   const sw=read(path.join(APP,'service-worker.js'));
-  ok('service worker cache advanced', sw.indexOf('h38-business-office-20261109-pricerefresh-1')>=0);
+  ok('service worker cache advanced', sw.indexOf('h38-business-office-20261109-pricerefresh-2')>=0);
 })();
 
 console.log(`verify-price-refresh: ${pass} passed, ${fail} failed`);
