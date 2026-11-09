@@ -40,7 +40,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261109-gap10-pickerfix-1';
+  var BUILD = '20261109-10dlc-1';
   var HOST_PAGES = { customers: 1, controls: 1, settings: 1 };
 
   /* The user's explicit picker choice, remembered across bar
