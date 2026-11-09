@@ -141,3 +141,16 @@ verify_jwt = false
 
 [functions.business-drive-connect]
 verify_jwt = false
+
+# SMS 10DLC registration automation (own rails, 20261109-10dlc-1). Files and
+# polls 10DLC brand/campaign registrations with each customer's OWN Telnyx
+# API key, inside the customer's own carrier account; writes per-business
+# registration state (business_records 'smsRegistration') that the
+# h38-send-sms gate consults. Self-authenticating: callers present the
+# x-h38-nightly-key header matching the 'h38-sms-registration' row in
+# h38_internal_job_secrets (Kit handoff worker / pg_cron poller), or a
+# signed-in owner/administrator JWT for the target business. verify_jwt
+# stays false for the key-gated callers — same pattern as
+# h38-review-scheduler / kit-proactive-engine.
+[functions.h38-sms-registration]
+verify_jwt = false

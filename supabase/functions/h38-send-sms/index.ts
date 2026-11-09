@@ -356,6 +356,45 @@ Deno.serve(async (req) => {
     if (!ownerApproved || !approvedBy) {
       return new Response(JSON.stringify({ error: "Owner approval is required before any SMS is sent." }), { status: 403, headers });
     }
+    // Per-business 10DLC registration gate (20261109-10dlc-1): IN ADDITION to
+    // the global release flags and the full send-check list, the destination
+    // business's own texting registration (business_records 'smsRegistration',
+    // written only by h38-sms-registration) must be 'approved'. Default is
+    // NOT approved — no row, no sends. H38_SMS_A2P_APPROVED=TRUE is the
+    // fleet operator's explicit override for sends H38 itself performs
+    // outside a tenant registration (it never weakens any other check).
+    {
+      const a2pOverride = (Deno.env.get("H38_SMS_A2P_APPROVED") || "").toUpperCase() === "TRUE";
+      if (!a2pOverride) {
+        if (!businessId) {
+          return new Response(JSON.stringify({ error: "A business is required — its texting registration must be approved before any SMS is sent." }), { status: 403, headers });
+        }
+        let regStatus = "";
+        try {
+          const sbGate = createClient(SUPABASE_URL, SERVICE_KEY);
+          const reg = await sbGate.from("business_records")
+            .select("payload")
+            .eq("business_id", businessId)
+            .eq("collection", "smsRegistration")
+            .eq("record_status", "active")
+            .limit(5);
+          for (const row of reg.data || []) {
+            const st = String((row.payload as Record<string, unknown>)?.["Registration Status"] || "");
+            if (st === "approved") { regStatus = "approved"; break; }
+            regStatus = regStatus || st;
+          }
+        } catch {
+          regStatus = ""; // lookup failure fails closed: not approved
+        }
+        if (regStatus !== "approved") {
+          return new Response(JSON.stringify({
+            error: "This business's texting registration is not approved yet" +
+              (regStatus ? ` (status: ${regStatus})` : "") +
+              ". Registration runs in the Office under Texting provider → Texting registration (10DLC).",
+          }), { status: 403, headers });
+        }
+      }
+    }
     if (!to) return new Response(JSON.stringify({ error: "A valid US 'to' number is required." }), { status: 400, headers });
     if (!text) return new Response(JSON.stringify({ error: "Message body is required." }), { status: 400, headers });
     if (segmentCount(text) > MAX_SEGMENTS) {
