@@ -16,6 +16,13 @@
  *   snapshot via records('customers') — 0 added server requests, 0
  *   startup work (deferred script; decorates only the Customers and
  *   Owner Controls pages, on page-render events).
+ * - The picker's own selection is AUTHORITATIVE: once the user picks a
+ *   customer, that pick is kept in module state and wins over the
+ *   Customer 360 selection, which is only the initial default. The app
+ *   re-renders #mainContent on snapshot/sync cycles, destroying and
+ *   re-creating this bar; the re-created bar restores the remembered
+ *   pick instead of resetting to Customer 360 state (picker reset bug
+ *   confirmed live 2026-11-09, fixed in build 20261109-gap10-pickerfix-1).
  *
  * Module intake (MODULE_PERFORMANCE_STANDARD): route: none — an entry
  * decoration on the existing 'customers' and 'controls' pages plus a
@@ -33,8 +40,13 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261107-gap10-portalpreview-1';
+  var BUILD = '20261109-gap10-pickerfix-1';
   var HOST_PAGES = { customers: 1, controls: 1, settings: 1 };
+
+  /* The user's explicit picker choice, remembered across bar
+   * re-creations. Empty until the user picks someone; Customer 360's
+   * selected customer is only the default before that. */
+  var pickerChoice = '';
 
   function st() { try { return window.state || null; } catch (e) { return null; } }
   function text(x) { return String(x == null ? '' : x).trim(); }
@@ -73,6 +85,15 @@
     } catch (e) {}
     return '';
   }
+  /* What a (re-)built bar shows as selected: the user's remembered
+   * pick when that customer is still in the list, otherwise the
+   * Customer 360 selection as the initial default. */
+  function effectiveSelection(list) {
+    if (pickerChoice) {
+      for (var i = 0; i < list.length; i++) if (list[i].id === pickerChoice) return pickerChoice;
+    }
+    return selectedCustomerId();
+  }
   function portalEnabled() {
     try {
       var list = (st() && st().snapshot && st().snapshot.moduleSettings) || [];
@@ -101,7 +122,7 @@
 
   function barHtml(idSuffix) {
     var list = customers();
-    var sel = selectedCustomerId();
+    var sel = effectiveSelection(list);
     var on = portalEnabled();
     var options = list.map(function (c) {
       return '<option value="' + esc(c.id) + '"' + (c.id === sel ? ' selected' : '') + '>' + esc(c.name) + '</option>';
@@ -121,7 +142,16 @@
     node.dataset.h38PpBound = '1';
     var btn = node.querySelector('[data-pp-open]');
     var selEl = node.querySelector('[data-pp-select]');
-    if (btn) btn.addEventListener('click', function () { openPreview(selEl ? selEl.value : selectedCustomerId()); });
+    /* Every pick is remembered in module state the moment it is made,
+     * so a re-render that re-creates the bar restores THIS choice —
+     * never the Customer 360 selection — and Open reads the picker's
+     * live value first. */
+    if (selEl) selEl.addEventListener('change', function () { pickerChoice = selEl.value; });
+    if (btn) btn.addEventListener('click', function () {
+      var id = selEl ? selEl.value : '';
+      if (id) pickerChoice = id;
+      openPreview(id || pickerChoice || selectedCustomerId());
+    });
   }
   function wrap(html, suffix) {
     var tmp = document.createElement('div');
