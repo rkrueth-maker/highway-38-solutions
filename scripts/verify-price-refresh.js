@@ -84,6 +84,11 @@ const REVIEW_LABOR={
   const card=ctx2.H38PriceRefresh.reviewCard();
   ok('decided review shows in Recently decided', /Recently decided/.test(card) && /price set to \$13\.33/.test(card));
   ok('no pending -> card says so', /No price reviews waiting/.test(card));
+  const ctx3=makeSandbox(); load('price-refresh.js',ctx3);
+  ctx3._rows={priceRefreshReviews:[Object.assign({},REVIEW_PENDING,{'Review ID':'PRICE-REVIEW-CCCCCCCC-20261109','Status':'no_price_found','Item Code':'DW-NOPRICE','Decided At':''})]};
+  const card3=ctx3.H38PriceRefresh.reviewCard();
+  ok('no_price_found rows are NOT listed as decided', card3.indexOf('DW-NOPRICE')<0);
+  ok('failed lookup leaves no pending row either', /No price reviews waiting/.test(card3));
 })();
 
 // ---------- 4. Edge function source contract ----------
