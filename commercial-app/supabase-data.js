@@ -106,7 +106,8 @@
       businessProfile:['Business Profile ID','businessProfileId'],
       mileageDays:['Day ID','dayId'], mileageTrips:['Trip ID','tripId'], mileagePlaces:['Place ID','placeId'], mileageSettings:['Settings ID','settingsId'],
       FeatureToggles:['Business ID','businessId'],
-      notifications:['Notification ID','notificationId']
+      notifications:['Notification ID','notificationId'],
+      priceRefreshReviews:['Review ID','reviewId']
     };
     return map[collection] || ['id'];
   }
