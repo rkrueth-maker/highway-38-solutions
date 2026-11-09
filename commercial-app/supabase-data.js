@@ -170,7 +170,7 @@
   async function hydrateSnapshotRaw(baseSnapshot, businessId) {
     const snapshot = Object.assign({}, baseSnapshot || {});
     const db = client();
-    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules, approvalRecordRows, proofRecordRows, errorRecordRows, profileRows] = await Promise.all([
+    const [recentRows, jobRows, paymentRows, expenseRows, invoiceRows, payrollPeriodRows, payrollLineRows, timeEntryRows, employeeRows, quoteRows, taskRows, scheduleEventRows, bookingRequestRows, requestRows, propertyRows, notificationRows, stampRows, positionRows, positionHistoryRows, mileageDayRows, mileageTripRows, mileagePlaceRows, mileageSettingRows, memberships, priceRows, approvals, proofRows, errorRows, modules, approvalRecordRows, proofRecordRows, errorRecordRows, profileRows, priceReviewRows] = await Promise.all([
       optionalQuery(db.from('business_records').select('collection,record_key,payload,updated_at').eq('business_id', businessId).eq('record_status','active').order('updated_at',{ascending:false}).range(0,MAX_RECORDS-1), []),
       // PostgREST can cap the broad response before older, still-active jobs are reached.
       // Fetch this bounded operational collection explicitly so Work and training see the same tenant jobs.
@@ -270,14 +270,19 @@
       // Fetch it explicitly, paged, like every other crowd-out-prone
       // collection above, so the stored address hydrates for every
       // consumer (checks, Settings, setup checklist, data export).
-      fetchCollectionRows(db, businessId, 'businessProfile')
+      fetchCollectionRows(db, businessId, 'businessProfile'),
+      // Price freshness reviews (h38-price-refresh): low volume, owner-
+      // facing, and the Inventory review card reads them from this
+      // snapshot — explicit paged fetch so the broad query's cap can
+      // never crowd a pending review out on a churn-heavy tenant.
+      fetchCollectionRows(db, businessId, 'priceRefreshReviews')
     ]);
 
     // A row can arrive twice (broad query + an explicit collection fetch).
     // business_records identity is (collection, record_key): merge each once
     // so overlapping fetches never double-count a payment or expense.
     const mergedRecordKeys = new Set();
-    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows,...approvalRecordRows,...proofRecordRows,...errorRecordRows,...profileRows].forEach(row => {
+    [...recentRows,...jobRows,...paymentRows,...expenseRows,...invoiceRows,...payrollPeriodRows,...payrollLineRows,...timeEntryRows,...employeeRows,...quoteRows,...taskRows,...scheduleEventRows,...bookingRequestRows,...requestRows,...propertyRows,...notificationRows,...stampRows,...positionRows,...positionHistoryRows,...mileageDayRows,...mileageTripRows,...mileagePlaceRows,...mileageSettingRows,...approvalRecordRows,...proofRecordRows,...errorRecordRows,...profileRows,...priceReviewRows].forEach(row => {
       const collection = row.collection;
       const recordKey = text(row.record_key);
       if (recordKey) {
