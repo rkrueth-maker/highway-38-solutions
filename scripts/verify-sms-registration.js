@@ -130,7 +130,7 @@ function afterClient(){
     loader.indexOf('sms-registration.js?build=20261109-10dlc-1')>loader.indexOf('sms-provider-setup.js'));
   const sw=read(path.join(APP,'service-worker.js'));
   ok('service worker caches sms-registration.js', sw.indexOf("'./sms-registration.js'")>=0);
-  ok('service worker cache advanced', sw.indexOf("CACHE_NAME='h38-business-office-20261109-10dlc-1'")>=0);
+  ok('service worker cache advanced', sw.indexOf("CACHE_NAME='h38-business-office-20261109-sms10dlc-1'")>=0);
   const ver=read(path.join(APP,'version.json'));
   ok('version.json at 10dlc stamp', /"version":\s*"20261109-10dlc-1"/.test(ver));
   const ctx=makeSandbox(); load('sms-registration.js',ctx);
