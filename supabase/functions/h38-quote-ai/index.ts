@@ -29,8 +29,8 @@ const MAX_MEASUREMENTS = 80;
 const LOCAL_RESEARCH_REFRESH_DAYS = 30;
 const QUOTE_MODEL_TIMEOUT_MS = 120000;
 const QUOTE_MODEL_MAX_ATTEMPTS = 2;
-const QUOTE_AI_BUILD = "20261031-sell-price-rate-24";
-const PREVIOUS_QUOTE_AI_BUILD = "20260822-owner-bounded-draft-21";
+const QUOTE_AI_BUILD = "20261109-quote-reliability-25";
+const PREVIOUS_QUOTE_AI_BUILD = "20261031-sell-price-rate-24";
 const CONCEPT_LABEL = "AI Concept Rendering — Proposed Appearance Only. Not a construction guarantee or completion photograph.";
 const PRIMARY_COMPONENT_IDS = {
   insulationR24Ceiling: "f752fe19-ffe4-4981-864e-a7c0b69660c4",
@@ -504,6 +504,23 @@ function validateCatalogPricing(draft: JsonObject, prices: JsonObject[]) {
       matchMode = "deterministic_component_recovery";
     }
 
+    // General catalog recovery (2026-11-09): a line that would otherwise be
+    // rejected to $0 manual_required gets ONE deterministic rescue — an exact
+    // (normalized) description match against a priced catalog row that passes
+    // the SAME catalogSafety gate with the description check satisfied. Only
+    // an unambiguous single candidate is adopted; zero or multiple candidates
+    // leave the line manual. This branch can only fire for lines that
+    // currently end rejected/$0, so validated drafts are unchanged.
+    if ((!matched || !catalogSafety(line, matched, matchMode).valid) && number(line.quantity) > 0) {
+      const wanted = normalizeText(line.description);
+      const candidates = wanted ? catalog.filter((entry) => normalizeText(entry.description) === wanted && catalogSafety(line, entry, "deterministic_catalog_recovery").valid) : [];
+      const uniqueIds = new Set(candidates.map((entry) => clean(entry.catalogId, 160)));
+      if (candidates.length && uniqueIds.size === 1) {
+        matched = candidates[0];
+        matchMode = "deterministic_catalog_recovery";
+      }
+    }
+
     if (source !== "price_book" && source !== "local_research" && !requestedIdentity && !matched) return line;
 
     const safety = catalogSafety(line, matched, matchMode);
@@ -684,8 +701,32 @@ async function callQuoteModel(svc:any,businessId:string,context: JsonObject, pho
     if (!draft || typeof draft !== "object") throw new Error("invalid object");
     return draft as JsonObject;
   } catch (_) {
+    // Salvage (2026-11-09): models occasionally wrap the tool JSON in prose
+    // or a code fence. Extract the outermost JSON object and accept it only
+    // if it carries the draft shape; otherwise keep the original failure.
+    const start = structured.indexOf("{"), end = structured.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        const salvaged = JSON.parse(structured.slice(start, end + 1));
+        if (salvaged && typeof salvaged === "object" && Array.isArray((salvaged as JsonObject).suggestedLines)) return salvaged as JsonObject;
+      } catch (_) { /* fall through to the unreadable-draft failure */ }
+    }
     throw new Error("Muse Spark returned an unreadable quote draft.");
   }
+}
+function isRetryableModelFailure(error: unknown): boolean {
+  // Retry policy (2026-11-09): the designed $0 owner-review fallback was
+  // landing on ordinary requests because only timeouts retried. Transient
+  // provider failures — timeouts, unreadable/no structured drafts, provider
+  // 429/5xx — now retry within the SAME attempt cap (QUOTE_MODEL_MAX_ATTEMPTS
+  // = 2), so a successful first attempt is byte-identical to before and the
+  // reproducibility contract for completed drafts is unchanged.
+  if (isQuoteModelTimeout(error)) return true;
+  const message = error instanceof Error ? error.message : String(error);
+  if (/unreadable quote draft|no structured quote draft/i.test(message)) return true;
+  const status = message.match(/\((\d{3})\)\.?\s*$/);
+  if (status) { const code = Number(status[1]); return code === 429 || code >= 500; }
+  return /fetch failed|network|econnreset|socket/i.test(message);
 }
 function isQuoteModelTimeout(error: unknown): boolean {
   if (error instanceof DOMException) return error.name === "TimeoutError" || error.name === "AbortError";
@@ -699,7 +740,7 @@ async function callQuoteModelWithRetry(svc:any,businessId:string,context: JsonOb
       return await callQuoteModel(svc,businessId,context, photos);
     } catch (error) {
       lastError = error;
-      if (attempt < QUOTE_MODEL_MAX_ATTEMPTS && isQuoteModelTimeout(error)) {
+      if (attempt < QUOTE_MODEL_MAX_ATTEMPTS && isRetryableModelFailure(error)) {
         console.log(JSON.stringify({ event: "quote-ai-retry", attempt, maxAttempts: QUOTE_MODEL_MAX_ATTEMPTS, serverBuild: QUOTE_AI_BUILD }));
         await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
         continue;
