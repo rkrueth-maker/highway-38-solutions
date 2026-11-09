@@ -160,8 +160,17 @@ async function buildPricedQuoteCore(args,timeout){
   const patched=patchMissingPrices(first,researched);
   const unresolved=zeroPriceLines(patched);
   if(unresolved.length){
-    const names=unresolved.slice(0,6).map(({line})=>text(line?.description||'Unpriced line')).join('; ');
-    throw new Error(`H38 blocked a quote draft because current pricing could not be safely matched for: ${names}. No $0 or mismatched-unit lines were loaded.`);
+    // Reliability fix (2026-11-09): unpriced lines no longer destroy the
+    // whole draft. They stay in the staged draft as editable $0
+    // manual-required owner-review lines — the same shape the degraded
+    // fallback already produces — and are named in missingInformation so
+    // the owner prices them in review. Blank price-book entries stay
+    // blank; no price is ever invented here.
+    const names=unresolved.map(({line})=>text(line?.description||'Unpriced line'));
+    const draft=patched.draft&&typeof patched.draft==='object'?patched.draft:{};
+    const prior=Array.isArray(draft.missingInformation)?draft.missingInformation:[];
+    patched.draft={...draft,missingInformation:[...prior,...names.map(name=>`Price needed before sending: ${name}`)]};
+    patched.unresolvedZeroPriceLines=names;
   }
   patched.internetPriceRepairApplied=true;
   patched.internetPriceRepairCount=missing.length;
@@ -271,5 +280,5 @@ Bridge.prototype.request=async function(action,args,timeout){
   if(action==='aiRenderQuoteConcept')return quoteAi(args||{},timeout,'renderConcept');
   return previousRequest.call(this,action,args,timeout);
 };
-window.H38_SUPABASE_QUOTE_AI={enabled:true,aiDraftPersistenceOnBuild:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:true,nonPositiveQuantityBlocked:true,pricingMatchRequiresDescriptionAndUnit:true,preservesFirstPassQuantities:true,structuredMeasurementEvidence:true,linkedSiteVisitMeasurementHydration:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
+window.H38_SUPABASE_QUOTE_AI={enabled:true,aiDraftPersistenceOnBuild:true,endpoint:'h38-quote-ai',transport:'supabase-functions-invoke',authentication:'supabase-jwt',priceBookFirst:true,localResearchFallback:true,internetPriceRepair:true,zeroPriceBlocked:false,zeroPriceLinesHeldForOwnerReview:true,nonPositiveQuantityBlocked:true,pricingMatchRequiresDescriptionAndUnit:true,preservesFirstPassQuantities:true,structuredMeasurementEvidence:true,linkedSiteVisitMeasurementHydration:true,ownerMissingCostAudit:true,ownerMissingCostChoices:true,missingCostsNeverAutoAdded:true,renderConcept:true,separateRenderRequest:true,ownerReviewRequired:true,automaticApproval:false,automaticSending:false};
 })();
