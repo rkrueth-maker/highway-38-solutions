@@ -2,6 +2,11 @@
 //
 // Makes Kit ACTUALLY DO the work, not just wait to be asked.
 // Runs on schedule (cron), processes each active business:
+// On demand: Kit's Workspace suggestion buttons call this same function
+// with { mode: "draft_suggestions", businessId, quotes, invoices } and an
+// owner/admin JWT (or the internal job key) — it runs the SAME per-item
+// draft logic below for just the tapped items (cap 5 per kind), so the
+// buttons can never produce a draft the hourly path wouldn't.
 //
 // 1. Overdue quote follow-ups — quotes sent >7 days ago, no response
 //    → AI drafts a personalized follow-up, creates owner approval task
@@ -21,7 +26,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD = "20261012-proactive-proof-fix-1";
+const BUILD = "20261109-kit-suggestions-1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -400,13 +405,25 @@ async function getCustomerName(
   supabase: any,
   customerId: string,
 ): Promise<string> {
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("display_name, first_name")
+  // The customer directory lives in customer_accounts (id = the uuid used
+  // by customer_quotes/customer_invoices, customer_code = the business-
+  // records "Customer ID"). The old `customers` table no longer exists —
+  // querying it errored silently and every draft fell back to "there".
+  if (!customerId) return "there";
+  const byId = await supabase
+    .from("customer_accounts")
+    .select("display_name")
     .eq("id", customerId)
     .limit(1)
-    .single();
-  return customer?.display_name || customer?.first_name || "there";
+    .maybeSingle();
+  if (byId.data?.display_name) return byId.data.display_name;
+  const byCode = await supabase
+    .from("customer_accounts")
+    .select("display_name")
+    .eq("customer_code", customerId)
+    .limit(1)
+    .maybeSingle();
+  return byCode.data?.display_name || "there";
 }
 
 async function processQuoteFollowups(
@@ -428,80 +445,104 @@ async function processQuoteFollowups(
 
   if (!quotes?.length) return { count: 0, ai: 0, template: 0 };
 
-  // Dedupe window: don't re-draft for the same quote within 7 days (any status)
-  const dedupeCutoff = new Date();
-  dedupeCutoff.setDate(dedupeCutoff.getDate() - DRAFT_DEDUPE_DAYS);
-
   let processed = 0;
   let aiCount = 0;
   let templateCount = 0;
 
   for (const quote of quotes as Quote[]) {
-    const { data: existing } = await supabase
-      .from("ai_handoff_tasks")
-      .select("id")
-      .eq("business_id", business.id)
-      .eq("task_type", "quote_followup_draft")
-      .eq("payload->>quote_id", quote.id)
-      .gte("created_at", dedupeCutoff.toISOString())
-      .limit(1);
-
-    if (existing?.length) continue; // Already drafted recently
-
-    const customerName = await getCustomerName(supabase, quote.customer_id);
-    const firstName = customerName.split(" ")[0];
-    const daysWaiting = daysAgo(quote.updated_at);
-
-    // Template fallback (used when AI is capped/unavailable)
-    const templateMessage =
-      `Hi ${firstName}, just checking in on the quote I sent for "${quote.title}". ` +
-      `Wanted to see if you had any questions or if you'd like to move forward. Let me know!`;
-
-    const { text: draftMessage, source } = await aiDraft(
-      supabase,
-      business.id,
-      quoteFollowupSystem(business.display_name),
-      `Write a follow-up message for this customer:\n\n` +
-        `Customer: ${customerName}\n` +
-        `Quote: "${quote.title}" (#${quote.quote_number}), ${money(quote.amount)}\n` +
-        `Sent ${daysWaiting} days ago, no response yet.\n\n` +
-        `Write just the message, nothing else.`,
-      templateMessage,
-    );
-
-    // Create an approval task (owner reviews before anything sends)
-    await supabase.from("ai_handoff_tasks").insert({
-      business_id: business.id,
-      task_type: "quote_followup_draft",
-      payload: {
-        quote_id: quote.id,
-        quote_number: quote.quote_number,
-        customer_id: quote.customer_id,
-        customer_name: customerName,
-        draft_message: draftMessage,
-        draft_source: source,
-        days_since_sent: daysWaiting,
-        amount: quote.amount,
-      },
-      status: "pending",
-      created_by: KIT_ACTOR_ID,
-    });
-
-    // Log to proof log (shows in "While You Were Away")
-    await logProof(supabase, business.id, "QUOTE_FOLLOWUP_DRAFTED", "quote", quote.id, {
-      quoteNumber: quote.quote_number,
-      customerName,
-      daysSinceSent: daysWaiting,
-      draftSource: source,
-      draftPreview: draftMessage.substring(0, 100),
-    });
-
+    const r = await createQuoteDraft(supabase, business, quote, {});
+    if (r.outcome !== "created") continue;
     processed++;
-    if (source === "ai") aiCount++;
+    if (r.source === "ai") aiCount++;
     else templateCount++;
   }
 
   return { count: processed, ai: aiCount, template: templateCount };
+}
+
+// Draft ONE quote follow-up and land it as an owner-review task. Shared by
+// the hourly sweep and the on-demand Kit's Workspace mode
+// (mode=draft_suggestions) so both paths produce identical drafts:
+// same AI/template text rules, same payload shape, same 7-day dedupe.
+// Dedupe matches on quote_id OR quote_number — the workspace identifies
+// quotes by their business-records ID while this engine uses the
+// customer_quotes uuid; the number is the bridge between the two.
+async function createQuoteDraft(
+  supabase: any,
+  business: Business,
+  quote: Quote,
+  opts: { source?: string; customerName?: string },
+): Promise<{ outcome: "created" | "deduped"; source: "ai" | "template" }> {
+  const dedupeCutoff = new Date();
+  dedupeCutoff.setDate(dedupeCutoff.getDate() - DRAFT_DEDUPE_DAYS);
+
+  const { data: recent } = await supabase
+    .from("ai_handoff_tasks")
+    .select("id, payload")
+    .eq("business_id", business.id)
+    .eq("task_type", "quote_followup_draft")
+    .gte("created_at", dedupeCutoff.toISOString())
+    .limit(50);
+  const deduped = (recent || []).some((t: any) => {
+    const p = t.payload || {};
+    return (quote.id && String(p.quote_id || "") === String(quote.id)) ||
+      (quote.quote_number && String(p.quote_number || "") === String(quote.quote_number));
+  });
+  if (deduped) return { outcome: "deduped", source: "template" };
+
+  const customerName = opts.customerName ||
+    await getCustomerName(supabase, quote.customer_id);
+  const firstName = customerName.split(" ")[0];
+  const daysWaiting = daysAgo(quote.updated_at);
+
+  // Template fallback (used when AI is capped/unavailable)
+  const templateMessage =
+    `Hi ${firstName}, just checking in on the quote I sent for "${quote.title}". ` +
+    `Wanted to see if you had any questions or if you'd like to move forward. Let me know!`;
+
+  const { text: draftMessage, source } = await aiDraft(
+    supabase,
+    business.id,
+    quoteFollowupSystem(business.display_name),
+    `Write a follow-up message for this customer:\n\n` +
+      `Customer: ${customerName}\n` +
+      `Quote: "${quote.title}" (#${quote.quote_number}), ${money(quote.amount)}\n` +
+      `Sent ${daysWaiting} days ago, no response yet.\n\n` +
+      `Write just the message, nothing else.`,
+    templateMessage,
+  );
+
+  // Create an approval task (owner reviews before anything sends). It
+  // starts pending; the handoff poller's quote_followup_draft worker
+  // validates it into its done + owner_review_required review form.
+  await supabase.from("ai_handoff_tasks").insert({
+    business_id: business.id,
+    task_type: "quote_followup_draft",
+    payload: {
+      quote_id: quote.id,
+      quote_number: quote.quote_number,
+      customer_id: quote.customer_id,
+      customer_name: customerName,
+      draft_message: draftMessage,
+      draft_source: source,
+      days_since_sent: daysWaiting,
+      amount: quote.amount,
+      ...(opts.source ? { source: opts.source } : {}),
+    },
+    status: "pending",
+    created_by: KIT_ACTOR_ID,
+  });
+
+  // Log to proof log (shows in "While You Were Away")
+  await logProof(supabase, business.id, "QUOTE_FOLLOWUP_DRAFTED", "quote", quote.id, {
+    quoteNumber: quote.quote_number,
+    customerName,
+    daysSinceSent: daysWaiting,
+    draftSource: source,
+    draftPreview: draftMessage.substring(0, 100),
+  });
+
+  return { outcome: "created", source };
 }
 
 async function processInvoiceNudges(
@@ -512,90 +553,146 @@ async function processInvoiceNudges(
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - INVOICE_NUDGE_DAYS);
 
-  const { data: invoices } = await supabase
+  // customer_invoices carries total/balance_due — there are no amount /
+  // amount_due columns. Selecting them errored silently and this sweep
+  // produced zero nudges fleet-wide; map the real columns here.
+  const { data: rows } = await supabase
     .from("customer_invoices")
-    .select("id, customer_id, invoice_number, amount, amount_due, status, due_date, created_at")
+    .select("id, customer_id, invoice_number, total, balance_due, status, due_date, created_at")
     .eq("business_id", business.id)
     .in("status", ["sent", "viewed", "overdue"])
     .lt("due_date", cutoff.toISOString())
-    .gt("amount_due", 0)
+    .gt("balance_due", 0)
     .limit(20);
 
-  if (!invoices?.length) return { count: 0, ai: 0, template: 0 };
+  if (!rows?.length) return { count: 0, ai: 0, template: 0 };
 
-  // Dedupe window: don't re-draft for the same invoice within 7 days (any status)
-  const dedupeCutoff = new Date();
-  dedupeCutoff.setDate(dedupeCutoff.getDate() - DRAFT_DEDUPE_DAYS);
+  const invoices = (rows as any[]).map((r) => ({
+    ...r,
+    amount: Number(r.total || 0),
+    amount_due: Number(r.balance_due || 0),
+  })) as Invoice[];
 
   let processed = 0;
   let aiCount = 0;
   let templateCount = 0;
 
-  for (const invoice of invoices as Invoice[]) {
-    const { data: existing } = await supabase
-      .from("ai_handoff_tasks")
-      .select("id")
-      .eq("business_id", business.id)
-      .eq("task_type", "invoice_nudge_draft")
-      .eq("payload->>invoice_id", invoice.id)
-      .gte("created_at", dedupeCutoff.toISOString())
-      .limit(1);
-
-    if (existing?.length) continue; // Already drafted recently
-
-    const customerName = await getCustomerName(supabase, invoice.customer_id);
-    const firstName = customerName.split(" ")[0];
-    const daysOverdue = daysAgo(invoice.due_date);
-
-    // Template fallback (used when AI is capped/unavailable)
-    const templateMessage =
-      `Hi ${firstName}, just a friendly reminder that invoice ${invoice.invoice_number} ` +
-      `for ${money(invoice.amount_due)} is now past due. ` +
-      `Let me know if you have any questions or need to discuss payment options.`;
-
-    const { text: draftMessage, source } = await aiDraft(
-      supabase,
-      business.id,
-      invoiceNudgeSystem(business.display_name),
-      `Write a payment reminder for this customer:\n\n` +
-        `Customer: ${customerName}\n` +
-        `Invoice: ${invoice.invoice_number}, ${money(invoice.amount_due)} due\n` +
-        `${daysOverdue} days past due.\n\n` +
-        `Write just the message, nothing else.`,
-      templateMessage,
-    );
-
-    await supabase.from("ai_handoff_tasks").insert({
-      business_id: business.id,
-      task_type: "invoice_nudge_draft",
-      payload: {
-        invoice_id: invoice.id,
-        invoice_number: invoice.invoice_number,
-        customer_id: invoice.customer_id,
-        customer_name: customerName,
-        draft_message: draftMessage,
-        draft_source: source,
-        days_overdue: daysOverdue,
-        amount_due: invoice.amount_due,
-      },
-      status: "pending",
-      created_by: KIT_ACTOR_ID,
-    });
-
-    await logProof(supabase, business.id, "INVOICE_NUDGE_DRAFTED", "invoice", invoice.id, {
-      invoiceNumber: invoice.invoice_number,
-      customerName,
-      daysOverdue,
-      amountDue: invoice.amount_due,
-      draftSource: source,
-    });
-
+  for (const invoice of invoices) {
+    const r = await createInvoiceDraft(supabase, business, invoice, {});
+    if (r.outcome !== "created") continue;
     processed++;
-    if (source === "ai") aiCount++;
+    if (r.source === "ai") aiCount++;
     else templateCount++;
   }
 
   return { count: processed, ai: aiCount, template: templateCount };
+}
+
+// Draft ONE invoice reminder and land it as an owner-review task. Shared
+// by the hourly sweep and the on-demand Kit's Workspace mode, with the
+// same text rules, payload shape, and 7-day dedupe (matched on
+// invoice_id OR invoice_number, the bridge between the workspace's
+// business-records IDs and the customer_invoices uuid).
+//
+// The task is inserted directly in its review form — status "done" with
+// a result carrying owner_review_required — because the handoff poller
+// has no invoice_nudge_draft worker: a pending row of this type is
+// failed as an unknown task_type within a minute, before any owner can
+// review it. "Done" here means the drafting work is done; the result is
+// the review item, exactly the shape the poller's quote worker writes
+// for quote_followup_draft. Nothing sends from here, ever.
+async function createInvoiceDraft(
+  supabase: any,
+  business: Business,
+  invoice: Invoice,
+  opts: { source?: string; customerName?: string },
+): Promise<{ outcome: "created" | "deduped"; source: "ai" | "template" }> {
+  const dedupeCutoff = new Date();
+  dedupeCutoff.setDate(dedupeCutoff.getDate() - DRAFT_DEDUPE_DAYS);
+
+  const { data: recent } = await supabase
+    .from("ai_handoff_tasks")
+    .select("id, payload")
+    .eq("business_id", business.id)
+    .eq("task_type", "invoice_nudge_draft")
+    .gte("created_at", dedupeCutoff.toISOString())
+    .limit(50);
+  const deduped = (recent || []).some((t: any) => {
+    const p = t.payload || {};
+    return (invoice.id && String(p.invoice_id || "") === String(invoice.id)) ||
+      (invoice.invoice_number && String(p.invoice_number || "") === String(invoice.invoice_number));
+  });
+  if (deduped) return { outcome: "deduped", source: "template" };
+
+  const customerName = opts.customerName ||
+    await getCustomerName(supabase, invoice.customer_id);
+  const firstName = customerName.split(" ")[0];
+  const daysOverdue = daysAgo(invoice.due_date);
+
+  // Template fallback (used when AI is capped/unavailable)
+  const templateMessage =
+    `Hi ${firstName}, just a friendly reminder that invoice ${invoice.invoice_number} ` +
+    `for ${money(invoice.amount_due)} is now past due. ` +
+    `Let me know if you have any questions or need to discuss payment options.`;
+
+  const { text: draftMessage, source } = await aiDraft(
+    supabase,
+    business.id,
+    invoiceNudgeSystem(business.display_name),
+    `Write a payment reminder for this customer:\n\n` +
+      `Customer: ${customerName}\n` +
+      `Invoice: ${invoice.invoice_number}, ${money(invoice.amount_due)} due\n` +
+      `${daysOverdue} days past due.\n\n` +
+      `Write just the message, nothing else.`,
+    templateMessage,
+  );
+
+  const payload = {
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    customer_id: invoice.customer_id,
+    customer_name: customerName,
+    draft_message: draftMessage,
+    draft_source: source,
+    days_overdue: daysOverdue,
+    amount_due: invoice.amount_due,
+    ...(opts.source ? { source: opts.source } : {}),
+  };
+
+  await supabase.from("ai_handoff_tasks").insert({
+    business_id: business.id,
+    task_type: "invoice_nudge_draft",
+    payload,
+    status: "done",
+    result: {
+      invoice_id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      customer_id: invoice.customer_id,
+      customer_name: customerName,
+      draft_message: draftMessage,
+      days_overdue: daysOverdue,
+      amount_due: invoice.amount_due,
+      owner_review_required: true,
+      _kit: {
+        business_id: business.id,
+        processed_by: KIT_TAG,
+        processed_at: new Date().toISOString(),
+        via: "kit-proactive-engine",
+      },
+    },
+    completed_at: new Date().toISOString(),
+    created_by: KIT_ACTOR_ID,
+  });
+
+  await logProof(supabase, business.id, "INVOICE_NUDGE_DRAFTED", "invoice", invoice.id, {
+    invoiceNumber: invoice.invoice_number,
+    customerName,
+    daysOverdue,
+    amountDue: invoice.amount_due,
+    draftSource: source,
+  });
+
+  return { outcome: "created", source };
 }
 
 async function processDailyDigest(
@@ -626,10 +723,10 @@ async function processDailyDigest(
 
   const { data: overdueInvoices } = await supabase
     .from("customer_invoices")
-    .select("id, amount_due")
+    .select("id, balance_due")
     .eq("business_id", business.id)
     .in("status", ["sent", "viewed", "overdue"])
-    .gt("amount_due", 0)
+    .gt("balance_due", 0)
     .limit(50);
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -643,7 +740,7 @@ async function processDailyDigest(
   const quoteCount = overdueQuotes?.length || 0;
   const invoiceCount = overdueInvoices?.length || 0;
   const totalDue = (overdueInvoices || []).reduce(
-    (t: number, inv: any) => t + Number(inv.amount_due || 0),
+    (t: number, inv: any) => t + Number(inv.balance_due || 0),
     0,
   );
   const oldestQuoteDays = (overdueQuotes || []).reduce(
@@ -717,22 +814,295 @@ async function validSecret(req: Request, supabase: any): Promise<boolean> {
   return !!data?.secret_value && got === data.secret_value;
 }
 
-Deno.serve(async (req: Request) => {
-  // Only allow POST (from cron) or GET, and only with the internal job key
-  if (req.method !== "POST" && req.method !== "GET") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
+// ---- On-demand mode (Kit's Workspace suggestion buttons) ----
+// Same auth pattern as h38-price-refresh: the internal job key OR an
+// owner/administrator JWT for the ONE business being drafted for. The
+// caller can never draft for a business they don't own/administer.
+
+async function jwtUserId(req: Request): Promise<string> {
+  const authz = req.headers.get("authorization") || "";
+  const token = authz.toLowerCase().startsWith("bearer ") ? authz.slice(7) : "";
+  if (!token) return "";
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return "";
+  const user = await res.json().catch(() => ({}));
+  return String((user as { id?: string }).id || "");
+}
+
+async function ownerRole(supabase: any, businessId: string, uid: string): Promise<boolean> {
+  if (!uid || !businessId) return false;
+  const { data } = await supabase
+    .from("business_memberships")
+    .select("role")
+    .eq("business_id", businessId)
+    .eq("auth_user_id", uid)
+    .eq("status", "active")
+    .limit(1);
+  const role = String((data && data[0])?.role || "").toLowerCase();
+  return role === "owner" || role === "administrator";
+}
+
+interface SuggestionItem {
+  id: string;
+  number: string;
+}
+
+function cleanItems(raw: any): SuggestionItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SuggestionItem[] = [];
+  for (const r of raw.slice(0, 5)) {
+    if (!r || typeof r !== "object") continue;
+    const id = String(r.id ?? "").trim().slice(0, 120);
+    const number = String(r.number ?? "").trim().slice(0, 120);
+    if (id || number) out.push({ id, number });
+  }
+  return out;
+}
+
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Resolve one workspace-tapped quote to the engine's Quote shape, or
+// null when it no longer qualifies. The normalized customer_quotes row
+// (found by quote_number, the bridge between the two ID spaces) is the
+// portal truth and wins when it exists; the business-records row the
+// owner actually saw is the fallback for quotes the normalized store
+// doesn't carry.
+async function resolveQuoteItem(
+  supabase: any,
+  business: Business,
+  item: SuggestionItem,
+): Promise<{ quote: Quote; customerName?: string } | null> {
+  if (item.number || UUID_SHAPE.test(item.id)) {
+    let q = supabase
+      .from("customer_quotes")
+      .select("id, customer_id, quote_number, title, amount, status, created_at, updated_at, customer_decision")
+      .eq("business_id", business.id);
+    q = item.number ? q.eq("quote_number", item.number) : q.eq("id", item.id);
+    const { data } = await q.limit(1);
+    const row = data && data[0];
+    if (row) {
+      const eligible = ["sent", "presented", "viewed"].includes(String(row.status || "")) &&
+        !row.customer_decision &&
+        daysAgo(row.updated_at) >= QUOTE_FOLLOWUP_DAYS;
+      if (!eligible) return null;
+      return { quote: row as Quote };
+    }
+  }
+
+  let bq = supabase
+    .from("business_records")
+    .select("record_key, payload")
+    .eq("business_id", business.id)
+    .eq("record_status", "active")
+    .in("collection", ["quotes", "customerQuotes"]);
+  bq = item.id ? bq.eq("record_key", item.id) : bq.eq("payload->>'Quote Number'", item.number);
+  const { data: brows } = await bq.limit(1);
+  const brow = brows && brows[0];
+  if (!brow) return null;
+  const p = (brow.payload || {}) as Record<string, any>;
+  const status = String(p["Status"] || "").toUpperCase();
+  if (!/SENT|PRESENTED|VIEWED|DELIVERED/.test(status)) return null;
+  const upd = String(p["Updated Time"] || "");
+  if (!upd || daysAgo(upd) < QUOTE_FOLLOWUP_DAYS) return null;
+  const customerId = String(p["Customer ID"] || "");
+  let customerName: string | undefined;
+  if (customerId) {
+    const { data: crows } = await supabase
+      .from("business_records")
+      .select("payload")
+      .eq("business_id", business.id)
+      .eq("record_status", "active")
+      .eq("collection", "customers")
+      .eq("record_key", customerId)
+      .limit(1);
+    const cp = crows && crows[0]?.payload as Record<string, any> | undefined;
+    if (cp) {
+      customerName = String(cp["Customer Name"] || "") ||
+        [cp["First Name"], cp["Last Name"]].filter(Boolean).join(" ") || undefined;
+    }
+  }
+  return {
+    quote: {
+      id: String(p["Quote ID"] || brow.record_key),
+      customer_id: customerId,
+      quote_number: String(p["Quote Number"] || item.number || ""),
+      title: String(p["Project Title"] || p["Title"] || "your quote"),
+      amount: Number(p["Total"] ?? p["Amount"] ?? 0),
+      status: "sent",
+      created_at: String(p["Created Time"] || upd),
+      updated_at: upd,
+    },
+    customerName,
+  };
+}
+
+async function resolveInvoiceItem(
+  supabase: any,
+  business: Business,
+  item: SuggestionItem,
+): Promise<{ invoice: Invoice; customerName?: string } | null> {
+  if (item.number || UUID_SHAPE.test(item.id)) {
+    let q = supabase
+      .from("customer_invoices")
+      .select("id, customer_id, invoice_number, total, balance_due, status, due_date, created_at")
+      .eq("business_id", business.id);
+    q = item.number ? q.eq("invoice_number", item.number) : q.eq("id", item.id);
+    const { data } = await q.limit(1);
+    const row = data && data[0];
+    if (row) {
+      const eligible = ["sent", "viewed", "overdue"].includes(String(row.status || "")) &&
+        Number(row.balance_due || 0) > 0 &&
+        daysAgo(row.due_date) >= INVOICE_NUDGE_DAYS;
+      if (!eligible) return null;
+      return {
+        invoice: {
+          ...row,
+          amount: Number(row.total || 0),
+          amount_due: Number(row.balance_due || 0),
+        } as Invoice,
+      };
+    }
+  }
+
+  let bq = supabase
+    .from("business_records")
+    .select("record_key, payload")
+    .eq("business_id", business.id)
+    .eq("record_status", "active")
+    .eq("collection", "invoices");
+  bq = item.id ? bq.eq("record_key", item.id) : bq.eq("payload->>'Invoice Number'", item.number);
+  const { data: brows } = await bq.limit(1);
+  const brow = brows && brows[0];
+  if (!brow) return null;
+  const p = (brow.payload || {}) as Record<string, any>;
+  const balance = Number(p["Balance"] ?? p["Amount Due"] ?? p["amount_due"] ?? 0);
+  if (!(balance > 0)) return null;
+  const status = String(p["Status"] || "").toUpperCase();
+  if (/^(PAID|VOIDED|DELETED|DRAFT)/.test(status)) return null;
+  const due = String(p["Due Date"] || "");
+  if (!due || isNaN(Date.parse(due)) || daysAgo(due) < INVOICE_NUDGE_DAYS) return null;
+  return {
+    invoice: {
+      id: String(p["Invoice ID"] || brow.record_key),
+      customer_id: String(p["Customer ID"] || ""),
+      invoice_number: String(p["Invoice Number"] || item.number || ""),
+      amount: Number(p["Total"] ?? balance),
+      amount_due: balance,
+      status: "sent",
+      due_date: due,
+      created_at: String(p["Created Time"] || due),
+    },
+  };
+}
+
+async function draftSuggestions(
+  supabase: any,
+  business: Business,
+  body: Record<string, any>,
+): Promise<Record<string, any>> {
+  const out: Record<string, any> = {
+    quote_followups: { created: 0, deduped: 0, skipped: 0 },
+    invoice_nudges: { created: 0, deduped: 0, skipped: 0 },
+  };
+
+  for (const item of cleanItems(body.quotes)) {
+    const resolved = await resolveQuoteItem(supabase, business, item);
+    if (!resolved) { out.quote_followups.skipped++; continue; }
+    const r = await createQuoteDraft(supabase, business, resolved.quote, {
+      source: "kits-workspace-suggestion",
+      customerName: resolved.customerName,
     });
+    out.quote_followups[r.outcome === "created" ? "created" : "deduped"]++;
+  }
+
+  for (const item of cleanItems(body.invoices)) {
+    const resolved = await resolveInvoiceItem(supabase, business, item);
+    if (!resolved) { out.invoice_nudges.skipped++; continue; }
+    const r = await createInvoiceDraft(supabase, business, resolved.invoice, {
+      source: "kits-workspace-suggestion",
+      customerName: resolved.customerName,
+    });
+    out.invoice_nudges[r.outcome === "created" ? "created" : "deduped"]++;
+  }
+
+  return out;
+}
+
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-h38-nightly-key",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+};
+
+function jsonResponse(body: Record<string, any>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+  // Only allow POST (cron / workspace) or GET (cron)
+  if (req.method !== "POST" && req.method !== "GET") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // On-demand mode: Kit's Workspace suggestion buttons. Auth is the
+  // internal job key OR an owner/administrator JWT for the one business
+  // in the body — tenant isolation is enforced before any drafting.
+  if (req.method === "POST") {
+    const body = await req.clone().json().catch(() => ({})) as Record<string, any>;
+    if (body && body.mode === "draft_suggestions") {
+      const businessId = String(body.businessId || "").trim();
+      if (!businessId) return jsonResponse({ error: "businessId is required." }, 400);
+      const viaKey = await validSecret(req, supabase);
+      const uid = viaKey ? "" : await jwtUserId(req);
+      if (!viaKey && !(await ownerRole(supabase, businessId, uid))) {
+        return jsonResponse({ error: "Not authorized for this business." }, 401);
+      }
+      const { data: biz } = await supabase
+        .from("businesses")
+        .select("id, business_key, display_name, status")
+        .eq("id", businessId)
+        .eq("status", "active")
+        .limit(1);
+      const business = biz && biz[0] as Business | undefined;
+      if (!business) return jsonResponse({ error: "Business not found." }, 404);
+      if (!cleanItems(body.quotes).length && !cleanItems(body.invoices).length) {
+        return jsonResponse({ error: "No items to draft." }, 400);
+      }
+      proofLogFailures.length = 0;
+      try {
+        const aiEnabled = await checkAiEnabled(supabase, business.id);
+        if (!aiEnabled) {
+          return jsonResponse({ error: "AI drafting is turned off for this business." }, 403);
+        }
+        const counts = await draftSuggestions(supabase, business, body);
+        const created = counts.quote_followups.created + counts.invoice_nudges.created;
+        return jsonResponse({
+          ok: true,
+          build: BUILD,
+          mode: "draft_suggestions",
+          businessId,
+          ...counts,
+          created_total: created,
+          proof_log_warnings: proofLogFailures.length,
+        });
+      } catch (e) {
+        return jsonResponse({ error: String(e).substring(0, 300) }, 500);
+      }
+    }
+  }
+
   if (!await validSecret(req, supabase)) {
-    return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "UNAUTHORIZED" }, 401);
   }
 
   // Fresh slate for this invocation's proof-log failure tracking.
