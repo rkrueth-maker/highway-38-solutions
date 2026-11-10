@@ -268,13 +268,13 @@
       './app-16.js?build=20261026-owner-chat-5',
       './assistant-tenant-actions.js?build=20260929-readable-action-preview-8',
       './owner-chat.js?build=20261026-owner-chat-5',
-      './kits-workspace.js?build=20261026-owner-chat-5',
+      './kits-workspace.js?build=20261109-kit-suggestions-1',
     ];
     const PAGE_ASSISTANT = [
       './app-16.js?build=20261026-owner-chat-5',
       './assistant-tenant-actions.js?build=20260929-readable-action-preview-8',
       './owner-chat.js?build=20261026-owner-chat-5',
-      './kits-workspace.js?build=20261026-owner-chat-5',
+      './kits-workspace.js?build=20261109-kit-suggestions-1',
     ];
     const PAGE_SOCIAL = [
       './app-15.js?build=20261020-ws4-remaining-1',

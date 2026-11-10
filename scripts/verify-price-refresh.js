@@ -131,9 +131,9 @@ const REVIEW_LABOR={
   ok('snapshot id keys know priceRefreshReviews', data.indexOf("priceRefreshReviews:['Review ID','reviewId']")>=0);
   ok('snapshot fetches priceRefreshReviews explicitly (cap-proof)', data.indexOf("fetchCollectionRows(db, businessId, 'priceRefreshReviews')")>=0);
   const ver=JSON.parse(read(path.join(APP,'version.json')));
-  ok('version.json advanced', ver.version==='20261109-price-refresh-2', ver.version);
+  ok('version.json advanced', ver.version==='20261109-kit-suggestions-1', ver.version); // stamp pin moved by kit-suggestions (version.json + SW only; price-refresh build stamps above unchanged)
   const sw=read(path.join(APP,'service-worker.js'));
-  ok('service worker cache advanced', sw.indexOf('h38-business-office-20261109-pricerefresh-2')>=0);
+  ok('service worker cache advanced', sw.indexOf('h38-business-office-20261109-kitsuggest-1')>=0); // stamp pin moved by kit-suggestions
 })();
 
 console.log(`verify-price-refresh: ${pass} passed, ${fail} failed`);
