@@ -5,11 +5,17 @@
  * Sections (Bold Numbers design language):
  *   1. Hero — dark header, big number = Kit's actions today
  *   2. What Kit did today — from H38KitFeed.getItems() (business_proof_log, [ai:kit])
- *   3. Needs your review — pending ai_handoff_tasks drafts (quote_followup_draft,
- *      invoice_nudge_draft). Approve queues via H38Sms.sendSms (owner approval
- *      flow, never auto-sends). Edit inline. Dismiss marks cancelled.
+ *   3. Needs your review — ai_handoff_tasks drafts (quote_followup_draft,
+ *      invoice_nudge_draft) that are still awaiting an owner decision:
+ *      pending rows, plus rows the handoff poller has validated into
+ *      done + result.owner_review_required within the last 7 days (the
+ *      dedupe window). Approve queues via H38Sms.sendSms (owner approval
+ *      flow, never auto-sends). Dismiss marks cancelled.
  *   4. Suggestions — proactive: overdue quotes w/o follow-up drafts, overdue
- *      invoices w/o nudges. Tap "Draft it" to have Kit draft via ai_handoff.
+ *      invoices w/o nudges. Tap the draft button to have Kit draft just
+ *      those items via the kit-proactive-engine's on-demand mode — the
+ *      same drafting machinery as the hourly sweep (same draft text,
+ *      same payload shape, same 7-day per-item dedupe).
  *   5. Ask Kit — the existing chat, demoted to the bottom.
  *
  * Safety:
@@ -24,7 +30,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261020-ws4-hank-1';
+  var BUILD = '20261109-kit-suggestions-1';
 
   /* ---------- safe globals ---------- */
 
@@ -113,21 +119,41 @@
     return res.json().catch(function () { return []; });
   }
 
-  /* ---------- data: pending review drafts ---------- */
+  /* ---------- data: review drafts ---------- */
 
   var REVIEW_TYPES = ['quote_followup_draft', 'invoice_nudge_draft'];
+  var REVIEW_WINDOW_MS = 7 * 86400000; // matches the engine's 7-day dedupe window
 
-  async function fetchPendingDrafts() {
+  /* A draft awaits the owner while it is pending, and — once the handoff
+   * poller has validated it — while it sits done with an undecided
+   * owner_review_required result. Invoice drafts are inserted by the
+   * engine directly in that validated form (the poller has no worker
+   * for invoice_nudge_draft). Owner decisions remove a draft from this
+   * list: Approve rewrites the result with approved_by_owner, Dismiss
+   * cancels the task. Validated drafts older than the dedupe window
+   * age out instead of piling up. */
+  function isAwaitingReview(t) {
+    if (!t) return false;
+    if (t.status === 'pending') return true;
+    if (t.status !== 'done') return false;
+    var r = t.result || {};
+    if (r.owner_review_required !== true) return false;
+    if (r.approved_by_owner || r.dismissed_by_owner) return false;
+    var age = Date.now() - Date.parse(t.created_at || '');
+    return !isNaN(age) && age <= REVIEW_WINDOW_MS;
+  }
+
+  async function fetchReviewDrafts() {
     try {
       var bid = (window.state && window.state.businessId) || '';
       if (!bid) return [];
       var q = 'ai_handoff_tasks?business_id=eq.' + encodeURIComponent(bid) +
-        '&status=eq.pending' +
+        '&status=in.(pending,done)' +
         '&task_type=in.(' + REVIEW_TYPES.join(',') + ')' +
         '&order=created_at.desc&limit=20' +
-        '&select=id,task_type,payload,created_at';
+        '&select=id,task_type,payload,result,status,created_at';
       var rows = await sbGet(q);
-      return Array.isArray(rows) ? rows : [];
+      return (Array.isArray(rows) ? rows : []).filter(isAwaitingReview);
     } catch (e) {
       return [];
     }
@@ -147,14 +173,20 @@
     return Math.floor((Date.now() - t) / 86400000);
   }
 
-  function getSuggestions(pendingDrafts) {
+  function getSuggestions(reviewDrafts) {
     var out = [];
     try {
       var draftedQuoteIds = {}, draftedInvoiceIds = {};
-      pendingDrafts.forEach(function (t) {
+      var draftedQuoteNumbers = {}, draftedInvoiceNumbers = {};
+      reviewDrafts.forEach(function (t) {
         var p = t.payload || {};
         if (p.quote_id) draftedQuoteIds[String(p.quote_id)] = true;
         if (p.invoice_id) draftedInvoiceIds[String(p.invoice_id)] = true;
+        /* Drafts carry the quote/invoice number in both ID spaces (the
+         * workspace's business-records IDs and the engine's portal
+         * uuids) — the number is the bridge, so dedupe on it too. */
+        if (p.quote_number) draftedQuoteNumbers[String(p.quote_number)] = true;
+        if (p.invoice_number) draftedInvoiceNumbers[String(p.invoice_number)] = true;
       });
 
       /* Overdue quotes: sent/viewed 7+ days ago, no follow-up draft yet */
@@ -164,6 +196,8 @@
         if (!/SENT|PRESENTED|VIEWED|DELIVERED/.test(st)) return false;
         var id = String(val(q, 'Quote ID', 'quoteId', 'id') || '');
         if (draftedQuoteIds[id]) return false;
+        var num = String(val(q, 'Quote Number', 'quoteNumber', 'number') || '');
+        if (num && draftedQuoteNumbers[num]) return false;
         var upd = val(q, 'Updated Time', 'updated_at', 'Updated At');
         return daysAgo(upd) >= 7;
       });
@@ -189,6 +223,8 @@
         if (/^(PAID|VOIDED|DELETED|DRAFT)/.test(st)) return false;
         var id = String(val(inv, 'Invoice ID', 'invoiceId', 'id') || '');
         if (draftedInvoiceIds[id]) return false;
+        var num = String(val(inv, 'Invoice Number', 'invoiceNumber', 'number') || '');
+        if (num && draftedInvoiceNumbers[num]) return false;
         var due = val(inv, 'Due Date', 'due_date', 'Due Date');
         var d = new Date(due);
         if (isNaN(d)) return false;
@@ -306,20 +342,68 @@
 
   /* ---------- suggestions: ask Kit to draft ---------- */
 
-  async function draftSuggestion(kind) {
+  /* The suggestions from the latest render, keyed by kind — the draft
+   * buttons act on exactly the items the owner sees. */
+  var lastSuggestions = {};
+
+  async function sbFunction(name, body) {
+    var cfg = sbCfg(), s = await sbAuth();
+    var res = await fetch(cfg.url + '/functions/v1/' + name, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer ' + s.access_token,
+        apikey: cfg.publishableKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.error || ('Request failed (' + res.status + ').'));
+    return data;
+  }
+
+  function suggestionItems(s, kind) {
+    return (s.items || []).slice(0, 5).map(function (row) {
+      return kind === 'invoices'
+        ? { id: String(val(row, 'Invoice ID', 'invoiceId', 'id') || ''), number: String(val(row, 'Invoice Number', 'invoiceNumber', 'number') || '') }
+        : { id: String(val(row, 'Quote ID', 'quoteId', 'id') || ''), number: String(val(row, 'Quote Number', 'quoteNumber', 'number') || '') };
+    }).filter(function (it) { return it.id || it.number; });
+  }
+
+  /* Drafts are produced by the kit-proactive-engine's on-demand mode —
+   * the same per-item drafting the hourly sweep runs (same draft text
+   * rules, same payload shape, same 7-day dedupe). The engine returns
+   * exact counts, and the workspace re-renders so the new drafts show
+   * under "Needs your review" — no promises about work that never lands. */
+  async function draftSuggestion(kind, btn) {
+    var s = lastSuggestions[kind];
+    if (!s) { toast('That suggestion is no longer on screen. Refresh and try again.', true); return; }
+    var bid = (window.state && window.state.businessId) || '';
+    if (!bid) { toast('No business selected.', true); return; }
+    var items = suggestionItems(s, kind);
+    if (!items.length) { toast('Nothing to draft for that suggestion.', true); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Drafting…'; }
     try {
-      if (!window.H38_AI_HANDOFF || typeof window.H38_AI_HANDOFF.submitTask !== 'function') {
-        toast('AI handoff is not available right now.', true);
-        return;
+      var body = { mode: 'draft_suggestions', businessId: bid };
+      if (kind === 'invoices') body.invoices = items; else body.quotes = items;
+      var out = await sbFunction('kit-proactive-engine', body);
+      var counts = (kind === 'invoices' ? out.invoice_nudges : out.quote_followups) || {};
+      var created = Number(counts.created || 0);
+      var deduped = Number(counts.deduped || 0);
+      var skipped = Number(counts.skipped || 0);
+      if (created > 0) {
+        toast(created + ' draft' + (created === 1 ? '' : 's') + ' ready under "Needs your review".');
+      } else if (deduped > 0) {
+        toast('Already drafted in the last 7 days — see "Needs your review".');
+      } else if (skipped > 0) {
+        toast('Nothing new to draft — those items no longer qualify.');
+      } else {
+        toast('No drafts were created.');
       }
-      var bid = (window.state && window.state.businessId) || '';
-      if (!bid) { toast('No business selected.', true); return; }
-      toast('Asking Hank to draft…');
-      var taskType = kind === 'invoices' ? 'draft_invoice_nudges' : 'draft_quote_followups';
-      await window.H38_AI_HANDOFF.submitTask(taskType, { businessId: bid, source: 'kits-workspace-suggestion' });
-      toast('Hank is drafting. Check "Needs your review" shortly.');
+      render();
     } catch (e) {
-      toast('Could not ask Hank: ' + (e.message || e), true);
+      toast('Could not draft: ' + (e.message || e), true);
+      if (btn) { btn.disabled = false; btn.textContent = s.action; }
     }
   }
 
@@ -393,7 +477,7 @@
       };
     });
     document.querySelectorAll('[data-kw-suggest]').forEach(function (btn) {
-      btn.onclick = function () { draftSuggestion(btn.getAttribute('data-kw-suggest')); };
+      btn.onclick = function () { draftSuggestion(btn.getAttribute('data-kw-suggest'), btn); };
     });
     /* Wire the demoted chat to the existing handlers in app-16.js */
     try {
@@ -441,8 +525,10 @@
         items = window.H38KitFeed.getItems() || [];
       }
     } catch (e) { items = []; }
-    drafts = await fetchPendingDrafts();
+    drafts = await fetchReviewDrafts();
     suggestions = getSuggestions(drafts);
+    lastSuggestions = {};
+    suggestions.forEach(function (s) { lastSuggestions[s.kind] = s; });
 
     var todayCount = items.length;
     var reviewCount = drafts.length;
