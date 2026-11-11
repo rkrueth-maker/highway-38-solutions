@@ -23041,14 +23041,16 @@ function loadOfficeAccountIdentity(){
 }
 function loadNavigationIntegrity(){return false;}
 function loadEmployeeWorkspace(){return false;}
-/* Business onboarding: guided 6-step setup (ai-onboarding.js) and the setup
-   checklist (muse-onboarding-checklist.js) are secondary owner/admin modules.
-   They load on demand from Settings (never in the startup bundle) and render
-   through the canonical renderPage parity layer in app-19.js. */
+/* Business onboarding: the guided 6-step setup (ai-onboarding.js) is a
+   secondary owner/admin module. It loads on demand from Settings (never in
+   the startup bundle) and renders through the canonical renderPage parity
+   layer in app-19.js. The old localStorage setup checklist
+   (muse-onboarding-checklist.js) was retired 2026-11-10 (Rick's call):
+   Today's genuine-state "Finish setting up" card is the only setup
+   checklist. */
 const ONBOARDING_BUILD='20261007-onboarding-wiring-2';
 const ONBOARDING_MODULES=Object.freeze({
-  onboarding:Object.freeze({css:'./ai-onboarding.css',script:'./ai-onboarding.js',datasetKey:'h38AiOnboarding',ready:()=>!!window.H38_ONBOARDING,start:()=>window.H38_ONBOARDING&&window.H38_ONBOARDING.start()}),
-  setupChecklist:Object.freeze({css:'./muse-onboarding-checklist.css',script:'./muse-onboarding-checklist.js',datasetKey:'h38OnboardingChecklist',ready:()=>!!window.H38_ONBOARDING_CHECKLIST,start:()=>window.H38_ONBOARDING_CHECKLIST&&window.H38_ONBOARDING_CHECKLIST.start()})
+  onboarding:Object.freeze({css:'./ai-onboarding.css',script:'./ai-onboarding.js',datasetKey:'h38AiOnboarding',ready:()=>!!window.H38_ONBOARDING,start:()=>window.H38_ONBOARDING&&window.H38_ONBOARDING.start()})
 });
 const onboardingModuleLoads={};
 function loadOnboardingAsset(kind,path,datasetKey){
@@ -23098,8 +23100,13 @@ async function openOnboardingPage(page){
   return true;
 }
 window.renderOnboardingPage=function(){void openOnboardingPage('onboarding');};
-window.renderSetupChecklistPage=function(){void openOnboardingPage('setupChecklist');};
+/* Retired-checklist replacement: the Settings card's setup button now takes
+   the owner to Today, where the genuine-state "Finish setting up" card
+   lives (owner-home.js / today-command-setup.js render it from real
+   records; it disappears on its own once setup is complete). */
 document.addEventListener('click',event=>{
+  const setupButton=event.target?.closest?.('[data-h38-open-today-setup]');
+  if(setupButton){event.preventDefault();if(typeof window.openPage==='function')window.openPage('today');return;}
   const button=event.target?.closest?.('[data-h38-onboarding-open]');
   if(!button)return;
   event.preventDefault();

@@ -910,7 +910,7 @@
    * Failure: any front-door computation is try/caught to an empty
    * block — the rest of Today renders exactly as before. */
 
-  const FRONT_DOOR_BUILD = '20261110-onboarding-polish-1';
+  const FRONT_DOOR_BUILD = '20261110-retire-checklist-1';
 
   function frontRecords(name) {
     try { const r = records(name); return Array.isArray(r) ? r : []; } catch (e) { return []; }
@@ -1724,7 +1724,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261110-onboarding-polish-1',
+    build: '20261110-retire-checklist-1',
     detectBusinessType: detectBusinessType,
     computeSetupSteps: computeSetupSteps,
     computeFrontDoorKpis: computeFrontDoorKpis,
