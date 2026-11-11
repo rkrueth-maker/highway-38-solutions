@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H38 Paint & Drywall Calculator — Highway 38 Solutions</title>
+<meta name="description" content="Paint gallons by coats and coverage, drywall sheets, joint compound, tape and screws from your wall area. Free, no sign-up.">
+<link rel="canonical" href="https://highway38solutions.com/free-tools/paint-drywall-calculator/">
+<meta name="theme-color" content="#1d2320">
+<link rel="icon" type="image/png" href="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../field-tools.css">
+</head><body>
+<div class="wrap">
+<header class="topbar"><img src="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions logo"><div class="brand">Highway 38 Solutions<small>Free tools · No sign-up</small></div><a class="back" href="../../free-tools.html">← All free tools</a></header>
+<main>
+<h1>Paint &amp; Drywall Materials Calculator</h1>
+<p class="lede">Wall area in — gallons, sheets, mud, tape, and screws out. Standard coverage numbers: about 350 square feet per gallon of paint per coat, 4×8 and 4×12 drywall sheets, a 4.5-gallon bucket of compound for roughly every 450 square feet finished.</p>
+
+<section class="card"><h2>Paint gallons</h2>
+<p class="sub">Wall area is length × height around the room. A 12 × 10 ft room with 8-ft walls has 352 sq ft of wall and a 120 sq ft ceiling.</p>
+<div class="fields">
+ <div class="field"><label for="pd-area">Wall area to paint</label><div class="inputwrap"><input type="number" id="pd-area" min="0" step="any" value="352"><span class="unit">sq ft</span></div></div>
+ <div class="field"><label for="pd-coats">Coats</label><select id="pd-coats"><option value="1">1 coat</option><option value="2" selected>2 coats</option><option value="3">3 coats</option></select></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Paint to buy</span><span class="val" id="pd-big">—</span></div>
+<div class="rows"><div class="row"><span class="k">Exact need (at 350 sq ft / gal)</span><span class="v" id="pd-r-exact">—</span></div></div></div>
+</section>
+<section class="card"><h2>Drywall &amp; finishing</h2>
+<p class="sub">Total board area — walls plus ceiling. Pick the sheet size you're hanging.</p>
+<div class="fields">
+ <div class="field"><label for="pd-darea">Board area</label><div class="inputwrap"><input type="number" id="pd-darea" min="0" step="any" value="472"><span class="unit">sq ft</span></div></div>
+ <div class="field"><label for="pd-sheet">Sheet size</label><select id="pd-sheet"><option value="32" selected>4 × 8 (32 sq ft)</option><option value="48">4 × 12 (48 sq ft)</option></select></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Sheets to order</span><span class="val" id="pd-big2">—</span></div>
+<div class="rows">
+ <div class="row"><span class="k">Joint compound (4.5-gal buckets)</span><span class="v" id="pd-r-mud">—</span></div>
+ <div class="row"><span class="k">Tape (500-ft rolls)</span><span class="v" id="pd-r-tape">—</span></div>
+ <div class="row"><span class="k">Screws</span><span class="v" id="pd-r-screws">—</span></div>
+</div></div>
+<p class="note">Coverage basis: paint ≈ 350 sq ft per gallon per coat; compound ≈ one 4.5-gal bucket per 450 sq ft finished; tape ≈ 370 ft per 1,000 sq ft of board; screws ≈ 1 lb per 250 sq ft. Add a sheet or two for cuts and breakage on a real order.</p>
+</section>
+
+<section class="cta"><h2>By hand here. Connected in the Office.</h2>
+<p>This tool does one job at a time, by hand — that's what makes it simple. The H38 Business Office runs the same work connected: quotes, jobs, schedule, invoices, and follow-up in one place, on the phone and the computer.</p>
+<div class="btns"><a class="btn primary" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn ghost" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div></section>
+</main>
+<footer>Free tool from <a href="https://highway38solutions.com/">Highway 38 Solutions</a>, Grand Rapids, Minnesota · (218) 212-5299 · <a href="../../free-tools.html">More free tools</a></footer>
+</div>
+<script src="../field-tools.js"></script>
+<script>
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+var on = function (ids, fn) { ids.forEach(function (id) { $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }); };
+
+var F = window.H38FT;
+function upd(){
+  var p = F.paintGallons(num("pd-area"), parseFloat($("pd-coats").value));
+  $("pd-big").textContent = p.buy + (p.buy === 1 ? " gal" : " gal");
+  $("pd-r-exact").textContent = p.exact.toFixed(2) + " gal";
+  var d = F.drywallMaterials(num("pd-darea"), parseFloat($("pd-sheet").value));
+  $("pd-big2").textContent = d.sheets + " sheets";
+  $("pd-r-mud").textContent = d.mudBuckets + " buckets";
+  $("pd-r-tape").textContent = d.tapeRolls + " rolls (" + d.tapeFeet + " ft)";
+  $("pd-r-screws").textContent = d.screwsLb + " lb";
+}
+on(["pd-area","pd-coats","pd-darea","pd-sheet"], upd); upd();
+
+if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body></html>

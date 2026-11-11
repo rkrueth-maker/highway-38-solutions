@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H38 Roof Calculator — Highway 38 Solutions</title>
+<meta name="description" content="Roof squares, shingle bundles, underlayment rolls and ridge cap from footprint and pitch. Free roofing math, no sign-up.">
+<link rel="canonical" href="https://highway38solutions.com/free-tools/roof-calculator/">
+<meta name="theme-color" content="#1d2320">
+<link rel="icon" type="image/png" href="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../field-tools.css">
+</head><body>
+<div class="wrap">
+<header class="topbar"><img src="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions logo"><div class="brand">Highway 38 Solutions<small>Free tools · No sign-up</small></div><a class="back" href="../../free-tools.html">← All free tools</a></header>
+<main>
+<h1>Roof Measurement &amp; Squares Calculator</h1>
+<p class="lede">Footprint and pitch in — squares, bundles, underlayment, and ridge cap out. The slope math is the standard rise-over-12 factor every roofer carries; waste is figured before the material order, not after the dumpster run.</p>
+
+<section class="card"><h2>Measure the roof</h2>
+<p class="sub">Use the building footprint (or one roof plane at a time for a cut-up roof) and the pitch. Add the ridge length for a cap estimate.</p>
+<div class="fields">
+ <div class="field"><label for="rf-len">Footprint length</label><div class="inputwrap"><input type="number" id="rf-len" min="0" step="any" value="30"><span class="unit">ft</span></div></div>
+ <div class="field"><label for="rf-wid">Footprint width</label><div class="inputwrap"><input type="number" id="rf-wid" min="0" step="any" value="40"><span class="unit">ft</span></div></div>
+ <div class="field"><label for="rf-pitch">Pitch <span class="hint">(rise over 12)</span></label><select id="rf-pitch"><option value="0">Flat / 0</option><option value="2">2 / 12</option><option value="4">4 / 12</option><option value="6" selected>6 / 12</option><option value="8">8 / 12</option><option value="10">10 / 12</option><option value="12">12 / 12</option></select></div>
+ <div class="field"><label for="rf-waste">Waste &amp; cuts</label><div class="inputwrap"><input type="number" id="rf-waste" min="0" step="any" value="10"><span class="unit">%</span></div></div>
+ <div class="field"><label for="rf-ridge">Ridge length <span class="hint">(0 if none)</span></label><div class="inputwrap"><input type="number" id="rf-ridge" min="0" step="any" value="40"><span class="unit">ft</span></div></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Shingle bundles to order</span><span class="val" id="rf-big">—</span></div>
+<div class="rows">
+ <div class="row"><span class="k">Squares (with waste)</span><span class="v" id="rf-r-sq">—</span></div>
+ <div class="row"><span class="k">Squares (exact)</span><span class="v" id="rf-r-sqnet">—</span></div>
+ <div class="row"><span class="k">True roof area</span><span class="v" id="rf-r-area">—</span></div>
+ <div class="row"><span class="k">Slope factor</span><span class="v" id="rf-r-slope">—</span></div>
+ <div class="row"><span class="k">Underlayment rolls (~400 sq ft each)</span><span class="v" id="rf-r-under">—</span></div>
+ <div class="row"><span class="k">Ridge cap bundles (~33 ft each)</span><span class="v" id="rf-r-ridge">—</span></div>
+</div></div>
+<p class="note">Standard roofing math: true area = footprint × slope factor √(1 + (rise/12)²); one square = 100 sq ft; three bundles to a square for standard architectural shingles. Valleys, hips, and tear-off are not in this number — measure those planes separately.</p>
+</section>
+
+<section class="cta"><h2>By hand here. Connected in the Office.</h2>
+<p>This tool does one job at a time, by hand — that's what makes it simple. The H38 Business Office runs the same work connected: quotes, jobs, schedule, invoices, and follow-up in one place, on the phone and the computer.</p>
+<div class="btns"><a class="btn primary" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn ghost" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div></section>
+</main>
+<footer>Free tool from <a href="https://highway38solutions.com/">Highway 38 Solutions</a>, Grand Rapids, Minnesota · (218) 212-5299 · <a href="../../free-tools.html">More free tools</a></footer>
+</div>
+<script src="../field-tools.js"></script>
+<script>
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+var on = function (ids, fn) { ids.forEach(function (id) { $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }); };
+
+var F = window.H38FT;
+function upd(){
+  var r = F.roofEstimate(num("rf-len"), num("rf-wid"), parseFloat($("rf-pitch").value), num("rf-waste"), num("rf-ridge"));
+  $("rf-big").textContent = r.bundles.toLocaleString("en-US") + " bundles";
+  $("rf-r-sq").textContent = r.squaresBuy.toFixed(2) + " squares";
+  $("rf-r-sqnet").textContent = r.squaresExact.toFixed(2) + " squares";
+  $("rf-r-area").textContent = r.roofSqft.toLocaleString("en-US") + " sq ft";
+  $("rf-r-slope").textContent = "× " + r.slopeFactor.toFixed(3);
+  $("rf-r-under").textContent = r.underlaymentRolls + " rolls";
+  $("rf-r-ridge").textContent = r.ridgeCapBundles + " bundles";
+}
+on(["rf-len","rf-wid","rf-pitch","rf-waste","rf-ridge"], upd); upd();
+
+if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body></html>
