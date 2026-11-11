@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H38 Photo Quote Ballpark — Highway 38 Solutions</title>
+<meta name="description" content="Upload a photo of the job, pick the work, get a rough ballpark range. A planning number, not a quote — free, no sign-up.">
+<link rel="canonical" href="https://highway38solutions.com/free-tools/photo-quote/">
+<meta name="theme-color" content="#1d2320">
+<link rel="icon" type="image/png" href="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../field-tools.css">
+</head><body>
+<div class="wrap">
+<header class="topbar"><img src="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions logo"><div class="brand">Highway 38 Solutions<small>Free tools · No sign-up</small></div><a class="back" href="../../free-tools.html">← All free tools</a></header>
+<main>
+<h1>Photo Quote — Rough Ballpark</h1>
+<p class="lede">Snap a photo of the job, pick what it is, and size it roughly. You get a ballpark range for planning — <strong>not a quote</strong>. A real quote needs a real look at the work, and the tool that does that properly lives in the H38 Office.</p>
+
+<section class="card"><h2>Ballpark my job</h2>
+<p class="sub">The photo stays on your phone or computer — it is shown back to you here and never uploaded anywhere. It just helps you size the job honestly.</p>
+<div class="fields">
+ <div class="field full"><label for="pq-file">Photo of the job <span class="hint">(optional, stays on your device)</span></label><input type="file" id="pq-file" accept="image/*"><img class="thumb" id="pq-thumb" alt="Your job photo, shown only on this device"></div>
+ <div class="field"><label for="pq-type">Kind of work</label><select id="pq-type"><option value="deck" selected>Deck build / rebuild</option><option value="fence">Fence</option><option value="drywall">Drywall repair / finish</option><option value="painting">Painting</option><option value="concrete">Concrete slab</option><option value="lawnsnow">Lawn / snow service</option></select></div>
+ <div class="field"><label for="pq-size">Rough size <span class="hint" id="pq-unit-hint">sq ft of deck</span></label><div class="inputwrap"><input type="number" id="pq-size" min="0" step="any" value="192"><span class="unit" id="pq-unit">sq ft</span></div></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Rough ballpark</span><span class="val" id="pq-big">—</span></div>
+<div class="rows"><div class="row"><span class="k">What this is</span><span class="v">Planning range only</span></div></div></div>
+<div class="warn"><strong>Read this before you budget on it:</strong> this is a rough range from a size and a job type — nothing more. It does not see your photo the way a contractor does. Ground conditions, access, materials you pick, permits, and what's hiding under the old work all move a real price, sometimes a lot. A real quote needs a real look.</div>
+<p class="note">Ballpark basis (installed, northern Minnesota, 2026): deck $25–$45 per sq ft · fence $25–$55 per linear ft · drywall $2–$4 per sq ft · painting $2–$5 per sq ft of wall · concrete $8–$15 per sq ft · lawn/snow service 3–8¢ per sq ft per visit.</p>
+</section>
+<section class="card"><h2>The real photo-to-quote lives in the Office</h2>
+<p class="sub">In the H38 Business Office, a contractor takes the customer's photo, the Office measures and prices it against their own price book, and the customer gets an actual quote to approve — the proven, working version of what this page teases.</p>
+<div class="btns" style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" style="background:#b4551f;color:#fff" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn" style="border:1.5px solid #d8d2c2" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div>
+</section>
+
+<section class="cta"><h2>By hand here. Connected in the Office.</h2>
+<p>This tool does one job at a time, by hand — that's what makes it simple. The H38 Business Office runs the same work connected: quotes, jobs, schedule, invoices, and follow-up in one place, on the phone and the computer.</p>
+<div class="btns"><a class="btn primary" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn ghost" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div></section>
+</main>
+<footer>Free tool from <a href="https://highway38solutions.com/">Highway 38 Solutions</a>, Grand Rapids, Minnesota · (218) 212-5299 · <a href="../../free-tools.html">More free tools</a></footer>
+</div>
+<script src="../field-tools.js"></script>
+<script>
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+var on = function (ids, fn) { ids.forEach(function (id) { $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }); };
+
+var F = window.H38FT;
+$("pq-file").addEventListener("change", function(){
+  var f = this.files && this.files[0];
+  if (!f) return;
+  var img = $("pq-thumb");
+  img.src = URL.createObjectURL(f);
+  img.style.display = "block";
+});
+function upd(){
+  var t = $("pq-type").value;
+  $("pq-unit-hint").textContent = F.PHOTO_RATES[t].unit;
+  $("pq-unit").textContent = t === "fence" ? "lin ft" : (t === "lawnsnow" ? "sq ft" : "sq ft");
+  var r = F.photoBallpark(t, num("pq-size"));
+  $("pq-big").textContent = r ? "$" + r.lo.toLocaleString("en-US") + " – $" + r.hi.toLocaleString("en-US") : "—";
+}
+on(["pq-type","pq-size"], upd); upd();
+
+if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body></html>

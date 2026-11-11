@@ -5,7 +5,7 @@
    Safety: this worker only ever answers requests for the Contractor Calc
    page and its web-app icons. Every other request is left to the network
    exactly as if the worker were not installed. */
-const CACHE = 'h38-contractor-calc-v20261110';
+const CACHE = 'h38-contractor-calc-v20261111';
 const PAGE = './contractor-calc.html';
 const ASSETS = [
   PAGE,

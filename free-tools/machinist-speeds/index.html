@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H38 Machinist Speeds & Tap Drills — Highway 38 Solutions</title>
+<meta name="description" content="RPM and feed from standard SFM tables for common materials, plus tap drill sizes for UNC, UNF and metric threads. Free, no sign-up.">
+<link rel="canonical" href="https://highway38solutions.com/free-tools/machinist-speeds/">
+<meta name="theme-color" content="#1d2320">
+<link rel="icon" type="image/png" href="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../field-tools.css">
+</head><body>
+<div class="wrap">
+<header class="topbar"><img src="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions logo"><div class="brand">Highway 38 Solutions<small>Free tools · No sign-up</small></div><a class="back" href="../../free-tools.html">← All free tools</a></header>
+<main>
+<h1>Machinist Feeds, Speeds &amp; Tap Drills</h1>
+<p class="lede">The starting-point math from the standard tables: RPM = 3.82 × SFM ÷ diameter, chip load by tool size, and tap drills by the standard formula — major diameter minus pitch. Starting points, not gospel: your machine, setup, and coolant still get a vote.</p>
+
+<section class="card"><h2>Speeds &amp; feeds</h2>
+<p class="sub">Pick the material and the tool. RPM and feed are starting points from the standard SFM table printed below.</p>
+<div class="fields">
+ <div class="field"><label for="ms-mat">Material</label><select id="ms-mat"><option value="aluminum">Aluminum</option><option value="brass">Brass / bronze</option><option value="castiron">Cast iron</option><option value="mildsteel" selected>Mild steel (1018)</option><option value="alloysteel">Alloy steel (4140)</option><option value="stainless">Stainless (304)</option><option value="titanium">Titanium</option></select></div>
+ <div class="field"><label for="ms-tool">Tool material</label><select id="ms-tool"><option value="0" selected>High-speed steel</option><option value="1">Carbide</option></select></div>
+ <div class="field"><label for="ms-dia">Tool diameter</label><div class="inputwrap"><input type="number" id="ms-dia" min="0" step="any" value="0.5"><span class="unit">in</span></div></div>
+ <div class="field"><label for="ms-flutes">Flutes / cutting edges <span class="hint">(mills)</span></label><div class="inputwrap"><input type="number" id="ms-flutes" min="1" step="1" value="4"><span class="unit">fl</span></div></div>
+ <div class="field"><label for="ms-op">Operation</label><select id="ms-op"><option value="mill" selected>Milling</option><option value="drill">Drilling (feed per rev basis)</option></select></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Spindle speed</span><span class="val" id="ms-big">—</span></div>
+<div class="rows">
+ <div class="row"><span class="k">Surface speed used</span><span class="v" id="ms-r-sfm">—</span></div>
+ <div class="row"><span class="k">Chip load (per tooth/flute)</span><span class="v" id="ms-r-chip">—</span></div>
+ <div class="row"><span class="k">Feed rate</span><span class="v" id="ms-r-feed">—</span></div>
+</div></div>
+<p class="note">Formula: RPM = 3.82 × SFM ÷ tool diameter. Chip load by diameter: ≤⅛" .001 · ≤¼" .002 · ≤½" .004 · ≤1" .006 · over 1" .010 in/tooth. SFM table (HSS / carbide): aluminum 300/800 · brass 200/450 · cast iron 110/300 · mild steel 100/300 · alloy steel 70/220 · stainless 50/150 · titanium 30/90.</p>
+</section>
+<section class="card"><h2>Tap drill sizes</h2>
+<p class="sub">Standard formula: tap drill = major diameter − pitch (≈75% thread). Inch results are the exact decimal — the chart lists the nearest standard drill.</p>
+<div class="fields">
+ <div class="field"><label for="ms-thread">Thread</label><select id="ms-thread">
+ <option value="i:0.25:20" selected>1/4-20 UNC</option><option value="i:0.25:28">1/4-28 UNF</option>
+ <option value="i:0.3125:18">5/16-18 UNC</option><option value="i:0.3125:24">5/16-24 UNF</option>
+ <option value="i:0.375:16">3/8-16 UNC</option><option value="i:0.375:24">3/8-24 UNF</option>
+ <option value="i:0.4375:14">7/16-14 UNC</option><option value="i:0.4375:20">7/16-20 UNF</option>
+ <option value="i:0.5:13">1/2-13 UNC</option><option value="i:0.5:20">1/2-20 UNF</option>
+ <option value="i:0.625:11">5/8-11 UNC</option><option value="i:0.625:18">5/8-18 UNF</option>
+ <option value="i:0.75:10">3/4-10 UNC</option><option value="i:0.75:16">3/4-16 UNF</option>
+ <option value="m:5:0.8">M5 × 0.8</option><option value="m:6:1">M6 × 1.0</option>
+ <option value="m:8:1.25">M8 × 1.25</option><option value="m:10:1.5">M10 × 1.5</option>
+ <option value="m:12:1.75">M12 × 1.75</option></select></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Tap drill</span><span class="val" id="ms-big2">—</span></div>
+<div class="rows"><div class="row"><span class="k">Chart drill</span><span class="v" id="ms-r-chart">—</span></div></div></div>
+<p class="note">Chart checks: 1/4-20 → #7 (.201") · 3/8-16 → 5/16" (.3125") · 1/2-13 → 27/64" (.4219") · M6 × 1.0 → 5.0 mm · M8 × 1.25 → 6.8 mm · M10 × 1.5 → 8.5 mm.</p>
+</section>
+
+<section class="cta"><h2>By hand here. Connected in the Office.</h2>
+<p>This tool does one job at a time, by hand — that's what makes it simple. The H38 Business Office runs the same work connected: quotes, jobs, schedule, invoices, and follow-up in one place, on the phone and the computer.</p>
+<div class="btns"><a class="btn primary" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn ghost" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div></section>
+</main>
+<footer>Free tool from <a href="https://highway38solutions.com/">Highway 38 Solutions</a>, Grand Rapids, Minnesota · (218) 212-5299 · <a href="../../free-tools.html">More free tools</a></footer>
+</div>
+<script src="../field-tools.js"></script>
+<script>
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+var on = function (ids, fn) { ids.forEach(function (id) { $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }); };
+
+var F = window.H38FT;
+var CHART = { "0.25-20":"#7 drill (.201\")", "0.25-28":"#3 drill (.213\")", "0.3125-18":"F drill (.257\")", "0.3125-24":"I drill (.272\")", "0.375-16":"5/16\" (.3125\")", "0.375-24":"Q drill (.332\")", "0.4375-14":"U drill (.368\")", "0.4375-20":"25/64\" (.3906\")", "0.5-13":"27/64\" (.4219\")", "0.5-20":"13/32\" (.406\")", "0.625-11":"17/32\" (.531\")", "0.625-18":"37/64\" (.578\")", "0.75-10":"21/32\" (.656\")", "0.75-16":"11/16\" (.688\")" };
+function upd(){
+  var isDrill = $("ms-op").value === "drill";
+  var r = F.speeds($("ms-mat").value, parseInt($("ms-tool").value,10), num("ms-dia"), Math.max(1, Math.round(num("ms-flutes"))), isDrill);
+  $("ms-big").textContent = r.rpm.toLocaleString("en-US") + " RPM";
+  $("ms-r-sfm").textContent = r.sfm + " SFM";
+  $("ms-r-chip").textContent = r.chipLoad.toFixed(3) + " in";
+  $("ms-r-feed").textContent = r.feedIpm.toFixed(2) + " in/min";
+}
+function upd2(){
+  var parts = $("ms-thread").value.split(":");
+  if (parts[0] === "i") {
+    var major = parseFloat(parts[1]), tpi = parseFloat(parts[2]);
+    var d = F.tapDrillInch(major, tpi);
+    $("ms-big2").textContent = d.toFixed(3) + " in";
+    $("ms-r-chart").textContent = CHART[major + "-" + tpi] || "—";
+  } else {
+    var mm = parseFloat(parts[1]), pitch = parseFloat(parts[2]);
+    $("ms-big2").textContent = F.tapDrillMetric(mm, pitch).toFixed(1) + " mm";
+    $("ms-r-chart").textContent = F.tapDrillMetric(mm, pitch).toFixed(1) + " mm drill";
+  }
+}
+on(["ms-mat","ms-tool","ms-dia","ms-flutes","ms-op"], upd); upd();
+$("ms-thread").addEventListener("change", upd2); upd2();
+
+if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body></html>

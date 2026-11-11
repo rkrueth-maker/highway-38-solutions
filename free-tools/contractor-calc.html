@@ -2044,9 +2044,33 @@
         <!-- 48 · CONCRETE — YARDS & BAGS -->
         <section class="card" data-trades="concrete" aria-labelledby="h-cm" hidden>
           <div class="card-head"><span class="card-num">48</span><h2 id="h-cm">Concrete — Yards &amp; Bags</h2><span class="tags"><span class="tag">Concrete</span></span></div>
-          <p class="sub">Volume for nine pour shapes — slabs, footings, walls, post holes, round slabs, steps, footing flares, column tubes, and curb &amp; gutter — in truck yards and in bag counts, with waste figured in before the pour, not during it. The bag estimator turns an area and a thickness straight into bag counts.</p>
+          <p class="sub">Pick your pour shape — fourteen shapes, each with its own measurements: slabs, L-shaped and triangular slabs, footings (including a continuous footing priced by the run), walls, post holes, round slabs, steps, footing flares, column tubes, round tanks and piers, curb &amp; gutter, and a bag estimator. Yards and bag counts, with waste figured in before the pour, not during it. The rebar estimator below the readouts figures the grid steel for a slab.</p>
+          <style>
+            .cm-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; margin: 4px 0 16px; }
+            .cm-shape-btn { appearance: none; cursor: pointer; text-align: left; font-family: "Barlow", sans-serif; background: var(--panel-2, #f4f2ed); color: var(--ink); border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 10px; }
+            .cm-shape-btn .cm-sh { display: block; font-size: 19px; line-height: 1.15; color: var(--accent-ink); }
+            .cm-shape-btn .cm-sn { display: block; font-size: 13.5px; font-weight: 700; line-height: 1.25; margin-top: 3px; }
+            .cm-shape-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-soft); }
+            .cm-shape-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+          </style>
+          <div class="cm-gallery" role="group" aria-label="Concrete pour shapes — pick one">
+            <button type="button" class="cm-shape-btn" data-shape="rect" aria-pressed="true"><span class="cm-sh" aria-hidden="true">▭</span><span class="cm-sn">Slab or footing</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="lshape" aria-pressed="false"><span class="cm-sh" aria-hidden="true">⌐</span><span class="cm-sn">L-shaped slab</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="tri" aria-pressed="false"><span class="cm-sh" aria-hidden="true">△</span><span class="cm-sn">Triangular slab</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="round" aria-pressed="false"><span class="cm-sh" aria-hidden="true">◎</span><span class="cm-sn">Post holes / piers</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="wall" aria-pressed="false"><span class="cm-sh" aria-hidden="true">▬</span><span class="cm-sn">Wall / grade beam</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="contfoot" aria-pressed="false"><span class="cm-sh" aria-hidden="true">▭</span><span class="cm-sn">Continuous footing (per foot)</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="roundslab" aria-pressed="false"><span class="cm-sh" aria-hidden="true">●</span><span class="cm-sn">Round slab</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="steps" aria-pressed="false"><span class="cm-sh" aria-hidden="true">⌐</span><span class="cm-sn">Steps / stairs</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="frustum" aria-pressed="false"><span class="cm-sh" aria-hidden="true">▽</span><span class="cm-sn">Round footing flare</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="tube" aria-pressed="false"><span class="cm-sh" aria-hidden="true">▯</span><span class="cm-sn">Tube / column form</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="cylinder" aria-pressed="false"><span class="cm-sh" aria-hidden="true">⬔</span><span class="cm-sn">Round tank / tall pier</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="curb" aria-pressed="false"><span class="cm-sh" aria-hidden="true">▂</span><span class="cm-sn">Curb &amp; gutter</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="bags" aria-pressed="false"><span class="cm-sh" aria-hidden="true">▦</span><span class="cm-sn">Bag estimator</span></button>
+            <button type="button" class="cm-shape-btn" data-shape="rebar" aria-pressed="false"><span class="cm-sh" aria-hidden="true">#</span><span class="cm-sn">Rebar estimator (slab grid)</span></button>
+          </div>
           <div class="fields">
-            <div class="field full"><label for="cm-shape">Pour shape</label><select id="cm-shape"><option value="rect" selected>Slab or footing (rectangular)</option><option value="round">Post holes / piers (round)</option><option value="wall">Wall / grade beam (long strip)</option><option value="roundslab">Round slab (circle)</option><option value="steps">Steps / stairs</option><option value="frustum">Round footing flare (cone)</option><option value="tube">Tube / column form</option><option value="curb">Curb &amp; gutter</option><option value="bags">Bag estimator (area &amp; thickness)</option></select></div>
+            <div class="field full"><label for="cm-shape">Pour shape <span class="hint">(same list as the buttons above)</span></label><select id="cm-shape"><option value="rect" selected>Slab or footing (rectangular)</option><option value="lshape">L-shaped slab (two rectangles)</option><option value="tri">Triangular slab</option><option value="round">Post holes / piers (round)</option><option value="wall">Wall / grade beam (long strip)</option><option value="contfoot">Continuous footing (per linear foot)</option><option value="roundslab">Round slab (circle)</option><option value="steps">Steps / stairs</option><option value="frustum">Round footing flare (cone)</option><option value="tube">Tube / column form</option><option value="cylinder">Round tank / tall pier (cylinder)</option><option value="curb">Curb &amp; gutter</option><option value="bags">Bag estimator (area &amp; thickness)</option><option value="rebar">Rebar estimator (slab grid)</option></select></div>
           </div>
           <div id="cm-rect-fields">
             <div class="fields">
@@ -2116,16 +2140,58 @@
               <div class="field"><label for="cm-bg-thick">Thickness</label><div class="inputwrap"><input type="number" id="cm-bg-thick" class="has-right" inputmode="decimal" min="0" step="any" value="2" /><span class="unit right">in</span></div></div>
             </div>
           </div>
+          <div id="cm-lshape-fields" hidden>
+            <div class="fields">
+              <div class="field"><label for="cm-ls-a-len">Rectangle A — length</label><div class="inputwrap"><input type="number" id="cm-ls-a-len" class="has-right" inputmode="decimal" min="0" step="any" value="20" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-ls-a-wid">Rectangle A — width</label><div class="inputwrap"><input type="number" id="cm-ls-a-wid" class="has-right" inputmode="decimal" min="0" step="any" value="16" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-ls-b-len">Rectangle B — length <span class="hint">(the leg of the L)</span></label><div class="inputwrap"><input type="number" id="cm-ls-b-len" class="has-right" inputmode="decimal" min="0" step="any" value="10" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-ls-b-wid">Rectangle B — width</label><div class="inputwrap"><input type="number" id="cm-ls-b-wid" class="has-right" inputmode="decimal" min="0" step="any" value="8" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-ls-thick">Thickness</label><div class="inputwrap"><input type="number" id="cm-ls-thick" class="has-right" inputmode="decimal" min="0" step="any" value="4" /><span class="unit right">in</span></div></div>
+            </div>
+            <p class="note">Split the L into two rectangles that share only an edge — if they overlap, the overlap gets counted twice.</p>
+          </div>
+          <div id="cm-tri-fields" hidden>
+            <div class="fields">
+              <div class="field"><label for="cm-tr-base">Base</label><div class="inputwrap"><input type="number" id="cm-tr-base" class="has-right" inputmode="decimal" min="0" step="any" value="20" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-tr-hgt">Height <span class="hint">(perpendicular to the base)</span></label><div class="inputwrap"><input type="number" id="cm-tr-hgt" class="has-right" inputmode="decimal" min="0" step="any" value="12" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-tr-thick">Thickness</label><div class="inputwrap"><input type="number" id="cm-tr-thick" class="has-right" inputmode="decimal" min="0" step="any" value="4" /><span class="unit right">in</span></div></div>
+            </div>
+          </div>
+          <div id="cm-contfoot-fields" hidden>
+            <div class="fields">
+              <div class="field"><label for="cm-cf-wid">Footing width</label><div class="inputwrap"><input type="number" id="cm-cf-wid" class="has-right" inputmode="decimal" min="0" step="any" value="24" /><span class="unit right">in</span></div></div>
+              <div class="field"><label for="cm-cf-thick">Footing thickness (depth)</label><div class="inputwrap"><input type="number" id="cm-cf-thick" class="has-right" inputmode="decimal" min="0" step="any" value="8" /><span class="unit right">in</span></div></div>
+              <div class="field"><label for="cm-cf-len">Total run length <span class="hint">(0 = per-foot only)</span></label><div class="inputwrap"><input type="number" id="cm-cf-len" class="has-right" inputmode="decimal" min="0" step="any" value="100" /><span class="unit right">ft</span></div></div>
+            </div>
+            <p class="note">The big number is the whole run; the “per linear foot” line is the rate to carry into a bid.</p>
+          </div>
+          <div id="cm-cylinder-fields" hidden>
+            <div class="fields">
+              <div class="field"><label for="cm-cy-dia">Diameter</label><div class="inputwrap"><input type="number" id="cm-cy-dia" class="has-right" inputmode="decimal" min="0" step="any" value="10" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-cy-hgt">Height <span class="hint">(feet — a tank or pier is measured tall, not thick)</span></label><div class="inputwrap"><input type="number" id="cm-cy-hgt" class="has-right" inputmode="decimal" min="0" step="any" value="6" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-cy-count">Number of identical pours</label><div class="inputwrap"><input type="number" id="cm-cy-count" inputmode="numeric" min="1" step="1" value="1" /></div></div>
+            </div>
+          </div>
+          <div id="cm-rebar-fields" hidden>
+            <div class="fields">
+              <div class="field"><label for="cm-rb-len">Slab length</label><div class="inputwrap"><input type="number" id="cm-rb-len" class="has-right" inputmode="decimal" min="0" step="any" value="20" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-rb-wid">Slab width</label><div class="inputwrap"><input type="number" id="cm-rb-wid" class="has-right" inputmode="decimal" min="0" step="any" value="12" /><span class="unit right">ft</span></div></div>
+              <div class="field"><label for="cm-rb-space">Bar spacing <span class="hint">(both ways)</span></label><div class="inputwrap"><input type="number" id="cm-rb-space" class="has-right" inputmode="decimal" min="0" step="any" value="18" /><span class="unit right">in</span></div></div>
+              <div class="field"><label for="cm-rb-edge">Edge clearance</label><div class="inputwrap"><input type="number" id="cm-rb-edge" class="has-right" inputmode="decimal" min="0" step="any" value="2" /><span class="unit right">in</span></div></div>
+              <div class="field"><label for="cm-rb-lap">Lap &amp; cutting waste</label><div class="inputwrap"><input type="number" id="cm-rb-lap" class="has-right" inputmode="decimal" min="0" step="any" value="5" /><span class="unit right">%</span></div></div>
+            </div>
+            <p class="note">This shape figures steel, not concrete — the readouts below switch to bars, linear feet, and 20-ft sticks. Bars run both ways at the spacing, set in from the edges by the clearance.</p>
+          </div>
           <div class="fields" style="margin-top:12px">
             <div class="field"><label for="cm-waste">Extra for waste &amp; uneven grade</label><div class="inputwrap"><input type="number" id="cm-waste" class="has-right" inputmode="decimal" min="0" step="any" value="10" /><span class="unit right">%</span></div></div>
           </div>
           <div class="readout" aria-live="polite">
-            <div class="big"><span class="lbl">Concrete to order</span><span class="val" id="cm-big">0 yd³</span></div>
+            <div class="big"><span class="lbl" id="cm-big-lbl">Concrete to order</span><span class="val" id="cm-big">0 yd³</span></div>
             <div class="rows">
-              <div class="row"><span class="k">Exact volume (no waste)</span><span class="v" id="cm-r-net">—</span></div>
-              <div class="row"><span class="k">Volume with waste</span><span class="v" id="cm-r-cuft">—</span></div>
-              <div class="row"><span class="k">Or 80-lb bags (0.6 ft³ each)</span><span class="v" id="cm-r-bags80">—</span></div>
-              <div class="row"><span class="k">Or 60-lb bags (0.45 ft³ each)</span><span class="v" id="cm-r-bags60">—</span></div>
+              <div class="row"><span class="k" id="cm-r-net-k">Exact volume (no waste)</span><span class="v" id="cm-r-net">—</span></div>
+              <div class="row"><span class="k" id="cm-r-cuft-k">Volume with waste</span><span class="v" id="cm-r-cuft">—</span></div>
+              <div class="row"><span class="k" id="cm-r-bags80-k">Or 80-lb bags (0.6 ft³ each)</span><span class="v" id="cm-r-bags80">—</span></div>
+              <div class="row"><span class="k" id="cm-r-bags60-k">Or 60-lb bags (0.45 ft³ each)</span><span class="v" id="cm-r-bags60">—</span></div>
             </div>
           </div>
           <p class="note">For a footing, length is the whole trench run and width × thickness is the trench cross-section. Post holes bell out and augers wobble — the waste line earns its keep there. Ready-mix plants batch in quarter-yard steps and short-load fees bite under about 3 yards; under that, count the bags and rent the mixer.</p>
@@ -3470,23 +3536,88 @@
             /* Bag estimator: coverage area x thickness — the outputs below
                turn it into yards and, the point of this shape, bag counts. */
             vol = num("cm-bg-area") * (num("cm-bg-thick") / 12);
+          } else if (shape === "lshape") {
+            /* L-shaped slab: two rectangles sharing only an edge, summed. */
+            vol = (num("cm-ls-a-len") * num("cm-ls-a-wid") + num("cm-ls-b-len") * num("cm-ls-b-wid")) * (num("cm-ls-thick") / 12);
+          } else if (shape === "tri") {
+            /* Triangular slab: half base x height, x thickness. */
+            vol = 0.5 * num("cm-tr-base") * num("cm-tr-hgt") * (num("cm-tr-thick") / 12);
+          } else if (shape === "contfoot") {
+            /* Continuous footing: cross-section (width x thickness, inches
+               to feet) x run length, so yards per linear foot falls out of
+               the same volume. A 0 run length means per-foot only. */
+            vol = (num("cm-cf-wid") / 12) * (num("cm-cf-thick") / 12) * num("cm-cf-len");
+          } else if (shape === "cylinder") {
+            /* Round tank / tall pier: full cylinder, diameter and height
+               both in feet — unlike the tube form (inches x feet). */
+            var cyR = num("cm-cy-dia") / 2;
+            vol = Math.PI * cyR * cyR * num("cm-cy-hgt") * Math.max(1, Math.round(num("cm-cy-count")));
+          } else if (shape === "rebar") {
+            /* Rebar grid estimator: no concrete volume — handled below. */
+            vol = 0;
           } else {
             vol = num("cm-len") * num("cm-wid") * (num("cm-thick") / 12) * Math.max(1, Math.round(num("cm-count")));
           }
+          if (shape === "rebar") {
+            /* Rebar estimator (slab grid): bars at the spacing in both
+               directions, inset from each edge by the clearance. Bars along
+               the length are counted across the width, and vice versa. */
+            var rbLenFt = num("cm-rb-len"), rbWidFt = num("cm-rb-wid");
+            var rbSpaceIn = num("cm-rb-space"), rbEdgeIn = num("cm-rb-edge");
+            var rbLenIn = rbLenFt * 12, rbWidIn = rbWidFt * 12;
+            var rbBarsX = 0, rbBarsY = 0, rbLf = 0;
+            if (rbSpaceIn > 0) {
+              rbBarsX = Math.floor(Math.max(0, rbWidIn - 2 * rbEdgeIn) / rbSpaceIn) + 1;
+              rbBarsY = Math.floor(Math.max(0, rbLenIn - 2 * rbEdgeIn) / rbSpaceIn) + 1;
+              rbLf = rbBarsX * (rbLenFt - 2 * rbEdgeIn / 12) + rbBarsY * (rbWidFt - 2 * rbEdgeIn / 12);
+            }
+            var rbLfLap = rbLf * (1 + num("cm-rb-lap") / 100);
+            $("cm-big-lbl").textContent = "Rebar to order (20-ft sticks)";
+            $("cm-big").textContent = Math.ceil(rbLfLap / 20).toLocaleString("en-US") + " sticks";
+            $("cm-r-net-k").textContent = "Total bar (with lap & waste)";
+            $("cm-r-net").textContent = Math.round(rbLfLap).toLocaleString("en-US") + " lin ft";
+            $("cm-r-cuft-k").textContent = "Total bar (exact grid)";
+            $("cm-r-cuft").textContent = Math.round(rbLf).toLocaleString("en-US") + " lin ft";
+            $("cm-r-bags80-k").textContent = "Bars running the length";
+            $("cm-r-bags80").textContent = rbBarsX.toLocaleString("en-US") + " bars";
+            $("cm-r-bags60-k").textContent = "Bars running the width";
+            $("cm-r-bags60").textContent = rbBarsY.toLocaleString("en-US") + " bars";
+            return;
+          }
+          $("cm-big-lbl").textContent = "Concrete to order";
+          $("cm-r-net-k").textContent = shape === "contfoot" ? "Per linear foot (no waste)" : "Exact volume (no waste)";
+          $("cm-r-cuft-k").textContent = "Volume with waste";
+          $("cm-r-bags80-k").textContent = "Or 80-lb bags (0.6 ft³ each)";
+          $("cm-r-bags60-k").textContent = "Or 60-lb bags (0.45 ft³ each)";
           var volW = vol * (1 + num("cm-waste") / 100);
           $("cm-big").textContent = (volW / 27).toFixed(2) + " yd³";
-          $("cm-r-net").textContent = (vol / 27).toFixed(2) + " yd³";
+          if (shape === "contfoot") {
+            var cfRun = num("cm-cf-len");
+            $("cm-r-net").textContent = cfRun > 0 ? ((vol / cfRun) / 27).toFixed(3) + " yd³/ft" : "—";
+          } else {
+            $("cm-r-net").textContent = (vol / 27).toFixed(2) + " yd³";
+          }
           $("cm-r-cuft").textContent = Math.round(volW).toLocaleString("en-US") + " ft³";
           $("cm-r-bags80").textContent = Math.ceil(volW / 0.6).toLocaleString("en-US") + " bags";
           $("cm-r-bags60").textContent = Math.ceil(volW / 0.45).toLocaleString("en-US") + " bags";
         }
-        var CM_GROUPS = { rect: "cm-rect-fields", round: "cm-round-fields", wall: "cm-wall-fields", roundslab: "cm-roundslab-fields", steps: "cm-steps-fields", frustum: "cm-frustum-fields", tube: "cm-tube-fields", curb: "cm-curb-fields", bags: "cm-bags-fields" };
+        var CM_GROUPS = { rect: "cm-rect-fields", round: "cm-round-fields", wall: "cm-wall-fields", roundslab: "cm-roundslab-fields", steps: "cm-steps-fields", frustum: "cm-frustum-fields", tube: "cm-tube-fields", curb: "cm-curb-fields", bags: "cm-bags-fields", lshape: "cm-lshape-fields", tri: "cm-tri-fields", contfoot: "cm-contfoot-fields", cylinder: "cm-cylinder-fields", rebar: "cm-rebar-fields" };
         function concreteShape() {
-          var active = CM_GROUPS[$("cm-shape").value] || "cm-rect-fields";
+          var shape = $("cm-shape").value;
+          var active = CM_GROUPS[shape] || "cm-rect-fields";
           Object.keys(CM_GROUPS).forEach(function (key) { $(CM_GROUPS[key]).hidden = CM_GROUPS[key] !== active; });
+          var btns = document.querySelectorAll(".cm-shape-btn");
+          for (var i = 0; i < btns.length; i++) { btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-shape") === shape ? "true" : "false"); }
           concreteTrade();
         }
-        on(["cm-shape", "cm-len", "cm-wid", "cm-thick", "cm-count", "cm-dia", "cm-depth", "cm-holes", "cm-waste", "cm-wall-len", "cm-wall-hgt", "cm-wall-thick", "cm-wall-count", "cm-rs-dia", "cm-rs-thick", "cm-rs-count", "cm-st-count", "cm-st-width", "cm-st-tread", "cm-st-riser", "cm-fr-top", "cm-fr-bot", "cm-fr-depth", "cm-fr-count", "cm-tb-dia", "cm-tb-hgt", "cm-tb-count", "cm-cb-len", "cm-cb-wid", "cm-cb-hgt", "cm-cb-panwid", "cm-cb-panthick", "cm-bg-area", "cm-bg-thick"], concreteTrade);
+        var cmBtns = document.querySelectorAll(".cm-shape-btn");
+        for (var b = 0; b < cmBtns.length; b++) {
+          cmBtns[b].addEventListener("click", function () {
+            $("cm-shape").value = this.getAttribute("data-shape");
+            concreteShape();
+          });
+        }
+        on(["cm-shape", "cm-len", "cm-wid", "cm-thick", "cm-count", "cm-dia", "cm-depth", "cm-holes", "cm-waste", "cm-wall-len", "cm-wall-hgt", "cm-wall-thick", "cm-wall-count", "cm-rs-dia", "cm-rs-thick", "cm-rs-count", "cm-st-count", "cm-st-width", "cm-st-tread", "cm-st-riser", "cm-fr-top", "cm-fr-bot", "cm-fr-depth", "cm-fr-count", "cm-tb-dia", "cm-tb-hgt", "cm-tb-count", "cm-cb-len", "cm-cb-wid", "cm-cb-hgt", "cm-cb-panwid", "cm-cb-panthick", "cm-bg-area", "cm-bg-thick", "cm-ls-a-len", "cm-ls-a-wid", "cm-ls-b-len", "cm-ls-b-wid", "cm-ls-thick", "cm-tr-base", "cm-tr-hgt", "cm-tr-thick", "cm-cf-wid", "cm-cf-thick", "cm-cf-len", "cm-cy-dia", "cm-cy-hgt", "cm-cy-count", "cm-rb-len", "cm-rb-wid", "cm-rb-space", "cm-rb-edge", "cm-rb-lap"], concreteTrade);
         $("cm-shape").addEventListener("change", concreteShape);
         concreteTrade();
 

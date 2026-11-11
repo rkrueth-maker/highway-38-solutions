@@ -1,0 +1,38 @@
+{
+ "name": "H38 Roof Calculator \u2014 Highway 38 Solutions",
+ "short_name": "Roof Calc",
+ "description": "Roof squares, shingle bundles, underlayment rolls and ridge cap from footprint and pitch. Free roofing math, no sign-up.",
+ "lang": "en-US",
+ "display": "standalone",
+ "orientation": "any",
+ "scope": "./",
+ "start_url": "./",
+ "background_color": "#f4f2ed",
+ "theme_color": "#1d2320",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "apple-touch-icon.png",
+   "sizes": "180x180",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}

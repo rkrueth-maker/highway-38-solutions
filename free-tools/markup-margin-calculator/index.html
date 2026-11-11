@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H38 Markup & Margin Calculator — Highway 38 Solutions</title>
+<meta name="description" content="Markup vs margin, both directions, plus a job pricer: labor + materials + overhead + profit = the number to charge. Free, no sign-up.">
+<link rel="canonical" href="https://highway38solutions.com/free-tools/markup-margin-calculator/">
+<meta name="theme-color" content="#1d2320">
+<link rel="icon" type="image/png" href="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../field-tools.css">
+</head><body>
+<div class="wrap">
+<header class="topbar"><img src="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions logo"><div class="brand">Highway 38 Solutions<small>Free tools · No sign-up</small></div><a class="back" href="../../free-tools.html">← All free tools</a></header>
+<main>
+<h1>Markup &amp; Margin — What Should I Charge?</h1>
+<p class="lede">Markup and margin are not the same number, and mixing them up is how jobs get priced at a loss. Put a cost in, see both, then run the job pricer: labor, materials, overhead, and profit, stacked in the open.</p>
+
+<section class="card"><h2>Markup ⇄ margin</h2>
+<p class="sub">Enter a cost and either percentage. Markup is figured on the cost; margin is figured on the selling price — that's the whole difference, and it's why a 25% markup is only a 20% margin.</p>
+<div class="fields">
+ <div class="field"><label for="mm-cost">Your cost</label><div class="inputwrap"><input type="number" id="mm-cost" min="0" step="any" value="100"><span class="unit">$</span></div></div>
+ <div class="field"><label for="mm-mode">I know my…</label><select id="mm-mode"><option value="markup" selected>Markup %</option><option value="margin">Margin %</option></select></div>
+ <div class="field"><label for="mm-pct">Percentage</label><div class="inputwrap"><input type="number" id="mm-pct" min="0" step="any" value="25"><span class="unit">%</span></div></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Charge this price</span><span class="val" id="mm-big">—</span></div>
+<div class="rows">
+ <div class="row"><span class="k">Same price as a markup</span><span class="v" id="mm-r-markup">—</span></div>
+ <div class="row"><span class="k">Same price as a margin</span><span class="v" id="mm-r-margin">—</span></div>
+ <div class="row"><span class="k">Gross profit</span><span class="v" id="mm-r-profit">—</span></div>
+</div></div>
+</section>
+<section class="card"><h2>Price a job</h2>
+<p class="sub">Labor and materials first, overhead on top of them, then your profit on the whole stack. The Office runs this exact stack inside every quote.</p>
+<div class="fields">
+ <div class="field"><label for="mm-hours">Labor hours</label><div class="inputwrap"><input type="number" id="mm-hours" min="0" step="any" value="8"><span class="unit">hr</span></div></div>
+ <div class="field"><label for="mm-rate">Labor rate</label><div class="inputwrap"><input type="number" id="mm-rate" min="0" step="any" value="65"><span class="unit">$/hr</span></div></div>
+ <div class="field"><label for="mm-mat">Materials</label><div class="inputwrap"><input type="number" id="mm-mat" min="0" step="any" value="300"><span class="unit">$</span></div></div>
+ <div class="field"><label for="mm-oh">Overhead</label><div class="inputwrap"><input type="number" id="mm-oh" min="0" step="any" value="15"><span class="unit">%</span></div></div>
+ <div class="field"><label for="mm-profit">Profit</label><div class="inputwrap"><input type="number" id="mm-profit" min="0" step="any" value="20"><span class="unit">%</span></div></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Charge for the job</span><span class="val" id="mm-big2">—</span></div>
+<div class="rows">
+ <div class="row"><span class="k">Labor</span><span class="v" id="mm-r-labor">—</span></div>
+ <div class="row"><span class="k">With overhead</span><span class="v" id="mm-r-sub">—</span></div>
+</div></div>
+</section>
+
+<section class="cta"><h2>By hand here. Connected in the Office.</h2>
+<p>This tool does one job at a time, by hand — that's what makes it simple. The H38 Business Office runs the same work connected: quotes, jobs, schedule, invoices, and follow-up in one place, on the phone and the computer.</p>
+<div class="btns"><a class="btn primary" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn ghost" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div></section>
+</main>
+<footer>Free tool from <a href="https://highway38solutions.com/">Highway 38 Solutions</a>, Grand Rapids, Minnesota · (218) 212-5299 · <a href="../../free-tools.html">More free tools</a></footer>
+</div>
+<script src="../field-tools.js"></script>
+<script>
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+var on = function (ids, fn) { ids.forEach(function (id) { $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }); };
+
+var F = window.H38FT;
+function money(v){return "$"+v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});}
+function upd(){
+  var cost = num("mm-cost"), pct = num("mm-pct"), price, other;
+  if ($("mm-mode").value === "markup") { var r = F.priceFromMarkup(cost, pct); price = r.price; other = r.marginPct; $("mm-r-markup").textContent = pct + "%"; $("mm-r-margin").textContent = other + "%"; }
+  else { var r2 = F.priceFromMargin(cost, pct); price = r2.price; other = r2.markupPct; $("mm-r-markup").textContent = other + "%"; $("mm-r-margin").textContent = pct + "%"; }
+  $("mm-big").textContent = money(price);
+  $("mm-r-profit").textContent = money(price - cost);
+}
+function upd2(){
+  var j = F.jobCharge(num("mm-hours"), num("mm-rate"), num("mm-mat"), num("mm-oh"), num("mm-profit"));
+  $("mm-big2").textContent = money(j.charge);
+  $("mm-r-labor").textContent = money(j.labor);
+  $("mm-r-sub").textContent = money(j.subtotal);
+}
+on(["mm-cost","mm-mode","mm-pct"], upd); upd();
+on(["mm-hours","mm-rate","mm-mat","mm-oh","mm-profit"], upd2); upd2();
+
+if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body></html>
