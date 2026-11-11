@@ -910,7 +910,7 @@
    * Failure: any front-door computation is try/caught to an empty
    * block — the rest of Today renders exactly as before. */
 
-  const FRONT_DOOR_BUILD = '20261107-gap8-fronthome-2';
+  const FRONT_DOOR_BUILD = '20261110-onboarding-polish-1';
 
   function frontRecords(name) {
     try { const r = records(name); return Array.isArray(r) ? r : []; } catch (e) { return []; }
@@ -919,7 +919,12 @@
   function frontIsExample(row) {
     const hay = ['Quote Number', 'Job Number', 'Invoice Number', 'Project Title', 'Status']
       .map(k => v(row, k)).join(' ');
-    return /\bDEMO\b|\bEX-/i.test(hay) || (row && row['Example Data'] === true);
+    // Internal-only rows (e.g. the provisioned GENERIC-QUOTE-CUSTOMER
+    // placeholder) are not the business's real records — never count
+    // them toward setup progress (found 2026-11-10: a fresh trial
+    // tenant's Customers step read done before the owner added anyone).
+    return /\bDEMO\b|\bEX-/i.test(hay) || (row && row['Example Data'] === true) ||
+      (row && row['Internal Only'] === true);
   }
   function frontCanFinancial() {
     try {
@@ -1021,17 +1026,23 @@
   function computeSetupSteps() {
     const snap = (state && state.snapshot) || {};
     const steps = [];
-    /* 1. Business profile — the guided-setup record (ai-onboarding.js
-     * saves collection 'businessProfile'; Settings reads it the same
-     * way). Complete = a row with a name and at least one contact
-     * field. Collection absent from the snapshot = unknown. */
-    const profiles = snap.businessProfile;
-    if (!Array.isArray(profiles)) {
+    /* 1. Business profile — two genuine sources: the guided-setup
+     * record (ai-onboarding.js saves collection 'businessProfile')
+     * and the provisioning record every tenant starts with
+     * (collection 'businessProfiles', written by signup with the
+     * business's legal/display name and the owner's email). Reading
+     * only the first left this step permanently "couldn't confirm"
+     * on a fresh trial tenant even though a real profile exists
+     * (found 2026-11-10). Complete = a row with a name and at least
+     * one contact field. Neither collection in the snapshot = unknown. */
+    const profiles = Array.isArray(snap.businessProfile) ? snap.businessProfile
+      : (Array.isArray(snap.businessProfiles) ? snap.businessProfiles : null);
+    if (!profiles) {
       steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: null });
     } else {
       const prof = profiles[0] || {};
-      const done = !!frontText(v(prof, 'Business Name', 'businessName')) &&
-        !!(frontText(v(prof, 'Phone', 'phone')) || frontText(v(prof, 'Email', 'email')) || frontText(v(prof, 'Address', 'address')));
+      const done = !!frontText(v(prof, 'Business Name', 'businessName', 'Legal Name', 'Display Name')) &&
+        !!(frontText(v(prof, 'Phone', 'phone')) || frontText(v(prof, 'Email', 'email', 'Owner Email')) || frontText(v(prof, 'Address', 'address')));
       steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: done });
     }
     /* 2. Services & pricing — ≥1 price-book item (snapshot.priceBook,
@@ -1068,9 +1079,21 @@
      * i.e. a person actually reviewed and saved the setting. */
     const settings = Array.isArray(snap.moduleSettings) ? snap.moduleSettings : [];
     const settingRow = key => settings.find(r => frontText((r && (r.moduleKey || r.module_key)) || '') === key) || null;
-    const reviewed = row => !!(row && row.config && frontText(row.config.updatedAt));
+    /* A save stamped BEFORE this business existed cannot be this
+     * business's review: trial provisioning clones module settings
+     * (including another tenant's updatedAt/updatedBy) into the new
+     * tenant, which made both steps read done on day one (found
+     * 2026-11-10). Compare against the provisioning profile's
+     * creation time when it is known. */
+    const bizCreatedMs = profiles && profiles[0] ? Date.parse(frontText(v(profiles[0], 'Created Time', 'Trial Start')) || '') : NaN;
+    const reviewed = row => {
+      if (!(row && row.config && frontText(row.config.updatedAt))) return false;
+      const stampMs = Date.parse(frontText(row.config.updatedAt) || '');
+      if (Number.isFinite(bizCreatedMs) && Number.isFinite(stampMs) && stampMs < bizCreatedMs) return false;
+      return true;
+    };
     const portalRow = settingRow('customer_portal');
-    steps.push({ id: 'portal', title: 'Customer portal', detail: portalRow ? (reviewed(portalRow) ? 'Settings saved — portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' by your choice' : 'Portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' — review & save the setting') : 'Portal setting not saved yet', page: 'settings', done: reviewed(portalRow) });
+    steps.push({ id: 'portal', title: 'Customer portal', detail: portalRow ? (reviewed(portalRow) ? 'Settings saved — portal is ' + (portalRow.enabled === true ? 'on' : 'off') : 'Portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' — review & save the setting') : 'Portal setting not saved yet', page: 'settings', done: reviewed(portalRow) });
     const depositRow = settingRow('signed_deposit_acceptance');
     const depositPct = depositRow && depositRow.config && Number.isFinite(Number(depositRow.config.depositPercent)) ? Number(depositRow.config.depositPercent) : null;
     steps.push({ id: 'deposit', title: 'Deposit settings', detail: depositRow ? (reviewed(depositRow) ? 'Settings saved' + (depositPct !== null ? ' — default deposit ' + depositPct + '%' : '') : 'Review & save your deposit setting') : 'Deposit setting not saved yet', page: 'settings', done: reviewed(depositRow) });
@@ -1095,7 +1118,8 @@
       <h2>🧭 Finish setting up</h2>
       <p class="h38-setup-progress"><strong>${done} of ${determinable.length} set up</strong>${unknown ? ' · ' + unknown + ' step' + (unknown === 1 ? '' : 's') + ' couldn\u2019t be confirmed from your records and isn\u2019t counted' : ''}</p>
       <div class="h38-setup-list">${rowsHtml}</div>
-      <p class="muted small">Tap a step to go where it\u2019s finished. This card disappears once every step above is set up — you can find setup again any time in Settings, under \u201cBusiness setup &amp; onboarding\u201d.</p></section>`;
+      <p class="muted small">Tap a step to go where it\u2019s finished. This card disappears once every step above is set up — you can find setup again any time in Settings, under \u201cBusiness setup &amp; onboarding\u201d.</p>
+      <p class="muted small">New here? <button type="button" class="secondary" data-h38-tour>🎓 Take the office tour</button> <button type="button" class="secondary" data-h38-guide="first-launch">🚀 Walk through your first steps</button></p></section>`;
   }
 
   function buildFrontDoorHtml() {
@@ -1700,7 +1724,7 @@
 
   window.H38OwnerHome = Object.freeze({
     render: renderOwnerHome,
-    build: '20261107-gap8-fronthome-2',
+    build: '20261110-onboarding-polish-1',
     detectBusinessType: detectBusinessType,
     computeSetupSteps: computeSetupSteps,
     computeFrontDoorKpis: computeFrontDoorKpis,

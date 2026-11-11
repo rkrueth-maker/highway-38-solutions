@@ -1,9 +1,12 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-10T03:43:52.899Z",
+  "generatedAt": "2026-11-11T01:01:55.525Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
+    "artifacts/change-governance/verification.json",
+    "artifacts/change-plan/verification-plan.json",
+    "artifacts/change-plan/verification-plan.md",
     "commercial-app/bundle-features.js",
     "commercial-app/h38-script-loader.js",
     "commercial-app/kits-workspace.js",
@@ -13,7 +16,7 @@
     "scripts/verify-price-refresh.js",
     "supabase/functions/kit-proactive-engine/index.ts"
   ],
-  "fileCount": 8,
+  "fileCount": 11,
   "scopes": {
     "publicWebsite": false,
     "authenticatedApp": true,

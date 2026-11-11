@@ -173,7 +173,7 @@
       './daily-digest.js?build=20261031-schedtruth-2',
       './owner-controls.js?build=20261107-polish-a4-fleet-1',
       './owner-notifications.js?build=20261013-owner-notify-4',
-      './today-command-setup.js?build=20261107-gap8-fronthome-2',
+      './today-command-setup.js?build=20261110-onboarding-polish-1',
       './mileage.js?build=20261031-trippath-1',
       // Wave 3 tail #9: the membership engine's on-load check (due billing
       // drafts, plan-visit refill, renewal alerts) runs from Today, the
