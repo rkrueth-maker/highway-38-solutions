@@ -1,4 +1,4 @@
-/* H38 Today: AI command bar + setup checklist — build 20261110-onboarding-polish-1
+/* H38 Today: AI command bar + setup checklist — build 20261110-retire-checklist-1
  *
  * GAP8 (2026-11-07): the front door (ask box + KPI strip + setup
  * checklist) is now RENDERED by owner-home.js, synchronously in the
@@ -50,11 +50,11 @@
  * not invented:
  *   - ai-onboarding.js STEPS: profile, services, customers, team
  *     (welcome/review are flow steps, not records, and are excluded)
- *   - muse-onboarding-checklist.js confirms the same four, and its
- *     extra items (Bouncie, QuickBooks, templates, notifications,
- *     online booking) are tracked as manual flags, not records, so
- *     they are NOT checklist steps here — a step must be computable
- *     from real records/state.
+ *   - The retired muse-onboarding-checklist.js (removed 2026-11-10)
+ *     listed extra items (Bouncie, QuickBooks, templates,
+ *     notifications, online booking) as manual flags, not records,
+ *     so they are NOT checklist steps here either — a step must be
+ *     computable from real records/state.
  *   - The two remaining steps the task names are both computable from
  *     real state: AI answering from snapshot.moduleSettings
  *     (owner-controls.js serverModuleOn('ai_receptionist')), and logo
@@ -80,7 +80,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261110-onboarding-polish-1';
+  var BUILD = '20261110-retire-checklist-1';
   var CONTAINER_ID = 'h38TodayCommandSetup';
   var CHECKLIST_ID = 'h38TodaySetupChecklist';
   var DEFAULT_LOGO_MARK = 'highway38-logo';
