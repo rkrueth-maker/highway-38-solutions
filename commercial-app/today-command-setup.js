@@ -1,4 +1,4 @@
-/* H38 Today: AI command bar + setup checklist — build 20261107-gap8-fronthome-2
+/* H38 Today: AI command bar + setup checklist — build 20261110-onboarding-polish-1
  *
  * GAP8 (2026-11-07): the front door (ask box + KPI strip + setup
  * checklist) is now RENDERED by owner-home.js, synchronously in the
@@ -80,7 +80,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '20261107-gap8-fronthome-2';
+  var BUILD = '20261110-onboarding-polish-1';
   var CONTAINER_ID = 'h38TodayCommandSetup';
   var CHECKLIST_ID = 'h38TodaySetupChecklist';
   var DEFAULT_LOGO_MARK = 'highway38-logo';
@@ -109,7 +109,10 @@
   }
   function isExample(row) {
     var hay = [value(row, 'Quote Number', 'Job Number', 'Invoice Number', 'Project Title', 'Status')].join(' ');
-    return /\bDEMO\b|\bEX-/i.test(hay) || row && row['Example Data'] === true;
+    // Internal-only rows (e.g. GENERIC-QUOTE-CUSTOMER) are not real
+    // records — never count them toward setup progress.
+    return /\bDEMO\b|\bEX-/i.test(hay) || (row && row['Example Data'] === true) ||
+      (row && row['Internal Only'] === true);
   }
   function setupAllowed() {
     try {
@@ -125,13 +128,14 @@
     if (window.H38OwnerHome && typeof window.H38OwnerHome.computeSetupSteps === 'function') return window.H38OwnerHome.computeSetupSteps();
     var s = st(), snap = (s && s.snapshot) || {};
     var steps = [];
-    var profiles = snap.businessProfile;
-    if (!Array.isArray(profiles)) {
+    var profiles = Array.isArray(snap.businessProfile) ? snap.businessProfile
+      : (Array.isArray(snap.businessProfiles) ? snap.businessProfiles : null);
+    if (!profiles) {
       steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: null });
     } else {
       var prof = profiles[0] || {};
-      var profDone = !!text(value(prof, 'Business Name', 'businessName')) &&
-        !!(text(value(prof, 'Phone', 'phone')) || text(value(prof, 'Email', 'email')) || text(value(prof, 'Address', 'address')));
+      var profDone = !!text(value(prof, 'Business Name', 'businessName', 'Legal Name', 'Display Name')) &&
+        !!(text(value(prof, 'Phone', 'phone')) || text(value(prof, 'Email', 'email', 'Owner Email')) || text(value(prof, 'Address', 'address')));
       steps.push({ id: 'profile', title: 'Business profile', detail: 'Name, phone, email and address', page: 'settings', done: profDone });
     }
     var priceCount = rows('priceBook').length;
@@ -151,9 +155,17 @@
     }
     var settings = Array.isArray(snap.moduleSettings) ? snap.moduleSettings : [];
     function settingRow(key) { for (var i = 0; i < settings.length; i++) { if (text(settings[i].moduleKey || settings[i].module_key) === key) return settings[i]; } return null; }
-    function reviewed(row) { return !!(row && row.config && text(row.config.updatedAt)); }
+    var bizCreatedMs = profiles && profiles[0] ? Date.parse(text(value(profiles[0], 'Created Time', 'Trial Start')) || '') : NaN;
+    function reviewed(row) {
+      if (!(row && row.config && text(row.config.updatedAt))) return false;
+      var stampMs = Date.parse(text(row.config.updatedAt) || '');
+      // A stamp from before this business existed is a cloned
+      // provisioning default, not this owner's review (2026-11-10).
+      if (isFinite(bizCreatedMs) && isFinite(stampMs) && stampMs < bizCreatedMs) return false;
+      return true;
+    }
     var portalRow = settingRow('customer_portal');
-    steps.push({ id: 'portal', title: 'Customer portal', detail: portalRow ? (reviewed(portalRow) ? 'Settings saved — portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' by your choice' : 'Portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' — review & save the setting') : 'Portal setting not saved yet', page: 'settings', done: reviewed(portalRow) });
+    steps.push({ id: 'portal', title: 'Customer portal', detail: portalRow ? (reviewed(portalRow) ? 'Settings saved — portal is ' + (portalRow.enabled === true ? 'on' : 'off') : 'Portal is ' + (portalRow.enabled === true ? 'on' : 'off') + ' — review & save the setting') : 'Portal setting not saved yet', page: 'settings', done: reviewed(portalRow) });
     var depositRow = settingRow('signed_deposit_acceptance');
     var depositPct = depositRow && depositRow.config && isFinite(Number(depositRow.config.depositPercent)) && depositRow.config.depositPercent !== undefined && depositRow.config.depositPercent !== null ? Number(depositRow.config.depositPercent) : null;
     steps.push({ id: 'deposit', title: 'Deposit settings', detail: depositRow ? (reviewed(depositRow) ? 'Settings saved' + (depositPct !== null ? ' — default deposit ' + depositPct + '%' : '') : 'Review & save your deposit setting') : 'Deposit setting not saved yet', page: 'settings', done: reviewed(depositRow) });
@@ -179,7 +191,8 @@
       '<p class="h38-setup-progress"><strong>' + done + ' of ' + determinable.length + ' set up</strong>' +
       (unknown ? ' · ' + unknown + ' step' + (unknown === 1 ? '' : 's') + ' couldn\'t be confirmed from your records and isn\'t counted' : '') + '</p>' +
       '<div class="h38-setup-list">' + rowsHtml + '</div>' +
-      '<p class="muted small">Tap a step to go where it\'s finished. This card disappears once every step above is set up — you can find setup again any time in Settings, under \u201cBusiness setup &amp; onboarding\u201d.</p></section>';
+      '<p class="muted small">Tap a step to go where it\'s finished. This card disappears once every step above is set up — you can find setup again any time in Settings, under \u201cBusiness setup &amp; onboarding\u201d.</p>' +
+      '<p class="muted small">New here? <button type="button" class="secondary" data-h38-tour>🎓 Take the office tour</button> <button type="button" class="secondary" data-h38-guide="first-launch">🚀 Walk through your first steps</button></p></section>';
     return { html: html, done: done, total: determinable.length, complete: false };
   }
 
