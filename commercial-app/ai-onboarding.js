@@ -1,10 +1,10 @@
 (function(){
 'use strict';
-// H38 AI-Assisted Onboarding: guided business setup with Muse/personal AI.
-// Every step works manually. AI assist is optional and results are always
-// reviewable before saving. H38 AI (Kit) remains as fallback.
+// H38 AI-Assisted Onboarding: guided business setup.
+// Every step works manually. The Office's own AI help (Kit, via the AI
+// handoff) is optional and results are always reviewable before saving.
 // Nothing executes automatically.
-const BUILD='20261013-rescan-fixes-1';
+const BUILD='20261110-retire-checklist-1';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -42,7 +42,7 @@ function renderWelcome(){
     <div class="h38-onboard-choice">
       <button type="button" class="h38-onboard-card" data-onboard-ai="true">
         <span>✨</span><strong>AI-assisted setup</strong>
-        <small>Your personal AI (Muse) helps fill in services, organize customer lists, and suggest pricing. You review everything before it's saved.</small>
+        <small>Kit, the Office's built-in AI help, suggests services, organizes customer lists, and suggests pricing. You review everything before it's saved.</small>
       </button>
       <button type="button" class="h38-onboard-card" data-onboard-ai="false">
         <span>📝</span><strong>Manual setup</strong>
@@ -209,7 +209,7 @@ function bind(){
   document.querySelectorAll('[data-onboard-ai]').forEach(b=>b.onclick=()=>{
     onboardingData.useAI=b.dataset.onboardAi==='true';
     currentStep=1;render();
-    toast(onboardingData.useAI?'AI-assisted setup. You review everything.':'Manual setup. H38 assistant available if needed.');
+    toast(onboardingData.useAI?'AI-assisted setup. You review everything.':'Manual setup. Kit stays available if needed.');
   });
   document.querySelectorAll('[data-onboard-nav]').forEach(b=>b.onclick=()=>{
     collectCurrentStep();
