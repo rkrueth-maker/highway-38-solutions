@@ -1,0 +1,59 @@
+/* H38 Field Tools — shared styles for the seven free field-tool pages.
+   Visual family of the Contractor Calc (dark readout, condensed heads). */
+:root {
+  --ink: #1d2320; --ink-soft: #55605a; --bg: #f4f2ed; --panel: #fffdf8;
+  --panel-2: #efeadf; --line: #d8d2c2; --accent: #b4551f; --accent-ink: #8f3f12;
+  --accent-soft: #f7e3d3; --readout-bg: #1d2320; --readout-ink: #f2efe6;
+  --readout-soft: #b9beb4; --readout-accent: #ffb066;
+  --shadow: 0 1px 3px rgba(29,35,32,.12);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 20px 16px 44px; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 6px 0 14px; }
+.topbar img { width: 44px; height: 44px; border-radius: 8px; }
+.topbar .brand { font-weight: 700; font-size: 15px; line-height: 1.2; }
+.topbar .brand small { display: block; font-weight: 500; color: var(--ink-soft); font-size: 12.5px; }
+.topbar a.back { margin-left: auto; font-weight: 700; color: var(--accent-ink); text-decoration: none; font-size: 14.5px; }
+h1 { font-family: "Barlow Condensed", "Barlow", sans-serif; font-weight: 600; font-size: clamp(30px, 6vw, 40px); text-transform: uppercase; letter-spacing: .015em; margin: 6px 0 4px; line-height: 1.05; }
+.lede { color: var(--ink-soft); font-size: 16.5px; margin: 0 0 18px; max-width: 62ch; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 22px 22px 18px; margin-bottom: 18px; }
+.card h2 { font-family: "Barlow Condensed", "Barlow", sans-serif; font-weight: 600; font-size: 24px; text-transform: uppercase; margin: 0 0 4px; }
+.card .sub { color: var(--ink-soft); font-size: 14.5px; margin: 0 0 16px; }
+.fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px 14px; }
+@media (max-width: 560px) { .fields { grid-template-columns: minmax(0,1fr); } }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 13.5px; font-weight: 600; color: var(--ink-soft); }
+.field .hint { font-size: 12px; font-weight: 400; }
+.inputwrap { position: relative; }
+.inputwrap .unit { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); font-size: 15px; pointer-events: none; font-weight: 500; }
+input[type="number"], input[type="text"], select {
+  width: 100%; font: inherit; font-size: 17px; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 7px; padding: 10px 34px 10px 12px;
+  appearance: none; -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%), linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%); background-position: calc(100% - 18px) 55%, calc(100% - 12px) 55%; background-size: 6px 6px; background-repeat: no-repeat; cursor: pointer; }
+input[type="file"] { font: inherit; font-size: 15px; }
+.readout { background: var(--readout-bg); color: var(--readout-ink); border-radius: 8px; padding: 16px 18px 14px; margin-top: 18px; }
+.readout .big { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.readout .big .lbl { font-size: 13px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--readout-soft); }
+.readout .big .val { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; font-size: clamp(26px, 4.5vw, 34px); color: var(--readout-accent); line-height: 1.05; }
+.rows { margin-top: 12px; border-top: 1px solid rgba(242,239,230,.14); }
+.row { display: flex; justify-content: space-between; gap: 14px; padding: 6.5px 0; border-bottom: 1px solid rgba(242,239,230,.08); font-size: 15px; }
+.row:last-child { border-bottom: none; }
+.row .v { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; white-space: nowrap; }
+.note { font-size: 13.5px; color: var(--ink-soft); margin: 14px 0 0; }
+.warn { background: #fdf3e3; border: 1px solid #e5c07a; border-radius: 8px; padding: 12px 14px; font-size: 14.5px; margin-top: 16px; }
+.cta { background: var(--readout-bg); color: var(--readout-ink); border-radius: 10px; padding: 20px 22px; margin-top: 4px; }
+.cta h2 { font-family: "Barlow Condensed", "Barlow", sans-serif; text-transform: uppercase; font-size: 24px; margin: 0 0 6px; }
+.cta p { color: var(--readout-soft); margin: 0 0 14px; font-size: 15px; }
+.cta .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { display: inline-block; font-weight: 700; text-decoration: none; border-radius: 7px; padding: 11px 18px; font-size: 15.5px; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.ghost { border: 1.5px solid var(--readout-soft); color: var(--readout-ink); }
+.thumb { max-width: 100%; border-radius: 8px; margin-top: 10px; display: none; }
+footer { color: var(--ink-soft); font-size: 13px; text-align: center; padding: 10px 0 0; }
+footer a { color: var(--accent-ink); }

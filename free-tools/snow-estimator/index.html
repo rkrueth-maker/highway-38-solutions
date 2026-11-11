@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>H38 Snow & Seasonal Estimator — Highway 38 Solutions</title>
+<meta name="description" content="Ballpark snow plowing and lawn mowing prices for northern Minnesota — per visit or a full season. Free, no sign-up.">
+<link rel="canonical" href="https://highway38solutions.com/free-tools/snow-estimator/">
+<meta name="theme-color" content="#1d2320">
+<link rel="icon" type="image/png" href="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../field-tools.css">
+</head><body>
+<div class="wrap">
+<header class="topbar"><img src="../../assets/highway38-logo.png?v=20260720-exact-0cbc4514" alt="Highway 38 Solutions logo"><div class="brand">Highway 38 Solutions<small>Free tools · No sign-up</small></div><a class="back" href="../../free-tools.html">← All free tools</a></header>
+<main>
+<h1>Snow &amp; Seasonal Service Estimator</h1>
+<p class="lede">What should plowing or mowing cost this year? Put in the size of the driveway or the lawn and get a northern-Minnesota ballpark — per visit, or a whole season. A range, honestly labeled: the real price depends on slope, obstacles, and how far the truck or mower travels.</p>
+
+<section class="card"><h2>Estimate a service</h2>
+<p class="sub">Driveway or lot size for plowing; lawn size for mowing. A 20 × 100 ft driveway is 2,000 sq ft; a half-acre lawn is about 21,780 sq ft.</p>
+<div class="fields">
+ <div class="field"><label for="sn-service">Service</label><select id="sn-service"><option value="plow" selected>Snow plowing</option><option value="mow">Lawn mowing</option></select></div>
+ <div class="field"><label for="sn-period">Billing</label><select id="sn-period"><option value="visit" selected>Per visit</option><option value="season">Season contract</option></select></div>
+ <div class="field full"><label for="sn-sqft">Area serviced</label><div class="inputwrap"><input type="number" id="sn-sqft" min="0" step="any" value="2000"><span class="unit">sq ft</span></div></div>
+</div>
+<div class="readout" aria-live="polite"><div class="big"><span class="lbl">Ballpark range</span><span class="val" id="sn-big">—</span></div>
+<div class="rows">
+ <div class="row"><span class="k">Per-visit ballpark</span><span class="v" id="sn-r-visit">—</span></div>
+ <div class="row"><span class="k">Visits in a typical season</span><span class="v" id="sn-r-events">—</span></div>
+</div></div>
+<p class="note"><strong>Basis (northern Minnesota, 2026):</strong> plowing runs a $45 call-out plus 2.0–4.5¢ per sq ft per visit; mowing a $35 call-out plus 0.12–0.28¢ per sq ft. A season contract is priced off the per-visit midpoint times a typical season — about 18 plowing events or 22 mowing visits — and quoted here within ±10%. Long, steep, gravel, or obstacle-heavy properties price above the range; small flat ones below it. This is an estimate for planning, not a quote.</p>
+</section>
+
+<section class="cta"><h2>By hand here. Connected in the Office.</h2>
+<p>This tool does one job at a time, by hand — that's what makes it simple. The H38 Business Office runs the same work connected: quotes, jobs, schedule, invoices, and follow-up in one place, on the phone and the computer.</p>
+<div class="btns"><a class="btn primary" href="https://highway38solutions.com/commercial-app/index.html?businessKey=demo">Try the Live Office Demo</a><a class="btn ghost" href="https://highway38solutions.com/business-in-a-box.html">See the Office &amp; pricing</a></div></section>
+</main>
+<footer>Free tool from <a href="https://highway38solutions.com/">Highway 38 Solutions</a>, Grand Rapids, Minnesota · (218) 212-5299 · <a href="../../free-tools.html">More free tools</a></footer>
+</div>
+<script src="../field-tools.js"></script>
+<script>
+"use strict";
+var $ = function (id) { return document.getElementById(id); };
+var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+var on = function (ids, fn) { ids.forEach(function (id) { $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }); };
+
+var F = window.H38FT;
+function money(v){return "$"+Math.round(v).toLocaleString("en-US");}
+function upd(){
+  var r = F.snowEstimate($("sn-service").value, $("sn-period").value, num("sn-sqft"));
+  $("sn-big").textContent = money(r.lo) + " – " + money(r.hi);
+  $("sn-r-visit").textContent = (r.perVisitLo !== undefined) ? money(r.perVisitLo) + " – " + money(r.perVisitHi) : money(r.lo) + " – " + money(r.hi);
+  $("sn-r-events").textContent = r.events;
+}
+on(["sn-service","sn-period","sn-sqft"], upd); upd();
+
+if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body></html>
