@@ -169,6 +169,13 @@
       "canonical": "https://highway38solutions.com/trial-signup.html",
       "shell": "canonical",
       "visibility": "public"
+    },
+    {
+      "path": "recipes.html",
+      "label": "Our Kitchen \u2014 Household Recipes",
+      "canonical": "https://highway38solutions.com/recipes.html",
+      "shell": "canonical",
+      "visibility": "public-noindex"
     }
   ],
   "demonstrations": [
