@@ -43,12 +43,13 @@
 .k-steps{white-space:pre-wrap}
 .k-ing li{margin:3px 0}
 </style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="pi-nav"></header><main id="main">
-<section class="pi-section" style="padding-top:26px"><div class="pi-head pi-compact" style="text-align:left;max-width:880px;margin:0 auto"><span class="pi-eyebrow">For our house · Not a product page</span><h1 style="font-size:clamp(30px,4.5vw,44px);margin:6px 0 8px">Our Kitchen</h1><p>Our recipes, the week's plan, one shopping list, and the budget — with the coupon and penny deals Scout finds matched against the list. Everything you save lives on this phone or tablet; nothing is sent anywhere.</p></div>
+<section class="pi-section" style="padding-top:26px"><div class="pi-head pi-compact" style="text-align:left;max-width:880px;margin:0 auto"><span class="pi-eyebrow">For our house · Not a product page</span><h1 style="font-size:clamp(30px,4.5vw,44px);margin:6px 0 8px">Our Kitchen</h1><p>Our recipes, the week's plan, one shopping list shared by the whole household, and the budget — with the coupon and penny deals Scout finds matched against the list. The list and watch list are shared; recipes and plans live on each device.</p></div>
 <div class="k-app">
 <div class="k-tabs" role="tablist">
 <button class="k-tab" role="tab" data-tab="recipes" aria-selected="true">Recipes</button>
 <button class="k-tab" role="tab" data-tab="plan" aria-selected="false">Week Plan &amp; Budget</button>
 <button class="k-tab" role="tab" data-tab="list" aria-selected="false">Shopping List</button>
+<button class="k-tab" role="tab" data-tab="watch" aria-selected="false">Watch List</button>
 <button class="k-tab" role="tab" data-tab="deals" aria-selected="false">Deals</button>
 </div>
 
@@ -81,6 +82,11 @@
 </section>
 
 <section id="tab-list" class="k-hidden">
+<div class="k-card"><h3>Shared with your household</h3>
+<p class="k-muted" id="s-status">Connecting to the shared list…</p>
+<div class="k-field"><label for="s-name">Your name on this list</label><input class="k-input" id="s-name" placeholder="e.g. Amanda"></div>
+<div class="k-row"><button class="k-btn" id="s-share">Copy household link</button></div>
+<p class="k-muted" id="s-share-msg">Anyone who opens your household link shares this shopping list and watch list with you — adds, check-offs, and all. Recipes and the week plan stay on each person's own device.</p></div>
 <div class="k-card"><div class="k-row"><h3 style="margin:0">Shopping list</h3><span class="k-spacer"></span><button class="k-btn secondary small" id="l-copy">Copy list</button><button class="k-btn secondary small" id="l-clear">Uncheck all</button></div>
 <p class="k-muted" id="l-note">Built from the week plan. Check things off as you shop — it stays checked on this device.</p>
 <div id="list-body"></div>
@@ -88,34 +94,51 @@
 </div>
 </section>
 
+<section id="tab-watch" class="k-hidden">
+<div class="k-card"><h3>Future purchases — watching for deals</h3>
+<p class="k-muted">Things you plan to buy later, for a project or a meal. Scout's coupon, penny and Ray's List data is checked against this list, and matches show up here and on the Deals tab.</p>
+<div id="watch-body"></div>
+<div class="k-field" style="margin-top:14px"><label for="w-what">What are you watching for?</label><input class="k-input" id="w-what" placeholder="e.g. Tile saw, or chicken breast"></div>
+<div class="k-grid2">
+<div class="k-field"><label for="w-for">What's it for? (optional)</label><input class="k-input" id="w-for" placeholder="e.g. Bathroom remodel, or Thanksgiving"></div>
+<div class="k-field"><label for="w-target">Target price ($) — optional</label><input class="k-input" id="w-target" type="number" min="0" step="0.01" placeholder="e.g. 150"></div>
+</div>
+<button class="k-btn" id="w-add">Watch this</button>
+<p class="k-muted" id="w-msg" role="status"></p></div>
+</section>
+
 <section id="tab-deals" class="k-hidden">
 <div class="k-card"><h3>Deals Scout found</h3><p class="k-muted" id="d-asof">Loading deals…</p>
 <p class="k-muted">These coupon links are affiliate links and may earn McClipFace a commission at no extra cost to you. Offers are reported by the coupon service, not checkout-tested by us — check the terms at the store.</p>
-<div id="d-matches"></div><div id="d-offers"></div></div>
+<div id="d-matches"></div><div id="d-offers"></div><div id="d-rays"></div></div>
 <div class="k-card"><h3>Penny signals</h3><p class="k-muted">Penny items Scout's feeds picked up in the last day or so. Signals are <strong>unverified</strong> — they are not from a published weekly list and may not ring a penny. No Dollar General within 50 miles of Grand Rapids is being remodeled, so remodel items would not be shop-able locally anyway.</p><div id="d-penny"></div></div>
 </section>
 
-<div class="k-card"><h3>Your data</h3><p class="k-muted">Recipes, the plan, and the budget are stored only in this device's browser. Back them up or move them to another phone with export.</p><div class="k-row"><button class="k-btn secondary" id="x-export">Export (download)</button><label class="k-btn secondary" style="cursor:pointer">Import<input type="file" id="x-import" accept="application/json" class="k-hidden"></label></div><p class="k-muted" id="x-msg" role="status"></p></div>
+<div class="k-card"><h3>Your data</h3><p class="k-muted">Recipes, the plan, and the budget are stored only in this device's browser. The shopping list and watch list are shared with your household through your household link. Back up the on-device part or move it to another phone with export.</p><div class="k-row"><button class="k-btn secondary" id="x-export">Export (download)</button><label class="k-btn secondary" style="cursor:pointer">Import<input type="file" id="x-import" accept="application/json" class="k-hidden"></label></div><p class="k-muted" id="x-msg" role="status"></p></div>
 </div></section>
 </main><footer class="pi-footer"></footer><script src="assets/js/h38-site-v2.js?v=2026-10-21-demo-beacon-v1"></script>
 <script>
 (function(){
 "use strict";
 var KEY="krueth-recipes-v1";
+var FN="https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/household-list";
 var DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 var CATS=[["Produce",["onion","garlic","lettuce","tomato","potato","carrot","celery","pepper","cucumber","apple","banana","lemon","lime","corn","green bean","zucchini","mushroom","spinach","cabbage","broccoli"]],["Meat",["beef","chicken","pork","sausage","bacon","ham","turkey","ground","steak","roast","hot dog"]],["Dairy & Eggs",["milk","cheese","butter","egg","cream","yogurt","sour cream","cottage"]],["Bakery",["tortilla","bread","bun","roll","pita","bagel","muffin"]],["Frozen",["frozen","ice cream"]],["Pantry",["pasta","spaghetti","rice","flour","sugar","oil","sauce","broth","stock","canned","can of","seasoning","spice","beans","oats","cereal","peanut butter","jelly","syrup","vinegar","ketchup","mustard","mayo","dressing"]]];
 function seed(){return {recipes:[
 {id:"seed-1",name:"Spaghetti & Meat Sauce",servings:4,cost:14,starter:true,ingredients:["1 lb ground beef","1 jar pasta sauce (24 oz)","12 oz spaghetti","1 yellow onion","2 cloves garlic","1 tbsp olive oil","0.5 cup grated parmesan cheese"],steps:"Brown the beef with the diced onion; drain. Stir in sauce and minced garlic, simmer 15 minutes. Cook spaghetti in salted water, drain, combine. Top with parmesan."},
 {id:"seed-2",name:"Chicken Tacos",servings:4,cost:16,starter:true,ingredients:["1.5 lb chicken breast","1 packet taco seasoning","8 flour tortillas","1 cup shredded cheddar cheese","2 cups shredded lettuce","1 tomato","0.5 cup sour cream"],steps:"Cook chicken in a skillet until done, shred with two forks, stir in seasoning and a splash of water. Warm tortillas. Build tacos with cheese, lettuce, diced tomato, sour cream."},
 {id:"seed-3",name:"Vegetable Soup",servings:6,cost:11,starter:true,ingredients:["3 potatoes","3 carrots","2 stalks celery","1 yellow onion","1 can diced tomatoes (28 oz)","6 cups vegetable broth","1 tsp Italian seasoning"],steps:"Chop everything bite-size. Simmer broth, add potatoes, carrots, celery, onion; 15 minutes. Add tomatoes and seasoning; 10 more minutes. Salt to taste."}],
-plan:{},budget:"",staples:["salt","black pepper","cooking oil","olive oil","flour","sugar","garlic powder","onion powder"],checked:{},extras:[]};}
-function load(){try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&d.recipes)return d;}}catch(e){}return seed();}
+plan:{},budget:"",staples:["salt","black pepper","cooking oil","olive oil","flour","sugar","garlic powder","onion powder"],checked:{},extras:[],deviceName:"",household:"",myKeys:[]};}
+function load(){var d=seed();try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&p.recipes){for(var k in d){if(p[k]===undefined)p[k]=d[k];}return p;}}}catch(e){}return d;}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
-var state=load();save();
+var state=load();
+/* household token: from share link (#h=...) or generated once per household */
+function newToken(){var b=new Uint8Array(24);crypto.getRandomValues(b);var s="";for(var i=0;i<b.length;i++)s+=("0"+b[i].toString(16)).slice(-2);return s;}
+(function(){var m=(location.hash||"").match(/h=([a-f0-9]{40,64})/);if(m&&m[1]!==state.household){state.household=m[1];state.myKeys=[];}if(!state.household)state.household=newToken();if(m){history.replaceState(null,"",location.pathname+location.search);}save();})();
+var shared={list:{},watch:{}};var syncOk=false;var lastSync="";
 var deals=null;
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function money(n){return "$"+(Math.round(n*100)/100).toFixed(2);}
-/* quantity parsing + scaling */
 function parseQty(line){var m=line.trim().match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)\s*(.*)$/);if(!m)return{qty:null,rest:line.trim()};var q=0;var parts=m[1].split(/\s+/);for(var i=0;i<parts.length;i++){if(parts[i].indexOf("/")>=0){var f=parts[i].split("/");q+=parseFloat(f[0])/parseFloat(f[1]);}else q+=parseFloat(parts[i]);}return{qty:q,rest:m[2]};}
 function fmtQty(q){if(q==null)return"";var rounded=Math.round(q*4)/4;var whole=Math.floor(rounded);var frac=rounded-whole;var fr={"0":"","0.25":"1/4","0.5":"1/2","0.75":"3/4"}[String(frac)];if(whole===0)return fr||String(rounded);return whole+(fr?" "+fr:"");}
 var UNITS=["lb","lbs","oz","cup","cups","tbsp","tsp","clove","cloves","can","cans","jar","jars","packet","packets","stalk","stalks","pack","packs","bunch","head","bag","bags","box","boxes","piece","pieces"];
@@ -124,69 +147,104 @@ function parseIngredient(line){var p=parseQty(line);var su=splitUnit(p.rest);ret
 function recipeById(id){for(var i=0;i<state.recipes.length;i++)if(state.recipes[i].id===id)return state.recipes[i];return null;}
 function planEntries(){var out=[];for(var i=0;i<7;i++){var p=state.plan["d"+i];if(p&&p.id){var r=recipeById(p.id);if(r)out.push({day:i,recipe:r,servings:p.servings||r.servings});}}return out;}
 function planTotal(){var t=0;planEntries().forEach(function(e){t+=(e.recipe.cost||0)*(e.servings/e.recipe.servings);});return t;}
-function buildList(){var map={},order=[],extrasSkipped=0;var staples=state.staples.map(function(s){return s.toLowerCase().trim();}).filter(Boolean);
+function buildList(){var map={},order=[],skipped=0;var staples=state.staples.map(function(s){return s.toLowerCase().trim();}).filter(Boolean);
 planEntries().forEach(function(e){var scale=e.servings/e.recipe.servings;e.recipe.ingredients.forEach(function(line){var ing=parseIngredient(line);var itemLow=ing.item.toLowerCase();
 var isStaple=staples.some(function(s){return itemLow.indexOf(s)>=0||s.indexOf(itemLow)>=0&&itemLow.length>3;});
-if(isStaple){extrasSkipped++;return;}
-var key=(ing.item.toLowerCase()+"|"+ing.unit.toLowerCase());if(!map[key]){map[key]={item:ing.item,unit:ing.unit,qty:0,hasQty:false};order.push(key);}if(ing.qty!=null){map[key].qty+=ing.qty*scale;map[key].hasQty=true;}});});
-var items=order.map(function(k){return map[k];});
-state.extras.forEach(function(x){items.push({item:x,unit:"",qty:0,hasQty:false,extra:true});});
-return{items:items,skipped:extrasSkipped};}
+if(isStaple){skipped++;return;}
+var key=(ing.item.toLowerCase()+"|"+ing.unit.toLowerCase());if(!map[key]){map[key]={item:ing.item,unit:ing.unit,qty:0,hasQty:false,key:key};order.push(key);}if(ing.qty!=null){map[key].qty+=ing.qty*scale;map[key].hasQty=true;}});});
+var items=order.map(function(k){var it=map[k];it.label=(it.hasQty?fmtQty(it.qty)+" ":"")+(it.unit?it.unit+" ":"")+it.item;return it;});
+return{items:items,skipped:skipped};}
 function categorize(item){var s=item.toLowerCase();for(var i=0;i<CATS.length;i++){for(var j=0;j<CATS[i][1].length;j++){if(s.indexOf(CATS[i][1][j])>=0)return CATS[i][0];}}return "Other";}
-function dealMatchesFor(itemName){if(!deals)return[];var words=itemName.toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>=4;}).map(function(w){return w.replace(/s$/,"");});if(!words.length)return[];var out=[];
-(deals.offers||[]).forEach(function(o){var text=((o.summary||"")+" "+(o.merchant||"")).toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"coupon",merchant:o.merchant,summary:o.summary});return;}}});
-(deals.penny||[]).forEach(function(p){var text=(p.title||"").toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"penny",merchant:p.retailer,summary:p.title});return;}}});
+function matchWords(name){return name.toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>=4;}).map(function(w){return w.replace(/s$/,"");});}
+function dealMatchesFor(name){if(!deals)return[];var words=matchWords(name);if(!words.length)return[];var out=[];
+(deals.offers||[]).forEach(function(o){var text=((o.summary||"")+" "+(o.merchant||"")).toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"coupon",merchant:o.merchant,summary:o.summary,price:null});return;}}});
+(deals.penny||[]).forEach(function(p){var text=(p.title||"").toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"penny",merchant:p.retailer,summary:p.title,price:null});return;}}});
+(deals.rays||[]).forEach(function(r){var text=(r.title||"").toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"rays",merchant:"Menards Ray's List — "+r.store,summary:r.title,price:r.now,url:r.url});return;}}});
 return out;}
-/* rendering */
+/* ---- shared sync ---- */
+function myName(){return state.deviceName||"Someone";}
+function api(payload){payload.token=state.household;payload.by=myName();return fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||"sync failed");applyShared(j.items);syncOk=true;lastSync=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});renderSync();return j;}).catch(function(e){syncOk=false;renderSync();throw e;});}
+function applyShared(items){var nl={},nw={};(items||[]).forEach(function(it){if(it.kind==="list")nl[it.item_key]=it;else if(it.kind==="watch")nw[it.item_key]=it;});shared.list=nl;shared.watch=nw;}
+function renderSync(){var el=$("s-status");if(!el)return;el.textContent=syncOk?("Shared household list · synced "+lastSync):"Couldn't reach the shared list just now — showing this device's copy; changes retry when it reconnects.";}
+function pushPlanItems(){var built=buildList();var keys=[];var chain=Promise.resolve();
+built.items.forEach(function(it){keys.push(it.key);var existing=shared.list[it.key];if(!existing||existing.label!==it.label){chain=chain.then(function(){return api({action:"upsert",item:{kind:"list",item_key:it.key,label:it.label,detail:"plan",checked:existing?existing.checked:false}}).catch(function(){});});}});
+state.extras.forEach(function(x){var key="manual:"+x.toLowerCase();keys.push(key);if(!shared.list[key]){chain=chain.then(function(){return api({action:"upsert",item:{kind:"list",item_key:key,label:x,detail:"manual",checked:false}}).catch(function(){});});}});
+var stale=state.myKeys.filter(function(k){return keys.indexOf(k)<0;});
+stale.forEach(function(k){var row=shared.list[k];if(row&&!row.checked){chain=chain.then(function(){return api({action:"remove",kind:"list",item_key:k}).catch(function(){});});}});
+state.myKeys=keys;save();return chain.then(function(){renderList();renderWatch();});}
+function pullShared(quiet){return api({action:"get"}).then(function(){renderList();renderWatch();}).catch(function(){if(!quiet)renderList();});}
+/* ---- rendering ---- */
 var $=function(id){return document.getElementById(id);};
 function renderRecipes(){var host=$("recipe-list");if(!state.recipes.length){host.innerHTML='<div class="k-card"><p class="k-muted">No recipes yet. Add your first one below.</p></div>';return;}
 host.innerHTML=state.recipes.map(function(r){var scaleNote='<span class="k-scale"><button data-act="dec" data-id="'+r.id+'" aria-label="Fewer servings">−</button><span id="sv-'+r.id+'">'+r.servings+'</span><button data-act="inc" data-id="'+r.id+'" aria-label="More servings">+</button></span>';
 var ings=r.ingredients.map(function(line){return "<li>"+esc(line)+"</li>";}).join("");
 return '<div class="k-card"><div class="k-row"><h3 style="margin:0">'+esc(r.name)+(r.starter?'<span class="k-tag starter">Starter — make it yours</span>':"")+'</h3><span class="k-spacer"></span><button class="k-btn danger small" data-act="del" data-id="'+r.id+'">Delete</button></div>'+
-'<p class="k-muted">Makes <span id="svbase-'+r.id+'">'+r.servings+'</span> servings · est. '+money(r.cost||0)+' · viewing: '+scaleNote+'</p><ul class="k-ing" id="ing-'+r.id+'">'+ings+'</ul>'+(r.steps?'<p class="k-steps">'+esc(r.steps)+"</p>":"")+"</div>";}).join("");
+'<p class="k-muted">Makes '+r.servings+' servings · est. '+money(r.cost||0)+' · viewing: '+scaleNote+'</p><ul class="k-ing" id="ing-'+r.id+'">'+ings+'</ul>'+(r.steps?'<p class="k-steps">'+esc(r.steps)+"</p>":"")+"</div>";}).join("");
 host.querySelectorAll("button[data-act]").forEach(function(b){b.addEventListener("click",function(){var id=b.getAttribute("data-id");var act=b.getAttribute("data-act");
-if(act==="del"){if(confirm("Delete this recipe?")){state.recipes=state.recipes.filter(function(x){return x.id!==id;});save();renderAll();}return;}
+if(act==="del"){if(confirm("Delete this recipe?")){state.recipes=state.recipes.filter(function(x){return x.id!==id;});save();renderAll();pushPlanItems();}return;}
 var view=$("sv-"+id);var n=parseInt(view.textContent,10)||1;n+=(act==="inc"?1:-1);if(n<1)n=1;view.textContent=n;rescale(id,n);});});}
 function rescale(id,servings){var r=recipeById(id);if(!r)return;var scale=servings/r.servings;var ul=$("ing-"+id);if(!ul)return;ul.innerHTML=r.ingredients.map(function(line){var ing=parseIngredient(line);if(ing.qty==null)return "<li>"+esc(line)+"</li>";var q=fmtQty(ing.qty*scale);return "<li>"+esc((q?q+" ":"")+(ing.unit?ing.unit+" ":"")+ing.item)+"</li>";}).join("");}
 function renderPlan(){var host=$("plan-days");host.innerHTML=DAYS.map(function(d,i){var p=state.plan["d"+i]||{};var opts='<option value="">— nothing planned —</option>'+state.recipes.map(function(r){return '<option value="'+r.id+'"'+(p.id===r.id?" selected":"")+">"+esc(r.name)+"</option>";}).join("");var serv=p.id?(p.servings||(recipeById(p.id)||{}).servings||4):"";
 return '<div class="k-day"><span class="k-day-name">'+d+'</span><select class="k-select" data-day="'+i+'">'+opts+'</select><input class="k-input k-serv" type="number" min="1" step="1" data-dayserv="'+i+'" value="'+serv+'" title="Servings" '+(p.id?"":"disabled")+'></div>';}).join("");
-host.querySelectorAll("select[data-day]").forEach(function(sel){sel.addEventListener("change",function(){var i=sel.getAttribute("data-day");if(!sel.value){delete state.plan["d"+i];}else{var r=recipeById(sel.value);state.plan["d"+i]={id:sel.value,servings:r?r.servings:4};}save();renderPlan();renderList();});});
-host.querySelectorAll("input[data-dayserv]").forEach(function(inp){inp.addEventListener("change",function(){var i=inp.getAttribute("data-dayserv");if(state.plan["d"+i]){state.plan["d"+i].servings=Math.max(1,parseInt(inp.value,10)||1);save();renderPlan();renderList();}});});
+host.querySelectorAll("select[data-day]").forEach(function(sel){sel.addEventListener("change",function(){var i=sel.getAttribute("data-day");if(!sel.value){delete state.plan["d"+i];}else{var r=recipeById(sel.value);state.plan["d"+i]={id:sel.value,servings:r?r.servings:4};}save();renderPlan();pushPlanItems();});});
+host.querySelectorAll("input[data-dayserv]").forEach(function(inp){inp.addEventListener("change",function(){var i=inp.getAttribute("data-dayserv");if(state.plan["d"+i]){state.plan["d"+i].servings=Math.max(1,parseInt(inp.value,10)||1);save();renderPlan();pushPlanItems();}});});
 $("b-weekly").value=state.budget||"";var total=planTotal();$("b-total").textContent=money(total);var budget=parseFloat(state.budget)||0;var fill=$("b-bar");var note=$("b-note");
 if(budget>0){var pct=Math.min(100,total/budget*100);fill.style.width=pct+"%";fill.className="k-bar-fill"+(total>budget?" over":"");note.textContent=total>budget?("This week's plan is about "+money(total-budget)+" over the "+money(budget)+" budget."):(money(budget-total)+" of the "+money(budget)+" budget left after this week's plan.");}
 else{fill.style.width="0%";note.textContent="Set a weekly budget and the bar shows how this week's plan stacks up. Recipe costs are estimates — edit a recipe's cost when you learn what it really runs.";}
 $("p-staples").value=state.staples.join("\n");}
-function renderList(){var built=buildList();var host=$("list-body");var groups={};built.items.forEach(function(it){var c=categorize(it.item);(groups[c]=groups[c]||[]).push(it);});
+function listRows(){if(syncOk||Object.keys(shared.list).length){return Object.keys(shared.list).map(function(k){return shared.list[k];});}
+var built=buildList();var rows=built.items.map(function(it){return{kind:"list",item_key:it.key,label:it.label,checked:!!state.checked[it.key],touched_by:""};});
+state.extras.forEach(function(x){rows.push({kind:"list",item_key:"manual:"+x.toLowerCase(),label:x,checked:!!state.checked["manual:"+x.toLowerCase()],touched_by:""});});
+return rows;}
+function renderList(){var rows=listRows();var host=$("list-body");var groups={};rows.forEach(function(r){var c=categorize(r.label);(groups[c]=groups[c]||[]).push(r);});
 var order=CATS.map(function(c){return c[0];}).concat(["Other"]);var html="";
-order.forEach(function(g){if(!groups[g])return;html+='<div class="k-group">'+esc(g)+"</div>"+groups[g].map(function(it){var key=(it.item+"|"+it.unit).toLowerCase();var label=(it.hasQty?fmtQty(it.qty)+" ":"")+(it.unit?it.unit+" ":"")+it.item;var matches=dealMatchesFor(it.item);var tag=matches.length?'<span class="k-tag deal">Deal: '+esc(matches[0].merchant)+"</span>":"";
-return '<label class="k-list-item'+(state.checked[key]?" done":"")+'"><input type="checkbox" data-key="'+esc(key)+'"'+(state.checked[key]?" checked":"")+'><span>'+esc(label)+"</span>"+tag+"</label>";}).join("");});
-if(!built.items.length)html='<p class="k-muted">Nothing on the list yet — plan some recipes for the week and the list builds itself.</p>';
-if(built.skipped)html+='<p class="k-muted">'+built.skipped+" pantry staple"+(built.skipped>1?"s":"")+" skipped (already in the pantry list).</p>";
+order.forEach(function(g){if(!groups[g])return;html+='<div class="k-group">'+esc(g)+"</div>"+groups[g].map(function(r){var matches=dealMatchesFor(r.label);var tag=matches.length?'<span class="k-tag deal">Deal: '+esc(matches[0].merchant)+"</span>":"";var who=r.checked&&r.touched_by?'<span class="k-muted"> · got it — '+esc(r.touched_by)+"</span>":"";
+return '<div class="k-list-item'+(r.checked?" done":"")+'"><label style="display:flex;gap:10px;align-items:flex-start;flex:1"><input type="checkbox" data-key="'+esc(r.item_key)+'"'+(r.checked?" checked":"")+'><span>'+esc(r.label)+who+"</span>"+tag+'</label><button class="k-btn danger small" data-rm="'+esc(r.item_key)+'" title="Remove from list">✕</button></div>';}).join("");});
+if(!rows.length)html='<p class="k-muted">Nothing on the list yet — plan some recipes for the week, or add something by hand below.</p>';
+var built=buildList();if(built.skipped)html+='<p class="k-muted">'+built.skipped+" pantry staple"+(built.skipped>1?"s":"")+" skipped (already in the pantry list).</p>";
 host.innerHTML=html;
-host.querySelectorAll("input[type=checkbox]").forEach(function(cb){cb.addEventListener("change",function(){var k=cb.getAttribute("data-key");if(cb.checked)state.checked[k]=true;else delete state.checked[k];save();renderList();});});}
+host.querySelectorAll("input[type=checkbox]").forEach(function(cb){cb.addEventListener("change",function(){var k=cb.getAttribute("data-key");if(cb.checked)state.checked[k]=true;else delete state.checked[k];save();api({action:"set_checked",item_key:k,checked:cb.checked}).then(function(){renderList();}).catch(function(){renderList();});});});
+host.querySelectorAll("button[data-rm]").forEach(function(b){b.addEventListener("click",function(){var k=b.getAttribute("data-rm");state.extras=state.extras.filter(function(x){return "manual:"+x.toLowerCase()!==k;});delete state.checked[k];state.myKeys=state.myKeys.filter(function(x){return x!==k;});save();api({action:"remove",kind:"list",item_key:k}).then(function(){renderList();}).catch(function(){renderList();});});});}
+function watchMatches(row){var ms=dealMatchesFor(row.label);return ms;}
+function renderWatch(){var host=$("watch-body");var keys=Object.keys(shared.watch);var localOnly=!syncOk&&!keys.length;
+if(!keys.length){host.innerHTML='<p class="k-muted">Nothing being watched yet. Add the thing you\'re waiting on — a project buy or a meal ingredient — and this page flags it when Scout\'s deals match.</p>';return;}
+host.innerHTML=keys.map(function(k){var r=shared.watch[k];var ms=watchMatches(r);var hit=ms.length?ms[0]:null;var under=hit&&hit.price!=null&&r.target_price&&hit.price<=parseFloat(r.target_price);
+var line=hit?('<div style="margin-top:6px"><span class="k-tag deal">'+(under?"At/under your target — ":"Deal found — ")+esc(hit.merchant)+"</span> "+esc(cleanSummary(hit.summary))+(hit.price!=null?(" · now "+money(hit.price)):"")+(hit.url?(' · <a href="'+esc(hit.url)+'" target="_blank" rel="noopener">see it</a>'):"")+"</div>"):'<div class="k-muted" style="margin-top:6px">No deal match right now — still watching.</div>';
+return '<div class="k-offer"><div class="k-row"><strong>'+esc(r.label)+'</strong><span class="k-spacer"></span><button class="k-btn danger small" data-wrm="'+esc(k)+'">Remove</button></div>'+(r.detail?'<span class="k-muted">For: '+esc(r.detail)+"</span>":"")+(r.target_price?'<span class="k-muted"> · target '+money(parseFloat(r.target_price))+"</span>":"")+(r.touched_by?'<span class="k-muted"> · added by '+esc(r.touched_by)+"</span>":"")+line+"</div>";}).join("");
+host.querySelectorAll("button[data-wrm]").forEach(function(b){b.addEventListener("click",function(){api({action:"remove",kind:"watch",item_key:b.getAttribute("data-wrm")}).then(function(){renderWatch();}).catch(function(){renderWatch();});});});}
 function cleanSummary(s){return String(s||"").split("(Tested by")[0].trim();}
 function renderDeals(){var asof=$("d-asof");if(!deals){asof.textContent="Deals could not be loaded right now — the list still works without them.";return;}
-var d=new Date(deals.generated_at);asof.textContent="Coupon and penny data pulled by Scout on "+d.toLocaleDateString()+" at "+d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+". Scout refreshes these on its regular sweeps.";
+var d=new Date(deals.generated_at);asof.textContent="Coupon, penny and Ray's List data pulled by Scout on "+d.toLocaleDateString()+" at "+d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+". Scout refreshes these on its regular sweeps.";
 var built=buildList();var matchHtml="";var seen={};
-built.items.forEach(function(it){dealMatchesFor(it.item).forEach(function(m){var k=it.item+m.merchant;if(seen[k])return;seen[k]=1;matchHtml+='<div class="k-offer"><strong>'+esc(it.item)+'</strong> — possible deal at '+esc(m.merchant)+'<br><span class="k-muted">'+esc(cleanSummary(m.summary))+"</span></div>";});});
+built.items.forEach(function(it){dealMatchesFor(it.label).forEach(function(m){var k=it.label+m.merchant;if(seen[k])return;seen[k]=1;matchHtml+='<div class="k-offer"><strong>'+esc(it.item)+'</strong> — possible deal at '+esc(m.merchant)+'<br><span class="k-muted">'+esc(cleanSummary(m.summary))+"</span></div>";});});
 $("d-matches").innerHTML=matchHtml?('<h4 style="margin:6px 0">Matches for this week\'s list</h4>'+matchHtml):'<p class="k-muted">No deals match this week\'s shopping list right now.</p>';
 $("d-offers").innerHTML='<h4 style="margin:14px 0 6px">Current offers</h4>'+(deals.offers||[]).map(function(o){var meta=[];if(o.ends_at)meta.push("ends "+new Date(o.ends_at).toLocaleDateString());if(o.code)meta.push('code <span class="k-code">'+esc(o.code)+"</span>");var link=o.url?('<a href="'+esc(o.url)+'" target="_blank" rel="noopener">open offer</a>'):"";var line=(meta.length?'<span class="k-muted">'+meta.join(" · ")+"</span>":"")+(link?(meta.length?" · ":"")+link:"");return '<div class="k-offer"><strong>'+esc(o.merchant)+"</strong> — "+esc(cleanSummary(o.summary))+(line?"<br>"+line:"")+"</div>";}).join("");
-$("d-penny").innerHTML=(deals.penny||[]).length?(deals.penny.map(function(p){var reg=p.regular_price?(' <span class="k-muted">(reg. '+money(parseFloat(p.regular_price))+')</span>'):"";return '<div class="k-offer"><strong>'+esc(p.retailer)+"</strong> — "+esc(p.title)+reg+' <span class="k-tag">unverified signal</span></div>';}).join("")):'<p class="k-muted">No penny signals in the current pull.</p>';}
-function renderAll(){renderRecipes();renderPlan();renderList();renderDeals();}
+$("d-rays").innerHTML='<h4 style="margin:14px 0 6px">Menards Ray\'s List — recent bargains</h4>'+((deals.rays||[]).slice(0,10).map(function(r){var pct=(r.was&&r.now)?Math.round((1-r.now/r.was)*100):null;return '<div class="k-offer"><strong>'+esc(r.store.replace("Menards ","Menards — "))+"</strong> — "+esc(r.title)+'<br><span class="k-muted">'+(r.was?money(r.was)+" → ":"")+money(r.now||0)+(pct?" ("+pct+"% off)":"")+'</span>'+(r.url?(' · <a href="'+esc(r.url)+'" target="_blank" rel="noopener">see it</a>'):"")+"</div>";}).join("")||'<p class="k-muted">No Ray\'s List bargains in the current pull.</p>')+'<p class="k-muted">In-store only at that store, sold as-is.</p>';
+$("d-penny").innerHTML=(deals.penny||[]).length?(deals.penny.map(function(p){var reg=p.regular_price?(' <span class="k-muted">(reg. '+money(parseFloat(p.regular_price))+")</span>"):"";return '<div class="k-offer"><strong>'+esc(p.retailer)+"</strong> — "+esc(p.title)+reg+' <span class="k-tag">unverified signal</span></div>';}).join("")):'<p class="k-muted">No penny signals in the current pull.</p>';}
+function renderAll(){renderRecipes();renderPlan();renderList();renderWatch();renderDeals();renderSync();}
 /* tabs */
-document.querySelectorAll(".k-tab").forEach(function(t){t.addEventListener("click",function(){document.querySelectorAll(".k-tab").forEach(function(x){x.setAttribute("aria-selected","false");});t.setAttribute("aria-selected","true");["recipes","plan","list","deals"].forEach(function(n){$("tab-"+n).classList.toggle("k-hidden",n!==t.getAttribute("data-tab"));});});});
+document.querySelectorAll(".k-tab").forEach(function(t){t.addEventListener("click",function(){document.querySelectorAll(".k-tab").forEach(function(x){x.setAttribute("aria-selected","false");});t.setAttribute("aria-selected","true");["recipes","plan","list","watch","deals"].forEach(function(n){$("tab-"+n).classList.toggle("k-hidden",n!==t.getAttribute("data-tab"));});if(t.getAttribute("data-tab")==="list"||t.getAttribute("data-tab")==="watch")pullShared(true);});});
 /* events */
 $("r-add").addEventListener("click",function(){var name=$("r-name").value.trim();if(!name){$("r-msg").textContent="Give the recipe a name first.";return;}var ing=$("r-ing").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);if(!ing.length){$("r-msg").textContent="Add at least one ingredient line.";return;}
 state.recipes.push({id:"r"+Date.now(),name:name,servings:Math.max(1,parseInt($("r-servings").value,10)||4),cost:parseFloat($("r-cost").value)||0,ingredients:ing,steps:$("r-steps").value.trim()});
-$("r-name").value="";$("r-ing").value="";$("r-steps").value="";$("r-cost").value="";$("r-msg").textContent="Saved. Find it in the list above and in the Week Plan.";save();renderAll();});
+$("r-name").value="";$("r-ing").value="";$("r-steps").value="";$("r-cost").value="";$("r-msg").textContent="Saved. Find it in the list above and in the Week Plan.";save();renderAll();pushPlanItems();});
 $("b-weekly").addEventListener("change",function(){state.budget=$("b-weekly").value;save();renderPlan();});
-$("p-save").addEventListener("click",function(){state.staples=$("p-staples").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);save();renderList();});
-$("l-add").addEventListener("click",function(){var v=$("l-extra").value.trim();if(!v)return;state.extras.push(v);$("l-extra").value="";save();renderList();});
-$("l-clear").addEventListener("click",function(){state.checked={};save();renderList();});
-$("l-copy").addEventListener("click",function(){var built=buildList();var text=built.items.map(function(it){return "- "+(it.hasQty?fmtQty(it.qty)+" ":"")+(it.unit?it.unit+" ":"")+it.item;}).join("\n");if(navigator.clipboard)navigator.clipboard.writeText("Shopping list\n"+text);$("l-note").textContent="List copied — paste it anywhere.";});
+$("p-save").addEventListener("click",function(){state.staples=$("p-staples").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);save();pushPlanItems();});
+$("s-name").addEventListener("change",function(){state.deviceName=$("s-name").value.trim();save();});
+$("s-share").addEventListener("click",function(){var link=location.origin+location.pathname+"#h="+state.household;if(navigator.clipboard)navigator.clipboard.writeText(link);$("s-share-msg").textContent="Household link copied — send it to whoever shops with you. When they open it, you share one list and one watch list.";});
+$("l-add").addEventListener("click",function(){var v=$("l-extra").value.trim();if(!v)return;state.extras.push(v);$("l-extra").value="";save();api({action:"upsert",item:{kind:"list",item_key:"manual:"+v.toLowerCase(),label:v,detail:"manual",checked:false}}).then(function(){renderList();}).catch(function(){renderList();});pushPlanItems();});
+$("l-clear").addEventListener("click",function(){state.checked={};save();api({action:"uncheck_all"}).then(function(){renderList();}).catch(function(){renderList();});});
+$("l-copy").addEventListener("click",function(){var rows=listRows();var text=rows.map(function(r){return "- "+r.label;}).join("\n");if(navigator.clipboard)navigator.clipboard.writeText("Shopping list\n"+text);$("l-note").textContent="List copied — paste it anywhere.";});
+$("w-add").addEventListener("click",function(){var v=$("w-what").value.trim();if(!v){$("w-msg").textContent="Name the thing you're watching for first.";return;}var key="watch:"+v.toLowerCase().replace(/[^a-z0-9]+/g,"-");var tp=parseFloat($("w-target").value)||null;
+api({action:"upsert",item:{kind:"watch",item_key:key,label:v,detail:$("w-for").value.trim(),target_price:tp}}).then(function(){$("w-what").value="";$("w-for").value="";$("w-target").value="";$("w-msg").textContent="Watching. Deals get checked against it every time Scout's data refreshes.";renderWatch();}).catch(function(){$("w-msg").textContent="Couldn't save that just now — check your connection and try again.";});});
 $("x-export").addEventListener("click",function(){var blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="our-kitchen-backup.json";a.click();$("x-msg").textContent="Backup downloaded.";});
-$("x-import").addEventListener("change",function(){var f=$("x-import").files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var d=JSON.parse(rd.result);if(d&&d.recipes){state=d;save();renderAll();$("x-msg").textContent="Backup loaded.";}else $("x-msg").textContent="That file doesn't look like a backup.";}catch(e){$("x-msg").textContent="That file couldn't be read.";}};rd.readAsText(f);});
-fetch("recipes-deals.json").then(function(r){return r.json();}).then(function(j){deals=j;renderList();renderDeals();}).catch(function(){renderDeals();});
+$("x-import").addEventListener("change",function(){var f=$("x-import").files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var d=JSON.parse(rd.result);if(d&&d.recipes){state=d;save();renderAll();pushPlanItems();$("x-msg").textContent="Backup loaded.";}else $("x-msg").textContent="That file doesn't look like a backup.";}catch(e){$("x-msg").textContent="That file couldn't be read.";}};rd.readAsText(f);});
+$("s-name").value=state.deviceName||"";
+fetch("recipes-deals.json").then(function(r){return r.json();}).then(function(j){deals=j;renderList();renderWatch();renderDeals();}).catch(function(){renderDeals();});
 renderAll();
+pullShared(true).then(function(){pushPlanItems();});
+setInterval(function(){if(!document.hidden)pullShared(true);},20000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)pullShared(true);});
 })();
+
 </script></body></html>
