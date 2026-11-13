@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Our Kitchen — Recipes, Week Plan &amp; Deals | Highway 38 Solutions</title><meta name="description" content="A household recipe box, week planner, shopping list and budget tracker for the Krueth house, with coupon and penny-deal matching from Scout."><link rel="icon" type="image/png" href="assets/highway38-logo.png?v=20260720-exact-0cbc4514"><link rel="stylesheet" href="assets/css/project-intelligence.css?v=20260723-flow"><style>
+.k-app{max-width:880px;margin:0 auto;padding:18px 16px 60px}
+.k-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.k-tab{border:1px solid #cbd7e2;background:#fff;color:#102033;border-radius:999px;padding:9px 16px;font:inherit;font-weight:800;cursor:pointer}
+.k-tab[aria-selected="true"]{background:#102033;color:#fff;border-color:#102033}
+.k-card{background:#fff;border:1px solid #e2e8ef;border-radius:12px;padding:16px;margin:0 0 14px}
+.k-card h3{margin:0 0 6px}
+.k-muted{color:#536779;font-size:.92rem}
+.k-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.k-spacer{flex:1}
+.k-btn{border:1px solid #102033;background:#102033;color:#fff;border-radius:8px;padding:8px 14px;font:inherit;font-weight:800;cursor:pointer}
+.k-btn.secondary{background:#fff;color:#102033}
+.k-btn.small{padding:5px 10px;font-size:.9rem}
+.k-btn.danger{background:#fff;color:#b3261e;border-color:#b3261e}
+.k-input,.k-select,.k-textarea{width:100%;padding:10px;border:1px solid #cbd7e2;border-radius:8px;font:inherit;background:#fff;color:#102033}
+.k-textarea{min-height:110px}
+.k-field{margin-bottom:12px}
+.k-field label{display:block;font-weight:800;font-size:.92rem;margin-bottom:5px;color:#102033}
+.k-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.k-grid2{grid-template-columns:1fr}}
+.k-tag{display:inline-block;background:#eef4ea;color:#33691e;border:1px solid #c5d8b8;border-radius:999px;padding:1px 9px;font-size:.78rem;font-weight:800;margin-left:8px;vertical-align:middle}
+.k-tag.deal{background:#fff6e0;color:#7a5200;border-color:#ecd28a}
+.k-tag.starter{background:#eef2f7;color:#45586b;border-color:#cbd7e2}
+.k-day{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eef2f5}
+.k-day:last-child{border-bottom:none}
+.k-day-name{width:86px;font-weight:800}
+.k-day .k-select{flex:1}
+.k-serv{width:74px}
+.k-bar{height:14px;background:#eef2f5;border-radius:999px;overflow:hidden;margin:8px 0}
+.k-bar-fill{height:100%;background:#4c9a4c}
+.k-bar-fill.over{background:#b3261e}
+.k-list-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eef2f5}
+.k-list-item input{margin-top:4px;width:19px;height:19px}
+.k-list-item.done span{text-decoration:line-through;color:#8aa0b4}
+.k-group{font-weight:800;margin:16px 0 4px;color:#102033}
+.k-offer{padding:10px 0;border-bottom:1px solid #eef2f5}
+.k-offer:last-child{border-bottom:none}
+.k-code{font-family:ui-monospace,monospace;background:#eef2f5;border-radius:6px;padding:1px 7px;font-weight:700}
+.k-scale{display:inline-flex;gap:6px;align-items:center}
+.k-scale button{width:30px;height:30px;border-radius:50%;border:1px solid #102033;background:#fff;font-weight:900;cursor:pointer}
+.k-hidden{display:none}
+.k-steps{white-space:pre-wrap}
+.k-ing li{margin:3px 0}
+</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="pi-nav"></header><main id="main">
+<section class="pi-section" style="padding-top:26px"><div class="pi-head pi-compact" style="text-align:left;max-width:880px;margin:0 auto"><span class="pi-eyebrow">For our house · Not a product page</span><h1 style="font-size:clamp(30px,4.5vw,44px);margin:6px 0 8px">Our Kitchen</h1><p>Our recipes, the week's plan, one shopping list, and the budget — with the coupon and penny deals Scout finds matched against the list. Everything you save lives on this phone or tablet; nothing is sent anywhere.</p></div>
+<div class="k-app">
+<div class="k-tabs" role="tablist">
+<button class="k-tab" role="tab" data-tab="recipes" aria-selected="true">Recipes</button>
+<button class="k-tab" role="tab" data-tab="plan" aria-selected="false">Week Plan &amp; Budget</button>
+<button class="k-tab" role="tab" data-tab="list" aria-selected="false">Shopping List</button>
+<button class="k-tab" role="tab" data-tab="deals" aria-selected="false">Deals</button>
+</div>
+
+<section id="tab-recipes">
+<div id="recipe-list"></div>
+<div class="k-card"><h3>Add a recipe</h3>
+<div class="k-field"><label for="r-name">Recipe name</label><input class="k-input" id="r-name" placeholder="e.g. Beef stew"></div>
+<div class="k-grid2">
+<div class="k-field"><label for="r-servings">Servings it makes</label><input class="k-input" id="r-servings" type="number" min="1" step="1" value="4"></div>
+<div class="k-field"><label for="r-cost">Estimated cost to make it ($)</label><input class="k-input" id="r-cost" type="number" min="0" step="0.25" placeholder="e.g. 14"></div>
+</div>
+<div class="k-field"><label for="r-ing">Ingredients — one per line, like: 1 lb ground beef</label><textarea class="k-textarea" id="r-ing" placeholder="1 lb ground beef&#10;1 jar pasta sauce (24 oz)&#10;12 oz spaghetti"></textarea></div>
+<div class="k-field"><label for="r-steps">Steps (optional)</label><textarea class="k-textarea" id="r-steps" placeholder="Brown the beef. Stir in the sauce. Cook the pasta. Combine."></textarea></div>
+<button class="k-btn" id="r-add">Save recipe</button>
+<p class="k-muted" id="r-msg" role="status"></p>
+</div>
+</section>
+
+<section id="tab-plan" class="k-hidden">
+<div class="k-card"><h3>This week's plan</h3><p class="k-muted">Pick a recipe for each day. Change the servings when you're feeding more or fewer than the recipe makes.</p><div id="plan-days"></div></div>
+<div class="k-card"><h3>Budget</h3>
+<div class="k-grid2">
+<div class="k-field"><label for="b-weekly">Weekly grocery budget ($)</label><input class="k-input" id="b-weekly" type="number" min="0" step="1" placeholder="e.g. 175"></div>
+<div class="k-field"><label>Plan total (estimated)</label><div style="font-size:1.35rem;font-weight:900" id="b-total">$0.00</div></div>
+</div>
+<div class="k-bar"><div class="k-bar-fill" id="b-bar" style="width:0%"></div></div>
+<p class="k-muted" id="b-note">Set a weekly budget and the bar shows how this week's plan stacks up. Recipe costs are estimates — edit a recipe's cost when you learn what it really runs.</p>
+</div>
+<div class="k-card"><h3>Pantry staples</h3><p class="k-muted">Things you always have. The shopping list skips any ingredient that matches one of these. One per line.</p><textarea class="k-textarea" id="p-staples"></textarea><div style="margin-top:10px"><button class="k-btn secondary" id="p-save">Save staples</button></div></div>
+</section>
+
+<section id="tab-list" class="k-hidden">
+<div class="k-card"><div class="k-row"><h3 style="margin:0">Shopping list</h3><span class="k-spacer"></span><button class="k-btn secondary small" id="l-copy">Copy list</button><button class="k-btn secondary small" id="l-clear">Uncheck all</button></div>
+<p class="k-muted" id="l-note">Built from the week plan. Check things off as you shop — it stays checked on this device.</p>
+<div id="list-body"></div>
+<div class="k-field" style="margin-top:14px"><label for="l-extra">Add something by hand</label><div class="k-row"><input class="k-input" id="l-extra" placeholder="e.g. Paper towels" style="flex:1"><button class="k-btn" id="l-add">Add</button></div></div>
+</div>
+</section>
+
+<section id="tab-deals" class="k-hidden">
+<div class="k-card"><h3>Deals Scout found</h3><p class="k-muted" id="d-asof">Loading deals…</p>
+<p class="k-muted">These coupon links are affiliate links and may earn McClipFace a commission at no extra cost to you. Offers are reported by the coupon service, not checkout-tested by us — check the terms at the store.</p>
+<div id="d-matches"></div><div id="d-offers"></div></div>
+<div class="k-card"><h3>Penny signals</h3><p class="k-muted">Penny items Scout's feeds picked up in the last day or so. Signals are <strong>unverified</strong> — they are not from a published weekly list and may not ring a penny. No Dollar General within 50 miles of Grand Rapids is being remodeled, so remodel items would not be shop-able locally anyway.</p><div id="d-penny"></div></div>
+</section>
+
+<div class="k-card"><h3>Your data</h3><p class="k-muted">Recipes, the plan, and the budget are stored only in this device's browser. Back them up or move them to another phone with export.</p><div class="k-row"><button class="k-btn secondary" id="x-export">Export (download)</button><label class="k-btn secondary" style="cursor:pointer">Import<input type="file" id="x-import" accept="application/json" class="k-hidden"></label></div><p class="k-muted" id="x-msg" role="status"></p></div>
+</div></section>
+</main><footer class="pi-footer"></footer><script src="assets/js/h38-site-v2.js?v=2026-10-21-demo-beacon-v1"></script>
+<script>
+(function(){
+"use strict";
+var KEY="krueth-recipes-v1";
+var DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+var CATS=[["Produce",["onion","garlic","lettuce","tomato","potato","carrot","celery","pepper","cucumber","apple","banana","lemon","lime","corn","green bean","zucchini","mushroom","spinach","cabbage","broccoli"]],["Meat",["beef","chicken","pork","sausage","bacon","ham","turkey","ground","steak","roast","hot dog"]],["Dairy & Eggs",["milk","cheese","butter","egg","cream","yogurt","sour cream","cottage"]],["Bakery",["tortilla","bread","bun","roll","pita","bagel","muffin"]],["Frozen",["frozen","ice cream"]],["Pantry",["pasta","spaghetti","rice","flour","sugar","oil","sauce","broth","stock","canned","can of","seasoning","spice","beans","oats","cereal","peanut butter","jelly","syrup","vinegar","ketchup","mustard","mayo","dressing"]]];
+function seed(){return {recipes:[
+{id:"seed-1",name:"Spaghetti & Meat Sauce",servings:4,cost:14,starter:true,ingredients:["1 lb ground beef","1 jar pasta sauce (24 oz)","12 oz spaghetti","1 yellow onion","2 cloves garlic","1 tbsp olive oil","0.5 cup grated parmesan cheese"],steps:"Brown the beef with the diced onion; drain. Stir in sauce and minced garlic, simmer 15 minutes. Cook spaghetti in salted water, drain, combine. Top with parmesan."},
+{id:"seed-2",name:"Chicken Tacos",servings:4,cost:16,starter:true,ingredients:["1.5 lb chicken breast","1 packet taco seasoning","8 flour tortillas","1 cup shredded cheddar cheese","2 cups shredded lettuce","1 tomato","0.5 cup sour cream"],steps:"Cook chicken in a skillet until done, shred with two forks, stir in seasoning and a splash of water. Warm tortillas. Build tacos with cheese, lettuce, diced tomato, sour cream."},
+{id:"seed-3",name:"Vegetable Soup",servings:6,cost:11,starter:true,ingredients:["3 potatoes","3 carrots","2 stalks celery","1 yellow onion","1 can diced tomatoes (28 oz)","6 cups vegetable broth","1 tsp Italian seasoning"],steps:"Chop everything bite-size. Simmer broth, add potatoes, carrots, celery, onion; 15 minutes. Add tomatoes and seasoning; 10 more minutes. Salt to taste."}],
+plan:{},budget:"",staples:["salt","black pepper","cooking oil","olive oil","flour","sugar","garlic powder","onion powder"],checked:{},extras:[]};}
+function load(){try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&d.recipes)return d;}}catch(e){}return seed();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+var state=load();save();
+var deals=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function money(n){return "$"+(Math.round(n*100)/100).toFixed(2);}
+/* quantity parsing + scaling */
+function parseQty(line){var m=line.trim().match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)\s*(.*)$/);if(!m)return{qty:null,rest:line.trim()};var q=0;var parts=m[1].split(/\s+/);for(var i=0;i<parts.length;i++){if(parts[i].indexOf("/")>=0){var f=parts[i].split("/");q+=parseFloat(f[0])/parseFloat(f[1]);}else q+=parseFloat(parts[i]);}return{qty:q,rest:m[2]};}
+function fmtQty(q){if(q==null)return"";var rounded=Math.round(q*4)/4;var whole=Math.floor(rounded);var frac=rounded-whole;var fr={"0":"","0.25":"1/4","0.5":"1/2","0.75":"3/4"}[String(frac)];if(whole===0)return fr||String(rounded);return whole+(fr?" "+fr:"");}
+var UNITS=["lb","lbs","oz","cup","cups","tbsp","tsp","clove","cloves","can","cans","jar","jars","packet","packets","stalk","stalks","pack","packs","bunch","head","bag","bags","box","boxes","piece","pieces"];
+function splitUnit(rest){var words=rest.split(/\s+/);if(words.length>1&&UNITS.indexOf(words[0].toLowerCase())>=0)return{unit:words[0],item:words.slice(1).join(" ")};return{unit:"",item:rest};}
+function parseIngredient(line){var p=parseQty(line);var su=splitUnit(p.rest);return{qty:p.qty,unit:su.unit,item:su.item,raw:line};}
+function recipeById(id){for(var i=0;i<state.recipes.length;i++)if(state.recipes[i].id===id)return state.recipes[i];return null;}
+function planEntries(){var out=[];for(var i=0;i<7;i++){var p=state.plan["d"+i];if(p&&p.id){var r=recipeById(p.id);if(r)out.push({day:i,recipe:r,servings:p.servings||r.servings});}}return out;}
+function planTotal(){var t=0;planEntries().forEach(function(e){t+=(e.recipe.cost||0)*(e.servings/e.recipe.servings);});return t;}
+function buildList(){var map={},order=[],extrasSkipped=0;var staples=state.staples.map(function(s){return s.toLowerCase().trim();}).filter(Boolean);
+planEntries().forEach(function(e){var scale=e.servings/e.recipe.servings;e.recipe.ingredients.forEach(function(line){var ing=parseIngredient(line);var itemLow=ing.item.toLowerCase();
+var isStaple=staples.some(function(s){return itemLow.indexOf(s)>=0||s.indexOf(itemLow)>=0&&itemLow.length>3;});
+if(isStaple){extrasSkipped++;return;}
+var key=(ing.item.toLowerCase()+"|"+ing.unit.toLowerCase());if(!map[key]){map[key]={item:ing.item,unit:ing.unit,qty:0,hasQty:false};order.push(key);}if(ing.qty!=null){map[key].qty+=ing.qty*scale;map[key].hasQty=true;}});});
+var items=order.map(function(k){return map[k];});
+state.extras.forEach(function(x){items.push({item:x,unit:"",qty:0,hasQty:false,extra:true});});
+return{items:items,skipped:extrasSkipped};}
+function categorize(item){var s=item.toLowerCase();for(var i=0;i<CATS.length;i++){for(var j=0;j<CATS[i][1].length;j++){if(s.indexOf(CATS[i][1][j])>=0)return CATS[i][0];}}return "Other";}
+function dealMatchesFor(itemName){if(!deals)return[];var words=itemName.toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>=4;}).map(function(w){return w.replace(/s$/,"");});if(!words.length)return[];var out=[];
+(deals.offers||[]).forEach(function(o){var text=((o.summary||"")+" "+(o.merchant||"")).toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"coupon",merchant:o.merchant,summary:o.summary});return;}}});
+(deals.penny||[]).forEach(function(p){var text=(p.title||"").toLowerCase();for(var i=0;i<words.length;i++){if(text.indexOf(words[i])>=0){out.push({kind:"penny",merchant:p.retailer,summary:p.title});return;}}});
+return out;}
+/* rendering */
+var $=function(id){return document.getElementById(id);};
+function renderRecipes(){var host=$("recipe-list");if(!state.recipes.length){host.innerHTML='<div class="k-card"><p class="k-muted">No recipes yet. Add your first one below.</p></div>';return;}
+host.innerHTML=state.recipes.map(function(r){var scaleNote='<span class="k-scale"><button data-act="dec" data-id="'+r.id+'" aria-label="Fewer servings">−</button><span id="sv-'+r.id+'">'+r.servings+'</span><button data-act="inc" data-id="'+r.id+'" aria-label="More servings">+</button></span>';
+var ings=r.ingredients.map(function(line){return "<li>"+esc(line)+"</li>";}).join("");
+return '<div class="k-card"><div class="k-row"><h3 style="margin:0">'+esc(r.name)+(r.starter?'<span class="k-tag starter">Starter — make it yours</span>':"")+'</h3><span class="k-spacer"></span><button class="k-btn danger small" data-act="del" data-id="'+r.id+'">Delete</button></div>'+
+'<p class="k-muted">Makes <span id="svbase-'+r.id+'">'+r.servings+'</span> servings · est. '+money(r.cost||0)+' · viewing: '+scaleNote+'</p><ul class="k-ing" id="ing-'+r.id+'">'+ings+'</ul>'+(r.steps?'<p class="k-steps">'+esc(r.steps)+"</p>":"")+"</div>";}).join("");
+host.querySelectorAll("button[data-act]").forEach(function(b){b.addEventListener("click",function(){var id=b.getAttribute("data-id");var act=b.getAttribute("data-act");
+if(act==="del"){if(confirm("Delete this recipe?")){state.recipes=state.recipes.filter(function(x){return x.id!==id;});save();renderAll();}return;}
+var view=$("sv-"+id);var n=parseInt(view.textContent,10)||1;n+=(act==="inc"?1:-1);if(n<1)n=1;view.textContent=n;rescale(id,n);});});}
+function rescale(id,servings){var r=recipeById(id);if(!r)return;var scale=servings/r.servings;var ul=$("ing-"+id);if(!ul)return;ul.innerHTML=r.ingredients.map(function(line){var ing=parseIngredient(line);if(ing.qty==null)return "<li>"+esc(line)+"</li>";var q=fmtQty(ing.qty*scale);return "<li>"+esc((q?q+" ":"")+(ing.unit?ing.unit+" ":"")+ing.item)+"</li>";}).join("");}
+function renderPlan(){var host=$("plan-days");host.innerHTML=DAYS.map(function(d,i){var p=state.plan["d"+i]||{};var opts='<option value="">— nothing planned —</option>'+state.recipes.map(function(r){return '<option value="'+r.id+'"'+(p.id===r.id?" selected":"")+">"+esc(r.name)+"</option>";}).join("");var serv=p.id?(p.servings||(recipeById(p.id)||{}).servings||4):"";
+return '<div class="k-day"><span class="k-day-name">'+d+'</span><select class="k-select" data-day="'+i+'">'+opts+'</select><input class="k-input k-serv" type="number" min="1" step="1" data-dayserv="'+i+'" value="'+serv+'" title="Servings" '+(p.id?"":"disabled")+'></div>';}).join("");
+host.querySelectorAll("select[data-day]").forEach(function(sel){sel.addEventListener("change",function(){var i=sel.getAttribute("data-day");if(!sel.value){delete state.plan["d"+i];}else{var r=recipeById(sel.value);state.plan["d"+i]={id:sel.value,servings:r?r.servings:4};}save();renderPlan();renderList();});});
+host.querySelectorAll("input[data-dayserv]").forEach(function(inp){inp.addEventListener("change",function(){var i=inp.getAttribute("data-dayserv");if(state.plan["d"+i]){state.plan["d"+i].servings=Math.max(1,parseInt(inp.value,10)||1);save();renderPlan();renderList();}});});
+$("b-weekly").value=state.budget||"";var total=planTotal();$("b-total").textContent=money(total);var budget=parseFloat(state.budget)||0;var fill=$("b-bar");var note=$("b-note");
+if(budget>0){var pct=Math.min(100,total/budget*100);fill.style.width=pct+"%";fill.className="k-bar-fill"+(total>budget?" over":"");note.textContent=total>budget?("This week's plan is about "+money(total-budget)+" over the "+money(budget)+" budget."):(money(budget-total)+" of the "+money(budget)+" budget left after this week's plan.");}
+else{fill.style.width="0%";note.textContent="Set a weekly budget and the bar shows how this week's plan stacks up. Recipe costs are estimates — edit a recipe's cost when you learn what it really runs.";}
+$("p-staples").value=state.staples.join("\n");}
+function renderList(){var built=buildList();var host=$("list-body");var groups={};built.items.forEach(function(it){var c=categorize(it.item);(groups[c]=groups[c]||[]).push(it);});
+var order=CATS.map(function(c){return c[0];}).concat(["Other"]);var html="";
+order.forEach(function(g){if(!groups[g])return;html+='<div class="k-group">'+esc(g)+"</div>"+groups[g].map(function(it){var key=(it.item+"|"+it.unit).toLowerCase();var label=(it.hasQty?fmtQty(it.qty)+" ":"")+(it.unit?it.unit+" ":"")+it.item;var matches=dealMatchesFor(it.item);var tag=matches.length?'<span class="k-tag deal">Deal: '+esc(matches[0].merchant)+"</span>":"";
+return '<label class="k-list-item'+(state.checked[key]?" done":"")+'"><input type="checkbox" data-key="'+esc(key)+'"'+(state.checked[key]?" checked":"")+'><span>'+esc(label)+"</span>"+tag+"</label>";}).join("");});
+if(!built.items.length)html='<p class="k-muted">Nothing on the list yet — plan some recipes for the week and the list builds itself.</p>';
+if(built.skipped)html+='<p class="k-muted">'+built.skipped+" pantry staple"+(built.skipped>1?"s":"")+" skipped (already in the pantry list).</p>";
+host.innerHTML=html;
+host.querySelectorAll("input[type=checkbox]").forEach(function(cb){cb.addEventListener("change",function(){var k=cb.getAttribute("data-key");if(cb.checked)state.checked[k]=true;else delete state.checked[k];save();renderList();});});}
+function cleanSummary(s){return String(s||"").split("(Tested by")[0].trim();}
+function renderDeals(){var asof=$("d-asof");if(!deals){asof.textContent="Deals could not be loaded right now — the list still works without them.";return;}
+var d=new Date(deals.generated_at);asof.textContent="Coupon and penny data pulled by Scout on "+d.toLocaleDateString()+" at "+d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+". Scout refreshes these on its regular sweeps.";
+var built=buildList();var matchHtml="";var seen={};
+built.items.forEach(function(it){dealMatchesFor(it.item).forEach(function(m){var k=it.item+m.merchant;if(seen[k])return;seen[k]=1;matchHtml+='<div class="k-offer"><strong>'+esc(it.item)+'</strong> — possible deal at '+esc(m.merchant)+'<br><span class="k-muted">'+esc(cleanSummary(m.summary))+"</span></div>";});});
+$("d-matches").innerHTML=matchHtml?('<h4 style="margin:6px 0">Matches for this week\'s list</h4>'+matchHtml):'<p class="k-muted">No deals match this week\'s shopping list right now.</p>';
+$("d-offers").innerHTML='<h4 style="margin:14px 0 6px">Current offers</h4>'+(deals.offers||[]).map(function(o){var meta=[];if(o.ends_at)meta.push("ends "+new Date(o.ends_at).toLocaleDateString());if(o.code)meta.push('code <span class="k-code">'+esc(o.code)+"</span>");var link=o.url?('<a href="'+esc(o.url)+'" target="_blank" rel="noopener">open offer</a>'):"";var line=(meta.length?'<span class="k-muted">'+meta.join(" · ")+"</span>":"")+(link?(meta.length?" · ":"")+link:"");return '<div class="k-offer"><strong>'+esc(o.merchant)+"</strong> — "+esc(cleanSummary(o.summary))+(line?"<br>"+line:"")+"</div>";}).join("");
+$("d-penny").innerHTML=(deals.penny||[]).length?(deals.penny.map(function(p){var reg=p.regular_price?(' <span class="k-muted">(reg. '+money(parseFloat(p.regular_price))+')</span>'):"";return '<div class="k-offer"><strong>'+esc(p.retailer)+"</strong> — "+esc(p.title)+reg+' <span class="k-tag">unverified signal</span></div>';}).join("")):'<p class="k-muted">No penny signals in the current pull.</p>';}
+function renderAll(){renderRecipes();renderPlan();renderList();renderDeals();}
+/* tabs */
+document.querySelectorAll(".k-tab").forEach(function(t){t.addEventListener("click",function(){document.querySelectorAll(".k-tab").forEach(function(x){x.setAttribute("aria-selected","false");});t.setAttribute("aria-selected","true");["recipes","plan","list","deals"].forEach(function(n){$("tab-"+n).classList.toggle("k-hidden",n!==t.getAttribute("data-tab"));});});});
+/* events */
+$("r-add").addEventListener("click",function(){var name=$("r-name").value.trim();if(!name){$("r-msg").textContent="Give the recipe a name first.";return;}var ing=$("r-ing").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);if(!ing.length){$("r-msg").textContent="Add at least one ingredient line.";return;}
+state.recipes.push({id:"r"+Date.now(),name:name,servings:Math.max(1,parseInt($("r-servings").value,10)||4),cost:parseFloat($("r-cost").value)||0,ingredients:ing,steps:$("r-steps").value.trim()});
+$("r-name").value="";$("r-ing").value="";$("r-steps").value="";$("r-cost").value="";$("r-msg").textContent="Saved. Find it in the list above and in the Week Plan.";save();renderAll();});
+$("b-weekly").addEventListener("change",function(){state.budget=$("b-weekly").value;save();renderPlan();});
+$("p-save").addEventListener("click",function(){state.staples=$("p-staples").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);save();renderList();});
+$("l-add").addEventListener("click",function(){var v=$("l-extra").value.trim();if(!v)return;state.extras.push(v);$("l-extra").value="";save();renderList();});
+$("l-clear").addEventListener("click",function(){state.checked={};save();renderList();});
+$("l-copy").addEventListener("click",function(){var built=buildList();var text=built.items.map(function(it){return "- "+(it.hasQty?fmtQty(it.qty)+" ":"")+(it.unit?it.unit+" ":"")+it.item;}).join("\n");if(navigator.clipboard)navigator.clipboard.writeText("Shopping list\n"+text);$("l-note").textContent="List copied — paste it anywhere.";});
+$("x-export").addEventListener("click",function(){var blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="our-kitchen-backup.json";a.click();$("x-msg").textContent="Backup downloaded.";});
+$("x-import").addEventListener("change",function(){var f=$("x-import").files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var d=JSON.parse(rd.result);if(d&&d.recipes){state=d;save();renderAll();$("x-msg").textContent="Backup loaded.";}else $("x-msg").textContent="That file doesn't look like a backup.";}catch(e){$("x-msg").textContent="That file couldn't be read.";}};rd.readAsText(f);});
+fetch("recipes-deals.json").then(function(r){return r.json();}).then(function(j){deals=j;renderList();renderDeals();}).catch(function(){renderDeals();});
+renderAll();
+})();
+</script></body></html>
