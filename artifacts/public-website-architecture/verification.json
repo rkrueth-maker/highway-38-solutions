@@ -1,6 +1,6 @@
 {
   "status": "HOLD",
-  "generatedAt": "2026-11-11T12:09:15.173Z",
+  "generatedAt": "2026-11-13T12:25:53.598Z",
   "architecture": "project-first-public-site-v2.4-plus-supabase-only-office",
   "governance": "website-and-web-app-governance-v1",
   "logoLocked": true,
@@ -16,7 +16,7 @@
   "canonicalShell": "assets/js/h38-site-v2.js",
   "standardOffice": "supabase-only",
   "legacyOfficeRoute": false,
-  "passed": 285,
+  "passed": 295,
   "failed": 1,
   "warnings": [],
   "passes": [
@@ -930,6 +930,46 @@
     },
     {
       "name": "tips.html public script budget",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "blog.html exists",
+      "detail": ""
+    },
+    {
+      "name": "blog.html has one title",
+      "detail": ""
+    },
+    {
+      "name": "blog.html has one description",
+      "detail": ""
+    },
+    {
+      "name": "blog.html has one main landmark",
+      "detail": ""
+    },
+    {
+      "name": "blog.html loads canonical shell once",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "blog.html has empty shared header host",
+      "detail": ""
+    },
+    {
+      "name": "blog.html has empty shared footer host",
+      "detail": ""
+    },
+    {
+      "name": "blog.html excludes legacy global runtimes",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "blog.html canonical URL",
+      "detail": "https://highway38solutions.com/blog.html"
+    },
+    {
+      "name": "blog.html public script budget",
       "detail": "assets/js/h38-site-v2.js"
     },
     {
