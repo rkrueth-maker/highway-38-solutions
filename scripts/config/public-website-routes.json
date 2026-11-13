@@ -157,6 +157,13 @@
       "visibility": "public"
     },
     {
+      "path": "blog.html",
+      "label": "From the Shop \u2014 Blog",
+      "canonical": "https://highway38solutions.com/blog.html",
+      "shell": "canonical",
+      "visibility": "public"
+    },
+    {
       "path": "trial-signup.html",
       "label": "Start 30 Days Free",
       "canonical": "https://highway38solutions.com/trial-signup.html",
