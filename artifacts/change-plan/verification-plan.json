@@ -1,24 +1,24 @@
 {
   "status": "PASS",
-  "generatedAt": "2026-11-13T12:26:25.866Z",
+  "generatedAt": "2026-11-17T17:57:18.042Z",
   "base": "origin/main",
   "head": "HEAD",
   "files": [
     "artifacts/change-governance/verification.json",
     "artifacts/public-image-placements/verification.json",
     "artifacts/public-website-architecture/verification.json",
-    "blog.html",
-    "free-tools.html",
-    "scripts/config/public-website-routes.json",
-    "sitemap.xml"
+    "recipes-deals.json",
+    "recipes.html",
+    "supabase/functions/household-list/index.ts",
+    "supabase/migrations/20261113080000_household_items.sql"
   ],
   "fileCount": 7,
   "scopes": {
     "publicWebsite": true,
     "authenticatedApp": false,
-    "customerPortal": false,
+    "customerPortal": true,
     "sharedArchitecture": false,
-    "performanceReliability": false,
+    "performanceReliability": true,
     "workflowOnly": false,
     "documentationOnly": false
   },
@@ -29,18 +29,21 @@
     "publicRendering": true,
     "authenticatedRendering": false,
     "externalActionBoundary": false,
-    "longRunningData": false
+    "longRunningData": true
   },
   "fastChecks": [
     "node scripts/verify-change-governance.js",
     "node scripts/verify-public-website-architecture.js",
-    "node scripts/verify-public-ecosystem-tools.js"
+    "node scripts/verify-public-ecosystem-tools.js",
+    "node scripts/verify-customer-portal-security.js"
   ],
   "expensiveChecks": [
-    "desktop and mobile public browser verification for affected routes"
+    "desktop and mobile public browser verification for affected routes",
+    "resumable small-batch generation with cursor and exact final counts"
   ],
   "deploymentWorkflows": [
-    ".github/workflows/pages-branch-fallback.yml"
+    ".github/workflows/pages-branch-fallback.yml",
+    ".github/workflows/deploy-owner-portal-hard-rule-production.yml"
   ],
   "reusableEvidence": [
     "Authenticated browser and data-coverage evidence is not invalidated by this change."

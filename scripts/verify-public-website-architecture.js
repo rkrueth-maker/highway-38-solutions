@@ -104,7 +104,7 @@ check('What We Do has no fixed-price cards',!/\$\d[\d,]*(?:\.\d{2})?/.test(solut
 check('capability desktop layout is controlled',/\.pi-capability-grid\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/.test(capabilityStyles));
 check('capability phone layout is one column',/@media\(max-width:620px\)[\s\S]*\.pi-capability-grid[\s\S]*grid-template-columns:1fr/.test(capabilityStyles));
 
-check('final pricing source exposes one software offer',count(pricingSource,/classification:'software'/g)===1&&!pricingSource.includes("id:'byo-claude'")&&pricingSource.includes("id:'ai-backend'")&&pricingSource.includes('monthly:149')&&pricingSource.includes('5,000 actions/mo')&&pricingSource.includes("$99/mo for founding members"));
+check('final pricing source exposes one software offer',count(pricingSource,/classification:'software'/g)===1&&!pricingSource.includes("id:'byo-claude'")&&pricingSource.includes("id:'ai-backend'")&&pricingSource.includes('monthly:99')&&pricingSource.includes('5,000 actions/mo')&&pricingSource.includes("$99/mo up to 10 users"));
 check('final pricing source retired the Business Snapshot diagnostic 2026-11-02',count(pricingSource,/classification:'diagnostic'/g)===0&&!pricingSource.includes("id:'business-snapshot'"));
 check('request controller has no submit handler',!/addEventListener\(['"]submit['"]/.test(requestController));
 check('request controller owns final offer rendering',/renderOffers/.test(requestController)&&/selectedOffer/.test(requestController)&&/offerById/.test(requestController));

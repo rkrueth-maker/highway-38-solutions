@@ -1,0 +1,135 @@
+{
+  "status": "HOLD",
+  "generatedAt": "2026-11-17T17:57:12.530Z",
+  "pricingVersion": "2026-11-17-crew-bands",
+  "passed": 30,
+  "failed": 1,
+  "passes": [
+    {
+      "name": "pricing data source loads",
+      "evidence": ""
+    },
+    {
+      "name": "exactly one software offer in single-tier pricing",
+      "evidence": ""
+    },
+    {
+      "name": "Business Snapshot offer retired 2026-11-02 (not a current offer)",
+      "evidence": ""
+    },
+    {
+      "name": "approved software prices",
+      "evidence": ""
+    },
+    {
+      "name": "custom scope is quoted per project, not a priced package",
+      "evidence": ""
+    },
+    {
+      "name": "retired managed support offers removed",
+      "evidence": ""
+    },
+    {
+      "name": "pricing page has exactly one primary software card",
+      "evidence": "1"
+    },
+    {
+      "name": "Business Office marked Most Popular",
+      "evidence": ""
+    },
+    {
+      "name": "crew-size bands are published on pricing page",
+      "evidence": ""
+    },
+    {
+      "name": "configured system name is customer-facing",
+      "evidence": ""
+    },
+    {
+      "name": "Quote Builder language is plain",
+      "evidence": ""
+    },
+    {
+      "name": "product pages publish approved prices",
+      "evidence": ""
+    },
+    {
+      "name": "old public pricing packages removed",
+      "evidence": ""
+    },
+    {
+      "name": "request removed legacy product and bundle selectors",
+      "evidence": ""
+    },
+    {
+      "name": "request summary records selected approved offer",
+      "evidence": ""
+    },
+    {
+      "name": "request options resolve current single-tier offers",
+      "evidence": ""
+    },
+    {
+      "name": "cabin card promises the complete quote package",
+      "evidence": ""
+    },
+    {
+      "name": "cabin card opens complete package",
+      "evidence": ""
+    },
+    {
+      "name": "cabin page includes Open All 21 control",
+      "evidence": ""
+    },
+    {
+      "name": "cabin page contains 21 package definitions",
+      "evidence": ""
+    },
+    {
+      "name": "cabin page exposes all linked system areas",
+      "evidence": ""
+    },
+    {
+      "name": "cabin public totals stay aligned",
+      "evidence": ""
+    },
+    {
+      "name": "cabin seeder writes every relevant table",
+      "evidence": "CUSTOMERS, CONTACTS, ADDRESSES, REQUESTS, QUOTES, QUOTE_LINES, APPROVALS, JOBS, WORK_ORDERS, VENDORS, PURCHASE_ORDERS, PO_LINES, DOCUMENTS, PROOF_LOG, ACTIVITY, BACKUP_LOG"
+    },
+    {
+      "name": "cabin seeder generates one master and 21 package PDFs",
+      "evidence": ""
+    },
+    {
+      "name": "cabin seeder verifies exact table coverage",
+      "evidence": ""
+    },
+    {
+      "name": "cabin generator supports safe batches",
+      "evidence": ""
+    },
+    {
+      "name": "cabin auto-seed is versioned for verified coverage",
+      "evidence": ""
+    },
+    {
+      "name": "cabin auto-seed is resumable",
+      "evidence": ""
+    },
+    {
+      "name": "authorized generator verifies every table",
+      "evidence": ""
+    },
+    {
+      "name": "cabin external actions remain disabled",
+      "evidence": ""
+    }
+  ],
+  "failures": [
+    {
+      "name": "request uses current pricing data",
+      "evidence": ""
+    }
+  ]
+}

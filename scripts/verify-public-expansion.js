@@ -34,7 +34,7 @@ const capabilities=['Automation & Robotics','CNC Machining & Process Planning','
 check('What We Do contains five connected capabilities',(solutions.match(/data-capability=/g)||[]).length===5&&capabilities.every(label=>solutions.includes(label)));
 check('capabilities route to specialist pages',['robotics-automation.html','manufacturing-cnc.html','fixture-jig-concept-review.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
 const pricing=read('pricing.html');
-check('pricing displays the single-tier software plan',pricing.includes('$149')&&pricing.includes('$99')&&pricing.includes('Start with $149/mo'));
+check('pricing displays the single-tier software plan',pricing.includes('$99')&&pricing.includes('$199')&&pricing.includes('Start with $99/mo'));
 const pricingData=read('pricing-data.js');
 check('pricing keeps Business Snapshot separate',!pricing.includes('Business Snapshot')&&pricingData.includes('Business Snapshot')&&pricingData.includes('$299 one-time'));
 check('pricing includes approved support and AI rules',pricing.includes('Priority support (same-day)')&&pricing.includes('assists, never gates')&&pricing.includes('5,000 actions / month included'));

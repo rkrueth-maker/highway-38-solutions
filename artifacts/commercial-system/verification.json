@@ -1,8 +1,8 @@
 {
-  "status": "PASS",
-  "generatedAt": "2026-10-22T02:36:45.973Z",
-  "passed": 78,
-  "failed": 0,
+  "status": "HOLD",
+  "generatedAt": "2026-11-17T17:57:12.837Z",
+  "passed": 76,
+  "failed": 2,
   "architecture": "competitive-readiness-split-buyer-paths-with-interactive-quote-proof",
   "pricingProducts": 3,
   "existingProjectExamples": 30,
@@ -139,10 +139,6 @@
       "detail": ""
     },
     {
-      "name": "competitive-readiness route manifest owns the twenty current gateways",
-      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"project-services.html\",\"pricing.html\",\"business-in-a-box.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\",\"divisions.html\",\"crew.html\",\"faq.html\",\"included.html\",\"tips.html\"]"
-    },
-    {
       "name": "Universal Quote Builder compatibility route is public and canonical",
       "detail": ""
     },
@@ -164,10 +160,6 @@
     },
     {
       "name": "homepage is problem first",
-      "detail": ""
-    },
-    {
-      "name": "homepage routes through balanced discovery",
       "detail": ""
     },
     {
@@ -211,7 +203,7 @@
       "detail": ""
     },
     {
-      "name": "pricing preserves Snapshot and approval boundaries",
+      "name": "pricing preserves approval boundaries and retired Snapshot stays out",
       "detail": ""
     },
     {
@@ -279,7 +271,7 @@
       "detail": ""
     },
     {
-      "name": "request page keeps three-step secure intake",
+      "name": "request page keeps slim one-step secure intake",
       "detail": ""
     },
     {
@@ -287,7 +279,7 @@
       "detail": ""
     },
     {
-      "name": "request uses approved offer selector",
+      "name": "request slim form carries no offer selector or bundle field",
       "detail": ""
     },
     {
@@ -327,5 +319,14 @@
       "detail": ""
     }
   ],
-  "failures": []
+  "failures": [
+    {
+      "name": "competitive-readiness route manifest owns the twenty current gateways",
+      "detail": "[\"index.html\",\"sample-library-now.html\",\"solutions.html\",\"software.html\",\"free-tools.html\",\"samples.html\",\"project-services.html\",\"pricing.html\",\"business-in-a-box.html\",\"quote-builder-demo.html\",\"implementation.html\",\"security-reliability.html\",\"about.html\",\"contact.html\",\"partner-apply.html\",\"start-request.html\",\"portal.html\",\"divisions.html\",\"crew.html\",\"faq.html\",\"included.html\",\"tips.html\",\"blog.html\",\"trial-signup.html\",\"recipes.html\"]"
+    },
+    {
+      "name": "homepage routes through balanced discovery",
+      "detail": ""
+    }
+  ]
 }
