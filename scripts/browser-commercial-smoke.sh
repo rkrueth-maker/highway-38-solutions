@@ -77,7 +77,7 @@ pass "rendered pricing page contains the single software plan card"
 pass "rendered cabin package contains all 21 detailed quotes"
 
 grep -q 'Your truck is not' "$OUT/rendered-home.html" || fail "rendered homepage is missing the project-first promise"
-grep -q 'lock in $99/mo for life' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing the single-tier founding structure"
+grep -q 'Up to 10 users' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing the crew-size band structure"
 grep -q 'Business Snapshot' "$OUT/rendered-pricing.html" && fail "rendered pricing page must keep the Business Snapshot in pricing-data.js only"
 grep -q 'Most capable' "$OUT/rendered-pricing.html" || fail "rendered pricing page is missing the Business Office badge"
 grep -q 'id="offer"' "$OUT/rendered-start-request.html" || fail "rendered request page is missing the approved offer selector"

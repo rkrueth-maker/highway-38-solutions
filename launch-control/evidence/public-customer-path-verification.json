@@ -1,14 +1,16 @@
 {
-  "status": "PASS",
-  "generatedAt": "2026-10-22T02:36:45.811Z",
+  "status": "HOLD",
+  "generatedAt": "2026-11-17T17:57:12.677Z",
   "architecture": "competitive-readiness-split-buyer-paths-integrated-quote-demo",
-  "passed": 539,
-  "failed": 0,
+  "passed": 642,
+  "failed": 2,
   "routes": [
     "index.html",
     "sample-library-now.html",
     "solutions.html",
     "software.html",
+    "free-tools.html",
+    "samples.html",
     "project-services.html",
     "pricing.html",
     "business-in-a-box.html",
@@ -24,7 +26,10 @@
     "crew.html",
     "faq.html",
     "included.html",
-    "tips.html"
+    "tips.html",
+    "blog.html",
+    "trial-signup.html",
+    "recipes.html"
   ],
   "existingProjectExamples": 30,
   "universalDemonstration": true,
@@ -51,10 +56,6 @@
     {
       "name": "competitive-readiness route registry version",
       "detail": "2026-10-21-content-expansion-competitive-readiness"
-    },
-    {
-      "name": "twenty primary routes",
-      "detail": "20"
     },
     {
       "name": "primary route registered: index.html",
@@ -137,6 +138,14 @@
       "detail": ""
     },
     {
+      "name": "required public artifact: free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: samples.html",
+      "detail": ""
+    },
+    {
       "name": "required public artifact: project-services.html",
       "detail": ""
     },
@@ -198,6 +207,18 @@
     },
     {
       "name": "required public artifact: tips.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: blog.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: trial-signup.html",
+      "detail": ""
+    },
+    {
+      "name": "required public artifact: recipes.html",
       "detail": ""
     },
     {
@@ -269,10 +290,6 @@
       "detail": "assets/css/project-intelligence.css"
     },
     {
-      "name": "index.html: local asset business-office-review-demo.html",
-      "detail": "business-office-review-demo.html"
-    },
-    {
       "name": "index.html: local asset pricing.html",
       "detail": "pricing.html"
     },
@@ -297,6 +314,10 @@
       "detail": "software.html"
     },
     {
+      "name": "index.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
       "name": "index.html: local asset implementation.html",
       "detail": "implementation.html"
     },
@@ -307,6 +328,10 @@
     {
       "name": "index.html: local asset solutions.html",
       "detail": "solutions.html"
+    },
+    {
+      "name": "index.html: local asset trial-signup.html",
+      "detail": "trial-signup.html"
     },
     {
       "name": "index.html: local asset start-request.html",
@@ -325,24 +350,24 @@
       "detail": "pricing.html"
     },
     {
-      "name": "index.html: local asset assets/demo-workthroughs/cabin-plan-sheet.png",
-      "detail": "assets/demo-workthroughs/cabin-plan-sheet.png"
+      "name": "index.html: local asset assets/office-screenshots/office-today.png",
+      "detail": "assets/office-screenshots/office-today.png"
     },
     {
-      "name": "index.html: local asset assets/demo-workthroughs/kitchen-remodel-v2.webp",
-      "detail": "assets/demo-workthroughs/kitchen-remodel-v2.webp"
+      "name": "index.html: local asset assets/office-screenshots/office-quote.png",
+      "detail": "assets/office-screenshots/office-quote.png"
     },
     {
-      "name": "index.html: local asset assets/approved-website-images/10-project-planning-documents.jpg",
-      "detail": "assets/approved-website-images/10-project-planning-documents.jpg"
-    },
-    {
-      "name": "index.html: local asset business-office-review-demo.html",
-      "detail": "business-office-review-demo.html"
+      "name": "index.html: local asset assets/office-screenshots/office-schedule.png",
+      "detail": "assets/office-screenshots/office-schedule.png"
     },
     {
       "name": "index.html: local asset quote-builder.html",
       "detail": "quote-builder.html"
+    },
+    {
+      "name": "index.html: local asset trial-signup.html",
+      "detail": "trial-signup.html"
     },
     {
       "name": "index.html: local asset start-request.html",
@@ -893,6 +918,10 @@
       "detail": "implementation.html"
     },
     {
+      "name": "software.html: local asset trial-signup.html",
+      "detail": "trial-signup.html"
+    },
+    {
       "name": "software.html: local asset pricing.html",
       "detail": "pricing.html"
     },
@@ -902,6 +931,262 @@
     },
     {
       "name": "software.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "free-tools.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: title",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "free-tools.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/machinist/",
+      "detail": "free-tools/machinist/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-quick-calc.xlsx",
+      "detail": "free-tools/downloads/h38-quick-calc.xlsx"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-machinist-calc.apk",
+      "detail": "free-tools/downloads/h38-machinist-calc.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/workbook-pack.html",
+      "detail": "free-tools/workbook-pack.html"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/trades-workbook-pack.xlsx",
+      "detail": "free-tools/downloads/trades-workbook-pack.xlsx"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/contractor-calc.html",
+      "detail": "free-tools/contractor-calc.html"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-contractor-calc.xlsx",
+      "detail": "free-tools/downloads/h38-contractor-calc.xlsx"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-contractor-calc.apk",
+      "detail": "free-tools/downloads/h38-contractor-calc.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/snow-estimator/",
+      "detail": "free-tools/snow-estimator/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/roof-calculator/",
+      "detail": "free-tools/roof-calculator/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/photo-quote/",
+      "detail": "free-tools/photo-quote/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/paint-drywall-calculator/",
+      "detail": "free-tools/paint-drywall-calculator/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/machinist-speeds/",
+      "detail": "free-tools/machinist-speeds/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/markup-margin-calculator/",
+      "detail": "free-tools/markup-margin-calculator/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/materials-calculator/",
+      "detail": "free-tools/materials-calculator/"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools/downloads/h38-field-tools.apk",
+      "detail": "free-tools/downloads/h38-field-tools.apk"
+    },
+    {
+      "name": "free-tools.html: local asset business-in-a-box.html",
+      "detail": "business-in-a-box.html"
+    },
+    {
+      "name": "free-tools.html: local asset software.html",
+      "detail": "software.html"
+    },
+    {
+      "name": "free-tools.html: local asset implementation.html",
+      "detail": "implementation.html"
+    },
+    {
+      "name": "free-tools.html: local asset blog.html",
+      "detail": "blog.html"
+    },
+    {
+      "name": "free-tools.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "free-tools.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "free-tools.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "free-tools.html: local asset free-tools-gate.js",
+      "detail": "free-tools-gate.js"
+    },
+    {
+      "name": "samples.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "samples.html: title",
+      "detail": ""
+    },
+    {
+      "name": "samples.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "samples.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "samples.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "samples.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "samples.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "samples.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/snowshield-plowing-hero.jpg",
+      "detail": "assets/sample-websites/snowshield-plowing-hero.jpg"
+    },
+    {
+      "name": "samples.html: local asset sample-sites/snowshield-plowing/",
+      "detail": "sample-sites/snowshield-plowing/"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/climatepro-hvac-hero.jpg",
+      "detail": "assets/sample-websites/climatepro-hvac-hero.jpg"
+    },
+    {
+      "name": "samples.html: local asset sample-sites/climatepro-hvac/",
+      "detail": "sample-sites/climatepro-hvac/"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/flowright-plumbing-hero.jpg",
+      "detail": "assets/sample-websites/flowright-plumbing-hero.jpg"
+    },
+    {
+      "name": "samples.html: local asset sample-sites/flowright-plumbing/",
+      "detail": "sample-sites/flowright-plumbing/"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/greenstripe-mowing-hero.jpg",
+      "detail": "assets/sample-websites/greenstripe-mowing-hero.jpg"
+    },
+    {
+      "name": "samples.html: local asset sample-sites/greenstripe-mowing/",
+      "detail": "sample-sites/greenstripe-mowing/"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/voltedge-electric-hero.jpg",
+      "detail": "assets/sample-websites/voltedge-electric-hero.jpg"
+    },
+    {
+      "name": "samples.html: local asset sample-sites/voltedge-electric/",
+      "detail": "sample-sites/voltedge-electric/"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/northwood-landscape-hero.jpg",
+      "detail": "assets/sample-websites/northwood-landscape-hero.jpg"
+    },
+    {
+      "name": "samples.html: local asset sample-sites/northwood-landscape/",
+      "detail": "sample-sites/northwood-landscape/"
+    },
+    {
+      "name": "samples.html: local asset assets/sample-websites/northern-lakes.jpg",
+      "detail": "assets/sample-websites/northern-lakes.jpg"
+    },
+    {
+      "name": "samples.html: local asset businesses/northern-lakes/",
+      "detail": "businesses/northern-lakes/"
+    },
+    {
+      "name": "samples.html: local asset included.html",
+      "detail": "included.html"
+    },
+    {
+      "name": "samples.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "samples.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "samples.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "samples.html: local asset pricing.html",
+      "detail": "pricing.html"
+    },
+    {
+      "name": "samples.html: local asset assets/js/h38-site-v2.js",
       "detail": "assets/js/h38-site-v2.js"
     },
     {
@@ -1001,8 +1286,16 @@
       "detail": "start-request.html"
     },
     {
-      "name": "pricing.html: local asset start-request.html",
-      "detail": "start-request.html"
+      "name": "pricing.html: local asset trial-signup.html",
+      "detail": "trial-signup.html"
+    },
+    {
+      "name": "pricing.html: local asset trial-signup.html",
+      "detail": "trial-signup.html"
+    },
+    {
+      "name": "pricing.html: local asset trial-signup.html",
+      "detail": "trial-signup.html"
     },
     {
       "name": "pricing.html: local asset start-request.html",
@@ -1041,8 +1334,8 @@
       "detail": "pricing.html"
     },
     {
-      "name": "business-in-a-box.html: local asset business-office-review-demo.html",
-      "detail": "business-office-review-demo.html"
+      "name": "business-in-a-box.html: local asset software.html",
+      "detail": "software.html"
     },
     {
       "name": "business-in-a-box.html: local asset assets/demo-workthroughs/cabin-exterior-render.png",
@@ -1057,8 +1350,8 @@
       "detail": "pricing.html"
     },
     {
-      "name": "business-in-a-box.html: local asset start-request.html",
-      "detail": "start-request.html"
+      "name": "business-in-a-box.html: local asset pricing.html",
+      "detail": "pricing.html"
     },
     {
       "name": "business-in-a-box.html: local asset pricing.html",
@@ -1357,20 +1650,12 @@
       "detail": "platform-unified.css"
     },
     {
-      "name": "start-request.html: local asset pricing-data.js",
-      "detail": "pricing-data.js"
-    },
-    {
       "name": "start-request.html: local asset platform-states.js",
       "detail": "platform-states.js"
     },
     {
       "name": "start-request.html: local asset assets/js/h38-site-v2.js",
       "detail": "assets/js/h38-site-v2.js"
-    },
-    {
-      "name": "start-request.html: local asset assets/js/h38-request-options.js",
-      "detail": "assets/js/h38-request-options.js"
     },
     {
       "name": "start-request.html: local asset request-flow.js",
@@ -1525,8 +1810,24 @@
       "detail": "assets/approved-website-images/business-workflow-office.webp"
     },
     {
-      "name": "crew.html: local asset assets/videos/hank-poster.jpg",
-      "detail": "assets/videos/hank-poster.jpg"
+      "name": "crew.html: local asset assets/crew/ridge.webp",
+      "detail": "assets/crew/ridge.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/hank.webp",
+      "detail": "assets/crew/hank.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/scout.webp",
+      "detail": "assets/crew/scout.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/cody.webp",
+      "detail": "assets/crew/cody.webp"
+    },
+    {
+      "name": "crew.html: local asset assets/crew/tally.webp",
+      "detail": "assets/crew/tally.webp"
     },
     {
       "name": "crew.html: local asset assets/crew/gage.webp",
@@ -1717,6 +2018,110 @@
       "detail": "assets/js/h38-site-v2.js"
     },
     {
+      "name": "blog.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "blog.html: title",
+      "detail": ""
+    },
+    {
+      "name": "blog.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "blog.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "blog.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "blog.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "blog.html: local asset about.html",
+      "detail": "about.html"
+    },
+    {
+      "name": "blog.html: local asset free-tools.html",
+      "detail": "free-tools.html"
+    },
+    {
+      "name": "blog.html: local asset start-request.html",
+      "detail": "start-request.html"
+    },
+    {
+      "name": "blog.html: local asset contact.html",
+      "detail": "contact.html"
+    },
+    {
+      "name": "blog.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "trial-signup.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html: title",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "trial-signup.html: local asset visual-cleanup.css",
+      "detail": "visual-cleanup.css"
+    },
+    {
+      "name": "trial-signup.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "trial-signup.html: local asset sign-in.html",
+      "detail": "sign-in.html"
+    },
+    {
+      "name": "trial-signup.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
+      "name": "trial-signup.html: local asset trial-signup.js",
+      "detail": "trial-signup.js"
+    },
+    {
+      "name": "recipes.html: viewport",
+      "detail": ""
+    },
+    {
+      "name": "recipes.html: title",
+      "detail": ""
+    },
+    {
+      "name": "recipes.html: favicon",
+      "detail": ""
+    },
+    {
+      "name": "recipes.html: local asset assets/highway38-logo.png",
+      "detail": "assets/highway38-logo.png"
+    },
+    {
+      "name": "recipes.html: local asset assets/css/project-intelligence.css",
+      "detail": "assets/css/project-intelligence.css"
+    },
+    {
+      "name": "recipes.html: local asset assets/js/h38-site-v2.js",
+      "detail": "assets/js/h38-site-v2.js"
+    },
+    {
       "name": "index.html: canonical shared shell",
       "detail": ""
     },
@@ -1730,6 +2135,14 @@
     },
     {
       "name": "software.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "free-tools.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "samples.html: canonical shared shell",
       "detail": ""
     },
     {
@@ -1789,6 +2202,14 @@
       "detail": ""
     },
     {
+      "name": "blog.html: canonical shared shell",
+      "detail": ""
+    },
+    {
+      "name": "trial-signup.html: canonical shared shell",
+      "detail": ""
+    },
+    {
       "name": "home uses current approved direction",
       "detail": ""
     },
@@ -1829,7 +2250,7 @@
       "detail": ""
     },
     {
-      "name": "Business Snapshot remains diagnostic, not a fourth tier",
+      "name": "Business Snapshot offer retired 2026-11-02 (not a current offer)",
       "detail": ""
     },
     {
@@ -1897,11 +2318,7 @@
       "detail": ""
     },
     {
-      "name": "pricing names founding terms and links the controlled request path",
-      "detail": ""
-    },
-    {
-      "name": "request page preserves controlled intake",
+      "name": "pricing names own-it terms and links the controlled request path",
       "detail": ""
     },
     {
@@ -1966,18 +2383,6 @@
     },
     {
       "name": "tools.html: deterministic redirect",
-      "detail": "sample-library-now.html"
-    },
-    {
-      "name": "retired route exists: free-tools.html",
-      "detail": ""
-    },
-    {
-      "name": "free-tools.html: noindex redirect",
-      "detail": "sample-library-now.html"
-    },
-    {
-      "name": "free-tools.html: deterministic redirect",
       "detail": "sample-library-now.html"
     },
     {
@@ -2069,6 +2474,14 @@
       "detail": ""
     },
     {
+      "name": "sitemap includes free-tools.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes samples.html",
+      "detail": ""
+    },
+    {
       "name": "sitemap includes project-services.html",
       "detail": ""
     },
@@ -2129,6 +2542,14 @@
       "detail": ""
     },
     {
+      "name": "sitemap includes blog.html",
+      "detail": ""
+    },
+    {
+      "name": "sitemap includes trial-signup.html",
+      "detail": ""
+    },
+    {
       "name": "sitemap excludes retired catalog.html",
       "detail": ""
     },
@@ -2146,10 +2567,6 @@
     },
     {
       "name": "sitemap excludes retired tools.html",
-      "detail": ""
-    },
-    {
-      "name": "sitemap excludes retired free-tools.html",
       "detail": ""
     },
     {
@@ -2201,5 +2618,14 @@
       "detail": ""
     }
   ],
-  "failures": []
+  "failures": [
+    {
+      "name": "twenty primary routes",
+      "detail": "25"
+    },
+    {
+      "name": "request page preserves controlled intake",
+      "detail": ""
+    }
+  ]
 }

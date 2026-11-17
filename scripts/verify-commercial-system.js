@@ -40,11 +40,11 @@ check('What We Do exposes five accepted capabilities',capabilities.every(value=>
 check('What We Do uses specialist links',['robotics-automation.html','manufacturing-cnc.html','quote-builder.html','business-systems.html'].every(link=>solutions.includes(link)));
 check('What We Do does not restore fixed-price product cards',!solutions.includes('Problem Snapshot')&&!solutions.includes('Basic Layout Snapshot')&&!solutions.includes('Workflow Opportunity Snapshot'));
 const pricing=read('pricing.html');
-check('pricing page has final single-tier structure',(pricing.match(/class="bib-price-card(?:\s|")/g)||[]).length===1&&pricing.includes('$149')&&pricing.includes('lock in $99/mo for life')&&!pricing.includes('Starting at $499'));
+check('pricing page has final single-tier structure',(pricing.match(/class="bib-price-card(?:\s|")/g)||[]).length===1&&pricing.includes('$99')&&pricing.includes('Up to 10 users — $99/mo')&&!pricing.includes('founding')&&!pricing.includes('Starting at $499'));
 const pricingData=read('pricing-data.js');
 check('pricing preserves approval boundaries and retired Snapshot stays out',!pricing.includes('Business Snapshot')&&!pricingData.includes('Business Snapshot')&&pricing.includes('approved by you before it goes out'));
 check('pricing marks the AI backend plan as the featured offer',pricing.includes('Most capable')&&pricingData.includes("badge:'Most Popular'")&&pricingData.includes("id:'ai-backend'"));
-check('pricing explains implementation value without changing prices',pricing.includes('One small custom feature per quarter included')&&pricing.includes('business-in-a-box.html')&&pricing.includes('$149'));
+check('pricing explains implementation value without changing prices',pricing.includes('One small custom feature per quarter included')&&pricing.includes('business-in-a-box.html')&&pricing.includes('$99'));
 const samples=read('sample-library-now.html');
 const existingExampleCount=(samples.match(/class="project-card"/g)||[]).length;
 const houseIndex=samples.indexOf('data-project="cabin"');

@@ -10,24 +10,25 @@ const check=(name,condition,evidence='')=>{(condition?passes:failures).push({nam
 const softwareCardCount=html=>[...html.matchAll(/class="([^"]*)"/g)].filter(match=>match[1].split(/\s+/).some(token=>token==='price-card'||token==='bib-price-card')).length;
 const pricing=read('pricing.html');const pricingData=read('pricing-data.js');const request=read('start-request.html');const requestOptions=read('assets/js/h38-request-options.js');const requestFlow=read('request-flow.js');const quoteBuilder=read('quote-builder.html');const businessOffice=read('business-systems.html');const samples=read('sample-library-now.html');const cabin=read('cabin-project-complete.html');const seeder=read('apps-script/business-office/BusinessOffice_CabinDemoSeeder.gs');const autoSeed=read('apps-script/business-office/BusinessOffice_CabinAutoSeed.gs');const authorizedGenerator=read('scripts/generate-cabin-demo-authorized.sh');
 const context={window:{}};vm.createContext(context);vm.runInContext(pricingData,context,{filename:'pricing-data.js'});const source=context.window.H38_PRICING;const configured=source&&source.offers.find(item=>item.id==='custom-scope');
-/* Canonical pricing after the single-tier restructure (pricing-data.js
-   version 2026-10-11-single-tier; MEMORY: $99/mo founding / $149/mo standard,
-   single tier only): one software offer (AI Runs Your Backend, $149/mo,
-   $99/mo founding), one quoted service offer (Custom Scope). Retired multi-offer pins
+/* Canonical pricing after the 2026-11-17 crew-band restructure (pricing-data.js
+   version 2026-11-17-crew-bands; Rick's order 2026-11-17: Founding 10 retired,
+   $99/mo up to 10 users / $199/mo 11-25 / $299/mo 26-50 / 50+ custom, flat per
+   band, no per-seat charges, no locked-for-life language): one software offer
+   (AI Runs Your Backend, $99/mo base band), one quoted service offer (Custom Scope). Retired multi-offer pins
    (quote-builder $59 / business-office $249 / configured-system $7,500
    implementation) no longer exist in source and must not be re-asserted. */
-check('pricing data source loads',source&&source.version==='2026-10-11-single-tier');
+check('pricing data source loads',source&&source.version==='2026-11-17-crew-bands');
 check('exactly one software offer in single-tier pricing',source&&source.offers.filter(item=>item.classification==='software').length===1);
 check('Business Snapshot offer retired 2026-11-02 (not a current offer)',source&&!source.offers.some(item=>item.id==='business-snapshot')&&!source.offers.some(item=>item.classification==='diagnostic'));
-check('approved software prices',source&&source.offers.find(item=>item.id==='ai-backend').monthly===149&&source.offers.find(item=>item.id==='ai-backend').foundingLabel.includes('$99/mo'));
+check('approved software prices',source&&source.offers.find(item=>item.id==='ai-backend').monthly===99&&source.offers.find(item=>item.id==='ai-backend').bandsLabel.includes('$199/mo'));
 check('custom scope is quoted per project, not a priced package',configured&&configured.classification==='service'&&configured.priceLabel==='Quoted per project'&&configured.monthly==null);
 check('retired managed support offers removed',source&&Array.isArray(source.support)&&source.support.length===0);
 check('pricing page has exactly one primary software card',softwareCardCount(pricing)===1,String(softwareCardCount(pricing)));
-check('Business Office marked Most Popular',pricing.includes('$149 <small>/ month</small>')&&source.offers.find(item=>item.id==='ai-backend').badge==='Most Popular');
-check('founding price is published on pricing page',pricing.includes('lock in $99/mo for life'));
+check('Business Office marked Most Popular',pricing.includes('$99 <small>/ month</small>')&&source.offers.find(item=>item.id==='ai-backend').badge==='Most Popular');
+check('crew-size bands are published on pricing page',pricing.includes('Up to 10 users — $99/mo')&&pricing.includes('11–25 users — $199/mo')&&pricing.includes('26–50 users — $299/mo')&&!pricing.includes('founding'));
 check('configured system name is customer-facing',pricing.includes('Custom Scope')||pricingData.includes('Custom Scope'));
 check('Quote Builder language is plain',quoteBuilder.includes('Quotes that match the job')&&quoteBuilder.includes('Eight built-in AI assistants for professional quoting.'));
-check('product pages publish approved prices',quoteBuilder.includes('$149/month')&&quoteBuilder.includes('$99/month for founding members')&&businessOffice.includes('$149/month')&&businessOffice.includes('$99/month for founding members'));
+check('product pages publish approved prices',quoteBuilder.includes('$99/month')&&quoteBuilder.includes('Flat crew-size bands')&&businessOffice.includes('$99/month')&&businessOffice.includes('Flat crew-size bands'));
 check('old public pricing packages removed',!/(Project Snapshot|Plan & Quote|Complete Job Package|Business Office Project|Smart Contact Website|Managed Support|Managed Operations)/.test(pricing));
 check('request uses current pricing data',request.includes('pricing-data.js?v=20260914-current-direction')&&request.includes('id="offer"')&&!request.includes('catalog-data.js'));
 check('request removed legacy product and bundle selectors',!request.includes('id="product"')&&!request.includes('id="bundle"')&&!request.includes('known service, bundle'));

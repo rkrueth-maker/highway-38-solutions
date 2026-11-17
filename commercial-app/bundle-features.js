@@ -24666,7 +24666,7 @@ function renderOwnerControls(){
         </article>
         <article class="card h38-addon-card">
           <div class="row-top"><strong>Phone &amp; texting</strong><span class="pill ${serverModuleOn('sms_sender')?'good':''}">${serverModuleOn('sms_sender')?'On':'Off'}</span></div>
-          <p class="muted small">Your own carrier account and number for customer texts. Setup is $99 one-time, free for the founding 10.</p>
+          <p class="muted small">Your own carrier account and number for customer texts. Setup is $99 one-time.</p>
           <details class="h38-addon-setup"><summary>Set up</summary><p class="muted small">Texting setup lives in Messages, on the Customer texts tab, with consent and STOP rules.</p><div class="actions"><button type="button" class="secondary" data-h38-addon-open="messages">Open Messages</button></div></details>
         </article>
         <article class="card h38-addon-card">
