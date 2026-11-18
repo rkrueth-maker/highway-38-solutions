@@ -10,8 +10,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // (collection='mcp_api_keys', record_status='active') and scopes every call
 // to that business. This function is the ONLY writer of those records from
 // the app: it stores only the SHA-256 hash, returns the raw key exactly once
-// at issuance, and revokes by flipping record_status to 'revoked' (the MCP
-// server only accepts 'active', so a revoked key stops working immediately).
+// at issuance, and revokes by flipping record_status to 'archived' — the
+// business_records check constraint allows only active/archived/deleted,
+// and the MCP server only accepts 'active', so an archived key is dead the
+// moment it is revoked. (Found by the 2026-11-18 Sandbox E2E proof: the
+// first version wrote 'revoked' and the constraint rejected the update.)
 // The MCP server itself is unchanged.
 //
 // Actions (POST JSON, all require a Supabase Auth JWT + owner/admin
@@ -21,7 +24,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //                                               created_at,created_for,status}]}
 //   {action:"revoke", businessId, recordKey} -> {ok, revoked}
 
-const BUILD = "20261118-muse-keys-1";
+const BUILD = "20261118-muse-keys-2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const SITE_ORIGIN = "https://highway38solutions.com";
@@ -178,13 +181,18 @@ Deno.serve(async (req: Request) => {
     const recordKey = clean(body.recordKey, 120);
     if (!recordKey) return json(req, 400, { status: "FAIL", error: "recordKey is required." });
     const { data, error } = await db.from("business_records")
-      .update({ record_status: "revoked", updated_by: user.id })
+      .update({ record_status: "archived", updated_by: user.id })
       .eq("business_id", businessId).eq("collection", "mcp_api_keys")
       .eq("record_key", recordKey).eq("record_status", "active")
       .select("record_key");
     if (error) throw error;
     return json(req, 200, { status: "OK", build: BUILD, revoked: recordKey, changed: (data || []).length > 0 });
   } catch (e) {
-    return json(req, 400, { status: "FAIL", error: clean(e instanceof Error ? e.message : String(e), 500) });
+    // PostgrestError and friends are plain objects, not Error instances —
+    // String(e) would leak "[object Object]" to the customer. Pull the
+    // message out properly.
+    const raw = e instanceof Error ? e.message
+      : (e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e));
+    return json(req, 400, { status: "FAIL", error: clean(raw, 500) });
   }
 });
