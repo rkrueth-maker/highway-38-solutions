@@ -3,7 +3,7 @@
 // H38 Muse Permissions: explicit grant flow for contractor personal AI.
 // REQUIRED at minimum: Office access, Business email, and Google Drive.
 // Optional: Calendar, SMS, and Fleet Location. Grants are revocable.
-const BUILD='20261006-muse-permissions-2';
+const BUILD='20261118-muse-permissions-3';
 const text=v=>String(v==null?'':v).trim();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const businessId=()=>text(window.state?.businessId);
@@ -20,6 +20,20 @@ const OPTIONAL_PERMS=[
   {id:'sms',title:'Business SMS',desc:'Send text messages to customers.',icon:'💬',required:false},
   {id:'fleet',title:'Fleet Location',desc:'View vehicle locations for dispatch.',icon:'🚛',required:false},
 ];
+
+// The app shell never links muse-permissions.css, so load it on demand the
+// same way the guided tour loads its CSS: only when this module renders
+// (it loads with the Settings page group), zero startup cost.
+function ensurePermCss(){
+  try{
+    if(document.querySelector('link[data-h38-muse-perms-css]'))return;
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.setAttribute('data-h38-muse-perms-css','1');
+    l.href='./muse-permissions.css?build='+BUILD;
+    document.head.appendChild(l);
+  }catch(_){}
+}
 
 function getGrants(){
   try{
@@ -45,9 +59,182 @@ function hasRequired(){
   return REQUIRED_PERMS.every(p=>g.granted.includes(p.id));
 }
 
+// ---- Muse connection keys (added 2026-11-18) ----
+// Self-serve keys for the Connect Your Muse offer. The h38-muse-keys edge
+// function issues keys into the same business_records store the MCP server
+// validates (collection 'mcp_api_keys', SHA-256 hash only, record_status
+// 'active'), so an issued key works with the live MCP server exactly like
+// the original hand-made key, and revoke flips record_status server-side —
+// the MCP server accepts only 'active', so a revoked key stops working at
+// once. The raw key is shown exactly once, here, at issue time; it is never
+// stored or shown again. Keys follow the permissions granted on this screen:
+// issuing requires the required grants, and Revoke All revokes the keys too.
+const MCP_ENDPOINT='https://jqukmwtsgcsaruucnqja.supabase.co/functions/v1/h38-mcp-server';
+const KEY_STATE={keys:null,busy:'',error:'',notice:'',newKey:'',loaded:false,loading:false};
+
+function isOwnerAdmin(){
+  try{
+    const u=window.state?.snapshot?.user;
+    return !!(u&&(u.owner===true||/owner|administrator/i.test(text(u.roleName||u.role||''))));
+  }catch(_){return false;}
+}
+function supabaseClient(){
+  try{
+    return window.H38_SUPABASE_SHARED_CLIENT?.ensure?window.H38_SUPABASE_SHARED_CLIENT.ensure():null;
+  }catch(_){return null;}
+}
+async function invokeKeys(payload){
+  const client=supabaseClient();
+  if(!client)throw new Error('Secure connection unavailable. Try again in a moment.');
+  const res=await client.functions.invoke('h38-muse-keys',{body:payload});
+  if(res.error){
+    let msg=text(res.error.message)||'Request failed';
+    try{
+      const ctx=res.error.context;
+      if(ctx&&typeof ctx.json==='function'){const j=await ctx.json();if(j&&j.error)msg=text(j.error);}
+    }catch(_){}
+    throw new Error(msg);
+  }
+  if(res.data&&res.data.error)throw new Error(text(res.data.error));
+  return res.data||{};
+}
+async function loadKeys(){
+  if(KEY_STATE.loading||!businessId())return;
+  KEY_STATE.loading=true;
+  try{
+    const d=await invokeKeys({action:'list',businessId:businessId()});
+    KEY_STATE.keys=Array.isArray(d.keys)?d.keys:[];
+    KEY_STATE.loaded=true;
+  }catch(e){
+    KEY_STATE.error=text(e?.message)||'Could not load your connection keys.';
+  }
+  KEY_STATE.loading=false;
+  paintKeySection();
+}
+async function copyText(value,okMsg){
+  try{
+    if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value);toast(okMsg);return;}
+    throw new Error('clipboard unavailable');
+  }catch(_){
+    toast('Copy it by hand: tap the field, select all, and copy.',true);
+  }
+}
+function keySectionHtml(){
+  const granted=hasRequired();
+  const ownerAdmin=isOwnerAdmin();
+  let h=`<div class="card"><h2>🔑 Your Muse Connection Key</h2>
+    <p class="muted">Connect your own Muse to your Office — <strong>free</strong>, included with your Office. With a key, your Muse can read your customers, jobs, quotes, schedule, and invoices, and draft quotes, invoices, and time entries for your review.</p>`;
+  if(KEY_STATE.error)h+=`<div class="h38-perm-status warn">${esc(KEY_STATE.error)}</div>`;
+  if(KEY_STATE.notice)h+=`<div class="h38-perm-status good">${esc(KEY_STATE.notice)}</div>`;
+  if(KEY_STATE.newKey){
+    h+=`<div class="h38-key-reveal">
+      <p><strong>Your new connection key — copy it now.</strong></p>
+      <p class="muted small">⚠️ You won't see this key again — it is not stored anywhere you can open later. If you lose it, revoke it below and issue a new one. Anyone with this key can connect a Muse to your Office with the permissions on this screen, so keep it private.</p>
+      <div class="h38-key-fieldrow"><input type="text" readonly value="${esc(KEY_STATE.newKey)}" data-key-new-field aria-label="Your new Muse connection key"></div>
+      <div class="actions"><button type="button" class="primary" data-key-copy-new>Copy key</button><button type="button" class="secondary" data-key-done>Done</button></div>
+    </div>`;
+  }
+  h+=`<h3>Connection address</h3>
+    <div class="h38-key-fieldrow"><input type="text" readonly value="${esc(MCP_ENDPOINT)}" data-key-endpoint-field aria-label="Muse connection address"><button type="button" class="secondary" data-key-copy-endpoint>Copy</button></div>
+    <h3>Set it up in Muse</h3>
+    <ol class="h38-perm-list">
+      <li>Issue a connection key below and copy it right away — it is shown only once.</li>
+      <li>In Muse, open <strong>Settings → Connectors</strong> and choose <strong>Add custom connector</strong>.</li>
+      <li>Name it <strong>H38 Office</strong> and paste the connection address above.</li>
+      <li>When Muse asks for an API key or Bearer token, paste your connection key.</li>
+      <li>Start a chat and ask Muse to list your customers — if they come up, you're connected.</li>
+    </ol>`;
+  if(!granted){
+    h+=`<p class="muted small">Grant access on this screen first — a connection key follows the permissions you grant here, and issuing opens once the required permissions are on.</p>`;
+  }else if(!ownerAdmin){
+    h+=`<p class="muted small">Only the business Owner or an Administrator can issue or revoke connection keys.</p>`;
+  }else{
+    h+=`<h3>Issue a key</h3>
+    <label class="small" for="h38MuseKeyName">Key name (optional — e.g. whose Muse this is for)</label>
+    <div class="h38-key-fieldrow"><input type="text" id="h38MuseKeyName" maxlength="120" placeholder="e.g. My Muse"></div>
+    <div class="actions"><button type="button" class="primary" data-key-issue ${KEY_STATE.busy==='issue'?'disabled':''}>${KEY_STATE.busy==='issue'?'Issuing…':'Issue connection key'}</button></div>`;
+  }
+  h+=`<h3>Your keys</h3>`;
+  if(!KEY_STATE.loaded){
+    h+=`<p class="muted small">${KEY_STATE.loading?'Loading your keys…':'Your keys will load here.'}</p>`;
+  }else if(!KEY_STATE.keys.length){
+    h+=`<p class="muted small">No connection keys yet. Issue one above and your Muse can connect.</p>`;
+  }else{
+    h+=KEY_STATE.keys.map(k=>{
+      const active=k.status==='active';
+      const created=k.created_at?new Date(k.created_at).toLocaleDateString():'';
+      return `<div class="h38-perm-row">
+        <span class="h38-perm-icon">🔑</span>
+        <span><strong>${esc(k.name||'Muse connection key')}</strong> <span class="pill">${active?'Active':'Revoked'}</span><br><small class="muted">Created ${esc(created)}</small></span>
+        ${active&&ownerAdmin?`<button type="button" class="secondary" data-key-revoke="${esc(k.record_key)}" ${KEY_STATE.busy==='revoke'?'disabled':''}>Revoke</button>`:''}
+      </div>`;
+    }).join('');
+  }
+  h+=`</div>`;
+  return h;
+}
+function paintKeySection(){
+  const mount=document.getElementById('h38MuseKeysMount');
+  if(!mount)return;
+  mount.innerHTML=keySectionHtml();
+  mount.querySelector('[data-key-copy-endpoint]')?.addEventListener('click',()=>copyText(MCP_ENDPOINT,'Connection address copied.'));
+  mount.querySelector('[data-key-copy-new]')?.addEventListener('click',()=>copyText(KEY_STATE.newKey,'Key copied.'));
+  mount.querySelector('[data-key-done]')?.addEventListener('click',()=>{KEY_STATE.newKey='';paintKeySection();});
+  mount.querySelector('[data-key-new-field]')?.addEventListener('focus',e=>{try{e.target.select();}catch(_){}});
+  mount.querySelector('[data-key-endpoint-field]')?.addEventListener('focus',e=>{try{e.target.select();}catch(_){}});
+  mount.querySelector('[data-key-issue]')?.addEventListener('click',async()=>{
+    const nameEl=document.getElementById('h38MuseKeyName');
+    const name=nameEl?text(nameEl.value):'';
+    KEY_STATE.error='';KEY_STATE.notice='';KEY_STATE.busy='issue';paintKeySection();
+    try{
+      const d=await invokeKeys({action:'issue',businessId:businessId(),name});
+      KEY_STATE.newKey=text(d.key);
+      KEY_STATE.notice='Key issued. Copy it now — it will not be shown again.';
+      KEY_STATE.loaded=false;
+      await loadKeys();
+    }catch(e){
+      KEY_STATE.error=text(e?.message)||'Could not issue a key.';
+    }
+    KEY_STATE.busy='';paintKeySection();
+  });
+  mount.querySelectorAll('[data-key-revoke]').forEach(btn=>btn.addEventListener('click',async()=>{
+    const recordKey=btn.getAttribute('data-key-revoke');
+    if(!recordKey)return;
+    if(!confirm('Revoke this connection key? Any Muse using it will be disconnected right away.'))return;
+    KEY_STATE.error='';KEY_STATE.notice='';KEY_STATE.busy='revoke';paintKeySection();
+    try{
+      await invokeKeys({action:'revoke',businessId:businessId(),recordKey});
+      KEY_STATE.notice='Key revoked.';
+      KEY_STATE.loaded=false;
+      await loadKeys();
+    }catch(e){
+      KEY_STATE.error=text(e?.message)||'Could not revoke that key.';
+    }
+    KEY_STATE.busy='';paintKeySection();
+  }));
+}
+function mountKeySection(){
+  if(!document.getElementById('h38MuseKeysMount'))return;
+  paintKeySection();
+  if(!KEY_STATE.loaded&&!KEY_STATE.loading)loadKeys();
+}
+async function revokeAllKeys(){
+  // Best effort: Revoke All on this screen also revokes issued keys, so
+  // "disconnect my Muse" really disconnects it (server-side, at once).
+  try{
+    if(!KEY_STATE.loaded)await loadKeys();
+    const active=(KEY_STATE.keys||[]).filter(k=>k.status==='active');
+    for(const k of active){
+      try{await invokeKeys({action:'revoke',businessId:businessId(),recordKey:k.record_key});}catch(_){}
+    }
+    KEY_STATE.loaded=false;
+  }catch(_){}
+}
+
 function renderGrantScreen(){
   const main=document.getElementById('mainContent');
   if(!main)return;
+  ensurePermCss();
   const g=getGrants();
   
   main.innerHTML=`<div class="page-head"><div><span class="kicker">MUSE SETUP</span>
@@ -99,7 +286,8 @@ function renderGrantScreen(){
       <button class="primary" data-perm-grant>✓ Grant Access</button>
     </div>
     <p class="muted small">By granting access, you allow your Muse to act on your behalf within these permissions. Revoke anytime in Settings → Muse Permissions.</p>
-  </div>`;
+  </div>
+  <div id="h38MuseKeysMount"></div>`;
   
   document.querySelector('[data-perm-grant]')?.addEventListener('click',()=>{
     const granted=REQUIRED_PERMS.map(p=>p.id);
@@ -120,11 +308,13 @@ function renderGrantScreen(){
   document.querySelector('[data-perm-cancel]')?.addEventListener('click',()=>{
     if(window.openPage)window.openPage('today');
   });
+  mountKeySection();
 }
 
 function renderStatus(){
   const main=document.getElementById('mainContent');
   if(!main)return;
+  ensurePermCss();
   const g=getGrants();
   const allPerms=[...REQUIRED_PERMS,...OPTIONAL_PERMS];
   
@@ -152,7 +342,8 @@ function renderStatus(){
       </div>`;
     }).join('')}
     <p class="muted small">Required permissions cannot be turned off while Muse is connected. Use Revoke All to disconnect.</p>
-  </div>`;
+  </div>
+  <div id="h38MuseKeysMount"></div>`;
   
   document.querySelector('[data-perm-back]')?.addEventListener('click',()=>{
     if(window.openPage)window.openPage('settings');
@@ -165,12 +356,15 @@ function renderStatus(){
     g.grantedAt=now();saveGrants(g);renderStatus();
     toast(cb.checked?'Permission granted.':'Permission revoked.');
   });
-  document.querySelector('[data-perm-revoke-all]')?.addEventListener('click',()=>{
-    if(confirm('Revoke all Muse permissions? Your Muse will be disconnected.')){
+  document.querySelector('[data-perm-revoke-all]')?.addEventListener('click',async()=>{
+    if(confirm('Revoke all Muse permissions? Your Muse will be disconnected, and your connection keys will be revoked too.')){
+      await revokeAllKeys();
       saveGrants({granted:[],grantedAt:null,grantedBy:null});
+      KEY_STATE.newKey='';
       renderStatus();toast('Muse disconnected.');
     }
   });
+  mountKeySection();
 }
 
 function toast(msg,bad){

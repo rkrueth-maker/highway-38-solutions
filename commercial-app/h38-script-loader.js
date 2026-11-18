@@ -289,7 +289,7 @@
       './health-dashboard.js?build=20261011-health-dashboard-1',
       './sms-provider-setup.js?build=20261004-sms-providers-1',
       './sms-registration.js?build=20261109-10dlc-1',
-      './muse-permissions.js?build=20261006-muse-permissions-2',
+      './muse-permissions.js?build=20261118-muse-permissions-3',
       './data-usage.js?build=20261022-perperson-1',
       './example-data-manager.js?build=20260824-example-data-manager-2',
       './example-data-full-office.js?build=20261007-example-full-office-tenant-gate-1',

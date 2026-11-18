@@ -10,3 +10,6 @@
 .h38-perm-status{padding:12px;border-radius:8px;font-weight:600;margin-bottom:8px}
 .h38-perm-status.good{background:#e8f5e9;color:#2e7d32}
 .h38-perm-status.warn{background:#fff3e0;color:#e65100}
+.h38-key-reveal{background:#fdf6e0;border:1px solid #e3cf8a;border-radius:8px;padding:12px;margin:12px 0}
+.h38-key-fieldrow{display:flex;gap:8px;align-items:center;margin:8px 0}
+.h38-key-fieldrow input{flex:1;min-width:0;padding:8px;border:1px solid var(--line,#c9d1d6);border-radius:8px;font-size:.85rem}
