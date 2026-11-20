@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -63,6 +64,7 @@ public final class MainActivity extends Activity {
     private static final int REQ_NOTIFICATIONS = 4202;
     private static final int REQ_WEB_FILE = 4203;
     private static final int REQ_WEB_CAMERA = 4204;
+    private static final int REQ_WEB_PERMISSIONS = 4205;
 
     private WebView webView;
     private FrameLayout root;
@@ -72,6 +74,7 @@ public final class MainActivity extends Activity {
     private int wizardStep = -1; // -1 = wizard hidden
     private int sessionHealAttempts = 0; // 1.0.6 native session heal retries
     private ValueCallback<Uri[]> fileChooser;
+    private PermissionRequest pendingWebPermissionRequest;
 
     // -------------------------------------------------------------- lifecycle
 
@@ -281,6 +284,16 @@ public final class MainActivity extends Activity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            // Meeting recording (1.0.7): the Meetings page calls
+            // getUserMedia({audio:true}); a WebView denies it unless the
+            // chrome client grants the resource AND the app holds the
+            // RECORD_AUDIO runtime permission. Same shape as the
+            // site-scanner app. Audio only — the Office captures photos
+            // through the file chooser, never getUserMedia video.
+            @Override public void onPermissionRequest(PermissionRequest request) {
+                runOnUiThread(() -> handleWebPermissionRequest(request));
+            }
+
             @Override public void onGeolocationPermissionsShowPrompt(
                     String origin, GeolocationPermissions.Callback callback) {
                 // The Office's own in-app detection may use location while the
@@ -311,6 +324,29 @@ public final class MainActivity extends Activity {
             try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
             catch (Exception e) { Toast.makeText(this, "Could not open download.", Toast.LENGTH_SHORT).show(); }
         });
+    }
+
+    /** Grants the WebView's audio-capture request once the phone's
+     *  RECORD_AUDIO permission is held; asks for it first when it is not.
+     *  Requests without an audio resource are denied — the Office web app
+     *  never asks the WebView for video capture. */
+    private void handleWebPermissionRequest(PermissionRequest request) {
+        boolean wantsAudio = false;
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) wantsAudio = true;
+        }
+        if (!wantsAudio) {
+            request.deny();
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED) {
+            request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+            return;
+        }
+        if (pendingWebPermissionRequest != null) pendingWebPermissionRequest.deny();
+        pendingWebPermissionRequest = request;
+        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_WEB_PERMISSIONS);
     }
 
     private boolean routeUrl(String url) {
@@ -380,6 +416,19 @@ public final class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] perms, int[] results) {
         super.onRequestPermissionsResult(requestCode, perms, results);
+        if (requestCode == REQ_WEB_PERMISSIONS && pendingWebPermissionRequest != null) {
+            boolean granted = results.length > 0;
+            for (int result : results) {
+                granted &= result == PackageManager.PERMISSION_GRANTED;
+            }
+            if (granted) {
+                pendingWebPermissionRequest.grant(
+                        new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+            } else {
+                pendingWebPermissionRequest.deny();
+            }
+            pendingWebPermissionRequest = null;
+        }
         refreshWizardIfVisible();
         if (PolicyStore.setupComplete(this)) TrackingController.reevaluate(this);
     }
