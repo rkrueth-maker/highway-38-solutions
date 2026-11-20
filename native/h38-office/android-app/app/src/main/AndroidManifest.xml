@@ -2,6 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Meeting recording (1.0.7): the Meetings page records with
+         getUserMedia({audio}) inside the WebView; without this permission
+         and the WebChromeClient grant in MainActivity the mic request is
+         denied before the page ever sees it. Pattern follows the
+         site-scanner app. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Always-on drive detection: background location, granted by the person
