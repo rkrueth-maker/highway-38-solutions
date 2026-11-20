@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const BUILD='20260911-customer-workspace-render-hook-1';
-const PHOTO_STREAM_BUILD='20260920-canonical-files-panel-3';
+const PHOTO_STREAM_BUILD='20261119-meeting-evidence-delete-markers-1';
 const SITE_VISIT_DELETE_BUILD='20260915-customer-360-site-visit-delete-bridge-1';
 const TIMELINE_BUILD='20261031-wave1a-1';
 let photoStreamLoading=null,deleteBridgeLoading=null,timelineLoading=null;
