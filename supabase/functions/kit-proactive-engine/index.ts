@@ -26,7 +26,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const BUILD = "20261109-kit-suggestions-1";
+const BUILD = "20261122-kit-batch-1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1105,6 +1105,26 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "UNAUTHORIZED" }, 401);
   }
 
+  // Batch window for the scheduled path (2026-11-22 fix): one invocation
+  // processing every active business sequentially overran the platform's
+  // 150s response limit at the digest hour — the work landed but the
+  // response was lost (HTTP 504 IDLE_TIMEOUT), so runs reported as
+  // failures. The runner now walks the business list in small batches via
+  // { batchOffset, batchSize }; each invocation handles one slice and
+  // answers well inside the limit. No batch params (or GET) keeps the
+  // legacy all-businesses behavior. All per-item work is idempotent
+  // (7-day draft dedupe, one digest per business per day), so batch
+  // boundaries and re-runs cannot duplicate drafts or digests.
+  let batchOffset = 0;
+  let batchSize = 0; // 0 = all businesses (legacy single-call behavior)
+  if (req.method === "POST") {
+    const b = await req.json().catch(() => ({})) as Record<string, any>;
+    const off = Number(b?.batchOffset);
+    const size = Number(b?.batchSize);
+    if (Number.isFinite(off) && off > 0) batchOffset = Math.floor(off);
+    if (Number.isFinite(size) && size > 0) batchSize = Math.floor(size);
+  }
+
   // Fresh slate for this invocation's proof-log failure tracking.
   proofLogFailures.length = 0;
 
@@ -1123,11 +1143,13 @@ Deno.serve(async (req: Request) => {
   };
 
   try {
-    // Get all active businesses
+    // Get all active businesses. Stable id order so batch offsets mean
+    // the same slice on every invocation.
     const { data: businesses, error: bizError } = await supabase
       .from("businesses")
       .select("id, business_key, display_name, status")
       .eq("status", "active")
+      .order("id", { ascending: true })
       .limit(100);
 
     if (bizError) throw bizError;
@@ -1137,7 +1159,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    for (const business of businesses as Business[]) {
+    const allBusinesses = businesses as Business[];
+    const slice = batchSize > 0
+      ? allBusinesses.slice(batchOffset, batchOffset + batchSize)
+      : allBusinesses;
+    results.batch = {
+      offset: batchOffset,
+      size: slice.length,
+      total: allBusinesses.length,
+      next_offset: batchSize > 0 && batchOffset + batchSize < allBusinesses.length
+        ? batchOffset + batchSize
+        : null,
+    };
+
+    for (const business of slice) {
       try {
         // Respect per-tenant AI settings
         const aiEnabled = await checkAiEnabled(supabase, business.id);
